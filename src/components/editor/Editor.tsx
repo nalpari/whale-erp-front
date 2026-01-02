@@ -14,7 +14,7 @@ import { Extension, Editor as TiptapEditor } from "@tiptap/core";
 import Suggestion, { SuggestionProps } from "@tiptap/suggestion";
 import tippy, { Instance as TippyInstance } from "tippy.js";
 import "tippy.js/dist/tippy.css";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { common, createLowlight } from "lowlight";
 
@@ -112,8 +112,18 @@ const SlashCommand = Extension.create({
   },
 });
 
+const emptySubscribe = () => () => {};
+
+function useIsMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export default function Editor() {
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useIsMounted();
 
   const editor = useEditor({
     extensions: [
@@ -170,10 +180,6 @@ export default function Editor() {
     },
     immediatelyRender: false,
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   if (!isMounted) {
     return (

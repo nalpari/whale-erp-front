@@ -1,0 +1,161 @@
+/* color */
+$black-000: #000;
+$black-1010: #101010;
+$white-fff: #fff;
+
+/************** font weight ***********/
+$font-w-100: 100;
+$font-w-200: 200;
+$font-w-300: 300;
+$font-w-400: 400;
+$font-w-500: 500;
+$font-w-600: 600;
+$font-w-700: 700;
+$font-w-800: 800;
+$font-w-900: 900;
+
+/************** line-height ***********/
+$line-h-120: 120%;
+$line-h-130: 130%;
+$line-h-140: 140%;
+$line-h-150: 150%;
+$line-h-160: 160%;
+
+/************** radius ***********/
+$radius-4: 4px;
+$radius-8: 8px;
+$radius-12: 12px;
+$radius-24: 24px;
+
+/************* desktop **************/
+
+// desktop heading
+$font-ds-28: 28px;
+$font-ds-32: 32px;
+$font-ds-36: 36px;
+$font-ds-44: 44px;
+$font-ds-56: 56px;
+$font-ds-80: 80px;
+
+//desktop body
+$font-ds-24: 24px;
+$font-ds-22: 22px;
+$font-ds-20: 20px;
+$font-ds-18: 18px;
+$font-ds-16: 16px;
+$font-ds-15: 15px;
+$font-ds-14: 14px;
+$font-ds-12: 12px;
+$font-ds-11: 11px;
+
+//desktop display
+$font-ds-36: 36px;
+$font-ds-44: 44px;
+$font-ds-56: 56px;
+
+/*************** mobile *************/
+
+// mobile heading
+$font-mb-24: 24px;
+$font-mb-28: 28px;
+$font-mb-32: 32px;
+$font-mb-36: 36px;
+$font-mb-40: 40px;
+$font-mb-48: 48px;
+
+// mobile body
+$font-mb-20: 20px;
+$font-mb-18: 18px;
+$font-mb-16: 16px;
+$font-mb-14: 14px;
+$font-mb-12: 12px;
+
+// mobile display
+$font-mb-36: 36px;
+$font-mb-32: 32px;
+$font-mb-28: 28px;
+
+/*************** button *************/
+
+// btn-font
+$n-btn-font: 16px;
+
+// btn-color
+$normal-back-color: #6a7e96; //기본 배경
+$normal-font-color: #fff; //기본 폰트
+$normal-h-back-color: #32455d; //기본 hover 배경
+$normal-a-back-color: #536b82; //기본 active 배경
+$normal-d-back-color: #e0e0e0; //기본 disable 배경
+
+$out-back-color: #fff; //outline 배경
+$out-font-color: #9ba7ba; //ouline 폰트
+$out-border-color: #ced7e5; //outline 보더
+$out-h-back-color: #e9f0fa; //outline hover 배경
+$out-d-back-color: #ffffff; //outline disable 배경
+$out-d-font-color: #e0e0e0; //outline disable 폰트
+$out-d-border-color: #e0e0e0; //outline disable 보더
+
+$gray-back-color: #c6cdd6; //gray 배경
+$gray-font-color: #fff; //gray 폰트
+$gray-h-back-color: #949ba4; //gray hover 배경
+$gray-a-back-color: #949ba4; //gray active 배경
+$gray-d-back-color: #e0e0e0; //gray disable 배경
+
+/*************** input *************/
+
+// input font size
+$input-font: 15px;
+
+// input border color
+$input-brd-default: #ebebeb;
+$input-brd-focus: #948ea5;
+$input-brd-disabled: #ebebeb;
+$input-brd-error: #ff647c;
+
+// input font color
+$input-c-default: #222;
+$input-c-placehold: #999;
+$input-c-disabled: #999;
+$input-c-error: #ff647c;
+
+// input background color
+$input-back-default: #fff;
+$input-back-disabled: #f5f5f5;
+
+/*************** check / radio / toggle *************/
+
+// check / radio / toggle font size
+$check-ds-font: 15px;
+$check-mb-font: 14px;
+
+// check / radio / toggle color
+$check-c-back: #4e637e;
+$check-c-bord: #e1e3e6;
+$check-c-font: #222;
+
+// check / radio / toggle disabled color
+$check-disabled-c-bord: #e1e3e6;
+$check-disabled-c-font: #999;
+
+/*************** select *************/
+
+$sel-font: 15px;
+
+$sel-brd-default: #ebebeb;
+$sel-brd-focus: #948ea5;
+
+$sel-c-font: #222;
+
+/*************** textarea *************/
+
+$txtarea-font: 15px;
+
+$txtarea-brd-default: #ebebeb;
+$txtarea-brd-focus: #948ea5;
+
+$txtarea-c-font: #222;
+$txtarea-c-placehold: #999;
+
+$txtarea-disable-c-font: #d0c9d6;
+$txtarea-disable-c-border: #ecebed;
+$txtarea-disable-c-back: #ecebed;

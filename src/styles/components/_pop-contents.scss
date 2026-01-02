@@ -1,0 +1,139 @@
+@use '../abstracts' as *;
+
+.pop-frame {
+  margin-bottom: 16px;
+}
+.pop-form-item {
+  margin-bottom: 16px;
+  .pop-form-tit {
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #888;
+    margin-bottom: 8px;
+  }
+}
+.pop-btn-content {
+  @include flex(8px);
+  align-items: center;
+  justify-content: center;
+}
+.pop-guide {
+  padding: 0 16px 20px;
+  @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  color: #333;
+  letter-spacing: -0.375px;
+  border-bottom: 1px solid #ebebeb;
+}
+.pop-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 20px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    border-bottom: 1px solid #ebebeb;
+  }
+  td {
+    padding: 10px 0px 10px 16px;
+    border-bottom: 1px solid #ebebeb;
+  }
+}
+.add-store-list {
+  @include flex(12px);
+  flex-direction: column;
+  padding: 20px 16px;
+  border-bottom: 1px solid #ebebeb;
+  margin-bottom: 16px;
+  .add-store-list-item {
+    @include flex(10px);
+    align-items: center;
+    span {
+      @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+      color: #222;
+    }
+  }
+}
+
+// 직원 초대 팝업
+.work-time-wrap {
+  border: 1px solid #ebebeb;
+  .work-time-item {
+    @include flex(24px);
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #ebebeb;
+    &:last-child {
+      border-bottom: none;
+    }
+    .work-time-th {
+      flex: none;
+      width: 110px;
+    }
+    .work-time-td {
+      width: 100%;
+    }
+  }
+}
+.day-btn {
+  @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  color: #aaa;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 5px 9px;
+  transition: all 0.15s ease-in-out;
+  &:hover,
+  &.act {
+    background-color: #aaaaaa;
+    color: #fff;
+  }
+}
+.biweek-wrap {
+  padding-top: 8px;
+}
+
+// 연봉 및 통상시급 계산기 팝업
+.calculation-hd-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  background-color: #fbfbfb;
+  border: 1px solid #ebebeb;
+  border-bottom: none;
+  th {
+    padding: 20px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    border-bottom: 1px solid #ebebeb;
+  }
+  td {
+    padding: 10px 10px 10px 16px;
+    border-bottom: 1px solid #ebebeb;
+  }
+  tr {
+    &:last-child {
+      th {
+        border-bottom: none;
+      }
+      td {
+        border-bottom: none;
+      }
+    }
+  }
+}
+.calculation-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  border: 1px solid #ebebeb;
+  th {
+    padding: 20px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    border: 1px solid #ebebeb;
+    background-color: #fbfbfb;
+  }
+  td {
+    padding: 10px;
+    border: 1px solid #ebebeb;
+  }
+}

@@ -1,0 +1,31 @@
+@mixin flex($gapSize) {
+  display: flex;
+  gap: $gapSize;
+}
+
+@mixin ellipsis($col) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: $col;
+  -webkit-box-orient: vertical;
+  -o-line-clamp: $col;
+  -o-box-orient: vertical;
+  -moz-line-clamp: $col;
+  -moz-box-orient: vertical;
+  -ms-line-clamp: $col;
+  -ms-box-orient: vertical;
+}
+
+@mixin absoluteCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin fontDefinition($size, $weight, $lineheight) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $lineheight;
+}

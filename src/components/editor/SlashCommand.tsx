@@ -2,7 +2,6 @@
 
 import {
   forwardRef,
-  useEffect,
   useImperativeHandle,
   useState,
   useCallback,
@@ -21,6 +20,12 @@ interface SlashCommandProps {
 export const SlashCommandList = forwardRef<SlashCommandRef, SlashCommandProps>(
   ({ items, command }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [prevItems, setPrevItems] = useState(items);
+
+    if (items !== prevItems) {
+      setPrevItems(items);
+      setSelectedIndex(0);
+    }
 
     const selectItem = useCallback(
       (index: number) => {
@@ -31,10 +36,6 @@ export const SlashCommandList = forwardRef<SlashCommandRef, SlashCommandProps>(
       },
       [items, command]
     );
-
-    useEffect(() => {
-      setSelectedIndex(0);
-    }, [items]);
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }) => {

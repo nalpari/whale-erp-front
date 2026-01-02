@@ -1,0 +1,139 @@
+@use '../abstracts' as *;
+.erp-grid {
+  .ag-root-wrapper {
+    border-radius: 0;
+    border: 1px solid #e9edf5;
+    border-right: none;
+    border-left: none;
+    border-bottom: none;
+  }
+
+  .ag-header-cell {
+    background-color: #556071;
+    .ag-header-cell-resize {
+      width: 4px;
+      &:after {
+        background-color: #f5f5f5;
+      }
+    }
+    &:last-child {
+      .ag-header-cell-resize {
+        display: none;
+      }
+    }
+  }
+  .ag-header-cell-comp-wrapper {
+    justify-content: center;
+  }
+  .ag-column-first {
+    border-radius: 6px 0 0 6px;
+  }
+  .ag-column-last {
+    border-radius: 0 6px 6px 0;
+  }
+  .ag-header-cell-label {
+    justify-content: center;
+    span {
+      @include fontDefinition($font-ds-14, $font-w-500, $line-h-140);
+      color: #f5f5f5;
+    }
+  }
+  .ag-row {
+    border-bottom: 1px solid #e9edf5;
+    cursor: pointer;
+  }
+  .ag-icon {
+    color: #fff;
+  }
+  .ag-cell-wrapper {
+    height: 100%;
+  }
+  .ag-cell {
+    font-size: 14px;
+    font-weight: 400;
+    color: #666;
+  }
+  .ag-layout-auto-height,
+  .ag-layout-print {
+    .ag-center-cols-container,
+    .ag-center-cols-viewport {
+      min-height: auto;
+    }
+  }
+  .check-box-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    div {
+      width: 18px;
+    }
+  }
+  .header-check {
+    .ag-header-cell-comp-wrapper {
+      justify-content: center;
+    }
+  }
+}
+
+// pagination
+.pagination {
+  margin-top: 24px;
+}
+.pagination-list {
+  @include flex(8px);
+  justify-content: center;
+  align-items: center;
+  .pagination-number {
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    background-color: #fbfbfb;
+    @include fontDefinition($font-ds-14, $font-w-500, $line-h-140);
+    color: #999;
+    transition: all 0.15s ease;
+    &:hover,
+    &.active {
+      background-color: #e7eef4;
+      color: #222;
+      font-weight: 600;
+    }
+  }
+  .pagination-button {
+    position: relative;
+    @include fontDefinition($font-ds-14, $font-w-500, $line-h-140);
+    color: #1c1c1c;
+    transition: all 0.15s ease;
+    &.prev {
+      padding-right: 9px;
+      padding-left: 20px;
+      &:before {
+        left: 0;
+        transform: translateY(-50%) rotate(180deg);
+      }
+    }
+    &.next {
+      padding-right: 20px;
+      padding-left: 9px;
+      &:before {
+        right: 0;
+        transform: translateY(-50%);
+      }
+    }
+    &:before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      background-image: url('/assets/images/ui/pagination_arr.svg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    &.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
