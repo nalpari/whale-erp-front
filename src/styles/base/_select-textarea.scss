@@ -1,0 +1,72 @@
+@use '../abstracts' as *;
+
+/******************** select-type 모음 *****************/
+@mixin select-form($height, $font-size) {
+  display: block;
+  width: 100%;
+  min-width: 100px;
+  height: $height;
+  padding: 0px 16px;
+  @include fontDefinition($font-size, $font-w-400, $line-h-140);
+  border: 1px solid $sel-brd-default;
+  border-radius: 6px;
+  letter-spacing: 0;
+  color: $sel-c-font;
+  background-color: #fff;
+  background-image: url('/assets/images/common/select_arr.svg');
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 24px 24px;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  &:focus {
+    outline: none;
+    border-color: $sel-brd-focus;
+  }
+  &:disabled {
+    opacity: 1;
+    color: $txtarea-disable-c-font;
+    background-color: $txtarea-disable-c-back;
+    border-color: $txtarea-disable-c-border;
+    cursor: default;
+  }
+}
+// select 데스크탑
+.select-form {
+  @include select-form(42px, $sel-font);
+  &.small {
+    height: 32px;
+  }
+}
+
+/******************** textarea-type 모음 *****************/
+@mixin textarea-form($height, $font-size) {
+  display: block;
+  width: 100%;
+  min-width: 200px;
+  height: $height;
+  padding: 16px;
+  @include fontDefinition($font-size, $font-w-400, $line-h-140);
+  border: 1px solid $txtarea-brd-default;
+  border-radius: 6px;
+  letter-spacing: 0;
+  background-color: #fff;
+  transition: all 0.15s ease-in-out;
+  &::placeholder {
+    color: $txtarea-c-placehold;
+  }
+  &:focus {
+    outline: none;
+    border-color: $txtarea-brd-focus;
+  }
+  &:disabled {
+    color: $txtarea-disable-c-font;
+    background: $txtarea-disable-c-back;
+    border-color: $txtarea-disable-c-border;
+  }
+}
+
+// textarea 데스크탑
+.textarea-form {
+  @include textarea-form(140px, $txtarea-font);
+}

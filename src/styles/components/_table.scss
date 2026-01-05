@@ -1,0 +1,313 @@
+@use '../abstracts' as *;
+
+.default-table {
+  position: relative;
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+
+  &.white {
+    th {
+      background-color: #fff;
+      color: #222;
+    }
+  }
+  th {
+    padding: 20px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #888;
+    background-color: #f8f8f8;
+    border: 1px solid #ebebeb;
+  }
+  td {
+    padding: 10px 16px;
+    border: 1px solid #ebebeb;
+    &.val-top {
+      vertical-align: top;
+    }
+  }
+}
+
+table {
+  .filed-th {
+    padding: 10px 16px;
+  }
+  .filed-check-flx {
+    @include flex(18px);
+    align-items: center;
+  }
+  .filed-flx {
+    @include flex(10px);
+    align-items: center;
+    &.center {
+      justify-content: center;
+    }
+  }
+  .explain {
+    flex: none;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+  }
+  .won {
+    flex: none;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #888;
+  }
+  .bold-tit {
+    flex: none;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+  }
+}
+
+.filed-warning {
+  @include flex(5px);
+  align-items: center;
+  justify-content: center;
+  .warning-icon {
+    display: block;
+    width: 16px;
+    height: 15px;
+    background: url('/assets/images/popup/filed_warning.svg') no-repeat center;
+    background-size: cover;
+  }
+  .warning-txt {
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+    color: #f30c0c;
+  }
+}
+
+.slidebox-body {
+  .default-table {
+    th {
+      &:first-child {
+        border-left: none;
+      }
+    }
+    td {
+      &:last-child {
+        border-right: none;
+      }
+    }
+    tr {
+      &:last-child {
+        th {
+          border-bottom: none;
+        }
+        td {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}
+
+// header 정보 공통
+.detail-data-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 14px 0px 14px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    border-bottom: 1px solid #ebebeb;
+  }
+  td {
+    padding: 14px 0;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+    border-bottom: 1px solid #ebebeb;
+  }
+  tr {
+    &:last-child {
+      th {
+        border-bottom: none;
+      }
+      td {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+// 파트 급여명세서
+.part-paystub-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 11px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #f5f5f5;
+    text-align: center;
+    background-color: #444;
+    &:first-child {
+      border-radius: 6px 0 0 0;
+    }
+    &:last-child {
+      border-radius: 0 6px 0 0;
+    }
+  }
+  td {
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666;
+    text-align: center;
+    border: 1px solid #ebebeb;
+    border-bottom: none;
+    padding: 10px 16px;
+    background-color: #fff;
+  }
+  tr {
+    &.gray {
+      td {
+        background-color: #f5f5f5;
+        color: #222;
+        font-weight: $font-w-500;
+      }
+    }
+    &.yellow {
+      td {
+        background-color: #fbfbf3;
+        color: #222;
+        font-weight: $font-w-500;
+        border: 1px solid #cdcdcd;
+        &:first-child {
+          font-weight: $font-w-600;
+        }
+      }
+    }
+    &.blue {
+      td {
+        background-color: #f2f8fa;
+        color: #222;
+        font-weight: $font-w-500;
+        border: 1px solid #cdcdcd;
+        &:first-child {
+          font-weight: $font-w-600;
+        }
+      }
+    }
+    &:first-child {
+      td {
+        border-radius: 0 0 6px 0;
+      }
+    }
+    &:last-child {
+      td {
+        border-radius: 0 0 6px;
+      }
+    }
+  }
+}
+
+// 파트 시간 수정
+.part-time-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 11px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #f5f5f5;
+    text-align: center;
+    background-color: #444;
+    &:first-child {
+      border-radius: 6px 0 0 0;
+    }
+    &:last-child {
+      border-radius: 0 6px 0 0;
+    }
+  }
+  td {
+    padding: 10px 16px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+    text-align: center;
+    border: 1px solid #ebebeb;
+    background-color: #fff;
+  }
+  tr {
+    &.disabled {
+      td {
+        opacity: 0.5;
+        background-color: #fbfbf3;
+      }
+    }
+  }
+}
+
+// 계약 근무 시간
+.work-hours-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 11px 16px;
+    background-color: #fff;
+    border: 1px solid #ebebeb !important;
+    &.p0 {
+      padding: 0;
+    }
+  }
+  td {
+    background-color: #fafafa;
+    border: 1px solid #ebebeb !important;
+  }
+}
+.work-time-tab {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 16px;
+  @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  color: #222;
+  background-color: #fff;
+  transition: all 0.15s ease-in-out;
+  &:hover,
+  &.act {
+    background-color: #fafafa;
+    font-weight: $font-w-500;
+  }
+}
+
+// 시스템 테이블
+.system-table {
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th {
+    padding: 11px 16px;
+    @include fontDefinition($font-ds-16, $font-w-500, $line-h-140);
+    color: #fff;
+    background-color: #556071;
+    border-right: 1px solid #82868c;
+    text-align: center;
+    &:first-child {
+      border-radius: 6px 0 0 0;
+    }
+    &:last-child {
+      border-radius: 0 6px 0 0;
+      border-right: none;
+    }
+  }
+  td {
+    padding: 10px 16px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666;
+    border: 1px solid #ebebeb;
+    text-align: center;
+    &.bold {
+      color: #222;
+      font-weight: 500;
+    }
+    &.r {
+      color: #dc3545;
+      font-weight: 500;
+    }
+    &.g {
+      color: #28a745;
+      font-weight: 500;
+    }
+  }
+}

@@ -1,0 +1,148 @@
+@use '../abstracts' as *;
+
+// 의미 없음
+.icon {
+  width: 24px;
+  height: 24px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-image: url(/assets/images/common/btn_icon.svg);
+  margin-right: 8px;
+}
+
+/******************** btn-color 모음 *****************/
+.basic {
+  background-color: $normal-back-color;
+  color: $normal-font-color;
+  &.hover,
+  &:hover {
+    background-color: $normal-h-back-color;
+  }
+  &.active,
+  &:active {
+    background-color: $normal-a-back-color;
+  }
+  &:disabled {
+    background-color: $normal-d-back-color;
+  }
+}
+.outline {
+  background-color: $out-back-color;
+  color: $out-font-color;
+  border: 1px solid $out-border-color;
+  &.hover,
+  &:hover {
+    background-color: $out-h-back-color;
+    color: #8490a3;
+    border-color: $out-h-back-color;
+  }
+  &:disabled {
+    background-color: $out-d-back-color;
+    color: $out-d-font-color;
+    border-color: $out-d-border-color;
+  }
+  &.act {
+    background-color: #9ba7ba;
+    color: #fff;
+    border-color: #9ba7ba;
+  }
+}
+.gray {
+  background-color: $gray-back-color;
+  color: $gray-font-color;
+  &.hover,
+  &:hover {
+    background-color: $gray-h-back-color;
+  }
+  &.active,
+  &:active {
+    background-color: $gray-a-back-color;
+  }
+  &:disabled {
+    background-color: $normal-d-back-color;
+  }
+}
+
+/******************** btn-type 모음 *****************/
+// btn-frame 공통
+@mixin btn-frame($height, $padding, $font-size, $i-size) {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: $height;
+  padding: 0px $padding;
+  border-radius: 6px;
+  @include fontDefinition($font-size, $font-w-500, $height);
+  font-family: 'Pretendard', sans-serif;
+  letter-spacing: 0;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  i {
+    display: block;
+  }
+  &:disabled {
+    cursor: default;
+  }
+  &.ic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// 데스크탑 small 버튼
+.btn-form {
+  @include btn-frame(42px, 24px, $font-ds-15, 20px);
+  &.s {
+    @include btn-frame(42px, 18px, $font-ds-15, 24px);
+  }
+  &.grid {
+    @include btn-frame(32px, 18px, $font-ds-15, 24px);
+  }
+}
+.btn-log-frame {
+  @include btn-frame(56px, 10px, $n-btn-font, 24px);
+  background-color: #212121;
+  font-weight: 600;
+  color: #fff;
+  &:hover {
+    background-color: #323232;
+  }
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+  background-image: url(/assets/images/common/btn_check.svg);
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.plus {
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  background-image: url(/assets/images/contents/btn_plus.svg);
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.add {
+  padding: 0;
+  width: 42px;
+  height: 42px;
+  background-image: url(/assets/images/contents/btn_add.svg);
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+  background-position: center;
+}
+
+.minus {
+  padding: 0;
+  width: 42px;
+  height: 42px;
+  background-image: url(/assets/images/contents/btn_minus.svg);
+  background-repeat: no-repeat;
+  background-size: 10px 2px;
+  background-position: center;
+}

@@ -1,0 +1,48 @@
+@use '../abstracts' as *;
+
+.location {
+  @include flex(0px);
+  align-items: center;
+  padding-top: 34px;
+  padding-bottom: 30px;
+  .location-tit {
+    @include fontDefinition($font-ds-24, $font-w-500, $line-h-140);
+    color: #222;
+  }
+  .location-list {
+    margin-left: auto;
+    @include flex(0px);
+    align-items: center;
+    .location-item {
+      position: relative;
+      padding-right: 15px;
+      margin-left: 8px;
+      .location-item-tit {
+        @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+        color: #999;
+      }
+      &::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        right: 0;
+        width: 5px;
+        height: 8px;
+        background: url('/assets/images/ui/location_arr.svg') no-repeat center;
+      }
+      &:first-child {
+        padding-left: 0;
+      }
+      &:last-child {
+        padding-right: 0;
+        .location-item-tit {
+          color: #222;
+          font-weight: $font-w-500;
+        }
+        &::before {
+          display: none;
+        }
+      }
+    }
+  }
+}

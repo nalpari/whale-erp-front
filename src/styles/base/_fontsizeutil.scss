@@ -1,0 +1,79 @@
+@use "../abstracts" as *;
+
+/************************ Desk Top **********************/
+
+/***** heading ****/
+.ds-h1{@include fontDefinition($font-ds-80, $font-w-600, $line-h-120);}
+.ds-h2{@include fontDefinition($font-ds-56, $font-w-600, $line-h-120);}
+.ds-h3{@include fontDefinition($font-ds-44, $font-w-600, $line-h-120);}
+.ds-h4{@include fontDefinition($font-ds-36, $font-w-600, $line-h-120);}
+.ds-h5{@include fontDefinition($font-ds-32, $font-w-600, $line-h-120);}
+.ds-h6{@include fontDefinition($font-ds-28, $font-w-600, $line-h-120);}
+
+
+/***** body ****/
+.ds-b1-sb{@include fontDefinition($font-ds-24, $font-w-600, $line-h-140);}
+.ds-b1-m{@include fontDefinition($font-ds-24, $font-w-500, $line-h-140);}
+.ds-b1-r{@include fontDefinition($font-ds-24, $font-w-400, $line-h-140);}
+
+.ds-b2-sb{@include fontDefinition($font-ds-20, $font-w-600, $line-h-140);}
+.ds-b2-m{@include fontDefinition($font-ds-20, $font-w-500, $line-h-140);}
+.ds-b2-r{@include fontDefinition($font-ds-20, $font-w-400, $line-h-140);}
+
+.ds-b3-sb{@include fontDefinition($font-ds-16, $font-w-600, $line-h-150);}
+.ds-b3-m{@include fontDefinition($font-ds-16, $font-w-500, $line-h-150);}
+.ds-b3-r{@include fontDefinition($font-ds-16, $font-w-400, $line-h-150);}
+
+.ds-b4-sb{@include fontDefinition($font-ds-14, $font-w-600, $line-h-150);}
+.ds-b4-m{@include fontDefinition($font-ds-14, $font-w-500, $line-h-150);}
+.ds-b4-r{@include fontDefinition($font-ds-14, $font-w-400, $line-h-150);}
+
+.ds-b5-sb{@include fontDefinition($font-ds-12, $font-w-600, $line-h-160);}
+.ds-b5-m{@include fontDefinition($font-ds-12, $font-w-500, $line-h-160);}
+.ds-b5-r{@include fontDefinition($font-ds-12, $font-w-400, $line-h-160);}
+
+
+/***** display ****/
+.ds-dpl1{@include fontDefinition($font-ds-56, $font-w-400, $line-h-120);}
+.ds-dpl2{@include fontDefinition($font-ds-44, $font-w-400, $line-h-120);}
+.ds-dpl3{@include fontDefinition($font-ds-36, $font-w-400, $line-h-120);}
+
+
+
+/************************ Mobile **********************/
+
+/***** heading ****/
+.mb-h1{@include fontDefinition($font-mb-48, $font-w-600, $line-h-120);}
+.mb-h2{@include fontDefinition($font-mb-40, $font-w-600, $line-h-120);}
+.mb-h3{@include fontDefinition($font-mb-36, $font-w-600, $line-h-120);}
+.mb-h4{@include fontDefinition($font-mb-32, $font-w-600, $line-h-120);}
+.mb-h5{@include fontDefinition($font-mb-28, $font-w-600, $line-h-120);}
+.mb-h6{@include fontDefinition($font-mb-24 ,$font-w-600, $line-h-120);}
+
+
+/***** body ****/
+.mb-b1-sb{@include fontDefinition($font-mb-20, $font-w-600, $line-h-140);}
+.mb-b1-m{@include fontDefinition($font-mb-20, $font-w-500, $line-h-140);}
+.mb-b1-r{@include fontDefinition($font-mb-20, $font-w-400, $line-h-140);}
+
+.mb-b2-sb{@include fontDefinition($font-mb-18, $font-w-600, $line-h-140);}
+.mb-b2-m{@include fontDefinition($font-mb-18, $font-w-500, $line-h-140);}
+.mb-b2-r{@include fontDefinition($font-mb-18 , $font-w-400, $line-h-140);}
+
+.mb-b3-sb{@include fontDefinition($font-mb-16, $font-w-600, $line-h-150);}
+.mb-b3-m{@include fontDefinition($font-mb-16, $font-w-500, $line-h-150);}
+.mb-b3-r{@include fontDefinition($font-mb-16, $font-w-400, $line-h-150);}
+
+.mb-b4-sb{@include fontDefinition($font-mb-14, $font-w-600, $line-h-150);}
+.mb-b4-m{@include fontDefinition($font-mb-14, $font-w-500, $line-h-150);}
+.mb-b4-r{@include fontDefinition($font-mb-14, $font-w-400, $line-h-150);}
+
+.mb-b5-sb{@include fontDefinition($font-mb-12, $font-w-600, $line-h-160);}
+.mb-b5-m{@include fontDefinition($font-mb-12, $font-w-500, $line-h-160);}
+.mb-b5-r{@include fontDefinition($font-mb-12, $font-w-400, $line-h-160);}
+
+
+/***** display ****/
+.mb-dpl1{@include fontDefinition($font-mb-36, $font-w-400, $line-h-120);}
+.mb-dpl2{@include fontDefinition($font-mb-32, $font-w-400, $line-h-120);}
+.mb-dpl3{@include fontDefinition($font-mb-28, $font-w-400, $line-h-120);}

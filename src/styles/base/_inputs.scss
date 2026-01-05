@@ -1,0 +1,171 @@
+@use '../abstracts' as *;
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/******************** input-type 모음 *****************/
+// input-frame 공통
+@mixin input-frame($height, $border-color, $back-color, $font-size, $font-color) {
+  width: 100%;
+  min-width: 70px;
+  height: $height;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid $border-color;
+  background-color: $back-color;
+  @include fontDefinition($font-size, $font-w-400, $line-h-140);
+  color: $font-color;
+  letter-spacing: 0;
+  transition: all 0.15s ease-in-out;
+  &.focus,
+  &:focus {
+    border-color: $input-brd-focus;
+  }
+  &::placeholder {
+    color: $input-c-placehold;
+  }
+
+  &:read-only,
+  &:disabled {
+    border-color: $input-brd-disabled;
+    color: $input-c-disabled;
+    background-color: $input-back-disabled;
+  }
+  &.blue {
+    border-color: #c3ccdc;
+    background-color: #e8edf7;
+    color: #222;
+    &:read-only,
+    &:disabled {
+      color: #888;
+    }
+  }
+}
+
+// input icon frame 공통
+@mixin input-icon-frame($height, $font-size, $border-color, $back-color) {
+  display: flex;
+  align-items: center;
+  @include input-frame($height, $border-color, $back-color, $font-size, $input-c-default);
+  input {
+    flex: 1;
+    height: 100%;
+    color: inherit;
+    &::placeholder {
+      color: $input-c-placehold;
+    }
+  }
+  &:focus-within {
+    border-color: $input-brd-focus; // 원하는 색상 변수로 교체
+  }
+  button {
+    flex: none;
+    display: block;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  &:has(input:read-only),
+  &:has(input:disabled) {
+    background-color: $input-back-disabled;
+    border-color: $input-brd-disabled;
+    color: $input-c-disabled;
+    button {
+      cursor: default;
+      pointer-events: none;
+    }
+  }
+  &.del {
+    .input-icon-btn {
+      width: 18px;
+      height: 18px;
+      background-image: url('/assets/images/common/input_delete.svg');
+    }
+  }
+  &.err {
+    border-color: $input-brd-error;
+    color: $input-c-error;
+    .input-icon-btn {
+      width: 16px;
+      height: 16px;
+      background-image: url('/assets/images/common/input_err.svg');
+    }
+  }
+  &.pw {
+    .input-icon-btn {
+      width: 16px;
+      height: 16px;
+      background-image: url('/assets/images/common/input_show.svg');
+      &.show {
+        background-image: url('/assets/images/common/input_hide.svg');
+      }
+    }
+  }
+}
+
+// 데스크탑 input default
+.input-frame {
+  @include input-frame(42px, $input-brd-default, $input-back-default, $input-font, $input-c-default);
+  &.small {
+    height: 32px;
+  }
+  &.xs {
+    width: 40px;
+    padding: 0 5px;
+    min-width: 40px;
+    text-align: center;
+  }
+  &.black {
+    border-color: #222;
+    background-color: #666;
+    color: #fff;
+  }
+}
+// 모바일 input default
+.input-log-frame {
+  @include input-frame(56px, #d1d9e6, #fff, $input-font, $input-c-default);
+  &:disabled,
+  &:read-only {
+    background-color: #f5f5f5;
+    border: 1px solid #d1d9e6;
+    color: #999;
+  }
+}
+
+// icon 있을때
+.input-icon-frame {
+  @include input-icon-frame(42px, $input-font, $input-brd-default, $input-back-default);
+}
+.input-icon-log-frame {
+  @include input-icon-frame(56px, $input-font, #d1d9e6, #fff);
+  &.del {
+    .input-icon-btn {
+      width: 16px;
+      height: 16px;
+      background-image: url('/assets/images/common/login_del.svg');
+    }
+  }
+
+  &:has(input:read-only),
+  &:has(input:disabled) {
+    background-color: #f5f5f5;
+    border: 1px solid #d1d9e6;
+    color: #999;
+  }
+}
+
+.filed-file {
+  input {
+    display: none;
+  }
+  label {
+    display: inline-block;
+  }
+}

@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+$default-color: #2c2c2c;
+
+.red {
+  color: #f00;
+}
+
+.mb15 {
+  margin-bottom: 15px !important;
+}
+
+.publish-list {
+  font-family: 'Noto Sans', sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: 'wdth' 100;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+}
+.p-header {
+  padding: 20px;
+  background-color: $default-color;
+  text-align: center;
+  h1 {
+    font-size: 34px;
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.p-body {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  flex: 1 1 auto;
+  .p-contents {
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+}
+
+.p-guide {
+  border: 1px solid $default-color;
+  border-radius: 4px;
+  .p-guide-header {
+    font-size: 16px;
+    color: #fff;
+    background-color: $default-color;
+    padding: 10px 20px;
+    border-radius: 4px 4px 0 0;
+  }
+  .p-guide-content {
+    padding: 10px 20px;
+    p {
+      font-size: 14px;
+      margin-bottom: 5px;
+      span {
+        color: red;
+      }
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+  .p-guide-inputcommon {
+    h3 {
+      font-size: 16px;
+      margin: 15px 0 5px;
+      font-weight: 600;
+    }
+    a {
+      display: block;
+      border: 1px solid $default-color;
+      border-radius: 3px;
+      background-color: $default-color;
+      color: #fff;
+      height: 44px;
+      line-height: 40px;
+      padding: 0 10px;
+      text-align: center;
+      transition: all 0.15s ease-in-out;
+      &:hover {
+        background-color: #fff;
+        color: $default-color;
+      }
+    }
+  }
+}
+
+.p-list-wrap {
+  margin-top: 25px;
+  h2 {
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .p-list-table {
+    margin-top: 10px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      th {
+        background-color: #eee;
+        color: #2c2c2c;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 10px;
+        border: 1px solid #999;
+      }
+      td {
+        border: 1px solid #999;
+        padding: 10px;
+        font-size: 12px;
+        a {
+          text-decoration: underline;
+          color: blue;
+          &:visited {
+            color: purple;
+          }
+        }
+      }
+    }
+  }
+}
+.p-guide-link-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  a {
+    display: inline-block;
+    border: 1px solid #2c2c2c;
+    background-color: #fff;
+    color: #2c2c2c;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.15s ease-in-out;
+    &:hover {
+      background-color: #2c2c2c;
+      color: #fff;
+    }
+  }
+}

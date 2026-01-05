@@ -1,0 +1,281 @@
+@use '../abstracts' as *;
+
+// header
+header {
+  margin-left: auto;
+  .data-wrap {
+    @include flex(18px);
+    align-items: center;
+    margin-left: auto;
+  }
+}
+.header-wrap {
+  @include flex(0px);
+  align-items: center;
+}
+
+// fulldown-menu
+.fulldown-menu {
+  position: relative;
+  width: 420px;
+  height: 48px;
+  background-color: #f5f5f5;
+  border-radius: 100px;
+  border: 1px solid #ebebeb;
+  line-height: 48px;
+  z-index: 9000;
+  .fulldown-menu-tit {
+    position: relative;
+    display: block;
+    width: 100%;
+    text-align: left;
+    @include fontDefinition($font-ds-16, $font-w-400, 48px);
+    color: #222;
+    padding: 0 45px 0 18px;
+    @include ellipsis(1);
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%) rotate(180deg);
+      right: 8px;
+      width: 32px;
+      height: 32px;
+      background-color: #fff;
+      border-radius: 50%;
+      border: 1px solid #ebebeb;
+      background-image: url('/assets/images/common/fulldown_arr.svg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: 12px 7px;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+  }
+  &.act {
+    .fulldown-menu-tit {
+      &::before {
+        transform: translateY(-50%) rotate(0deg);
+      }
+    }
+  }
+}
+.fulldown-menu-wrap {
+  // position: absolute;
+  // top: calc(100% + 6px);
+  // left: 0;
+  margin-top: 6px;
+  width: 100%;
+  padding: 20px 24px;
+  background-color: #fff;
+  border-radius: 30px;
+  border: 1px solid #ebebeb;
+}
+.fulldown-menu-list {
+  max-height: 150px;
+  overflow-y: auto;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #999;
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: #fff;
+  }
+  .fulldown-menu-item-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 4px 0;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666;
+    word-break: keep-all;
+    transition: all 0.15s ease-in-out;
+    &:hover {
+      color: #222;
+    }
+  }
+}
+
+// my-data
+.my-data {
+  position: relative;
+  z-index: 9000;
+  &.act {
+    .data-arrow {
+      transform: rotate(0deg);
+    }
+  }
+}
+.my-data-wrap {
+  @include flex(0px);
+  align-items: center;
+  .my-icon {
+    display: flex;
+    width: 40px;
+  }
+  .data-info {
+    margin-left: 12px;
+    .data-position {
+      @include fontDefinition($font-ds-11, $font-w-500, $line-h-140);
+      color: #999;
+      margin-bottom: 4px;
+    }
+    .data-name {
+      @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+      color: #222;
+    }
+    cursor: default;
+  }
+  .data-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #ebebeb;
+    margin-left: 14px;
+    background-color: #fff;
+    background-image: url('/assets/images/common/fulldown_arr.svg');
+    transform: rotate(180deg);
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 12px 7px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+}
+
+.my-data-list {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 0;
+  background-color: #fff;
+  border: 1px solid #ebebeb;
+  border-radius: 28px;
+  padding: 20px 24px;
+  &:before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    border-left: 1px solid #ebebeb;
+    border-top: 1px solid #ebebeb;
+    background-color: #fff;
+  }
+  .my-data-item {
+    padding: 4px 0;
+  }
+  .my-data-item-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666;
+    transition: all 0.15s ease-in-out;
+    &.red {
+      color: #e93737;
+      font-weight: $font-w-600;
+      &:hover {
+        color: #e93737;
+      }
+    }
+    &:hover {
+      color: #222;
+    }
+  }
+}
+
+// service-tab
+.service-tab {
+  position: relative;
+  z-index: 9000;
+  &.act {
+    .service-item {
+      &.service-tab {
+        opacity: 0.4;
+      }
+    }
+  }
+}
+.service-menu {
+  @include flex(24px);
+  align-items: center;
+  padding: 0 24px;
+  height: 48px;
+  border: 1px solid #ebebeb;
+  border-radius: 150px;
+  .service-guide {
+    flex: none;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+  }
+  .service-menu-list {
+    @include flex(18px);
+    align-items: center;
+    .service-item {
+      display: block;
+      width: 32px;
+      height: 32px;
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      &.icon01 {
+        background-image: url('/assets/images/common/service_icon01.svg');
+      }
+      &.icon02 {
+        background-image: url('/assets/images/common/service_icon02.svg');
+      }
+      &.icon03 {
+        background-image: url('/assets/images/common/service_icon03.svg');
+      }
+      &.icon04 {
+        background-image: url('/assets/images/common/service_icon04.svg');
+      }
+      &.service-tab {
+        background-image: url('/assets/images/common/service_tab.svg');
+        transition: all 0.2s ease-in-out;
+      }
+    }
+  }
+}
+.service-menu-list-wrap {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px 0;
+  background-color: #fff;
+  border: 1px solid #ebebeb;
+  width: 100%;
+  border-radius: 28px;
+  padding: 24px 0;
+  .service-menu-list-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &:hover {
+      .service-item-name {
+        font-weight: 500;
+        color: #222;
+      }
+    }
+  }
+  .service-item-icon {
+    display: flex;
+    border: 1px solid #ebebeb;
+    background-color: #fff;
+    border-radius: 10px;
+  }
+  .service-item-name {
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+    color: #666;
+    margin-top: 8px;
+    transition: all 0.15s ease-in-out;
+  }
+}
