@@ -1,0 +1,580 @@
+/* Login Page Styles - Whale ERP */
+/* Modern Corporate Elegant Design */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+/* ===== CSS Custom Properties ===== */
+.login-page {
+  --login-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Dark Panel Colors */
+  --brand-bg-primary: #0a0f1a;
+  --brand-bg-secondary: #111827;
+  --brand-gradient-start: #1e3a5f;
+  --brand-gradient-end: #0c1929;
+
+  /* Light Panel Colors */
+  --form-bg: #ffffff;
+  --form-bg-secondary: #f8fafc;
+
+  /* Accent Colors */
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #3b82f6;
+  --accent-glow: rgba(37, 99, 235, 0.3);
+
+  /* Text Colors */
+  --text-light: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dark: #1e293b;
+  --text-dark-secondary: #64748b;
+
+  /* Borders & Shadows */
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-dark: #e2e8f0;
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-large: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Base Layout ===== */
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--login-font);
+  background: var(--form-bg);
+  overflow: hidden;
+}
+
+/* ===== Brand Panel (Left) ===== */
+.login-brand-panel {
+  position: relative;
+  width: 45%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--brand-gradient-start) 0%, var(--brand-bg-primary) 50%, var(--brand-gradient-end) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  overflow: hidden;
+}
+
+/* Animated Background Pattern */
+.login-brand-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+  animation: gradientShift 15s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+/* Geometric Pattern Overlay */
+.login-brand-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* Brand Content */
+.login-brand-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Whale Logo */
+.login-whale-logo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  position: relative;
+  animation: floatWhale 6s ease-in-out infinite;
+}
+
+@keyframes floatWhale {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-10px) rotate(2deg); }
+  75% { transform: translateY(5px) rotate(-2deg); }
+}
+
+.login-whale-logo svg {
+  width: 100%;
+  height: 100%;
+  fill: var(--text-light);
+  filter: drop-shadow(0 10px 30px rgba(37, 99, 235, 0.3));
+}
+
+/* Brand Title */
+.login-brand-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+  animation: fadeInUp 0.8s ease-out 0.1s both;
+}
+
+.login-brand-title span {
+  color: var(--accent-light);
+}
+
+/* Brand Tagline */
+.login-brand-tagline {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  max-width: 300px;
+  line-height: 1.6;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+/* Decorative Wave Lines */
+.login-wave-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  overflow: hidden;
+  opacity: 0.15;
+}
+
+.login-wave-decoration svg {
+  position: absolute;
+  bottom: 0;
+  width: 200%;
+  height: 100%;
+  animation: waveMove 20s linear infinite;
+}
+
+@keyframes waveMove {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ===== Form Panel (Right) ===== */
+.login-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  background: var(--form-bg);
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 400px;
+  animation: fadeInRight 0.8s ease-out 0.3s both;
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Form Header */
+.login-form-header {
+  margin-bottom: 2.5rem;
+}
+
+.login-form-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.login-form-subtitle {
+  font-size: 0.9375rem;
+  color: var(--text-dark-secondary);
+}
+
+/* Form Inputs */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-input-group {
+  position: relative;
+}
+
+.login-input-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.login-input-wrapper {
+  position: relative;
+}
+
+.login-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  padding-left: 2.75rem;
+  font-family: var(--login-font);
+  font-size: 0.9375rem;
+  color: var(--text-dark);
+  background: var(--form-bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.login-input::placeholder {
+  color: var(--text-dark-secondary);
+  opacity: 0.6;
+}
+
+.login-input:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.login-input:focus {
+  background: var(--form-bg);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-dark-secondary);
+  transition: color 0.25s ease;
+  pointer-events: none;
+}
+
+.login-input:focus + .login-input-icon,
+.login-input-wrapper:focus-within .login-input-icon {
+  color: var(--accent-primary);
+}
+
+/* Password Toggle */
+.login-password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--text-dark-secondary);
+  transition: color 0.2s ease;
+}
+
+.login-password-toggle:hover {
+  color: var(--text-dark);
+}
+
+/* Remember Me & Forgot Password Row */
+.login-options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -0.5rem;
+}
+
+.login-remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.login-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-dark);
+  border-radius: 5px;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
+.login-checkbox-label {
+  font-size: 0.875rem;
+  color: var(--text-dark-secondary);
+  user-select: none;
+}
+
+.login-forgot-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-forgot-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* Submit Button */
+.login-submit-btn {
+  position: relative;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  margin-top: 0.5rem;
+  font-family: var(--login-font);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.login-submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium), 0 10px 30px -10px var(--accent-glow);
+}
+
+.login-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Button Loading Spinner */
+.login-btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.login-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Divider */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-dark);
+}
+
+.login-divider-text {
+  font-size: 0.8125rem;
+  color: var(--text-dark-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Social Buttons */
+.login-social-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.login-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--login-font);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  background: var(--form-bg);
+  border: 2px solid var(--border-dark);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-social-btn:hover {
+  background: var(--form-bg-secondary);
+  border-color: #cbd5e1;
+}
+
+.login-social-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Footer Text */
+.login-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-dark);
+}
+
+.login-footer-text {
+  font-size: 0.875rem;
+  color: var(--text-dark-secondary);
+}
+
+.login-footer-link {
+  color: var(--accent-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-footer-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1024px) {
+  .login-brand-panel {
+    width: 40%;
+    padding: 2rem;
+  }
+
+  .login-whale-logo {
+    width: 100px;
+    height: 100px;
+  }
+
+  .login-brand-title {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column;
+  }
+
+  .login-brand-panel {
+    width: 100%;
+    min-height: auto;
+    padding: 3rem 2rem;
+  }
+
+  .login-whale-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1.5rem;
+  }
+
+  .login-brand-title {
+    font-size: 1.75rem;
+  }
+
+  .login-brand-tagline {
+    font-size: 1rem;
+  }
+
+  .login-form-panel {
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  .login-form-container {
+    max-width: 100%;
+  }
+
+  .login-wave-decoration {
+    height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-brand-panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-social-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .login-options-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+/* ===== Dark Mode Support ===== */
+@media (prefers-color-scheme: dark) {
+  .login-page {
+    --form-bg: #1e293b;
+    --form-bg-secondary: #334155;
+    --border-dark: #475569;
+    --text-dark: #f1f5f9;
+    --text-dark-secondary: #94a3b8;
+  }
+
+  .login-input {
+    color: var(--text-dark);
+  }
+
+  .login-social-btn {
+    color: var(--text-dark);
+  }
+}
