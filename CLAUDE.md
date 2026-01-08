@@ -26,6 +26,7 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 ### Route Groups
 
+- `src/app/(auth)/` — Authentication pages (login) with no shared layout
 - `src/app/(sub)/` — Main ERP pages with shared layout (LNB sidebar, Header, FullDownMenu)
 - `src/app/editor/` — Standalone rich text editor page
 
@@ -42,7 +43,9 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 ### State Management
 
-- **`src/stores/auth-store.ts`**: Zustand store for authentication (accessToken)
+- **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
+  - Stores `accessToken` and `refreshToken`
+  - Methods: `setTokens(access, refresh)`, `setAccessToken(token)`, `clearAuth()`
 - Access token outside React: `useAuthStore.getState().accessToken`
 
 ### Styling Architecture
