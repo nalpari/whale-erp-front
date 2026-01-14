@@ -4,11 +4,11 @@ import { persist } from 'zustand/middleware';
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
-  authority: any | null;
+  authority: Record<string, unknown> | null;
   affiliationId: string | null;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setAccessToken: (token: string | null) => void;
-  setAuthority: (authority: any) => void;
+  setAuthority: (authority: Record<string, unknown>) => void;
   setAffiliationId: (id: string | null) => void;
   clearAuth: () => void;
 }
