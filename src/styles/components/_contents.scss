@@ -1367,3 +1367,146 @@
     color: #333;
   }
 }
+
+// 과금관리
+.pricing-check-wrap {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  .pricing-btn {
+    display: block;
+    width: 100%;
+    height: 42px;
+    padding: 0 5px;
+    border-radius: 6px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #9ba7ba;
+    transition: all 0.15s ease-in-out;
+    &:hover,
+    &.act {
+      background-color: #e5e9ed;
+      color: #5d748f;
+      border-color: #5d748f;
+    }
+  }
+}
+
+// bp 회원가입
+.subscrip-tit {
+  margin-bottom: 30px;
+  p {
+    @include fontDefinition($font-ds-20, $font-w-500, $line-h-140);
+    color: #222;
+  }
+}
+.subscrip-txt {
+  @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
+  color: #505050;
+  margin-bottom: 18px;
+}
+.subscrip-guide {
+  margin-top: 30px;
+  margin-bottom: 18px;
+  .subscrip-guide-tit {
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+    color: #222;
+    margin-bottom: 15px;
+  }
+  .subscrip-guide-cont {
+    p {
+      @include fontDefinition($font-ds-15, $font-w-400, $line-h-160);
+      color: #505050;
+    }
+  }
+}
+.subscrip-guide-link {
+  a {
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #366fe3;
+    text-decoration: underline;
+  }
+}
+.subscrip-form-footer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+// 결제수단 관리
+.pay-method-wrap {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 30px;
+}
+
+.pay-method-inner {
+  padding: 23px 30px;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 24px;
+  box-shadow: 0 29px 80px 0 rgba(0, 0, 0, 0.03), 0 5.8px 13px 0 rgba(0, 0, 0, 0.01);
+  .pay-method-tit {
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+    color: #222;
+    margin-bottom: 10px;
+  }
+  .pay-method-num {
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+    margin-bottom: 12px;
+  }
+  .pay-method-btn {
+    display: block;
+    width: 100%;
+    @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
+    color: #999;
+    padding: 0 14px;
+    height: 35px;
+    border-radius: 100px;
+    background-color: #f4f5f6;
+    border: 1px solid #eee;
+    transition: all 0.15s ease-in-out;
+    &:hover {
+      background-color: #e4eaf3;
+      border-color: #e4eaf3;
+    }
+  }
+}
+.pay-method-date {
+  @include flex(10px);
+  align-items: center;
+  padding-left: 8px;
+  margin-top: 16px;
+  span {
+    display: block;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #767676;
+  }
+}
+.pay-method-btn-wrap {
+  margin-top: 42px;
+}
+.pay-method-btn {
+  @include flex(8px);
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 68px;
+  padding: 0 24px;
+  border-radius: 6px;
+  background-color: #f4f5f6;
+  @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+  color: #222;
+  transition: all 0.15s ease-in-out;
+  &:hover {
+    background-color: #e4eaf3;
+  }
+  .create {
+    display: block;
+    width: 36px;
+    height: 36px;
+    background-image: url('/assets/images/contents/payment_create.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+  }
+}
