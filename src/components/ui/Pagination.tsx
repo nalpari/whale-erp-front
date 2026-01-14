@@ -1,30 +1,95 @@
-export default function Pagination() {
+﻿interface PaginationProps {
+  page?: number
+  totalPages?: number
+  onPageChange?: (page: number) => void
+}
+
+const buildPageRange = (current: number, total: number, maxButtons: number) => {
+  if (total <= maxButtons) {
+    return Array.from({ length: total }, (_, index) => index)
+  }
+
+  const half = Math.floor(maxButtons / 2)
+  let start = Math.max(0, current - half)
+  const end = Math.min(total, start + maxButtons)
+
+  if (end - start < maxButtons) {
+    start = Math.max(0, end - maxButtons)
+  }
+
+  return Array.from({ length: end - start }, (_, index) => start + index)
+}
+
+export default function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+  if (page === undefined || totalPages === undefined) {
+    return (
+      <div className="pagination">
+        <ol className="pagination-list">
+          <li>
+            <button type="button" className="pagination-button prev disabled" aria-label="Prev" disabled>
+              Prev
+            </button>
+          </li>
+          <li>
+            <button className="pagination-number">1</button>
+          </li>
+          <li>
+            <button className="pagination-number active" aria-current="page">
+              2
+            </button>
+          </li>
+          <li>
+            <button className="pagination-number">3</button>
+          </li>
+          <li>
+            <button type="button" className="pagination-button next" aria-label="Next">
+              Next
+            </button>
+          </li>
+        </ol>
+      </div>
+    )
+  }
+
+  const total = Math.max(1, totalPages)
+  const current = Math.min(Math.max(page, 0), total - 1)
+  const pages = buildPageRange(current, total, 10)
+
   return (
     <div className="pagination">
       <ol className="pagination-list">
-        {/* 이전 버튼 */}
         <li>
-          <button type="button" className="pagination-button prev disabled" aria-label="이전 페이지" disabled>
+          <button
+            type="button"
+            className={`pagination-button prev ${current === 0 ? 'disabled' : ''}`}
+            aria-label="Prev"
+            disabled={current === 0}
+            onClick={() => onPageChange?.(current - 1)}
+          >
             Prev
           </button>
         </li>
 
-        {/* 페이지 번호들 */}
-        <li>
-          <button className="pagination-number">1</button>
-        </li>
-        <li>
-          <button className="pagination-number active" aria-current="page">
-            2
-          </button>
-        </li>
-        <li>
-          <button className="pagination-number">3</button>
-        </li>
+        {pages.map((pageNumber) => (
+          <li key={pageNumber}>
+            <button
+              className={`pagination-number ${pageNumber === current ? 'active' : ''}`}
+              aria-current={pageNumber === current ? 'page' : undefined}
+              onClick={() => onPageChange?.(pageNumber)}
+            >
+              {pageNumber + 1}
+            </button>
+          </li>
+        ))}
 
-        {/* 다음 버튼 */}
         <li>
-          <button type="button" className="pagination-button next" aria-label="다음 페이지">
+          <button
+            type="button"
+            className={`pagination-button next ${current >= total - 1 ? 'disabled' : ''}`}
+            aria-label="Next"
+            disabled={current >= total - 1}
+            onClick={() => onPageChange?.(current + 1)}
+          >
             Next
           </button>
         </li>
