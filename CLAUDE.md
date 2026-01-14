@@ -26,7 +26,7 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 ### Route Groups
 
-- `src/app/(auth)/` — Authentication pages (login) with no shared layout
+- `src/app/(auth)/` — Authentication pages (login) with dedicated CSS, no shared layout
 - `src/app/(sub)/` — Main ERP pages with shared layout (LNB sidebar, Header, FullDownMenu)
 - `src/app/editor/` — Standalone rich text editor page
 
@@ -34,6 +34,7 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 - **`src/lib/api.ts`**: Axios instance with request/response interceptors
   - Automatically attaches Bearer token from auth store
+  - Automatically attaches `affiliation` header for multi-organization support
   - Handles 401 responses by clearing auth state
   - Base URL from `NEXT_PUBLIC_API_URL` environment variable
 
@@ -44,9 +45,18 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 ### State Management
 
 - **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
-  - Stores `accessToken` and `refreshToken`
-  - Methods: `setTokens(access, refresh)`, `setAccessToken(token)`, `clearAuth()`
-- Access token outside React: `useAuthStore.getState().accessToken`
+  - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID)
+  - Methods: `setTokens()`, `setAccessToken()`, `setAuthority()`, `setAffiliationId()`, `clearAuth()`
+- Access state outside React: `useAuthStore.getState()`
+
+### Authentication Flow
+
+Login supports multi-authority (조직) selection:
+1. User submits credentials to `/api/auth/login`
+2. If single authority: auto-select and proceed
+3. If multiple authorities: modal appears for user selection
+4. Selected authority's details fetched from `/api/system/authorities/{id}`
+5. `affiliationId` stored for API header injection
 
 ### Styling Architecture
 

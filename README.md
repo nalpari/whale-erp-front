@@ -44,6 +44,10 @@ src/
 │   ├── layout.tsx                # 루트 레이아웃 (Geist 폰트 설정)
 │   ├── page.tsx                  # 홈 페이지
 │   ├── globals.css               # 글로벌 스타일 (Tailwind CSS)
+│   ├── (auth)/                   # 인증 라우트 그룹
+│   │   └── login/
+│   │       ├── page.tsx          # 로그인 페이지
+│   │       └── login.css         # 로그인 전용 스타일
 │   ├── editor/
 │   │   └── page.tsx              # 에디터 페이지 (독립 레이아웃)
 │   └── (sub)/                    # ERP 메인 라우트 그룹
@@ -124,11 +128,11 @@ Axios 기반의 API 클라이언트가 구성되어 있습니다:
 ```typescript
 import api from '@/lib/api';
 
-// 토큰이 자동으로 첨부됩니다
+// 토큰과 조직 ID가 자동으로 첨부됩니다
 const response = await api.get('/users/me');
 ```
 
-- 요청 인터셉터: Bearer 토큰 자동 첨부
+- 요청 인터셉터: Bearer 토큰 및 `affiliation` 헤더 자동 첨부
 - 응답 인터셉터: 401 에러 시 인증 상태 초기화
 
 ### 상태 관리
@@ -139,15 +143,34 @@ Zustand를 사용한 인증 상태 관리:
 import { useAuthStore } from '@/stores/auth-store';
 
 // React 컴포넌트에서
-const { accessToken, setAccessToken, clearAuth } = useAuthStore();
+const { accessToken, authority, affiliationId, clearAuth } = useAuthStore();
 
 // React 외부에서
-const token = useAuthStore.getState().accessToken;
+const { accessToken, affiliationId } = useAuthStore.getState();
 ```
+
+**저장되는 상태:**
+- `accessToken`, `refreshToken`: JWT 토큰
+- `authority`: 선택된 조직의 권한 상세 정보
+- `affiliationId`: 현재 선택된 조직 ID (API 헤더에 사용)
+
+### 인증 플로우
+
+로그인 시 다중 조직(Authority) 선택을 지원합니다:
+
+1. `/api/auth/login`으로 로그인 요청
+2. 단일 조직: 자동 선택 후 메인 페이지로 이동
+3. 다중 조직: 선택 모달 표시 → 사용자가 조직 선택
+4. 선택된 조직의 상세 정보를 `/api/system/authorities/{id}`에서 조회
+5. `affiliationId`가 모든 API 요청에 헤더로 첨부됨
 
 ### 레이아웃 구조
 
-`(sub)` 라우트 그룹 내 페이지는 공용 레이아웃을 공유합니다:
+**라우트 그룹:**
+- `(auth)`: 인증 페이지 (로그인) — 독립 레이아웃, 전용 CSS
+- `(sub)`: ERP 메인 페이지 — 공용 레이아웃 공유
+
+**`(sub)` 공용 레이아웃 구성:**
 - **LNB (Left Navigation Bar)**: 접기/펼치기 가능한 3단 계층 메뉴
 - **Header**: 상단 헤더
 - **FullDownMenu**: 풀다운 메뉴
