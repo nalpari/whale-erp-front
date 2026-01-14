@@ -9,9 +9,12 @@ const api = axios.create({
 
 // 요청 인터셉터 - 토큰 자동 첨부
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const { accessToken, affiliationId } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  if (affiliationId) {
+    config.headers['affiliation'] = affiliationId;
   }
   return config;
 });

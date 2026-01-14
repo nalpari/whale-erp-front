@@ -10,6 +10,10 @@ Whale ERP 시스템의 프론트엔드 애플리케이션입니다.
 | React | 19.2.3 | React Compiler 활성화 |
 | TypeScript | 5.x | Strict 모드 |
 | Tailwind CSS | 4.x | PostCSS 통합 |
+| Sass | 1.93.x | 7-1 패턴 스타일 구조 |
+| Zustand | 5.x | 상태 관리 |
+| Axios | 1.x | HTTP 클라이언트 |
+| AG Grid | 35.x | 데이터 그리드 |
 | Tiptap | 3.14.x | 리치 텍스트 에디터 |
 | ESLint | 9.x | Flat Config |
 
@@ -27,8 +31,8 @@ pnpm dev
 
 | 명령어 | 설명 |
 |--------|------|
-| `pnpm dev` | 개발 서버 실행 |
-| `pnpm build` | 프로덕션 빌드 |
+| `pnpm dev` | 개발 서버 실행 (dev API 사용) |
+| `pnpm build` | 프로덕션 빌드 (prod API 사용) |
 | `pnpm start` | 프로덕션 서버 실행 |
 | `pnpm lint` | ESLint 검사 |
 
@@ -36,41 +40,74 @@ pnpm dev
 
 ```
 src/
-├── app/                      # App Router 페이지 및 레이아웃
-│   ├── layout.tsx            # 루트 레이아웃 (Geist 폰트 설정)
-│   ├── page.tsx              # 홈 페이지
-│   ├── globals.css           # 글로벌 스타일 (Tailwind CSS)
-│   └── editor/
-│       └── page.tsx          # 에디터 페이지
-└── components/
-    └── editor/               # 리치 텍스트 에디터 컴포넌트
-        ├── Editor.tsx        # 메인 에디터 (Tiptap)
-        ├── SlashCommand.tsx  # 슬래시 명령어 UI
-        └── slash-commands.ts # 명령어 정의
+├── app/                          # App Router 페이지 및 레이아웃
+│   ├── layout.tsx                # 루트 레이아웃 (Geist 폰트 설정)
+│   ├── page.tsx                  # 홈 페이지
+│   ├── globals.css               # 글로벌 스타일 (Tailwind CSS)
+│   ├── (auth)/                   # 인증 라우트 그룹
+│   │   └── login/
+│   │       ├── page.tsx          # 로그인 페이지
+│   │       └── login.css         # 로그인 전용 스타일
+│   ├── editor/
+│   │   └── page.tsx              # 에디터 페이지 (독립 레이아웃)
+│   └── (sub)/                    # ERP 메인 라우트 그룹
+│       ├── layout.tsx            # 공용 레이아웃 (LNB, Header)
+│       └── masterlist/
+│           └── page.tsx          # 마스터리스트 페이지
+├── components/
+│   ├── editor/                   # 리치 텍스트 에디터
+│   │   ├── Editor.tsx
+│   │   ├── SlashCommand.tsx
+│   │   └── slash-commands.ts
+│   ├── masterlist/               # 마스터리스트 컴포넌트
+│   │   ├── MasterList.tsx
+│   │   └── MasterSearch.tsx
+│   └── ui/                       # 공용 UI 컴포넌트
+│       ├── AgGrid.tsx            # AG Grid 래퍼
+│       ├── Header.tsx            # 상단 헤더
+│       ├── Location.tsx          # 현재 위치 표시
+│       ├── Pagination.tsx        # 페이지네이션
+│       └── common/               # 공통 컴포넌트
+│           ├── DatePicker.tsx    # 날짜 선택기
+│           ├── FullDownMenu.tsx  # 풀다운 메뉴
+│           ├── Lnb.tsx           # 좌측 네비게이션 바
+│           ├── MyData.tsx        # 사용자 데이터
+│           └── ServiceTab.tsx    # 서비스 탭
+├── data/
+│   └── HeaderMenu.ts             # 메뉴 데이터 (계층 구조)
+├── lib/
+│   └── api.ts                    # Axios 인스턴스 및 인터셉터
+├── stores/
+│   └── auth-store.ts             # Zustand 인증 스토어
+└── styles/                       # Sass 스타일 (7-1 패턴)
+    ├── style.scss                # 메인 진입점
+    ├── abstracts/                # 변수, 믹스인
+    ├── base/                     # 리셋, 폰트, 폼 요소
+    ├── layout/                   # 헤더, LNB, AG Grid
+    └── components/               # 콘텐츠, 테이블, 팝업
 ```
 
-## 주요 설정
+## 환경 설정
+
+### API 환경 변수
+
+| 환경 | 파일 | API URL |
+|------|------|---------|
+| 개발 | `.env.development` | https://dev-api.whaleerp.co.kr |
+| 운영 | `.env.production` | https://api.whaleerp.co.kr |
+
+```bash
+# .env.example
+NEXT_PUBLIC_API_URL=
+```
 
 ### React Compiler
 
-`next.config.ts`에서 React Compiler가 활성화되어 있습니다. 컴포넌트 메모이제이션이 자동으로 적용되어 불필요한 리렌더링이 최소화됩니다.
+`next.config.ts`에서 React Compiler가 활성화되어 있습니다. 컴포넌트 메모이제이션이 자동으로 적용됩니다.
 
 ```typescript
 const nextConfig: NextConfig = {
   reactCompiler: true,
-}
-```
-
-### Tailwind CSS 4
-
-Tailwind CSS 4는 새로운 `@import` 문법을 사용합니다:
-
-```css
-@import "tailwindcss";
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
 }
 ```
 
@@ -82,7 +119,75 @@ Tailwind CSS 4는 새로운 `@import` 문법을 사용합니다:
 import { Component } from '@/components/Component'
 ```
 
-## 기능
+## 주요 기능
+
+### API 레이어
+
+Axios 기반의 API 클라이언트가 구성되어 있습니다:
+
+```typescript
+import api from '@/lib/api';
+
+// 토큰과 조직 ID가 자동으로 첨부됩니다
+const response = await api.get('/users/me');
+```
+
+- 요청 인터셉터: Bearer 토큰 및 `affiliation` 헤더 자동 첨부
+- 응답 인터셉터: 401 에러 시 인증 상태 초기화
+
+### 상태 관리
+
+Zustand를 사용한 인증 상태 관리:
+
+```typescript
+import { useAuthStore } from '@/stores/auth-store';
+
+// React 컴포넌트에서
+const { accessToken, authority, affiliationId, clearAuth } = useAuthStore();
+
+// React 외부에서
+const { accessToken, affiliationId } = useAuthStore.getState();
+```
+
+**저장되는 상태:**
+- `accessToken`, `refreshToken`: JWT 토큰
+- `authority`: 선택된 조직의 권한 상세 정보
+- `affiliationId`: 현재 선택된 조직 ID (API 헤더에 사용)
+
+### 인증 플로우
+
+로그인 시 다중 조직(Authority) 선택을 지원합니다:
+
+1. `/api/auth/login`으로 로그인 요청
+2. 단일 조직: 자동 선택 후 메인 페이지로 이동
+3. 다중 조직: 선택 모달 표시 → 사용자가 조직 선택
+4. 선택된 조직의 상세 정보를 `/api/system/authorities/{id}`에서 조회
+5. `affiliationId`가 모든 API 요청에 헤더로 첨부됨
+
+### 레이아웃 구조
+
+**라우트 그룹:**
+- `(auth)`: 인증 페이지 (로그인) — 독립 레이아웃, 전용 CSS
+- `(sub)`: ERP 메인 페이지 — 공용 레이아웃 공유
+
+**`(sub)` 공용 레이아웃 구성:**
+- **LNB (Left Navigation Bar)**: 접기/펼치기 가능한 3단 계층 메뉴
+- **Header**: 상단 헤더
+- **FullDownMenu**: 풀다운 메뉴
+
+### 데이터 그리드 (AG Grid)
+
+AG Grid 사용 시 필수 설정:
+
+```typescript
+'use client'
+
+import { AgGridReact } from 'ag-grid-react'
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
+
+// 모듈 등록 (필수)
+ModuleRegistry.registerModules([AllCommunityModule])
+```
 
 ### 리치 텍스트 에디터
 
@@ -111,5 +216,39 @@ import { Component } from '@/components/Component'
   command: (editor) => {
     // Tiptap 에디터 명령 실행
   },
+}
+```
+
+## 스타일링
+
+### 듀얼 스타일 시스템
+
+1. **Tailwind CSS 4**: 유틸리티 클래스
+   ```css
+   @import "tailwindcss";
+
+   @theme inline {
+     --color-background: var(--background);
+     --color-foreground: var(--foreground);
+   }
+   ```
+
+2. **Sass (7-1 패턴)**: 컴포넌트 스타일
+   - `abstracts/`: 변수, 믹스인
+   - `base/`: 리셋, 폰트, 폼 요소 (버튼, 인풋, 체크박스 등)
+   - `layout/`: 레이아웃 (헤더, LNB, AG Grid)
+   - `components/`: UI 컴포넌트
+
+### 메뉴 데이터 구조
+
+`src/data/HeaderMenu.ts`에서 메뉴 계층 구조를 정의합니다:
+
+```typescript
+interface HeaderMenuItem {
+  id: string
+  name: string
+  icon?: string
+  link: string
+  children?: HeaderMenuItem[]
 }
 ```

@@ -26,6 +26,16 @@
       vertical-align: top;
     }
   }
+  .header-row {
+    th {
+      background-color: #fff;
+      border: none;
+    }
+    td {
+      border: none;
+      font-weight: 600;
+    }
+  }
 }
 
 table {
@@ -308,6 +318,60 @@ table {
     &.g {
       color: #28a745;
       font-weight: 500;
+    }
+  }
+}
+
+// bp 구독 테이블
+.subscrip-table {
+  width: 100%;
+  table-layout: fixed;
+  box-shadow: 0 0 0 1px #ebebeb;
+  border-radius: 6px;
+  th {
+    padding: 20px 16px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    background-color: #f8f8f8;
+    border-right: 1px solid #ebebeb;
+    border-bottom: 1px solid #ebebeb;
+    text-align: center;
+    &:last-child {
+      border-right: none;
+    }
+  }
+  td {
+    padding: 13px 16px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #505050;
+    border-right: 1px solid #ebebeb;
+    border-bottom: 1px solid #ebebeb;
+    text-align: center;
+    &:last-child {
+      border-right: none;
+    }
+    .price-wrap {
+      @include flex(18px);
+      align-items: center;
+      justify-content: center;
+      .price {
+        text-decoration: line-through;
+      }
+      .discount {
+        @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
+        color: #366fe3;
+      }
+    }
+    .discount-money {
+      @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+      color: #f97316;
+    }
+  }
+  tr {
+    &:last-child {
+      td {
+        border-bottom: none;
+      }
     }
   }
 }
