@@ -9,12 +9,27 @@ import "./login.css";
 export default function LoginPage() {
   const router = useRouter();
   const setTokens = useAuthStore((state) => state.setTokens);
+  const setAuthority = useAuthStore((state) => state.setAuthority);
+  const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
 
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // 모달 관련 상태
+  const [showAuthorityModal, setShowAuthorityModal] = useState(false);
+  const [authorities, setAuthorities] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [pendingTokens, setPendingTokens] = useState<{
+    accessToken: string;
+    refreshToken: string;
+  } | null>(null);
+  const [selectedAuthorityId, setSelectedAuthorityId] = useState<string | null>(
+    null
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +42,42 @@ export default function LoginPage() {
       });
       console.log("Login success:", response.data);
 
-      const { accessToken, refreshToken } = response.data;
-      setTokens(accessToken, refreshToken);
+      const { accessToken, refreshToken, authorities } = response.data.data;
 
-      // 로그인 성공 후 메인 페이지로 이동
-      router.push("/");
+      console.log(authorities);
+      // authorities 처리
+      if (authorities && authorities.length === 1) {
+        console.log("Processing single authority...");
+        // authorities가 하나인 경우: authorities API 호출
+        const authoritiesResponse = await api.get(
+          `/api/system/authorities/${authorities[0].id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        console.log("Authorities:", authoritiesResponse.data);
+
+        // zustand에 authority detail 저장
+        if (authoritiesResponse.data?.data?.detail) {
+          setAuthority(authoritiesResponse.data.data.detail);
+        }
+
+        // affiliation header 설정을 위한 id 저장
+        setAffiliationId(authorities[0].id);
+
+        setTokens(accessToken, refreshToken);
+
+        // 로그인 성공 후 메인 페이지로 이동
+        router.push("/");
+      } else if (authorities && authorities.length > 1) {
+        // authorities가 여러 개인 경우: 모달로 선택하도록 함
+        console.log("Multiple authorities found:", authorities);
+        setAuthorities(authorities);
+        setPendingTokens({ accessToken, refreshToken });
+        setShowAuthorityModal(true);
+      }
     } catch (error: unknown) {
       console.log("Login failed:", error);
       const axiosError = error as { response?: { data?: { message?: string } } };
@@ -40,6 +86,50 @@ export default function LoginPage() {
       alert(message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Authority 선택 처리
+  const handleSelectAuthority = async (authority: {
+    id: string;
+    name: string;
+  }) => {
+    if (!pendingTokens) return;
+
+    setSelectedAuthorityId(authority.id);
+
+    try {
+      const authoritiesResponse = await api.get(
+        `/api/system/authorities/${authority.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${pendingTokens.accessToken}`,
+          },
+        }
+      );
+      console.log("Selected Authority:", authoritiesResponse.data);
+
+      // zustand에 authority detail 저장
+      if (authoritiesResponse.data?.data?.detail) {
+        setAuthority(authoritiesResponse.data.data.detail);
+      }
+
+      // affiliation header 설정을 위한 id 저장
+      setAffiliationId(authority.id);
+
+      setTokens(pendingTokens.accessToken, pendingTokens.refreshToken);
+
+      // 모달 닫기 및 상태 초기화
+      setShowAuthorityModal(false);
+      setPendingTokens(null);
+      setSelectedAuthorityId(null);
+
+      // 로그인 성공 후 메인 페이지로 이동
+      router.push("/");
+    } catch (error) {
+      console.error("Failed to fetch authority details:", error);
+      setSelectedAuthorityId(null);
+      alert("권한 정보를 가져오는데 실패했습니다.");
     }
   };
 
@@ -305,6 +395,71 @@ export default function LoginPage() {
           </div> */}
         </div>
       </div>
+
+      {/* Authority Selection Modal */}
+      {showAuthorityModal && (
+        <div className="login-modal-overlay">
+          <div className="login-modal">
+            <div className="login-modal-header">
+              <h3 className="login-modal-title">조직 선택</h3>
+              <p className="login-modal-subtitle">
+                로그인할 조직을 선택해주세요
+              </p>
+            </div>
+            <div className="login-modal-body">
+              <div className="login-authority-list">
+                {authorities.map((authority) => (
+                  <button
+                    key={authority.id}
+                    type="button"
+                    className={`login-authority-item ${
+                      selectedAuthorityId === authority.id ? "is-loading" : ""
+                    }`}
+                    onClick={() => handleSelectAuthority(authority)}
+                    disabled={selectedAuthorityId !== null}
+                  >
+                    <div className="login-authority-icon">
+                      <svg
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                    </div>
+                    <div className="login-authority-info">
+                      <div className="login-authority-name">
+                        {authority.name}
+                      </div>
+                      <div className="login-authority-desc">
+                        클릭하여 선택
+                      </div>
+                    </div>
+                    <svg
+                      className="login-authority-arrow"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
