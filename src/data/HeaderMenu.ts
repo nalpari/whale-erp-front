@@ -1,12 +1,8 @@
 // HeaderMenu 타입 정의
+import { type HeaderMenuItem } from '@/lib/schemas/menu';
 
-export interface HeaderMenuItem {
-  id: string
-  name: string
-  icon?: string
-  link: string
-  children?: HeaderMenuItem[]
-}
+// HeaderMenuItem 타입 재내보내기
+export type { HeaderMenuItem };
 
 export const HeaderMenu: HeaderMenuItem[] = [
   {

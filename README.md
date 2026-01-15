@@ -13,6 +13,7 @@ Whale ERP 시스템의 프론트엔드 애플리케이션입니다.
 | Sass | 1.93.x | 7-1 패턴 스타일 구조 |
 | Zustand | 5.x | 상태 관리 |
 | Axios | 1.x | HTTP 클라이언트 |
+| Zod | 4.x | 스키마 유효성 검사 및 타입 추론 |
 | AG Grid | 35.x | 데이터 그리드 |
 | Tiptap | 3.14.x | 리치 텍스트 에디터 |
 | ESLint | 9.x | Flat Config |
@@ -76,7 +77,15 @@ src/
 ├── data/
 │   └── HeaderMenu.ts             # 메뉴 데이터 (계층 구조)
 ├── lib/
-│   └── api.ts                    # Axios 인스턴스 및 인터셉터
+│   ├── api.ts                    # Axios 인스턴스 및 인터셉터
+│   ├── zod-utils.ts              # Zod 유틸리티 함수
+│   └── schemas/                  # Zod 스키마
+│       ├── index.ts              # 통합 내보내기
+│       ├── api.ts                # API 응답 스키마
+│       ├── auth.ts               # 인증 관련 스키마
+│       ├── env.ts                # 환경변수 스키마
+│       ├── forms.ts              # 폼 유효성 검사 스키마
+│       └── menu.ts               # 메뉴 타입 스키마
 ├── stores/
 │   └── auth-store.ts             # Zustand 인증 스토어
 └── styles/                       # Sass 스타일 (7-1 패턴)
@@ -153,6 +162,52 @@ const { accessToken, affiliationId } = useAuthStore.getState();
 - `accessToken`, `refreshToken`: JWT 토큰
 - `authority`: 선택된 조직의 권한 상세 정보
 - `affiliationId`: 현재 선택된 조직 ID (API 헤더에 사용)
+
+### 스키마 유효성 검사 (Zod)
+
+Zod를 사용하여 런타임 유효성 검사와 TypeScript 타입 추론을 통합합니다.
+
+**폼 유효성 검사:**
+
+```typescript
+import { loginRequestSchema } from '@/lib/schemas/auth';
+import { formatZodFieldErrors } from '@/lib/zod-utils';
+
+const handleSubmit = () => {
+  const result = loginRequestSchema.safeParse({ loginId, password });
+  if (!result.success) {
+    const errors = formatZodFieldErrors(result.error);
+    // errors: { loginId: '아이디를 입력해주세요', password: '...' }
+  }
+};
+```
+
+**API 응답 검증:**
+
+```typescript
+import { getWithSchema, postWithSchema } from '@/lib/api';
+import { loginResponseSchema } from '@/lib/schemas/auth';
+
+// 개발 모드에서 응답 스키마 불일치 시 콘솔 경고
+const response = await postWithSchema('/api/auth/login', data, loginResponseSchema);
+```
+
+**스키마에서 타입 추론:**
+
+```typescript
+import { z } from 'zod';
+import { loginRequestSchema } from '@/lib/schemas/auth';
+
+// 스키마에서 타입 자동 추론
+type LoginRequest = z.infer<typeof loginRequestSchema>;
+// { loginId: string; password: string; }
+```
+
+**주요 스키마:**
+- `loginRequestSchema`: 로그인 폼 검증
+- `apiResponseSchema`: Backend API 응답 구조
+- `pageResponseSchema`: 페이징된 응답 구조
+- `commonFields`: 공통 필드 (이메일, 전화번호, 날짜 등)
 
 ### 인증 플로우
 

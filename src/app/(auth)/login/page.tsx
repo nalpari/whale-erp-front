@@ -4,6 +4,11 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
+import {
+  loginRequestSchema,
+  type Authority,
+} from "@/lib/schemas/auth";
+import { formatZodFieldErrors } from "@/lib/zod-utils";
 import "./login.css";
 
 export default function LoginPage() {
@@ -17,12 +22,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 모달 관련 상태
   const [showAuthorityModal, setShowAuthorityModal] = useState(false);
-  const [authorities, setAuthorities] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [authorities, setAuthorities] = useState<Authority[]>([]);
   const [pendingTokens, setPendingTokens] = useState<{
     accessToken: string;
     refreshToken: string;
@@ -33,13 +37,19 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+
+    // Zod로 폼 유효성 검사
+    const validation = loginRequestSchema.safeParse({ loginId, password });
+    if (!validation.success) {
+      setFormErrors(formatZodFieldErrors(validation.error));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await api.post("/api/auth/login", {
-        loginId,
-        password,
-      });
+      const response = await api.post("/api/auth/login", validation.data);
       console.log("Login success:", response.data);
 
       const { accessToken, refreshToken, authorities } = response.data.data;
@@ -90,10 +100,7 @@ export default function LoginPage() {
   };
 
   // Authority 선택 처리
-  const handleSelectAuthority = async (authority: {
-    id: string;
-    name: string;
-  }) => {
+  const handleSelectAuthority = async (authority: Authority) => {
     if (!pendingTokens) return;
 
     setSelectedAuthorityId(authority.id);
@@ -213,8 +220,7 @@ export default function LoginPage() {
                   id="loginId"
                   name="loginId"
                   type="text"
-                  required
-                  className="login-input"
+                  className={`login-input ${formErrors.loginId ? 'login-input-error' : ''}`}
                   placeholder="Enter your login ID"
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
@@ -234,6 +240,9 @@ export default function LoginPage() {
                   />
                 </svg>
               </div>
+              {formErrors.loginId && (
+                <p className="login-error-message">{formErrors.loginId}</p>
+              )}
             </div>
 
             {/* Password Input */}
@@ -246,8 +255,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  required
-                  className="login-input"
+                  className={`login-input ${formErrors.password ? 'login-input-error' : ''}`}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -311,6 +319,9 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              {formErrors.password && (
+                <p className="login-error-message">{formErrors.password}</p>
+              )}
             </div>
 
             {/* Options Row */}
