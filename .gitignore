@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Dev Docs
 /docs
+
+# Auto Claude data directory
+.auto-claude/
