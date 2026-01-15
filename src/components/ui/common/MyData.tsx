@@ -1,9 +1,18 @@
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import Image from 'next/image'
+import { useAuthStore } from '@/stores/auth-store'
 
 export default function MyData() {
   const [myDataOpen, setMyDataOpen] = useState(false)
+  const router = useRouter()
+  const clearAuth = useAuthStore((state) => state.clearAuth)
+
+  const handleLogout = () => {
+    clearAuth()
+    router.push('/login')
+  }
   return (
     <div className={`my-data ${myDataOpen ? 'act' : ''}`}>
       <div className="my-data-wrap">
@@ -29,7 +38,7 @@ export default function MyData() {
             </button>
           </li>
           <li className="my-data-item">
-            <button type="button" className="my-data-item-btn red">
+            <button type="button" className="my-data-item-btn red" onClick={handleLogout}>
               로그아웃
             </button>
           </li>
