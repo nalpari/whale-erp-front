@@ -59,6 +59,9 @@ api.interceptors.request.use((config) => {
   if (affiliationId) {
     config.headers['affiliation'] = affiliationId;
   }
+  if (typeof window !== 'undefined') {
+    config.headers['currentPath'] = window.location.pathname;
+  }
   return config;
 });
 
