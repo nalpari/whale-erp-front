@@ -1,4 +1,5 @@
 ﻿'use client'
+
 import { useState } from 'react'
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker'
 import * as DateFNS from 'date-fns'
@@ -100,7 +101,7 @@ export default function DatePicker({ value, onChange, placeholder }: DatePickerP
     <div className="date-picker-custom">
       <ReactDatePicker
         className="date-picker-input"
-        renderCustomHeader={CustomHeader}
+        renderCustomHeader={(props) => <CustomHeader {...props} />}
         selected={currentValue}
         onChange={handleChange}
         placeholderText={placeholder}
