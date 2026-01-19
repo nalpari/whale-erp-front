@@ -1,13 +1,13 @@
 ﻿'use client'
 
-
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { StoreSearchFilters } from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
-import { StoreListParams } from '@/lib/store-api'
-import { useStoreList, useStoreOptions } from '@/hooks/use-store'
+import { StoreListParams, useStoreList, useStoreOptions } from '@/hooks/useStore'
+import { useCommonCode } from '@/hooks/useCommonCode'
+import { useAuthStore } from '@/stores/auth-store'
 
 const defaultFilters: StoreSearchFilters = {
   officeId: null,
@@ -38,12 +38,7 @@ export default function StoreInfoPage() {
       office: appliedFilters.officeId ?? undefined,
       franchise: appliedFilters.franchiseId ?? undefined,
       store: appliedFilters.storeId ?? undefined,
-      status:
-        appliedFilters.status === 'OPERATING'
-          ? 'STOPR_001'
-          : appliedFilters.status === 'NOT_OPERATING'
-            ? 'STOPR_002'
-            : undefined,
+      status: appliedFilters.status === 'ALL' ? undefined : appliedFilters.status,
       from: formatDateParam(appliedFilters.from),
       to: formatDateParam(appliedFilters.to),
       page,
@@ -55,6 +50,21 @@ export default function StoreInfoPage() {
 
   const { options: storeOptionList } = useStoreOptions(filters.officeId ?? undefined, filters.franchiseId ?? undefined)
   const { data: response, loading, error } = useStoreList(storeParams)
+  const { getHierarchyChildren, getChildren } = useCommonCode()
+  const statusChildren = getChildren('STOPR')
+
+  useEffect(() => {
+    if (!filters.storeId) return
+    const isValid = storeOptionList.some((option) => option.id === filters.storeId)
+    if (isValid) return
+    setFilters((prev) => ({ ...prev, storeId: null }))
+  }, [filters.storeId, storeOptionList])
+
+  useEffect(() => {
+    if (statusChildren.length === 0) {
+      void getHierarchyChildren('STOPR')
+    }
+  }, [statusChildren.length, getHierarchyChildren])
 
   const handleSearch = () => {
     setPage(0)
@@ -63,32 +73,35 @@ export default function StoreInfoPage() {
 
   const handleReset = () => {
     setFilters(defaultFilters)
-    setAppliedFilters(defaultFilters)
-    setPage(0)
   }
 
   const handleRegister = () => {
-    router.push('/store/manage/info/header')
+    router.push('/store/manage/info/detail')
   }
 
   const handleOpenDetail = (storeId: number) => {
-    router.push(`/store/manage/info/detail?id=${storeId}`)
+    router.push(`/store/manage/info/header?id=${storeId}`)
   }
 
   const listData = response?.content ?? []
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
+  const statusMap = statusChildren.reduce<Record<string, string>>((acc, item) => {
+    acc[item.code] = item.name
+    return acc
+  }, {})
 
   const breadcrumbs = useMemo(() => ['Home', '가맹점 및 점포 관리', '점포 정보 관리'], [])
 
+
+  console.log(useAuthStore.getState())
   return (
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />
       <StoreSearch
         filters={filters}
-        officeOptions={[]}
-        franchiseOptions={[]}
         storeOptions={storeOptionList.map((option) => ({ value: option.id, label: option.storeName }))}
+        statusOptions={statusChildren.map((item) => ({ value: item.code, label: item.name }))}
         resultCount={totalCount}
         onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
         onSearch={handleSearch}
@@ -101,6 +114,7 @@ export default function StoreInfoPage() {
         totalPages={totalPages}
         loading={loading}
         error={error}
+        statusMap={statusMap}
         onPageChange={setPage}
         onPageSizeChange={(size) => {
           setPageSize(size)

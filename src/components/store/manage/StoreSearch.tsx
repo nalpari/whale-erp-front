@@ -2,43 +2,60 @@
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import DatePicker from '@/components/ui/common/DatePicker'
+import { useBp } from '@/hooks/useBp'
 
+// 점포 검색 필터 상태
 export interface StoreSearchFilters {
   officeId?: number | null
   franchiseId?: number | null
   storeId?: number | null
-  status: 'ALL' | 'OPERATING' | 'NOT_OPERATING'
+  status: 'ALL' | string
   from: Date | null
   to: Date | null
 }
 
+// 셀렉트 옵션 공통 타입
 interface OptionItem {
   value: number
   label: string
 }
 
+// 검색 영역 컴포넌트 props
 interface StoreSearchProps {
   filters: StoreSearchFilters
-  officeOptions: OptionItem[]
-  franchiseOptions: OptionItem[]
   storeOptions: OptionItem[]
+  statusOptions: { value: string; label: string }[]
   resultCount: number
   onChange: (next: Partial<StoreSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
 }
 
+// 점포 목록 검색 영역
 export default function StoreSearch({
   filters,
-  officeOptions,
-  franchiseOptions,
   storeOptions,
+  statusOptions,
   resultCount,
   onChange,
   onSearch,
   onReset,
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
+  const { data: bpTree, loading: bpLoading } = useBp()
+
+  const officeOptions = bpTree.map((office) => ({ value: office.id, label: office.name }))
+  const franchiseOptions = filters.officeId
+    ? bpTree.find((office) => office.id === filters.officeId)?.franchises.map((franchise) => ({
+      value: franchise.id,
+      label: franchise.name,
+    })) ?? []
+    : bpTree.flatMap((office) =>
+      office.franchises.map((franchise) => ({
+        value: franchise.id,
+        label: franchise.name,
+      })),
+    )
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
@@ -70,9 +87,22 @@ export default function StoreSearch({
                     <select
                       className="select-form"
                       value={filters.officeId ?? ''}
-                      onChange={(event) =>
-                        onChange({ officeId: event.target.value ? Number(event.target.value) : null })
-                      }
+                      onChange={(event) => {
+                        const nextOfficeId = event.target.value ? Number(event.target.value) : null
+                        const nextFranchiseOptions = nextOfficeId
+                          ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
+                          : bpTree.flatMap((office) => office.franchises)
+                        const shouldClearFranchise =
+                          filters.franchiseId !== null &&
+                          filters.franchiseId !== undefined &&
+                          !nextFranchiseOptions.some((franchise) => franchise.id === filters.franchiseId)
+
+                        onChange({
+                          officeId: nextOfficeId,
+                          franchiseId: shouldClearFranchise ? null : filters.franchiseId ?? null,
+                        })
+                      }}
+                      disabled={bpLoading}
                     >
                       <option value="">전체</option>
                       {officeOptions.map((option) => (
@@ -92,6 +122,7 @@ export default function StoreSearch({
                       onChange={(event) =>
                         onChange({ franchiseId: event.target.value ? Number(event.target.value) : null })
                       }
+                      disabled={bpLoading}
                     >
                       <option value="">전체</option>
                       {franchiseOptions.map((option) => (
@@ -136,26 +167,18 @@ export default function StoreSearch({
                       />
                       <label htmlFor="status-all">전체</label>
                     </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        name="status"
-                        id="status-operating"
-                        checked={filters.status === 'OPERATING'}
-                        onChange={() => onChange({ status: 'OPERATING' })}
-                      />
-                      <label htmlFor="status-operating">운영</label>
-                    </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        name="status"
-                        id="status-not-operating"
-                        checked={filters.status === 'NOT_OPERATING'}
-                        onChange={() => onChange({ status: 'NOT_OPERATING' })}
-                      />
-                      <label htmlFor="status-not-operating">미운영</label>
-                    </div>
+                    {statusOptions.map((option) => (
+                      <div className="radio-form-box" key={option.value}>
+                        <input
+                          type="radio"
+                          name="status"
+                          id={`status-${option.value}`}
+                          checked={filters.status === option.value}
+                          onChange={() => onChange({ status: option.value })}
+                        />
+                        <label htmlFor={`status-${option.value}`}>{option.label}</label>
+                      </div>
+                    ))}
                   </div>
                 </td>
                 <th>등록일</th>

@@ -1,10 +1,10 @@
 ﻿'use client'
-import { Tooltip } from 'react-tooltip'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import { StoreListItem } from '@/types/store'
 
+// 점포 목록 테이블 컴포넌트 props
 interface StoreListProps {
   rows: StoreListItem[]
   page: number
@@ -12,23 +12,20 @@ interface StoreListProps {
   totalPages: number
   loading: boolean
   error?: string | null
+  statusMap: Record<string, string>
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onRegister: () => void
   onOpenDetail: (storeId: number) => void
 }
 
-const toStatusLabel = (status: string) => {
-  if (status === 'STOPR_001') return '운영'
-  if (status === 'STOPR_002') return '미운영'
-  return status
-}
-
+// ISO 날짜 문자열을 화면 표시용으로 변환
 const formatDate = (value?: string) => {
   if (!value) return '-'
   return value.split('T')[0]
 }
 
+// 점포 목록 테이블 + 페이징 UI
 export default function StoreList({
   rows,
   page,
@@ -36,11 +33,13 @@ export default function StoreList({
   totalPages,
   loading,
   error,
+  statusMap,
   onPageChange,
   onPageSizeChange,
   onRegister,
   onOpenDetail,
 }: StoreListProps) {
+  // 그리드 컬럼 정의(표시 순서/렌더링 규칙 포함)
   const columnDefs: ColDef<StoreListItem>[] = [
     {
       headerName: '#',
@@ -50,7 +49,7 @@ export default function StoreList({
     {
       field: 'operationStatus',
       headerName: '운영여부',
-      valueGetter: (params) => toStatusLabel(params.data?.operationStatus ?? ''),
+      valueGetter: (params) => statusMap[params.data?.operationStatus ?? ''] ?? '-',
     },
     { field: 'officeName', headerName: '본사명' },
     { field: 'franchiseName', headerName: '가맹점' },
@@ -79,13 +78,6 @@ export default function StoreList({
     <div className="data-list-wrap">
       <div className="data-list-header">
         <div className="data-header-left">
-          <button className="tooltip-btn">
-            <span className="tooltip-icon" id="tooltip-btn-anchor"></span>
-            <Tooltip className="tooltip-txt" anchorSelect="#tooltip-btn-anchor">
-              <div>점포 정보 관리 기준으로 필터와 목록을 확인하세요.</div>
-              <div>운영여부, 본사/가맹점/점포 조건을 함께 사용할 수 있습니다.</div>
-            </Tooltip>
-          </button>
         </div>
         <div className="data-header-right">
           <button className="btn-form basic" onClick={onRegister} type="button">
@@ -110,10 +102,16 @@ export default function StoreList({
         {error && <div className="form-helper error">{error}</div>}
         {loading ? (
           <div></div>
+        ) : rows.length === 0 ? (
+          <div className="empty-wrap">
+            <div className="empty-data">검색 결과가 없습니다.</div>
+          </div>
         ) : (
-          <AgGrid rowData={rows} columnDefs={columnDefs} />
+          <AgGrid rowData={rows} columnDefs={columnDefs} onRowClicked={(event) => onOpenDetail(event.data?.id ?? 0)}/>
         )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        {!loading && rows.length > 0 && (
+          <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        )}
       </div>
     </div>
   )
