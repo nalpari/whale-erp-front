@@ -19,6 +19,7 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 - **TypeScript** in strict mode
 - **Zustand** for state management
 - **Axios** for API calls
+- **Zod 4** for schema validation and type inference
 - **AG Grid** for data tables
 - **Sass** for component styles (alongside Tailwind)
 
@@ -37,10 +38,42 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
   - Automatically attaches `affiliation` header for multi-organization support
   - Handles 401 responses by clearing auth state
   - Base URL from `NEXT_PUBLIC_API_URL` environment variable
+  - `getWithSchema()`, `postWithSchema()` for Zod-validated requests
 
 - **Environment switching**:
   - `pnpm dev` → `.env.development` → dev API
   - `pnpm build && pnpm start` → `.env.production` → prod API
+
+### Schema Validation (Zod)
+
+- **`src/lib/schemas/`**: Zod schemas for runtime validation and type inference
+  - `api.ts` — API response schemas (`apiResponseSchema`, `pageResponseSchema`)
+  - `auth.ts` — Authentication schemas (login, authority, tokens)
+  - `env.ts` — Environment variable validation
+  - `forms.ts` — Form validation schemas (common fields, patterns)
+  - `menu.ts` — Menu type schemas
+  - `index.ts` — Unified exports
+
+- **`src/lib/zod-utils.ts`**: Utility functions
+  - `formatZodError()` — Convert errors to user-friendly messages
+  - `formatZodFieldErrors()` — Convert errors to field-keyed object
+  - `validateApiResponse()` — Dev-only API response validation
+  - `createFormValidator()` — Form validation helper
+  - `createTypeGuard()` — Type guard generator
+
+**Usage patterns:**
+```typescript
+// Form validation
+import { loginRequestSchema } from '@/lib/schemas/auth';
+const result = loginRequestSchema.safeParse({ loginId, password });
+
+// API response validation
+import { getWithSchema } from '@/lib/api';
+const data = await getWithSchema('/api/users', userListSchema);
+
+// Type inference from schema
+import type { LoginRequest } from '@/lib/schemas/auth';
+```
 
 ### State Management
 

@@ -1,11 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { type AuthState } from '@/lib/schemas/auth';
 
-interface AuthState {
-  accessToken: string | null;
-  refreshToken: string | null;
-  authority: Record<string, unknown> | null;
-  affiliationId: string | null;
+interface AuthStore extends AuthState {
   setTokens: (accessToken: string, refreshToken: string) => void;
   setAccessToken: (token: string | null) => void;
   setAuthority: (authority: Record<string, unknown>) => void;
@@ -13,7 +10,7 @@ interface AuthState {
   clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
+export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       accessToken: null,
