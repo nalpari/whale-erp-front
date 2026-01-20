@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
-import { useStoreActions, useStoreDetail } from '@/hooks/useStore'
+import { useStoreActions, useStoreDetail } from '@/hooks/store/useStore'
 import { OperatingHourInfo } from '@/types/store'
 import AnimateHeight from 'react-animate-height'
 
@@ -135,7 +135,7 @@ export default function StoreHeader() {
                       </tr>
                       <tr>
                         <th>운영여부</th>
-                        <td> 
+                        <td>
                           <ul className="detail-data-list">
                             <li className="detail-data-item">
                               <span className="detail-data-text">

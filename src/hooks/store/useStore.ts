@@ -2,14 +2,7 @@
 import axios from 'axios'
 import api from '@/lib/api'
 import { StoreDetailResponse, StoreHeaderRequest, StoreListResponse, StoreOption } from '@/types/store'
-
-// API 공통 응답 구조
-interface ApiResponse<T> {
-  success: boolean
-  data: T
-  message?: string
-  timestamp?: string
-}
+import { ApiResponse } from '@/lib/schemas/api'
 
 // 점포 목록 조회 파라미터
 export interface StoreListParams {

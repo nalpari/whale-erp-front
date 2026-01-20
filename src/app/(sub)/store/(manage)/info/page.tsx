@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { StoreSearchFilters } from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
-import { StoreListParams, useStoreList, useStoreOptions } from '@/hooks/useStore'
+import { StoreListParams, useStoreList, useStoreOptions } from '@/hooks/store/useStore'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -76,11 +76,11 @@ export default function StoreInfoPage() {
   }
 
   const handleRegister = () => {
-    router.push('/store/manage/info/detail')
+    router.push('/store/info/detail')
   }
 
   const handleOpenDetail = (storeId: number) => {
-    router.push(`/store/manage/info/header?id=${storeId}`)
+    router.push(`/store/info/header?id=${storeId}`)
   }
 
   const listData = response?.content ?? []
@@ -95,6 +95,7 @@ export default function StoreInfoPage() {
 
 
   console.log(useAuthStore.getState())
+
   return (
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />

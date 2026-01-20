@@ -119,6 +119,7 @@ export type FieldErrorKey =
   | 'businessNumber'
   | 'storeAddress'
   | 'ceoPhone'
+  | 'storePhone'
 
 // 필드별 에러 메시지 모음
 export type FieldErrors = Partial<Record<FieldErrorKey, string>>
@@ -126,9 +127,9 @@ export type FieldErrors = Partial<Record<FieldErrorKey, string>>
 // 점포 상세/등록 폼 전체 상태
 export interface StoreFormState {
   storeOwner: 'HEAD_OFFICE' | 'FRANCHISE'
-  officeId: string
-  franchiseId: string
-  organizationId: string
+  officeId: number | null
+  franchiseId: number | null
+  organizationId: number | null
   postalCode: string
   storeName: string
   storeCode: string
