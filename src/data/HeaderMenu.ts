@@ -108,7 +108,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'franchise-store-01-03',
             name: '점포 정보 관리',
-            link: '/store/manage/info',
+            link: '/store/info',
           },
         ],
       },
