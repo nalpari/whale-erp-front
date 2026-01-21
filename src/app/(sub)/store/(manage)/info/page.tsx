@@ -18,6 +18,8 @@ const defaultFilters: StoreSearchFilters = {
   to: null,
 }
 
+const STORE_SEARCH_STATE_KEY = 'store-search-state'
+
 const formatDateParam = (value: Date | null) => {
   if (!value) return undefined
   const year = value.getFullYear()
@@ -32,6 +34,34 @@ export default function StoreInfoPage() {
   const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(defaultFilters)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = sessionStorage.getItem(STORE_SEARCH_STATE_KEY)
+    if (!stored) return
+    try {
+      const parsed = JSON.parse(stored) as {
+        filters?: StoreSearchFilters
+        page?: number
+        pageSize?: number
+      }
+      const nextFilters = parsed.filters ?? defaultFilters
+      setFilters(nextFilters)
+      setAppliedFilters(nextFilters)
+      setPage(parsed.page ?? 0)
+      setPageSize(parsed.pageSize ?? 50)
+    } catch {
+      sessionStorage.removeItem(STORE_SEARCH_STATE_KEY)
+    }
+  }, [])
+
+  const persistSearchState = (nextFilters: StoreSearchFilters, nextPage: number, nextPageSize: number) => {
+    if (typeof window === 'undefined') return
+    sessionStorage.setItem(
+      STORE_SEARCH_STATE_KEY,
+      JSON.stringify({ filters: nextFilters, page: nextPage, pageSize: nextPageSize })
+    )
+  }
 
   const storeParams: StoreListParams = useMemo(
     () => ({
@@ -67,19 +97,26 @@ export default function StoreInfoPage() {
   }, [statusChildren.length, getHierarchyChildren])
 
   const handleSearch = () => {
+    const nextFilters = filters
     setPage(0)
-    setAppliedFilters(filters)
+    setAppliedFilters(nextFilters)
+    persistSearchState(nextFilters, 0, pageSize)
   }
 
   const handleReset = () => {
     setFilters(defaultFilters)
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(STORE_SEARCH_STATE_KEY)
+    }
   }
 
   const handleRegister = () => {
+    persistSearchState(appliedFilters, page, pageSize)
     router.push('/store/info/detail')
   }
 
   const handleOpenDetail = (storeId: number) => {
+    persistSearchState(appliedFilters, page, pageSize)
     router.push(`/store/info/header?id=${storeId}`)
   }
 
@@ -116,10 +153,14 @@ export default function StoreInfoPage() {
         loading={loading}
         error={error}
         statusMap={statusMap}
-        onPageChange={setPage}
+        onPageChange={(nextPage) => {
+          setPage(nextPage)
+          persistSearchState(appliedFilters, nextPage, pageSize)
+        }}
         onPageSizeChange={(size) => {
           setPageSize(size)
           setPage(0)
+          persistSearchState(appliedFilters, 0, size)
         }}
         onRegister={handleRegister}
         onOpenDetail={handleOpenDetail}

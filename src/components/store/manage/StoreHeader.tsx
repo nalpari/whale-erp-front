@@ -74,6 +74,9 @@ export default function StoreHeader() {
 
     try {
       await remove(storeId)
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('store-search-state')
+      }
       router.push('/store/manage/info')
     } catch {
       return
