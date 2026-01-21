@@ -56,8 +56,8 @@ interface StoreDetailBasicInfoProps {
   // UI 토글/입력 변경 핸들러들
   onToggleOpen: () => void
   onStoreOwnerChange: (owner: StoreFormState['storeOwner']) => void
-  onOfficeChange: (nextOfficeId: number) => void
-  onFranchiseChange: (nextFranchiseId: number) => void
+  onOfficeChange: (nextOfficeId: number | null) => void
+  onFranchiseChange: (nextFranchiseId: number | null) => void
   onStoreNameChange: (value: string) => void
   onOperationStatusChange: (value: StoreFormState['operationStatus']) => void
   onSameAsOwnerChange: (checked: boolean, bpId: number | null) => void
@@ -179,8 +179,8 @@ export const StoreDetailBasicInfo = ({
                     <select
                       className="select-form store-select-fixed"
                       value={formState.officeId ?? ''}
-                      onChange={(event) => onOfficeChange(Number(event.target.value))}
-                                            disabled={bpLoading}
+                      onChange={(event) => onOfficeChange(event.target.value ? Number(event.target.value) : null)}
+                      disabled={bpLoading}
                     >
                       <option value="">본사 선택</option>
                       {bpTree.map((office) => (
@@ -192,8 +192,8 @@ export const StoreDetailBasicInfo = ({
                     {formState.storeOwner === 'FRANCHISE' && (
                       <select
                         className="select-form store-select-fixed"
-                                                value={formState.franchiseId ?? ''}
-                        onChange={(event) => onFranchiseChange(Number(event.target.value))}
+                        value={formState.franchiseId ?? ''}
+                        onChange={(event) => onFranchiseChange(event.target.value ? Number(event.target.value) : null)}
                         disabled={bpLoading}
                       >
                         <option value="">가맹점 선택</option>

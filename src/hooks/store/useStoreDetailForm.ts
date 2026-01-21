@@ -409,17 +409,18 @@ export const useStoreDetailForm = ({
   }, [bpTree, formState.officeId])
 
   // 본사 선택 시 가맹점/조직Id 동기화
-  const handleOfficeChange = (nextOfficeId: number) => {
+  const handleOfficeChange = (nextOfficeId: number | null) => {
     setFormState((prev: StoreFormState) => {
       const shouldClearFranchise =
-        nextOfficeId &&
-        prev.franchiseId &&
+        nextOfficeId !== null &&
+        prev.franchiseId !== null &&
         !bpTree
           .find((office) => office.id === nextOfficeId)
           ?.franchises.some((franchise) => franchise.id === prev.franchiseId)
 
       const nextFranchiseId = shouldClearFranchise ? null : prev.franchiseId
-      const nextOrganizationId = prev.storeOwner === 'HEAD_OFFICE' ? nextOfficeId : prev.organizationId
+      const nextOrganizationId =
+        prev.storeOwner === 'HEAD_OFFICE' ? nextOfficeId : prev.organizationId
 
       return {
         ...prev,
@@ -431,7 +432,7 @@ export const useStoreDetailForm = ({
   }
 
   // 가맹점 선택 시 조직Id 동기화
-  const handleFranchiseChange = (nextFranchiseId: number) => {
+  const handleFranchiseChange = (nextFranchiseId: number | null) => {
     setFormState((prev) => ({
       ...prev,
       franchiseId: nextFranchiseId ?? null,
@@ -549,7 +550,6 @@ export const useStoreDetailForm = ({
     setFormState((prev) => ({
       ...prev,
       sameAsOwner: false,
-      ...sameAsOwnerSnapshot.current,
     }))
   }
 
