@@ -139,6 +139,14 @@
     object-fit: contain;
   }
 }
+.file-preview-empty {
+  display: block;
+  min-width: 200px;
+  padding: 12px 16px;
+  white-space: nowrap;
+  @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  color: #666;
+}
 
 .store-basic-row {
   display: flex;

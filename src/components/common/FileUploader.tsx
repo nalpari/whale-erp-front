@@ -149,12 +149,12 @@ export const FileUploader = ({
       <ul className="file-list">
         {/* 서버에 이미 저장된 파일 목록 */}
         {existingFiles.map((file) => {
-          const previewUrl =
-            file.uploadFileType === 'IMAGE'
-              ? getExistingFileUrl
-                ? getExistingFileUrl(file)
-                : file.publicUrl
-              : ''
+          const isImage = file.uploadFileType === 'IMAGE'
+          const previewUrl = isImage
+            ? getExistingFileUrl
+              ? getExistingFileUrl(file)
+              : file.publicUrl
+            : ''
           return (
             <li key={file.id} className="file-item">
               <div className="file-item-wrap">
@@ -162,11 +162,15 @@ export const FileUploader = ({
                   {file.originalFileName}
                 </button>
                 <button className="file-delete" type="button" onClick={() => onRemoveExisting(file.id)}></button>
-                {previewUrl ? (
+                {isImage ? (
                   <span className="file-preview-wrap">
                     <span className="file-preview" />
                     <span className="file-preview-popup">
-                      <Image src={previewUrl} alt={file.originalFileName} width={360} height={360} />
+                      {previewUrl ? (
+                        <Image src={previewUrl} alt={file.originalFileName} width={360} height={360} />
+                      ) : (
+                        <span className="file-preview-empty">이미지를 로드 할 수 없습니다</span>
+                      )}
                     </span>
                   </span>
                 ) : null}
