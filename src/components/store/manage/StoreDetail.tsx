@@ -41,7 +41,7 @@ export default function StoreDetail() {
           detail={detail}
           isEditMode={isEditMode}
           onHoliday={() => router.push('/system/holiday')}
-          onAfterSave={() => router.push('/store/manage/info')}
+          onAfterSave={() => router.push('/store/info')}
         />
       )}
     </div>
@@ -129,6 +129,9 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
         await create(payload, files)
       }
 
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('store-search-state')
+      }
       onAfterSave()
     } catch {
       return

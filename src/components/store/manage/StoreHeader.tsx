@@ -47,7 +47,7 @@ export default function StoreHeader() {
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const { data: detail, loading, error } = useStoreDetail(storeId)
   const { remove, error: actionError } = useStoreActions()
-  const [slideboxOpen, setSlideboxOpen] = useState(false)
+  const [slideboxOpen, setSlideboxOpen] = useState(true)
 
   // 요일별 운영시간을 Map으로 정리(평일은 대표 1개만 유지)
   const operatingHours = useMemo(() => {
@@ -77,7 +77,7 @@ export default function StoreHeader() {
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('store-search-state')
       }
-      router.push('/store/manage/info')
+      router.push('/store/info')
     } catch {
       return
     }
@@ -97,7 +97,7 @@ export default function StoreHeader() {
             <div className="slidebox-header">
               <h2>점포 Header 정보</h2>
               <div className="slidebox-btn-wrap">
-                <button className="slidebox-btn" onClick={() => router.push(`/store/manage/info`)}>
+                <button className="slidebox-btn" onClick={() => router.push(`/store/info`)}>
                   목록
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
@@ -105,7 +105,7 @@ export default function StoreHeader() {
                 </button>
                 <button
                   className="slidebox-btn"
-                  onClick={() => router.push(`/store/manage/info/detail?id=${detail.storeInfo.id}`)}
+                  onClick={() => router.push(`/store/info/detail?id=${detail.storeInfo.id}`)}
                 >
                   수정
                 </button>
