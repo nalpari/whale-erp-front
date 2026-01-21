@@ -1,15 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import api from '@/lib/api'
 import { ApiResponse } from '@/lib/schemas/api'
 import { BpDetailResponse } from '@/types/bp'
-
-interface LoadState<T> {
-  data: T | null
-  loading: boolean
-  error: string | null
-}
+import { useBpStore } from '@/stores/bp-store'
 
 export interface BpFranchiseNode {
   id: number
@@ -23,52 +18,25 @@ export interface BpHeadOfficeNode {
 }
 
 export const useBp = () => {
-  const [state, setState] = useState<LoadState<BpHeadOfficeNode[]>>({
-    data: null,
-    loading: false,
-    error: null,
-  })
-  const [refreshIndex, setRefreshIndex] = useState(0)
+  const { data, loading, error, load, refresh } = useBpStore()
 
   useEffect(() => {
-    let active = true
-
-    const load = async () => {
-      setState((prev) => ({ ...prev, loading: true, error: null }))
-      try {
-        const response = await api.get<ApiResponse<BpHeadOfficeNode[]>>('/api/master/bp/head-office-tree')
-        if (!active) return
-        setState({ data: response.data.data ?? [], loading: false, error: null })
-      } catch {
-        if (!active) return
-        setState({ data: null, loading: false, error: '본사-가맹점 트리를 불러오지 못했습니다.' })
-      }
-    }
-
-    load()
-
-    return () => {
-      active = false
-    }
-  }, [refreshIndex])
-
-  const refresh = useCallback(() => {
-    setRefreshIndex((prev) => prev + 1)
-  }, [])
+    void load()
+  }, [load])
 
   const getBpDetail = useCallback(async (id: number) => {
     try {
       const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/master/bp/${id}`)
       return response.data.data
     } catch (error) {
-      throw error instanceof Error ? error : new Error('알 수 없는 오류가 발생했습니다.')
+      throw error instanceof Error ? error : new Error('Failed to load business partner detail.')
     }
   }, [])
 
   return {
-    data: state.data ?? [],
-    loading: state.loading,
-    error: state.error,
+    data,
+    loading,
+    error,
     refresh,
     getBpDetail,
   }
