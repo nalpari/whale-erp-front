@@ -59,6 +59,10 @@ export interface StoreInfoDetail {
   ceoName?: string // 대표자명
   ceoPhone?: string // 대표자 전화번호
   storePhone?: string // 점포 전화번호
+  createdBy?: string // 등록자
+  createdAt?: Date // 등록일시
+  updatedBy?: string // 최종 수정자
+  updatedAt?: Date // 최종 수정일시
 }
 
 // 점포 상세 응답 타입

@@ -18,6 +18,7 @@ import {
 } from '@/hooks/store/useStoreDetailForm'
 import { useStoreFiles } from '@/hooks/store/useStoreFiles'
 import { UploadFile } from '@/types/upload-files'
+import { formatDateYmd } from '@/util/date-util'
 
 // 점포 상세/등록 페이지 진입 컴포넌트
 export default function StoreDetail() {
@@ -221,6 +222,46 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onWeekdayToggle={handleWeekdayToggle}
           onHoliday={onHoliday}
         />
+      </div>
+      <div className="detail-data-info-wrap" style={{ marginTop: '20px' }}>
+        <table className="default-table">
+          <colgroup>
+            <col width="120px" />
+            <col />
+            <col width="120px" />
+            <col />
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>등록자</th>
+              <td>
+                <div className="data-filed">
+                  <input type="text" className="input-frame" defaultValue={detail?.storeInfo.createdBy} disabled />
+                </div>
+              </td>
+              <th>등록일시</th>
+              <td>
+                <div className="data-filed">
+                  <input type="text" className="input-frame" defaultValue={formatDateYmd(detail?.storeInfo.createdAt)} disabled />
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <th>최종 수정자</th>
+              <td>
+                <div className="data-filed">
+                  <input type="text" className="input-frame" defaultValue={detail?.storeInfo.updatedBy} disabled />
+                </div>
+              </td>
+              <th>최종 수정일시</th>
+              <td>
+                <div className="data-filed">
+                  <input type="text" className="input-frame" defaultValue={formatDateYmd(detail?.storeInfo.updatedAt)} disabled />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </>
   )
