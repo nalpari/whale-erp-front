@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
-import type { BpHeadOfficeNode, BpFranchiseNode } from '@/hooks/useBp'
+import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
 import type { FieldErrors, StoreFormState } from '@/types/store'
 import { UploadFile } from '@/types/upload-files'
 import { FileUploader } from '@/components/common/FileUploader'

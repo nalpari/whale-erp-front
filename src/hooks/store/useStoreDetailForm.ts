@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRequest } from '@/types/store'
-import type { BpHeadOfficeNode } from '@/hooks/useBp'
+import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCode } from '@/hooks/useCommonCode'
 

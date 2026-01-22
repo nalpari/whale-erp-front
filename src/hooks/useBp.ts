@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from 'react'
 import api from '@/lib/api'
 import { ApiResponse } from '@/lib/schemas/api'
-import { BpDetailResponse, BpFranchiseNode, BpHeadOfficeNode } from '@/types/bp'
+import { BpDetailResponse } from '@/types/bp'
 import { useBpStore } from '@/stores/bp-store'
 
 export const useBp = () => {
