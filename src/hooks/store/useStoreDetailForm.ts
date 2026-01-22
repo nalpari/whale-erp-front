@@ -96,6 +96,19 @@ const formatPhoneNumber = (value: string) => {
 }
 
 const stripHyphen = (value: string) => value.replace(/-/g, '')
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+const BUSINESS_FILE_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'hwp'])
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp'])
+const PHONE_REGEX = /^(010-\d{4}-\d{4}|0\d{1,2}-\d{3,4}-\d{4})$/
+
+const getFileExtension = (name: string) => {
+  const trimmed = name.trim()
+  const lastDot = trimmed.lastIndexOf('.')
+  if (lastDot <= 0) return ''
+  return trimmed.slice(lastDot + 1).toLowerCase()
+}
+
+const validateFileSize = (file: File) => file.size <= MAX_UPLOAD_SIZE
 
 const buildDefaultOperating = (dayType: OperatingDayType, mode: StoreFormMode): OperatingFormState => {
   if (mode === 'create') {
@@ -314,16 +327,40 @@ export const validateForm = (formState: StoreFormState) => {
   if (!formState.ceoName.trim()) fieldErrors.ceoName = VALIDATE_MESSAGE.A001
   if (!formState.ceoPhone.trim()) fieldErrors.ceoPhone = VALIDATE_MESSAGE.A001
   if (formState.ceoPhone.trim()) {
-    const digitsOnly = stripHyphen(formState.ceoPhone)
-    if (/\D/.test(digitsOnly)) {
-      fieldErrors.ceoPhone = VALIDATE_MESSAGE.A008
+    const formatted = formatPhoneNumber(formState.ceoPhone)
+    if (!PHONE_REGEX.test(formatted)) {
+      fieldErrors.ceoPhone = '※ 전화번호 형식이 올바르지 않습니다'
     }
   }
   if (!formState.storeAddress.trim()) fieldErrors.storeAddress = VALIDATE_MESSAGE.A001
   if (formState.storePhone.trim()) {
-    const digitsOnly = stripHyphen(formState.storePhone)
-    if (/\D/.test(digitsOnly)) {
-      fieldErrors.storePhone = VALIDATE_MESSAGE.A008
+    const formatted = formatPhoneNumber(formState.storePhone)
+    if (!PHONE_REGEX.test(formatted)) {
+      fieldErrors.storePhone = '※ 전화번호 형식이 올바르지 않습니다'
+    }
+  }
+
+  if (formState.businessFile) {
+    const extension = getFileExtension(formState.businessFile.name)
+    if (!BUSINESS_FILE_EXTENSIONS.has(extension)) {
+      fieldErrors.businessFile =
+        '첨부(파일) 허용 확장자: pdf, doc, docx, xls, xlsx, ppt, pptx, zip, hwp'
+    } else if (!validateFileSize(formState.businessFile)) {
+      fieldErrors.businessFile = '첨부 파일 최대 크기는 10MB입니다.'
+    }
+  }
+
+  if (formState.storeImages.length > 0) {
+    const invalidExtension = formState.storeImages.some(
+      (file) => !IMAGE_EXTENSIONS.has(getFileExtension(file.name))
+    )
+    if (invalidExtension) {
+      fieldErrors.storeImages = '이미지 허용 확장자: jpg, jpeg, png, gif, webp'
+    } else {
+      const oversize = formState.storeImages.some((file) => !validateFileSize(file))
+      if (oversize) {
+        fieldErrors.storeImages = '이미지 최대 크기는 10MB입니다.'
+      }
     }
   }
 

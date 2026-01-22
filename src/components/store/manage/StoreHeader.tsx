@@ -46,7 +46,7 @@ export default function StoreHeader() {
   const storeIdParam = searchParams.get('id')
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const { data: detail, loading, error } = useStoreDetail(storeId)
-  const { remove, error: actionError } = useStoreActions()
+  const { remove } = useStoreActions()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
   // 요일별 운영시간을 Map으로 정리(평일은 대표 1개만 유지)
@@ -79,6 +79,7 @@ export default function StoreHeader() {
       }
       router.push('/store/info')
     } catch {
+      window.alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
       return
     }
   }
@@ -90,7 +91,7 @@ export default function StoreHeader() {
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />
       {loading && <div className="data-loading">상세 정보를 불러오는 중...</div>}
-      {(error || actionError) && <div className="form-helper error">{error ?? actionError}</div>}
+      {error && <div className="form-helper error">{error}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>

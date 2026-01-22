@@ -86,7 +86,7 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formErrors, setFormErrors] = useState<string[]>([])
 
-  const { create, update, saving, error: actionError } = useStoreActions()
+  const { create, update, saving } = useStoreActions()
 
   const {
     existingStoreImages,
@@ -135,15 +135,15 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
       }
       onAfterSave()
     } catch {
+      window.alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
       return
     }
   }
 
   return (
     <>
-      {(formErrors.length > 0 || actionError) && (
+      {formErrors.length > 0 && (
         <div className="form-helper error">
-          {actionError && <div>{actionError}</div>}
           {formErrors.map((message) => (
             <div key={message}>{message}</div>
           ))}

@@ -113,6 +113,8 @@ export type FieldErrorKey =
   | 'storeAddress'
   | 'ceoPhone'
   | 'storePhone'
+  | 'businessFile'
+  | 'storeImages'
 
 // 필드별 에러 메시지 모음
 export type FieldErrors = Partial<Record<FieldErrorKey, string>>

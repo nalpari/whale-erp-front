@@ -294,6 +294,9 @@ export const StoreDetailBasicInfo = ({
                     getExistingFileUrl={getFileUrl}
                     resolveExistingFileUrl={resolveExistingFileUrl}
                   />
+                  {fieldErrors.businessFile && (
+                    <div className="form-helper error">{fieldErrors.businessFile}</div>
+                  )}
                 </td>
               </tr>
               <tr>
@@ -401,6 +404,9 @@ export const StoreDetailBasicInfo = ({
                     getExistingFileUrl={getFileUrl}
                     resolveExistingFileUrl={resolveExistingFileUrl}
                   />
+                  {fieldErrors.storeImages && (
+                    <div className="form-helper error">{fieldErrors.storeImages}</div>
+                  )}
                 </td>
               </tr>
             </tbody>
