@@ -12,3 +12,9 @@ export const formatDateYmd = (value?: string | Date | null, fallback = '-') => {
   if (!date) return fallback
   return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())}`
 }
+
+// YYYY-MM-DD format; returns undefined when value is empty/invalid.
+export const formatDateYmdOrUndefined = (value?: string | Date | null) => {
+  const formatted = formatDateYmd(value, '')
+  return formatted === '' ? undefined : formatted
+}

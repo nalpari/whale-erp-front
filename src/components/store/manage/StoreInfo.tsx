@@ -7,6 +7,7 @@ import StoreSearch, { StoreSearchFilters } from '@/components/store/manage/Store
 import Location from '@/components/ui/Location'
 import { StoreListParams, useStoreList, useStoreOptions } from '@/hooks/store/useStore'
 import { useCommonCode } from '@/hooks/useCommonCode'
+import { formatDateYmdOrUndefined } from '@/util/date-util'
 
 const defaultFilters: StoreSearchFilters = {
   officeId: null,
@@ -19,14 +20,7 @@ const defaultFilters: StoreSearchFilters = {
 
 const STORE_SEARCH_STATE_KEY = 'store-search-state'
 
-// 날짜 필터를 API 파라미터용 YYYY-MM-DD 문자열로 변환
-const formatDateParam = (value: Date | null) => {
-  if (!value) return undefined
-  const year = value.getFullYear()
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const date = String(value.getDate()).padStart(2, '0')
-  return `${year}-${month}-${date}`
-}
+const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
 // sessionStorage에 저장된 검색 상태를 읽고, 실패 시 기본값으로 복구
 const readStoredSearchState = () => {
@@ -132,8 +126,8 @@ export default function StoreInfo() {
       franchise: appliedFilters.franchiseId ?? undefined,
       store: appliedFilters.storeId ?? undefined,
       status: appliedFilters.status === 'ALL' ? undefined : appliedFilters.status,
-      from: formatDateParam(appliedFilters.from),
-      to: formatDateParam(appliedFilters.to),
+      from: formatDateYmdOrUndefined(appliedFilters.from),
+      to: formatDateYmdOrUndefined(appliedFilters.to),
       page,
       size: pageSize,
       sort: 'createdAt,desc',
@@ -176,9 +170,8 @@ export default function StoreInfo() {
   // 초기화: 입력값만 기본값으로 복원 (적용값은 사용자가 다시 검색할 때 변경)
   const handleReset = () => {
     setStoreState((prev) => ({ ...prev, filters: defaultFilters }))
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(STORE_SEARCH_STATE_KEY)
-    }
+    // 적용된 검색 결과는 유지하고 입력값만 초기화
+    persistSearchState(appliedFilters, page, pageSize)
   }
 
   // 등록 페이지로 이동 전에 현재 검색 상태 저장
@@ -201,12 +194,9 @@ export default function StoreInfo() {
     return acc
   }, {})
 
-  // 페이지 상단 경로 표시용
-  const breadcrumbs = useMemo(() => ['Home', '가맹점 및 점포 관리', '점포 정보 관리'], [])
-
   return (
     <div className="data-wrap">
-      <Location title="점포 정보 관리" list={breadcrumbs} />
+      <Location title="점포 정보 관리" list={BREADCRUMBS} />
       <StoreSearch
         filters={filters}
         storeOptions={storeOptionList.map((option) => ({ value: option.id, label: option.storeName }))}
