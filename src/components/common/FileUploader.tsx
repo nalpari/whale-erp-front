@@ -79,10 +79,12 @@ export const FileUploader = ({
   onDownloadExisting,
   onDownloadNew,
   getExistingFileUrl,
+  resolveExistingFileUrl,
   allowDrop = true,
   showSampleButton = false,
   onSampleDownload,
   onRemoveAll,
+  disableRemoveAll = false,
 }: FileUploaderProps) => {
   // 새로 선택된 파일 목록 (항상 배열로 관리)
   const newFiles = toArray(value)
@@ -95,6 +97,21 @@ export const FileUploader = ({
   const isMultiple = mode === 'multiple'
   // 다중 업로드일 때만 "전체 삭제"를 보여줄지 결정
   const hasRemoveAll = isMultiple && onRemoveAll
+  const handleDownloadExisting = async (file: UploadFile) => {
+    if (resolveExistingFileUrl) {
+      try {
+        const url = await resolveExistingFileUrl(file)
+        if (url) {
+          window.open(url, '_blank', 'noopener,noreferrer')
+          return
+        }
+      } catch {
+        // ignore and fall back to provided handler
+      }
+    }
+
+    onDownloadExisting(file)
+  }
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : []
     if (files.length === 0) return
@@ -133,15 +150,20 @@ export const FileUploader = ({
         )}
         {hasRemoveAll && (
           <span
-            onClick={onRemoveAll}
+            onClick={() => {
+              if (disableRemoveAll) return
+              onRemoveAll()
+            }}
             style={{
               marginTop: '5px',
-              cursor: 'pointer',
+              cursor: disableRemoveAll ? 'not-allowed' : 'pointer',
               color: '#000',
               fontSize: '14px',
               fontStyle: 'bold',
-              textDecoration: 'underline'
+              textDecoration: 'underline',
+              opacity: disableRemoveAll ? 0.5 : 1,
             }}
+            aria-disabled={disableRemoveAll}
           >
             모두 삭제
           </span>)}
@@ -158,7 +180,7 @@ export const FileUploader = ({
           return (
             <li key={file.id} className="file-item">
               <div className="file-item-wrap">
-                <button className="file-name" type="button" onClick={() => onDownloadExisting(file)}>
+                <button className="file-name" type="button" onClick={() => void handleDownloadExisting(file)}>
                   {file.originalFileName}
                 </button>
                 <button className="file-delete" type="button" onClick={() => onRemoveExisting(file.id)}></button>

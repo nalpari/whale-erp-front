@@ -24,6 +24,10 @@ export const useStoreFiles = (
   formState: StoreFormState,
   setFormState: Dispatch<SetStateAction<StoreFormState>>,
 ) => {
+  // 이전 미리보기 URL 추적(메모리 누수 방지)
+  const prevStoreImageUrlsRef = useRef<string[]>([])
+  const prevBusinessFileUrlRef = useRef<string | null>(null)
+
   // 삭제 예정이 아닌 기존 점포 이미지
   // 삭제 목록에 없는 "기존 매장 이미지"만 추려서 보여줌
   const existingStoreImages = useMemo(
@@ -55,20 +59,28 @@ export const useStoreFiles = (
     return URL.createObjectURL(formState.businessFile)
   }, [formState.businessFile])
 
-  // 컴포넌트 언마운트 시 미리보기 URL 해제
-  // 컴포넌트 언마운트 시 매장 이미지 미리보기 URL 해제
+  // 매장 이미지 미리보기 URL 변경 시 이전 URL 해제
   useEffect(() => {
+    const previousUrls = prevStoreImageUrlsRef.current
+    previousUrls.forEach((url) => URL.revokeObjectURL(url))
+    const nextUrls = storeImagePreviews.map((item) => item.url)
+    prevStoreImageUrlsRef.current = nextUrls
     return () => {
-      storeImagePreviews.forEach((item) => URL.revokeObjectURL(item.url))
+      nextUrls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [storeImagePreviews])
 
-  // 사업자등록증 미리보기 URL 해제
-  // 컴포넌트 언마운트 시 사업자등록증 미리보기 URL 해제
+  // 사업자등록증 미리보기 URL 변경 시 이전 URL 해제
   useEffect(() => {
+    const previousUrl = prevBusinessFileUrlRef.current
+    if (previousUrl && previousUrl !== businessFilePreview) {
+      URL.revokeObjectURL(previousUrl)
+    }
+    prevBusinessFileUrlRef.current = businessFilePreview
     return () => {
-      if (businessFilePreview) {
-        URL.revokeObjectURL(businessFilePreview)
+      const currentUrl = prevBusinessFileUrlRef.current
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl)
       }
     }
   }, [businessFilePreview])
