@@ -169,3 +169,13 @@ input::-webkit-inner-spin-button {
     display: inline-block;
   }
 }
+
+.form-helper {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #666;
+  &.error {
+    color: $input-c-error;
+  }
+}

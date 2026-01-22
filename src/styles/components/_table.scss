@@ -247,6 +247,25 @@ table {
   }
 }
 
+.store-info-work-hours-table {
+  width: 100%;
+  table-layout: auto;
+  box-sizing: border-box;
+  th {
+    padding: 11px 16px;
+    background-color: #fff;
+    border: 1px solid #ebebeb !important;
+    &.p0 {
+      padding: 0;
+    }
+  }
+  td {
+    background-color: #fafafa;
+    border: 1px solid #ebebeb !important;
+    vertical-align: top;
+  }
+}
+
 // 계약 근무 시간
 .work-hours-table {
   width: 100%;

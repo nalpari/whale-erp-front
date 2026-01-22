@@ -57,7 +57,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
   if (affiliationId) {
-    config.headers['affiliation'] = affiliationId;
+    config.headers['affiliationId'] = affiliationId;
   }
   if (typeof window !== 'undefined') {
     config.headers['currentPath'] = window.location.pathname;

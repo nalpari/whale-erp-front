@@ -54,5 +54,5 @@ next-env.d.ts
 # Auto Claude data directory
 .auto-claude/
 
-# Agents
+# Codex
 AGENTS.md
