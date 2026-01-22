@@ -48,7 +48,6 @@ export const StoreDetailOperatingHours = ({
               <th>평일 오픈 시간</th>
               <td>
                 <WorkHoursTable
-                  key={`weekday-${formState.operating.WEEKDAY.openTime}-${formState.operating.WEEKDAY.closeTime}-${formState.operating.WEEKDAY.breakStartTime}-${formState.operating.WEEKDAY.breakEndTime}-${formState.operating.WEEKDAY.isOperating}-${formState.operating.WEEKDAY.breakTimeEnabled}`}
                   idPrefix="weekday"
                   openTime={formState.operating.WEEKDAY.openTime}
                   closeTime={formState.operating.WEEKDAY.closeTime}
@@ -77,7 +76,6 @@ export const StoreDetailOperatingHours = ({
               <th>토요일 오픈 시간</th>
               <td>
                 <WorkHoursTable
-                  key={`saturday-${formState.operating.SATURDAY.openTime}-${formState.operating.SATURDAY.closeTime}-${formState.operating.SATURDAY.breakStartTime}-${formState.operating.SATURDAY.breakEndTime}-${formState.operating.SATURDAY.isOperating}-${formState.operating.SATURDAY.breakTimeEnabled}`}
                   idPrefix="saturday"
                   openTime={formState.operating.SATURDAY.openTime}
                   closeTime={formState.operating.SATURDAY.closeTime}
@@ -93,7 +91,6 @@ export const StoreDetailOperatingHours = ({
               <th>일요일 오픈 시간</th>
               <td>
                 <WorkHoursTable
-                  key={`sunday-${formState.operating.SUNDAY.openTime}-${formState.operating.SUNDAY.closeTime}-${formState.operating.SUNDAY.breakStartTime}-${formState.operating.SUNDAY.breakEndTime}-${formState.operating.SUNDAY.isOperating}-${formState.operating.SUNDAY.breakTimeEnabled}`}
                   idPrefix="sunday"
                   openTime={formState.operating.SUNDAY.openTime}
                   closeTime={formState.operating.SUNDAY.closeTime}

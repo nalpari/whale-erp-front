@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import api from '@/lib/api'
 import { ApiResponse } from '@/lib/schemas/api'
-import type { BpHeadOfficeNode } from '@/hooks/useBp'
+import type { BpHeadOfficeNode } from '@/types/bp'
 
 interface BpStoreState {
   data: BpHeadOfficeNode[]

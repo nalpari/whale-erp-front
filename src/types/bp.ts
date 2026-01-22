@@ -6,6 +6,17 @@ export interface PfList {
     partnerBpId: number
 }
 
+export interface BpFranchiseNode {
+    id: number
+    name: string
+}
+
+export interface BpHeadOfficeNode {
+    id: number
+    name: string
+    franchises: BpFranchiseNode[]
+}
+
 export interface BpDetailResponse {
     id: number
     bpoprType: string

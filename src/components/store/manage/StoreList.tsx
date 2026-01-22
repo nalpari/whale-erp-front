@@ -61,7 +61,10 @@ export default function StoreList({
         <button
           type="button"
           className="btn-link"
-          onClick={() => params.data && onOpenDetail(params.data.id)}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (params.data) onOpenDetail(params.data.id)
+          }}
         >
           {params.value}
         </button>

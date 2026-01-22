@@ -3,19 +3,8 @@
 import { useCallback, useEffect } from 'react'
 import api from '@/lib/api'
 import { ApiResponse } from '@/lib/schemas/api'
-import { BpDetailResponse } from '@/types/bp'
+import { BpDetailResponse, BpFranchiseNode, BpHeadOfficeNode } from '@/types/bp'
 import { useBpStore } from '@/stores/bp-store'
-
-export interface BpFranchiseNode {
-  id: number
-  name: string
-}
-
-export interface BpHeadOfficeNode {
-  id: number
-  name: string
-  franchises: BpFranchiseNode[]
-}
 
 export const useBp = () => {
   const { data, loading, error, load, refresh } = useBpStore()
