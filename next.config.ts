@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const S3_HOSTNAME =
+  process.env.NEXT_PUBLIC_S3_HOSTNAME ||
+  "whale-erp-files.s3.ap-northeast-2.amazonaws.com";
+
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
@@ -7,7 +11,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "whale-erp-files.s3.ap-northeast-2.amazonaws.com",
+        hostname: S3_HOSTNAME,
         pathname: "/**",
       },
     ],
