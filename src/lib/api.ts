@@ -76,4 +76,12 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * 아이디 찾기 API
+ */
+export async function findLoginId(name: string, email: string): Promise<string> {
+  const response = await api.post('/api/auth/find-login-id', { name, email });
+  return response.data.data.loginId;
+}
+
 export default api;
