@@ -141,7 +141,7 @@ const useAsyncResource = <T,>({
       }
     }
 
-    load()
+    void load()
 
     return () => {
       // 요청을 중단하고 언마운트 후 지연된 setState를 차단합니다.

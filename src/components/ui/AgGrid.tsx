@@ -5,39 +5,6 @@ import { ModuleRegistry, AllCommunityModule, ColDef, RowClickedEvent } from 'ag-
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
-interface DefaultRow {
-  id: number
-  name: string
-  phone: string
-  status: string
-  createdAt: string
-}
-
-const fallbackRowData: DefaultRow[] = [
-  {
-    id: 1,
-    name: 'Sample 01',
-    phone: '010-0000-0001',
-    status: 'READY',
-    createdAt: '2024-06-05 10:00',
-  },
-  {
-    id: 2,
-    name: 'Sample 02',
-    phone: '010-0000-0002',
-    status: 'READY',
-    createdAt: '2024-06-05 10:10',
-  },
-]
-
-const fallbackColumnDefs: ColDef<DefaultRow>[] = [
-  { field: 'id', headerName: '#', width: 60 },
-  { field: 'name', headerName: 'Name', flex: 1 },
-  { field: 'phone', headerName: 'Phone' },
-  { field: 'status', headerName: 'Status' },
-  { field: 'createdAt', headerName: 'Created At' },
-]
-
 interface AgGridProps<T extends object> {
   rowData?: T[]
   columnDefs?: ColDef<T>[]
@@ -55,8 +22,8 @@ export default function AgGrid<T extends object>({
   suppressRowClickSelection,
   onRowClicked,
 }: AgGridProps<T>) {
-  const resolvedRowData = (rowData ?? fallbackRowData) as T[]
-  const resolvedColumnDefs = (columnDefs ?? fallbackColumnDefs) as ColDef<T>[]
+  const resolvedRowData = rowData ?? ([] as T[])
+  const resolvedColumnDefs = columnDefs ?? ([] as ColDef<T>[])
   const resolvedDefaultColDef: ColDef<T> = {
     sortable: false,
     resizable: false,

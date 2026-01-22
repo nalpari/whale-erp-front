@@ -1,4 +1,4 @@
-﻿interface PaginationProps {
+interface PaginationProps {
   page?: number
   totalPages?: number
   onPageChange?: (page: number) => void
@@ -22,33 +22,7 @@ const buildPageRange = (current: number, total: number, maxButtons: number) => {
 
 export default function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
   if (page === undefined || totalPages === undefined) {
-    return (
-      <div className="pagination">
-        <ol className="pagination-list">
-          <li>
-            <button type="button" className="pagination-button prev disabled" aria-label="Prev" disabled>
-              Prev
-            </button>
-          </li>
-          <li>
-            <button className="pagination-number">1</button>
-          </li>
-          <li>
-            <button className="pagination-number active" aria-current="page">
-              2
-            </button>
-          </li>
-          <li>
-            <button className="pagination-number">3</button>
-          </li>
-          <li>
-            <button type="button" className="pagination-button next" aria-label="Next">
-              Next
-            </button>
-          </li>
-        </ol>
-      </div>
-    )
+    return <div className="pagination" />
   }
 
   const total = Math.max(1, totalPages)
@@ -73,6 +47,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
         {pages.map((pageNumber) => (
           <li key={pageNumber}>
             <button
+              type="button"
               className={`pagination-number ${pageNumber === current ? 'active' : ''}`}
               aria-current={pageNumber === current ? 'page' : undefined}
               onClick={() => onPageChange?.(pageNumber)}

@@ -104,17 +104,6 @@ export interface OperatingFormState {
   breakEndTime: string // 휴게 시간 종료 시간
 }
 
-// 운영시간 폼에서 사용하는 시간 단위 상태
-export interface OperatingFormState {
-  dayType: OperatingDayType
-  isOperating: boolean
-  openTime: string
-  closeTime: string
-  breakTimeEnabled: boolean
-  breakStartTime: string
-  breakEndTime: string
-}
-
 // 필수 항목 검증 시 사용하는 필드 키
 export type FieldErrorKey =
   | 'organizationId'

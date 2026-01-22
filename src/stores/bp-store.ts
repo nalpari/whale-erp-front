@@ -19,8 +19,9 @@ const fetchBpTree = async (set: (state: Partial<BpStoreState>) => void) => {
   try {
     const response = await api.get<ApiResponse<BpHeadOfficeNode[]>>('/api/master/bp/head-office-tree')
     set({ data: response.data.data ?? [], loading: false, error: null, loaded: true })
-  } catch {
-    set({ data: [], loading: false, error: 'Failed to load head-office tree.', loaded: false })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load head-office tree.'
+    set({ data: [], loading: false, error: message, loaded: false })
   } finally {
     inFlight = null
   }

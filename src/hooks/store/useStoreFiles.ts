@@ -221,6 +221,7 @@ export const useStoreFiles = (
         window.open(downloadUrl, '_blank', 'noopener')
       }
     } catch {
+      console.error('파일 다운로드 URL 조회 실패')
       return
     }
   }
@@ -238,6 +239,7 @@ export const useStoreFiles = (
           : null) ?? (typeof payload === 'string' ? payload : null)
       return resolved ?? null
     } catch {
+      console.error('기존 파일 URL 조회 실패')
       return null
     }
   }

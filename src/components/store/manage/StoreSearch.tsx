@@ -15,7 +15,7 @@ export interface StoreSearchFilters {
 }
 
 // 셀렉트 옵션 공통 타입
-interface OptionItem {
+export interface OptionItem {
   value: number
   label: string
 }
@@ -63,9 +63,7 @@ export default function StoreSearch({
         <div className="search-result">
           검색결과<span>{resultCount}건</span>
         </div>
-        <ul className="search-result-list">
-          <li></li>
-        </ul>
+        <ul className="search-result-list" />
         <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>

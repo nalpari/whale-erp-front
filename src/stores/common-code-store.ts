@@ -33,6 +33,14 @@ export const useCommonCodeStore = create<CommonCodeState>((set, get) => ({
   loadingByCode: {},
   errorByCode: {},
   fetchChildren: async (code: string) => {
+    const state = get()
+    if (state.loadingByCode[code]) {
+      return state.childrenByCode[code] ?? []
+    }
+    if (state.childrenByCode[code]) {
+      return state.childrenByCode[code]
+    }
+
     set((state) => ({
       loadingByCode: { ...state.loadingByCode, [code]: true },
       errorByCode: { ...state.errorByCode, [code]: null },
