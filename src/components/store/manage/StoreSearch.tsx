@@ -2,7 +2,8 @@
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import DatePicker from '@/components/ui/common/DatePicker'
-import { useBp } from '@/hooks/useBp'
+import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+
 
 // 점포 검색 필터 상태
 export interface StoreSearchFilters {
@@ -15,15 +16,9 @@ export interface StoreSearchFilters {
 }
 
 // 셀렉트 옵션 공통 타입
-export interface OptionItem {
-  value: number
-  label: string
-}
-
 // 검색 영역 컴포넌트 props
 interface StoreSearchProps {
   filters: StoreSearchFilters
-  storeOptions: OptionItem[]
   statusOptions: { value: string; label: string }[]
   resultCount: number
   onChange: (next: Partial<StoreSearchFilters>) => void
@@ -34,7 +29,6 @@ interface StoreSearchProps {
 // 점포 목록 검색 영역
 export default function StoreSearch({
   filters,
-  storeOptions,
   statusOptions,
   resultCount,
   onChange,
@@ -42,21 +36,6 @@ export default function StoreSearch({
   onReset,
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
-  const { data: bpTree, loading: bpLoading } = useBp()
-
-  const officeOptions = bpTree.map((office) => ({ value: office.id, label: office.name }))
-  const franchiseOptions = filters.officeId
-    ? bpTree.find((office) => office.id === filters.officeId)?.franchises.map((franchise) => ({
-      value: franchise.id,
-      label: franchise.name,
-    })) ?? []
-    : bpTree.flatMap((office) =>
-      office.franchises.map((franchise) => ({
-        value: franchise.id,
-        label: franchise.name,
-      })),
-    )
-
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="searh-result-wrap">
@@ -79,77 +58,18 @@ export default function StoreSearch({
             </colgroup>
             <tbody>
               <tr>
-                <th>본사</th>
-                <td>
-                  <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.officeId ?? ''}
-                      onChange={(event) => {
-                        const nextOfficeId = event.target.value ? Number(event.target.value) : null
-                        const nextFranchiseOptions = nextOfficeId
-                          ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
-                          : bpTree.flatMap((office) => office.franchises)
-                        const shouldClearFranchise =
-                          filters.franchiseId !== null &&
-                          filters.franchiseId !== undefined &&
-                          !nextFranchiseOptions.some((franchise) => franchise.id === filters.franchiseId)
-
-                        onChange({
-                          officeId: nextOfficeId,
-                          franchiseId: shouldClearFranchise ? null : filters.franchiseId ?? null,
-                        })
-                      }}
-                      disabled={bpLoading}
-                    >
-                      <option value="">전체</option>
-                      {officeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </td>
-                <th>가맹점</th>
-                <td>
-                  <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.franchiseId ?? ''}
-                      onChange={(event) =>
-                        onChange({ franchiseId: event.target.value ? Number(event.target.value) : null })
-                      }
-                      disabled={bpLoading}
-                    >
-                      <option value="">전체</option>
-                      {franchiseOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </td>
-                <th>점포</th>
-                <td>
-                  <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.storeId ?? ''}
-                      onChange={(event) =>
-                        onChange({ storeId: event.target.value ? Number(event.target.value) : null })
-                      }
-                    >
-                      <option value="">전체</option>
-                      {storeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </td>
+                <HeadOfficeFranchiseStoreSelect
+                  officeId={filters.officeId ?? null}
+                  franchiseId={filters.franchiseId ?? null}
+                  storeId={filters.storeId ?? null}
+                  onChange={(next) =>
+                    onChange({
+                      officeId: next.head_office,
+                      franchiseId: next.franchise,
+                      storeId: next.store,
+                    })
+                  }
+                />
               </tr>
               <tr>
                 <th>운영여부</th>

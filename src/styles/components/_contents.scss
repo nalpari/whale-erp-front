@@ -201,6 +201,90 @@
   opacity: 1;
   visibility: visible;
 }
+.searchable-select {
+  position: relative;
+  width: 100%;
+
+  .searchable-select-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    background: #fff;
+
+    &.is-open {
+      border-color: #6a7e96;
+      box-shadow: 0 0 0 2px rgba(106, 126, 150, 0.2);
+    }
+
+    &.is-disabled {
+      background: #f5f5f5;
+      color: #999;
+    }
+
+    input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+      color: #333;
+    }
+  }
+
+  .searchable-select-clear,
+  .searchable-select-toggle {
+    border: 0;
+    background: transparent;
+    padding: 0 4px;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+  }
+
+  .searchable-select-list {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 4px);
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    z-index: 20;
+  }
+
+  .searchable-select-item {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+    color: #333;
+
+    &:hover {
+      background: #f4f6f8;
+    }
+
+    &.is-selected {
+      background: #e9edf2;
+      font-weight: 600;
+    }
+  }
+
+  .searchable-select-empty {
+    padding: 10px;
+    color: #999;
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  }
+}
 .tooltip-btn {
   position: relative;
   display: inline-block;
