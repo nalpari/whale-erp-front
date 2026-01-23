@@ -1,4 +1,5 @@
 ﻿import type { UploadFile } from './upload-files'
+import type { DayType } from './work-schedule'
 
 export type OperationStatusCode = string // 운영여부 코드(STOPR_001: 운영, STOPR_002: 휴무)
 
@@ -32,7 +33,7 @@ export interface StoreOption {
 
 // 운영 시간 정보 데이터 타입
 export interface OperatingHourInfo {
-  dayType: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'WEEKDAY' | 'SATURDAY' | 'SUNDAY' // 요일
+  dayType: DayType
   isOperating: boolean // 운영 여부
   openTime: string | null // 오픈 시간
   closeTime: string | null // 클로즈 시간

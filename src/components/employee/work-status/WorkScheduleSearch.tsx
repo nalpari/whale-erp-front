@@ -1,12 +1,22 @@
-﻿'use client';
+'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimateHeight from 'react-animate-height';
+import HeadOfficeFranchiseStoreSelect from '@/components/ui/common/HeadOfficeFranchiseStoreSelect';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 
-type WorkStatusSearchProps = {
+type WorkScheduleSearchProps = {
   resultCount: number;
   isLoading: boolean;
+  initialQuery?: Partial<StoreScheduleQuery> & {
+    officeId?: number | null;
+    franchiseId?: number | null;
+    storeId?: number | null;
+    employeeName?: string;
+    dayType?: DayType | '';
+    from?: string;
+    to?: string;
+  };
   onSearch: (query: StoreScheduleQuery) => void;
   onReset: () => void;
 };
@@ -32,31 +42,85 @@ const DAY_OPTIONS: { label: string; value: DayType | '' }[] = [
   { label: '금요일', value: 'FRIDAY' },
   { label: '토요일', value: 'SATURDAY' },
   { label: '일요일', value: 'SUNDAY' },
-  { label: '평일', value: 'WEEKDAY' },
 ];
 
-export default function WorkStatusSearch({
+export default function WorkScheduleSearch({
   resultCount,
   isLoading,
+  initialQuery,
   onSearch,
   onReset,
-}: WorkStatusSearchProps) {
+}: WorkScheduleSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true);
   const defaultRange = useMemo(() => getDefaultRange(), []);
-  const [form, setForm] = useState({
-    officeId: '',
-    franchiseId: '',
-    storeId: '',
-    employeeName: '',
-    dayType: '',
-    from: defaultRange.from,
-    to: defaultRange.to,
-  });
+  const autoSearchKey = useMemo(() => {
+    if (!initialQuery?.officeId || !initialQuery.from || !initialQuery.to) return '';
+    return [
+      initialQuery.officeId,
+      initialQuery.franchiseId ?? '',
+      initialQuery.storeId ?? '',
+      initialQuery.employeeName ?? '',
+      initialQuery.dayType ?? '',
+      initialQuery.from,
+      initialQuery.to,
+    ].join('|');
+  }, [
+    initialQuery?.dayType,
+    initialQuery?.employeeName,
+    initialQuery?.franchiseId,
+    initialQuery?.officeId,
+    initialQuery?.storeId,
+    initialQuery?.from,
+    initialQuery?.to,
+  ]);
+  const autoSearchRef = useRef<string>('');
+  const initialForm = useMemo(
+    () => ({
+      officeId: initialQuery?.officeId ?? null,
+      franchiseId: initialQuery?.franchiseId ?? null,
+      storeId: initialQuery?.storeId ?? null,
+      employeeName: initialQuery?.employeeName ?? '',
+      dayType: initialQuery?.dayType ?? '',
+      from: initialQuery?.from ?? defaultRange.from,
+      to: initialQuery?.to ?? defaultRange.to,
+    }),
+    [
+      defaultRange.from,
+      defaultRange.to,
+      initialQuery?.dayType,
+      initialQuery?.employeeName,
+      initialQuery?.franchiseId,
+      initialQuery?.officeId,
+      initialQuery?.storeId,
+      initialQuery?.from,
+      initialQuery?.to,
+    ]
+  );
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
+
+  useEffect(() => {
+    if (!autoSearchKey || autoSearchRef.current === autoSearchKey) return;
+    autoSearchRef.current = autoSearchKey;
+    if (!initialQuery?.officeId || !initialQuery.from || !initialQuery.to) return;
+    const query: StoreScheduleQuery = {
+      officeId: initialQuery.officeId,
+      from: initialQuery.from,
+      to: initialQuery.to,
+      ...(initialQuery.franchiseId ? { franchiseId: initialQuery.franchiseId } : {}),
+      ...(initialQuery.storeId ? { storeId: initialQuery.storeId } : {}),
+      ...(initialQuery.employeeName ? { employeeName: initialQuery.employeeName } : {}),
+      ...(initialQuery.dayType ? { dayType: initialQuery.dayType as DayType } : {}),
+    };
+    onSearch(query);
+  }, [autoSearchKey, initialQuery, onSearch]);
 
   const handleSearch = () => {
-    const officeIdValue = Number(form.officeId);
-    if (!officeIdValue) {
-      alert('본사 ID를 입력해주세요.');
+    if (!form.officeId) {
+      alert('본사를 선택해주세요.');
       return;
     }
     if (!form.from || !form.to) {
@@ -64,15 +128,15 @@ export default function WorkStatusSearch({
       return;
     }
     const query: StoreScheduleQuery = {
-      officeId: officeIdValue,
+      officeId: form.officeId,
       from: form.from,
       to: form.to,
     };
     if (form.franchiseId) {
-      query.franchiseId = Number(form.franchiseId);
+      query.franchiseId = form.franchiseId;
     }
     if (form.storeId) {
-      query.storeId = Number(form.storeId);
+      query.storeId = form.storeId;
     }
     if (form.employeeName.trim()) {
       query.employeeName = form.employeeName.trim();
@@ -84,15 +148,7 @@ export default function WorkStatusSearch({
   };
 
   const handleReset = () => {
-    setForm({
-      officeId: '',
-      franchiseId: '',
-      storeId: '',
-      employeeName: '',
-      dayType: '',
-      from: defaultRange.from,
-      to: defaultRange.to,
-    });
+    setForm(initialForm);
     onReset();
   };
 
@@ -124,48 +180,19 @@ export default function WorkStatusSearch({
             </colgroup>
             <tbody>
               <tr>
-                <th>본사 ID</th>
-                <td>
-                  <div className="data-filed">
-                    <input
-                      type="number"
-                      className="input-frame"
-                      value={form.officeId}
-                      onChange={(event) =>
-                        setForm((prev) => ({ ...prev, officeId: event.target.value }))
-                      }
-                      placeholder="필수"
-                    />
-                  </div>
-                </td>
-                <th>가맹점 ID</th>
-                <td>
-                  <div className="data-filed">
-                    <input
-                      type="number"
-                      className="input-frame"
-                      value={form.franchiseId}
-                      onChange={(event) =>
-                        setForm((prev) => ({ ...prev, franchiseId: event.target.value }))
-                      }
-                      placeholder="선택"
-                    />
-                  </div>
-                </td>
-                <th>점포 ID</th>
-                <td>
-                  <div className="data-filed">
-                    <input
-                      type="number"
-                      className="input-frame"
-                      value={form.storeId}
-                      onChange={(event) =>
-                        setForm((prev) => ({ ...prev, storeId: event.target.value }))
-                      }
-                      placeholder="선택"
-                    />
-                  </div>
-                </td>
+                <HeadOfficeFranchiseStoreSelect
+                  officeId={form.officeId}
+                  franchiseId={form.franchiseId}
+                  storeId={form.storeId}
+                  onChange={(next) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      officeId: next.head_office,
+                      franchiseId: next.franchise,
+                      storeId: next.store,
+                    }))
+                  }
+                />
               </tr>
               <tr>
                 <th>직원명</th>
@@ -200,7 +227,7 @@ export default function WorkStatusSearch({
                     </select>
                   </div>
                 </td>
-                <th>기간 선택</th>
+                <th>기간 선택 *</th>
                 <td>
                   <div className="date-picker-wrap">
                     <input

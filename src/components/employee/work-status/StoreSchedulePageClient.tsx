@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import WorkStatusSearch from '@/components/employee/work-status/WorkStatusSearch';
+import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
 import WorkScheduleTable from '@/components/employee/work-status/WorkScheduleTable';
 import Location from '@/components/ui/Location';
 import useStoreSchedule from '@/hooks/useStoreSchedule';
@@ -82,16 +82,32 @@ export default function StoreSchedulePageClient() {
   };
 
   const handlePlan = () => {
-    router.push('/employee/work-status/establish-schedule');
+    const params = new URLSearchParams();
+    if (lastQuery?.officeId) params.set('officeId', String(lastQuery.officeId));
+    if (lastQuery?.franchiseId) params.set('franchiseId', String(lastQuery.franchiseId));
+    if (lastQuery?.storeId) params.set('storeId', String(lastQuery.storeId));
+    if (lastQuery?.employeeName) params.set('employeeName', lastQuery.employeeName);
+    if (lastQuery?.dayType) params.set('dayType', lastQuery.dayType);
+    if (lastQuery?.from) params.set('from', lastQuery.from);
+    if (lastQuery?.to) params.set('to', lastQuery.to);
+    const queryString = params.toString();
+    router.push(`/employee/schedule/plan${queryString ? `?${queryString}` : ''}`);
   };
 
   const handleSelectDate = (date: string, storeId?: number | null) => {
     const params = new URLSearchParams();
+    if (lastQuery?.officeId) params.set('officeId', String(lastQuery.officeId));
+    if (lastQuery?.franchiseId) params.set('franchiseId', String(lastQuery.franchiseId));
+    if (lastQuery?.storeId) params.set('storeId', String(lastQuery.storeId));
+    if (lastQuery?.employeeName) params.set('employeeName', lastQuery.employeeName);
+    if (lastQuery?.dayType) params.set('dayType', lastQuery.dayType);
+    if (lastQuery?.from) params.set('from', lastQuery.from);
+    if (lastQuery?.to) params.set('to', lastQuery.to);
     params.set('date', date);
     if (storeId) {
       params.set('storeId', String(storeId));
     }
-    router.push(`/employee/work-status/establish-schedule?${params.toString()}`);
+    router.push(`/employee/schedule/plan?${params.toString()}`);
   };
 
   return (
@@ -100,7 +116,7 @@ export default function StoreSchedulePageClient() {
         title="매장별 근무 계획표"
         list={['Home', '직원 관리', '근무 현황', '매장별 근무 계획표']}
       />
-      <WorkStatusSearch
+      <WorkScheduleSearch
         resultCount={resultCount}
         isLoading={isLoading}
         onSearch={handleSearch}

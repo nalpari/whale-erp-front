@@ -1064,6 +1064,68 @@
 }
 .staff-work-table {
   margin-top: 18px;
+  .time-slider {
+    position: relative;
+    height: 20px;
+    cursor: ew-resize;
+  }
+  .time-slider.is-disabled {
+    opacity: 0.4;
+    .time-handle {
+      pointer-events: none;
+    }
+  }
+  .break-slider {
+    margin-top: 20px;
+  }
+  .time-handle {
+    position: absolute;
+    top: -6px;
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #222;
+    pointer-events: auto;
+    cursor: ew-resize;
+  }
+  .time-handle.end {
+    background-color: #555;
+  }
+  .time-handle.break {
+    background-color: #8d8d8d;
+  }
+  .time-range {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 20px;
+    opacity: 0;
+    cursor: ew-resize;
+    pointer-events: auto;
+    appearance: none;
+  }
+  .time-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    pointer-events: auto;
+  }
+  .time-range::-moz-range-thumb {
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    pointer-events: auto;
+    border: none;
+  }
+  .time-range-start {
+    z-index: 2;
+  }
+  .time-range-end {
+    z-index: 3;
+  }
   .time-header {
     display: flex;
     margin-top: 6px;
@@ -1073,13 +1135,48 @@
       @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
       color: #222;
       min-width: 0;
+      position: relative;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      &:not(:first-child)::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1px;
+        height: 12px;
+        background-color: #b5b5b5;
+      }
     }
   }
   .time-blocks {
     display: flex;
-    gap: 3px;
+    gap: 4px;
     height: 20px;
     overflow: hidden;
+    position: relative;
+    &:after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          to right,
+          rgba(0, 0, 0, 0.16),
+          rgba(0, 0, 0, 0.16) 1px,
+          transparent 1px,
+          transparent calc(100% / 24)
+        ),
+        repeating-linear-gradient(
+          to right,
+          rgba(0, 0, 0, 0.06),
+          rgba(0, 0, 0, 0.06) 1px,
+          transparent 1px,
+          transparent calc(100% / 48)
+        );
+      pointer-events: none;
+    }
     &.blue {
       .time-block {
         background-color: #76a3f8;

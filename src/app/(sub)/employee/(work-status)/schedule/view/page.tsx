@@ -1,5 +1,5 @@
 ﻿import StoreSchedulePageClient from '@/components/employee/work-status/StoreSchedulePageClient';
 
-export default function StoreSchedulePage() {
+export default function StoreScheduleViewPage() {
   return <StoreSchedulePageClient />;
 }

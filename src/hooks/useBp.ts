@@ -6,12 +6,13 @@ import { ApiResponse } from '@/lib/schemas/api'
 import { BpDetailResponse } from '@/types/bp'
 import { useBpStore } from '@/stores/bp-store'
 
-export const useBp = () => {
+export const useBp = (enabled = true) => {
   const { data, loading, error, load, refresh } = useBpStore()
 
   useEffect(() => {
+    if (!enabled) return
     void load()
-  }, [load])
+  }, [load, enabled])
 
   const getBpDetail = useCallback(async (id: number) => {
     try {

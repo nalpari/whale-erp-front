@@ -192,7 +192,7 @@ const fetchStores = async (params: StoreListParams, signal?: AbortSignal) => {
 }
 
 // 점포 옵션 조회 API
-const fetchStoreOptions = async (officeId?: number, franchiseId?: number, signal?: AbortSignal) => {
+const fetchStoreOptions = async (officeId?: number | null, franchiseId?: number | null, signal?: AbortSignal) => {
   const response = await api.get<ApiResponse<StoreOption[]>>('/api/v1/stores/options', {
     params: { officeId, franchiseId },
     signal,
@@ -230,7 +230,7 @@ const deleteStore = async (storeId: number) => {
 }
 
 // 점포 옵션 목록 훅
-export const useStoreOptions = (officeId?: number, franchiseId?: number) => {
+export const useStoreOptions = (officeId?: number | null, franchiseId?: number | null, enabled = true) => {
   const loader = useCallback((signal: AbortSignal) => fetchStoreOptions(officeId, franchiseId, signal), [
     officeId,
     franchiseId,
@@ -239,6 +239,7 @@ export const useStoreOptions = (officeId?: number, franchiseId?: number) => {
   const { data, loading, error, errorCause, errorDetail, refresh } = useAsyncResource<StoreOption[]>({
     loader,
     deps: [officeId, franchiseId],
+    enabled,
     errorMessage: '점포 옵션을 불러오지 못했습니다.',
   })
 
