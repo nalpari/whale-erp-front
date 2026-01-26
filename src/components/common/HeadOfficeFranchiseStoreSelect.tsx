@@ -259,7 +259,7 @@ function SearchableSelect({
                             {option.label}
                         </button>
                     ))}
-                    {filteredOptions.length === 0 && (
+                    {filteredOptions.length === 0 && searchValue && (
                         <div className="searchable-select-empty">검색 결과가 없습니다.</div>
                     )}
                 </div>
@@ -283,8 +283,8 @@ export default function HeadOfficeFranchiseStoreSelect({
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
     const franchiseOptions = useMemo(() => buildFranchiseOptions(bpTree, officeId), [bpTree, officeId])
     const { options: storeOptionList, loading: storeLoading } = useStoreOptions(
-        officeId ?? undefined,
-        franchiseId ?? undefined,
+        officeId,
+        franchiseId,
         isReady
     )
     // 점포 옵션은 API 결과를 select에 맞게 변환
