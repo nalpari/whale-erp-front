@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HeadOfficeFranchiseStoreSelect
  *
  * 용도:
@@ -8,70 +8,71 @@
  * 주요 기능:
  * - 본사/가맹점/점포 옵션을 API 훅(useBp, useStoreOptions)으로 불러와 표시.
  * - 상위 선택이 변경되면 하위 선택값을 자동 초기화/보정.
- * - 드롭다운 입력값으로 옵션 목록을 필터링(2, 2-1 요구사항).
+ * - 드롭다운 입력값으로 옵션 목록을 필터링.
  * - "전체" 선택을 제공하며, 선택값은 { head_office, franchise, store } 형태로 반환.
  *
  * 사용 방법:
  * - officeId/franchiseId/storeId와 onChange 콜백을 전달.
+ * - isHeadOfficeRequired/showHeadOfficeError로 본사 필수/에러 표시 제어.
  * - onChange는 선택된 값(또는 null)을 받아 상위 상태를 갱신.
  *
  * 예시:
  * <HeadOfficeFranchiseStoreSelect
- *   officeId={filters.officeId ?? null} // 본사 선택
- *   franchiseId={filters.franchiseId ?? null} // 가맹점 선택
- *   storeId={filters.storeId ?? null} // 점포 선택
+ *   isHeadOfficeRequired={true}
+ *   showHeadOfficeError={showOfficeError}
+ *   officeId={filters.officeId ?? null}
+ *   franchiseId={filters.franchiseId ?? null}
+ *   storeId={filters.storeId ?? null}
  *   onChange={(next) =>
- *     setFilters({ // 상위 상태 갱신
- *       officeId: next.head_office, // 본사 선택
- *       franchiseId: next.franchise, // 가맹점 선택
- *       storeId: next.store, // 점포 선택
+ *     setFilters({
+ *       officeId: next.head_office,
+ *       franchiseId: next.franchise,
+ *       storeId: next.store,
  *     })
- *   } // 선택된 값(또는 null)을 받아 상위 상태를 갱신
+ *   }
  * />
+ * 
+ * 사용 예시: src/components/store/manage/StoreSearch.tsx
  */
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useBp } from '@/hooks/useBp'
 import { useStoreOptions } from '@/hooks/store/useStore'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
 
-// 옵션 타입
 export interface SelectOption {
-    value: number // 옵션 값 (id)
+    value: number // 옵션 값(id)
     label: string // 옵션 라벨 (name)
 }
 
-// 선택된 값 타입
 export type OfficeFranchiseStoreValue = {
-    head_office: number | null // 본사 선택 값 (id)
-    franchise: number | null // 가맹점 선택 값 (id)
-    store: number | null // 점포 선택 값 (id)   
+    head_office: number | null // 본사 선택 값(id)
+    franchise: number | null // 가맹점 선택 값(id)
+    store: number | null // 점포 선택 값(id)
 }
 
-// 컴포넌트 프로퍼티 타입
 type HeadOfficeFranchiseStoreSelectProps = {
-    officeId: number | null // 본사 선택 값 (id)
-    franchiseId: number | null // 가맹점 선택 값 (id)
-    storeId: number | null // 점포 선택 값 (id)
+    isHeadOfficeRequired?: boolean
+    showHeadOfficeError?: boolean
+    officeId: number | null // 본사 선택 값(id)
+    franchiseId: number | null // 가맹점 선택 값(id)
+    storeId: number | null // 점포 선택 값(id)
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
 }
 
-// 검색 가능한 선택 컴포넌트 프로퍼티 타입
 type SearchableSelectProps = {
-    value: number | null // 선택된 값 (id)
+    value: number | null // 선택된 값(id)
     options: SelectOption[] // 옵션 목록
     placeholder: string // 플레이스홀더 텍스트
     disabled?: boolean // 비활성화 여부
     onChange: (value: number | null) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
 }
 
-// 본사 목록 빌드
 const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
     bpTree.map((office) => ({ value: office.id, label: office.name }))
 
-// 가맹점 목록 빌드
 const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | null) =>
     officeId
         ? bpTree
@@ -81,7 +82,6 @@ const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | nu
             office.franchises.map((franchise) => ({ value: franchise.id, label: franchise.name }))
         )
 
-// 검색 가능한 선택 컴포넌트
 function SearchableSelect({
     value,
     options,
@@ -90,8 +90,12 @@ function SearchableSelect({
     onChange,
 }: SearchableSelectProps) {
     const containerRef = useRef<HTMLDivElement | null>(null)
+    const listRef = useRef<HTMLDivElement | null>(null)
     const [open, setOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
+    const [activeIndex, setActiveIndex] = useState(-1)
+    const listId = useId()
+    const prevActiveIndex = useRef(-1)
     // 선택된 값의 라벨 표시용 (검색어 입력 중에는 searchValue가 표시됨)
     const selectedLabel = useMemo(
         () => options.find((option) => option.value === value)?.label ?? '',
@@ -105,6 +109,7 @@ function SearchableSelect({
                 // 외부 클릭 시 닫고 검색어 초기화
                 setOpen(false)
                 setSearchValue('')
+                setActiveIndex(-1)
             }
         }
         window.addEventListener('mousedown', handleClick)
@@ -118,7 +123,64 @@ function SearchableSelect({
         return options.filter((option) => option.label.toLowerCase().includes(keyword))
     }, [options, searchValue])
 
-    const displayValue = open ? searchValue : selectedLabel
+    const showAllOption = !searchValue
+    const listItems = useMemo(
+        () => [
+            ...(showAllOption ? [{ value: null, label: '전체' }] : []),
+            ...filteredOptions,
+        ],
+        [filteredOptions, showAllOption]
+    )
+
+    const displayValue =
+        open && searchValue === '' ? selectedLabel : open ? searchValue : selectedLabel
+
+    const selectItem = (nextValue: number | null) => {
+        onChange(nextValue)
+        setOpen(false)
+        setSearchValue('')
+        setActiveIndex(-1)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (disabled) return
+        if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+            setOpen(true)
+            setActiveIndex(0)
+            return
+        }
+        if (!open) return
+        if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            setActiveIndex((prev) => Math.min(prev + 1, listItems.length - 1))
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            setActiveIndex((prev) => Math.max(prev - 1, 0))
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault()
+            const current = listItems[activeIndex]
+            if (current) {
+                selectItem(current.value)
+            }
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            setOpen(false)
+            setSearchValue('')
+            setActiveIndex(-1)
+        }
+    }
+
+    useEffect(() => {
+        if (!open || activeIndex < 0) return
+        if (prevActiveIndex.current === activeIndex) return
+        prevActiveIndex.current = activeIndex
+        const items = listRef.current?.querySelectorAll<HTMLButtonElement>('.searchable-select-item')
+        const target = items?.[activeIndex]
+        target?.scrollIntoView({ block: 'nearest' })
+    }, [activeIndex, open])
 
     return (
         <div className="searchable-select" ref={containerRef}>
@@ -127,13 +189,19 @@ function SearchableSelect({
                     type="text"
                     value={displayValue}
                     placeholder={placeholder}
-                    onFocus={() => setOpen(true)}
+                    onFocus={() => { setOpen(true); if (listItems.length > 0) setActiveIndex(0) }}
                     onChange={(event) => {
                         if (disabled) return
                         setOpen(true)
                         setSearchValue(event.target.value)
+                        setActiveIndex(0)
                     }}
+                    onKeyDown={handleKeyDown}
                     disabled={disabled}
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-controls={`searchable-select-list-${listId}`}
+                    aria-autocomplete="list"
                 />
                 {displayValue && !disabled && (
                     <button
@@ -144,7 +212,7 @@ function SearchableSelect({
                             onChange(null)
                         }}
                     >
-                        ×
+                        x
                     </button>
                 )}
                 <button
@@ -154,43 +222,39 @@ function SearchableSelect({
                         if (disabled) return
                         setOpen((prev) => {
                             const next = !prev
-                            if (!next) setSearchValue('')
+                            if (next && listItems.length > 0) setActiveIndex(0)
+                            if (!next) {
+                                setSearchValue('')
+                                setActiveIndex(-1)
+                            }
                             return next
                         })
                     }}
                     aria-label="toggle"
                 >
-                    ▾
+                    v
                 </button>
             </div>
-                {open && !disabled && (
-                <div className="searchable-select-list">
-                    {/* 검색어가 없을 때만 '전체' 노출 */}
-                    {!searchValue && (
+            {open && !disabled && (
+                <div
+                    className="searchable-select-list"
+                    role="listbox"
+                    id={`searchable-select-list-${listId}`}
+                    ref={listRef}
+                >
+                    {listItems.map((option, index) => (
                         <button
+                            key={option.value ?? 'all'}
                             type="button"
-                            className={`searchable-select-item${value == null ? ' is-selected' : ''}`}
+                            className={`searchable-select-item${option.value === value ? ' is-selected' : ''}${
+                                index === activeIndex ? ' is-active' : ''
+                            }`}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => {
-                                onChange(null)
-                                setOpen(false)
-                                setSearchValue('')
+                                selectItem(option.value)
                             }}
-                        >
-                            전체
-                        </button>
-                    )}
-                    {filteredOptions.map((option) => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            className={`searchable-select-item${option.value === value ? ' is-selected' : ''}`}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                                onChange(option.value)
-                                setOpen(false)
-                                setSearchValue('')
-                            }}
+                            role="option"
+                            aria-selected={option.value === value}
                         >
                             {option.label}
                         </button>
@@ -205,6 +269,8 @@ function SearchableSelect({
 }
 
 export default function HeadOfficeFranchiseStoreSelect({
+    isHeadOfficeRequired = true,
+    showHeadOfficeError = false,
     officeId,
     franchiseId,
     storeId,
@@ -229,7 +295,7 @@ export default function HeadOfficeFranchiseStoreSelect({
 
     return (
         <>
-            <th>본사</th>
+            <th>본사 {isHeadOfficeRequired ? '*' : ''}</th>
             <td>
                 <div className="data-filed">
                     <SearchableSelect
@@ -253,6 +319,9 @@ export default function HeadOfficeFranchiseStoreSelect({
                             })
                         }}
                     />
+                    {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
+                        <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                    )}
                 </div>
             </td>
             <th>가맹점</th>

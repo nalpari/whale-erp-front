@@ -277,6 +277,10 @@
       background: #e9edf2;
       font-weight: 600;
     }
+
+    &.is-active {
+      background: #eef2f6;
+    }
   }
 
   .searchable-select-empty {
