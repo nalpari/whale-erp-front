@@ -19,6 +19,19 @@ export default function StoreSchedulePageClient() {
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),
     [schedules]
   );
+  const employeeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    schedules.forEach((schedule) => {
+      schedule.workerList.forEach((worker) => {
+        if (!worker.workerName) return;
+        if (!worker.hasWork) return;
+        if (!map.has(worker.workerName)) {
+          map.set(worker.workerName, worker.workerName);
+        }
+      });
+    });
+    return Array.from(map.values()).map((name) => ({ label: name, value: name }));
+  }, [schedules]);
 
   const handleSearch = async (query: StoreScheduleQuery) => {
     setIsLoading(true);
@@ -119,6 +132,7 @@ export default function StoreSchedulePageClient() {
       <WorkScheduleSearch
         resultCount={resultCount}
         isLoading={isLoading}
+        employeeOptions={employeeOptions}
         onSearch={handleSearch}
         onReset={handleReset}
       />

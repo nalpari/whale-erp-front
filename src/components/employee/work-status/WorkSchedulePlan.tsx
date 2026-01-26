@@ -1,16 +1,20 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import WorkScheduleSearch from './WorkScheduleSearch';
 import type { DayType, ScheduleResponse, StoreScheduleQuery } from '@/types/work-schedule';
 import useStoreSchedule from '@/hooks/useStoreSchedule';
 import { Tooltip } from 'react-tooltip';
+import EmployeeSearch from '../popup/EmployeeSearch';
 
 type WorkerPlan = {
   id: string;
   name: string;
   contractType: string;
+  workerId?: number | null;
+  shiftId?: number | null;
+  tempWorkerName?: string | null;
   hasWork: boolean;
   hasBreak: boolean;
   startIndex: number;
@@ -39,12 +43,21 @@ const CONTRACT_COLOR_MAP: Record<string, 'blue' | 'green'> = {
   파트타이머: 'green',
   임시근무: 'green',
 };
+const CONTRACT_ORDER: Record<string, number> = {
+  정직원: 1,
+  계약직: 2,
+  수습: 3,
+  파트타이머: 4,
+  임시근무: 5,
+};
 
 const indexToTime = (index: number) => {
   const hour = Math.floor(index / 2);
   const minute = index % 2 === 0 ? '00' : '30';
   return `${String(hour).padStart(2, '0')}:${minute}`;
 };
+
+const indexToTimeWithSeconds = (index: number) => `${indexToTime(index)}:00`;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -58,10 +71,21 @@ const parseTimeToIndex = (value?: string | null) => {
   return clamp(hour * 2 + minuteIndex, 0, 48);
 };
 
+const sortWorkersByRule = (workers: ScheduleResponse['workerList']) =>
+  [...workers].sort((a, b) => {
+    const startA = parseTimeToIndex(a.workStartTime) ?? 0;
+    const startB = parseTimeToIndex(b.workStartTime) ?? 0;
+    if (startA !== startB) return startA - startB;
+    const orderA = CONTRACT_ORDER[a.contractType ?? ''] ?? 99;
+    const orderB = CONTRACT_ORDER[b.contractType ?? ''] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.workerName ?? '').localeCompare(b.workerName ?? '');
+  });
+
 const buildPlansFromSchedules = (schedules: ScheduleResponse[]): DayPlan[] =>
   schedules.map((schedule) => {
     const dayLabel = schedule.day ?? '';
-    const workers: WorkerPlan[] = schedule.workerList.map((worker, index) => {
+    const workers: WorkerPlan[] = sortWorkersByRule(schedule.workerList).map((worker, index) => {
       const startIndex = parseTimeToIndex(worker.workStartTime) ?? 0;
       const endIndex = parseTimeToIndex(worker.workEndTime) ?? startIndex;
       const safeEndIndex = endIndex <= startIndex ? clamp(startIndex + 1, 1, 48) : endIndex;
@@ -70,10 +94,14 @@ const buildPlansFromSchedules = (schedules: ScheduleResponse[]): DayPlan[] =>
       const safeBreakStart = clamp(breakStartIndex, startIndex, safeEndIndex - 1);
       const safeBreakEnd = clamp(breakEndIndex, safeBreakStart + 1, safeEndIndex);
       const id = worker.shiftId ?? worker.workerId ?? `worker-${schedule.date}-${index}`;
+      const isTempWorker = !worker.workerId;
       return {
         id: String(id),
         name: worker.workerName ?? '직원',
         contractType: worker.contractType ?? '정직원',
+        workerId: worker.workerId ?? null,
+        shiftId: worker.shiftId ?? null,
+        tempWorkerName: isTempWorker ? worker.workerName ?? null : null,
         hasWork: worker.hasWork,
         hasBreak: worker.hasBreak,
         startIndex,
@@ -104,12 +132,111 @@ const buildBreakBlockStates = (worker: WorkerPlan) =>
     return { state: isBreak ? ('break' as const) : ('empty' as const) };
   });
 
+const DEFAULT_WORK_RANGE = { startIndex: 18, endIndex: 36 };
+const DEFAULT_BREAK_RANGE = { startIndex: 24, endIndex: 26 };
+
+const buildDefaultTimeRange = (workers: WorkerPlan[]) => {
+  if (workers.length === 0) return DEFAULT_WORK_RANGE;
+  const lastWorker = workers[workers.length - 1];
+  return {
+    startIndex: lastWorker.startIndex,
+    endIndex: lastWorker.endIndex,
+  };
+};
+
+const createWorkerPlan = ({
+  id,
+  name,
+  contractType,
+  workerId,
+  tempWorkerName,
+  baseRange,
+}: {
+  id: string;
+  name: string;
+  contractType: string;
+  workerId?: number | null;
+  tempWorkerName?: string | null;
+  baseRange: { startIndex: number; endIndex: number };
+}): WorkerPlan => ({
+  id,
+  name,
+  contractType,
+  workerId: workerId ?? null,
+  shiftId: null,
+  tempWorkerName: tempWorkerName ?? null,
+  hasWork: true,
+  hasBreak: false,
+  startIndex: baseRange.startIndex,
+  endIndex: baseRange.endIndex,
+  breakStartIndex: DEFAULT_BREAK_RANGE.startIndex,
+  breakEndIndex: DEFAULT_BREAK_RANGE.endIndex,
+});
+
+const buildWorkerRequest = (worker: WorkerPlan, isDeleted = false) => ({
+  shiftId: worker.shiftId ?? null,
+  workerId: worker.workerId ?? null,
+  tempWorkerName: worker.workerId ? null : worker.tempWorkerName ?? worker.name ?? null,
+  hasWork: isDeleted ? false : worker.hasWork,
+  workStartTime: !isDeleted && worker.hasWork ? indexToTimeWithSeconds(worker.startIndex) : null,
+  workEndTime: !isDeleted && worker.hasWork ? indexToTimeWithSeconds(worker.endIndex) : null,
+  hasBreak: !isDeleted && worker.hasWork ? worker.hasBreak : false,
+  breakStartTime:
+    !isDeleted && worker.hasWork && worker.hasBreak
+      ? indexToTimeWithSeconds(worker.breakStartIndex)
+      : null,
+  breakEndTime:
+    !isDeleted && worker.hasWork && worker.hasBreak
+      ? indexToTimeWithSeconds(worker.breakEndIndex)
+      : null,
+  isDeleted,
+});
+
+const validatePlans = (plans: DayPlan[]) => {
+  for (const day of plans) {
+    for (const worker of day.workers) {
+      const label = `${day.date} ${worker.name || '근무자'}`;
+      if (!worker.workerId && !worker.tempWorkerName && !worker.name) {
+        return `${label} : 근무자 정보가 없습니다.`;
+      }
+      if (worker.hasWork && worker.endIndex <= worker.startIndex) {
+        return `${label} : 근무 시작/종료 시간을 확인해주세요.`;
+      }
+      if (worker.hasBreak) {
+        if (!worker.hasWork) {
+          return `${label} : 휴게 시간은 근무 시간 설정 후 가능합니다.`;
+        }
+        if (worker.breakEndIndex <= worker.breakStartIndex) {
+          return `${label} : 휴게 시작/종료 시간을 확인해주세요.`;
+        }
+        if (worker.breakStartIndex < worker.startIndex || worker.breakEndIndex > worker.endIndex) {
+          return `${label} : 휴게 시간이 근무 시간 범위를 벗어났습니다.`;
+        }
+      }
+    }
+  }
+  return null;
+};
+
 export default function WorkSchedulePlan() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const { getSchedules } = useStoreSchedule();
+  const { getSchedules, upsertSchedules } = useStoreSchedule();
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [resultCount, setResultCount] = useState(0);
+  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
+  const [employeeModal, setEmployeeModal] = useState<{
+    mode: 'add' | 'replace';
+    dayIndex: number;
+    workerId?: string;
+  } | null>(null);
+  const [tempWorkerModal, setTempWorkerModal] = useState<{
+    dayIndex: number;
+    afterWorkerId?: string;
+  } | null>(null);
+  const [tempWorkerName, setTempWorkerName] = useState('');
+  
   const dragRef = useRef<{
     dayIndex: number;
     workerId: string;
@@ -152,9 +279,8 @@ export default function WorkSchedulePlan() {
       }
       const nextPlans = buildPlansFromSchedules(data ?? []);
       setPlans(nextPlans);
-      setResultCount(
-        data?.reduce((sum, schedule) => sum + schedule.workerList.length, 0) ?? 0
-      );
+      setPendingDeletes({});
+      setLastQuery(query);
       setIsLoading(false);
     },
     [getSchedules]
@@ -162,7 +288,8 @@ export default function WorkSchedulePlan() {
 
   const handleReset = useCallback(() => {
     setPlans([]);
-    setResultCount(0);
+    setPendingDeletes({});
+    setLastQuery(null);
   }, []);
 
   const handleBreakToggle = (dayIndex: number, workerId: string, enabled: boolean) => {
@@ -197,7 +324,166 @@ export default function WorkSchedulePlan() {
     );
   };
 
+  const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
+    setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });
+  };
+
+  const openReplaceEmployee = (dayIndex: number, workerId: string) => {
+    setEmployeeModal({ mode: 'replace', dayIndex, workerId });
+  };
+
+  const openTempWorker = (dayIndex: number, afterWorkerId?: string) => {
+    setTempWorkerName('');
+    setTempWorkerModal({ dayIndex, afterWorkerId });
+  };
+
+  const handleApplyEmployee = (employee: { workerId: number; workerName: string; contractType: string }) => {
+    if (!employeeModal) return;
+    setPlans((prev) =>
+      prev.map((day, index) => {
+        if (index !== employeeModal.dayIndex) return day;
+        if (employeeModal.mode === 'add') {
+          const baseRange = buildDefaultTimeRange(day.workers);
+          const nextWorker = createWorkerPlan({
+            id: `worker-${employee.workerId}-${Date.now()}`,
+            name: employee.workerName,
+            contractType: employee.contractType ?? '정직원',
+            workerId: employee.workerId,
+            baseRange,
+          });
+          if (!employeeModal.workerId) {
+            return { ...day, workers: [...day.workers, nextWorker] };
+          }
+          const targetIndex = day.workers.findIndex((worker) => worker.id === employeeModal.workerId);
+          if (targetIndex < 0) {
+            return { ...day, workers: [...day.workers, nextWorker] };
+          }
+          const nextWorkers = [...day.workers];
+          nextWorkers.splice(targetIndex + 1, 0, nextWorker);
+          return { ...day, workers: nextWorkers };
+        }
+        return {
+          ...day,
+          workers: day.workers.map((worker) =>
+            worker.id !== employeeModal.workerId
+              ? worker
+              : {
+                  ...worker,
+                  name: employee.workerName,
+                  contractType: employee.contractType ?? worker.contractType,
+                  workerId: employee.workerId,
+                  tempWorkerName: null,
+                }
+          ),
+        };
+      })
+    );
+    setEmployeeModal(null);
+  };
+
+  const handleApplyTempWorker = () => {
+    if (!tempWorkerModal) return;
+    const trimmed = tempWorkerName.trim();
+    if (!trimmed) {
+      alert('임시 근무자 이름을 입력해주세요.');
+      return;
+    }
+    setPlans((prev) =>
+      prev.map((day, index) => {
+        if (index !== tempWorkerModal.dayIndex) return day;
+        const baseRange = buildDefaultTimeRange(day.workers);
+        const nextWorker = createWorkerPlan({
+          id: `temp-${Date.now()}`,
+          name: trimmed,
+          contractType: '임시근무',
+          tempWorkerName: trimmed,
+          baseRange,
+        });
+        if (!tempWorkerModal.afterWorkerId) {
+          return { ...day, workers: [...day.workers, nextWorker] };
+        }
+        const targetIndex = day.workers.findIndex((worker) => worker.id === tempWorkerModal.afterWorkerId);
+        if (targetIndex < 0) {
+          return { ...day, workers: [...day.workers, nextWorker] };
+        }
+        const nextWorkers = [...day.workers];
+        nextWorkers.splice(targetIndex + 1, 0, nextWorker);
+        return { ...day, workers: nextWorkers };
+      })
+    );
+    setTempWorkerModal(null);
+  };
+
+  const handleDeleteWorker = (dayIndex: number, workerId: string) => {
+    if (!confirm('선택한 근무자를 삭제하시겠습니까?')) return;
+    setPlans((prev) => {
+      const targetDay = prev[dayIndex];
+      if (!targetDay) return prev;
+      const targetWorker = targetDay.workers.find((worker) => worker.id === workerId);
+      if (!targetWorker) return prev;
+      if (targetWorker.shiftId || targetWorker.workerId || targetWorker.tempWorkerName) {
+        setPendingDeletes((prevDeletes) => {
+          const nextList = [...(prevDeletes[targetDay.date] ?? []), targetWorker];
+          return { ...prevDeletes, [targetDay.date]: nextList };
+        });
+      }
+      return prev.map((day, index) =>
+        index !== dayIndex
+          ? day
+          : { ...day, workers: day.workers.filter((worker) => worker.id !== workerId) }
+      );
+    });
+  };
+
+  const handleSave = useCallback(async () => {
+    if (isLoading) return;
+    if (!lastQuery?.storeId) {
+      alert('점포를 선택해주세요.');
+      return;
+    }
+    const validationError = validatePlans(plans);
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+    const payload = plans.map((day) => ({
+      date: day.date,
+      workerRequests: [
+        ...day.workers.map((worker) => buildWorkerRequest(worker)),
+        ...(pendingDeletes[day.date] ?? []).map((worker) => buildWorkerRequest(worker, true)),
+      ],
+    }));
+    setIsLoading(true);
+    const { error } = await upsertSchedules(lastQuery.storeId, payload);
+    if (error) {
+      alert(error);
+      setIsLoading(false);
+      return;
+    }
+    if (lastQuery) {
+      await handleSearch(lastQuery);
+    }
+    setIsLoading(false);
+  }, [handleSearch, isLoading, lastQuery, pendingDeletes, plans, upsertSchedules]);
+
   const renderedPlans = useMemo(() => plans, [plans]);
+  const employeeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    plans.forEach((day) => {
+      day.workers.forEach((worker) => {
+        if (!worker.name) return;
+        if (!worker.hasWork) return;
+        if (!map.has(worker.name)) {
+          map.set(worker.name, worker.name);
+        }
+      });
+    });
+    return Array.from(map.values()).map((name) => ({ label: name, value: name }));
+  }, [plans]);
+  const resultCount = useMemo(
+    () => plans.reduce((sum, day) => sum + day.workers.length, 0),
+    [plans]
+  );
 
   useEffect(() => {
     const handleMove = (event: MouseEvent) => {
@@ -252,16 +538,79 @@ export default function WorkSchedulePlan() {
   }, []);
 
   return (
+    <>
+    {employeeModal ? (
+      <EmployeeSearch onClose={() => setEmployeeModal(null)} onApply={handleApplyEmployee} />
+    ) : null}
+    {tempWorkerModal ? (
+      <div className="modal-popup">
+        <div className="modal-dialog s">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>직원 외 근무자 추가</h2>
+              <button className="modal-close" aria-label="닫기" onClick={() => setTempWorkerModal(null)}></button>
+            </div>
+            <div className="modal-body">
+              <table className="default-table">
+                <colgroup>
+                  <col width="120px" />
+                  <col />
+                </colgroup>
+                <tbody>
+                  <tr>
+                    <th>이름</th>
+                    <td>
+                      <input
+                        className="input-frame"
+                        type="text"
+                        value={tempWorkerName}
+                        onChange={(event) => setTempWorkerName(event.target.value)}
+                        placeholder="직원 외 근무자명을 입력하세요"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="pop-btn-content" style={{ marginTop: 16 }}>
+                <button className="btn-form gray" onClick={() => setTempWorkerModal(null)}>
+                  닫기
+                </button>
+                <button className="btn-form basic" onClick={handleApplyTempWorker}>
+                  추가
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : null}
     <div className="contents-wrap">
       <WorkScheduleSearch
         resultCount={resultCount}
         isLoading={isLoading}
         initialQuery={initialQuery}
+        employeeOptions={employeeOptions}
         onSearch={handleSearch}
         onReset={handleReset}
       />
       <div className="contents-body">
         <div className="content-wrap">
+          <div className="store-work-btn">
+            <button
+              className="btn-form gray"
+              onClick={() => {
+                if (!confirm('입력한 내용을 저장하지 않았습니다. 점포별 근무 계획표로 이동하시겠습니까?')) {
+                  return;
+                }
+                router.push('/employee/schedule/view');
+              }}
+            >
+              취소
+            </button>
+            <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
+              저장
+            </button>
+          </div>
           {isLoading ? (
             <div className="empty-wrap">
               <div className="empty-data">데이터를 불러오는 중입니다.</div>
@@ -288,10 +637,8 @@ export default function WorkSchedulePlan() {
                           clickable={true} // 툴팁 내부 클릭 가능
                           opacity={1}
                         >
-                          <button className="option-item">근무자 추가</button>
-                          <button className="option-item">근무자 삭제</button>
-                          <button className="option-item">근무자 교체</button>
-                          <button className="option-item">직원 외 근무자 추가</button>
+                          <button className="option-item" onClick={() => openAddEmployee(dayIndex)}>근무자 추가</button>
+                          <button className="option-item" onClick={() => openTempWorker(dayIndex)}>직원 외 근무자 추가</button>
                         </Tooltip>
                       </div>
                     )}
@@ -333,6 +680,31 @@ export default function WorkSchedulePlan() {
                                   {worker.hasWork
                                     ? `${((worker.endIndex - worker.startIndex) / 2).toFixed(1)}h`
                                     : '0H'}
+                                </div>
+                                <div className="more-btn">
+                                  <span className="icon-more" id={`more-btn-worker-${dayIndex}-${worker.id}`}></span>
+                                  <Tooltip
+                                    className="option-list"
+                                    anchorSelect={`#more-btn-worker-${dayIndex}-${worker.id}`}
+                                    place="left-start"
+                                    offset={0}
+                                    openOnClick={true}
+                                    clickable={true}
+                                    opacity={1}
+                                  >
+                                    <button className="option-item" onClick={() => openAddEmployee(dayIndex, worker.id)}>
+                                      근무자 추가
+                                    </button>
+                                    <button className="option-item" onClick={() => openTempWorker(dayIndex, worker.id)}>
+                                      직원 외 근무자 추가
+                                    </button>
+                                    <button className="option-item" onClick={() => openReplaceEmployee(dayIndex, worker.id)}>
+                                      근무자 교체
+                                    </button>
+                                    <button className="option-item" onClick={() => handleDeleteWorker(dayIndex, worker.id)}>
+                                      근무자 삭제
+                                    </button>
+                                  </Tooltip>
                                 </div>
                               </div>
                             </div>
@@ -510,12 +882,9 @@ export default function WorkSchedulePlan() {
               ))}
             </div>
           )}
-          <div className="store-work-btn">
-            <button className="btn-form gray">취소</button>
-            <button className="btn-form basic">저장</button>
-          </div>
         </div>
       </div>
     </div>
+    </>
   );
 }

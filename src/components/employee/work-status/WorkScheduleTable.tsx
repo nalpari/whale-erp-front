@@ -25,6 +25,13 @@ const CONTRACT_COLOR_MAP: Record<string, 'blue' | 'green'> = {
   파트타이머: 'green',
   임시근무: 'green', 
 };
+const CONTRACT_ORDER: Record<string, number> = {
+  정직원: 1,
+  계약직: 2,
+  수습: 3,
+  파트타이머: 4,
+  임시근무: 5,
+};
 
 const parseTimeToMinutes = (value?: string | null) => {
   if (!value) return null;
@@ -113,6 +120,17 @@ const buildBlockStates = (worker: WorkerResponse, blocks: TimeBlock[]) => {
   });
 };
 
+const sortWorkersByRule = (workers: WorkerResponse[]) =>
+  [...workers].sort((a, b) => {
+    const startA = parseTimeToMinutes(a.workStartTime) ?? 0;
+    const startB = parseTimeToMinutes(b.workStartTime) ?? 0;
+    if (startA !== startB) return startA - startB;
+    const orderA = CONTRACT_ORDER[a.contractType ?? ''] ?? 99;
+    const orderB = CONTRACT_ORDER[b.contractType ?? ''] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.workerName ?? '').localeCompare(b.workerName ?? '');
+  });
+
 export default function WorkScheduleTable({
   schedules,
   isLoading,
@@ -153,7 +171,8 @@ export default function WorkScheduleTable({
           ) : (
             <div className="store-work-wrap">
               {sortedSchedules.map((schedule) => {
-                const { hours, timeBlocks } = buildTimeAxis(schedule.workerList);
+                const sortedWorkers = sortWorkersByRule(schedule.workerList);
+                const { hours, timeBlocks } = buildTimeAxis(sortedWorkers);
                 return (
                   <div key={`${schedule.date}-${schedule.storeId ?? 'store'}`} className="store-work-date-wrap">
                     <button
@@ -169,7 +188,7 @@ export default function WorkScheduleTable({
                           <div className="empty-data">근무자가 없습니다.</div>
                         </div>
                       ) : (
-                        schedule.workerList.map((worker) => {
+                        sortedWorkers.map((worker) => {
                           const badgeColor = CONTRACT_COLOR_MAP[worker.contractType] ?? 'blue';
                           const blockStates = buildBlockStates(worker, timeBlocks);
                           return (

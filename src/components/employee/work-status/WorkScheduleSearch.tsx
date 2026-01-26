@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimateHeight from 'react-animate-height';
-import HeadOfficeFranchiseStoreSelect from '@/components/ui/common/HeadOfficeFranchiseStoreSelect';
+import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 
 type WorkScheduleSearchProps = {
   resultCount: number;
   isLoading: boolean;
+  employeeOptions?: { label: string; value: string }[];
   initialQuery?: Partial<StoreScheduleQuery> & {
     officeId?: number | null;
     franchiseId?: number | null;
@@ -47,6 +48,7 @@ const DAY_OPTIONS: { label: string; value: DayType | '' }[] = [
 export default function WorkScheduleSearch({
   resultCount,
   isLoading,
+  employeeOptions = [],
   initialQuery,
   onSearch,
   onReset,
@@ -198,15 +200,20 @@ export default function WorkScheduleSearch({
                 <th>직원명</th>
                 <td>
                   <div className="data-filed">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <select
+                      className="select-form"
                       value={form.employeeName}
                       onChange={(event) =>
                         setForm((prev) => ({ ...prev, employeeName: event.target.value }))
                       }
-                      placeholder="직원명/임시근무자"
-                    />
+                    >
+                      <option value="">선택</option>
+                      {employeeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </td>
                 <th>요일 선택</th>
