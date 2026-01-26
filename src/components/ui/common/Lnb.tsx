@@ -29,7 +29,7 @@ export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen:
       <button className="lnb-toggle-btn" onClick={() => setIsOpen(!isOpen)}></button>
 
       <div className="lnb-header">
-        <Link href="/" className="lnb-logo">
+        <Link href="/list" className="lnb-logo">
           <Image src="/assets/images/ui/lnb_logo.svg" alt="logo" width={54} height={54} priority />
           <div className="lnb-logo-text">
             <span className="logo-main">whale ERP</span>
@@ -41,7 +41,8 @@ export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen:
         <div className="lnb-menu-icon">
           <Image src="/assets/images/ui/lnb_menu_img01.svg" alt="menu" fill />
         </div>
-        <div className="lnb_menu_name">서비스 네이밍</div>
+        <div className="lnb_menu_name">파트너 오피스</div>
+        <div className="lnb-meu-grade">Standard</div>
       </div>
       <div className="lnb-body">
         <ul className="lnb-list">
@@ -49,7 +50,7 @@ export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen:
             <li className={`lnb-item ${activeMenu === menu.id ? 'act' : ''}`} key={menu.id}>
               <Link
                 href={menu.link}
-                className="menu-depth01"
+                className={`menu-depth01 ${menu.id === 'home' ? 'home' : ''}`}
                 onClick={(e: React.MouseEvent<HTMLAnchorElement>) =>
                   handleMenuToggle(menu.id, false, menu.link === '#', e)
                 }

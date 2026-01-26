@@ -60,7 +60,6 @@
   border: 1px solid #ebebeb;
   border-radius: 6px;
   cursor: pointer;
-  overflow: visible;
   .file-guide {
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
     color: #222;
@@ -69,20 +68,14 @@
   .file-list {
     @include flex(10px);
     flex-direction: column;
-    overflow: visible;
   }
   .file-item-wrap {
     @include flex(10px);
     align-items: center;
-    position: relative;
     .file-name {
       @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
       color: #366fe3;
       text-decoration: underline;
-    }
-    .file-name.plain {
-      color: #222;
-      text-decoration: none;
     }
   }
 }
@@ -104,190 +97,6 @@
   height: 18px;
   background: url('/assets/images/contents/file_preview.svg') no-repeat center;
   background-size: cover;
-}
-
-.file-preview-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.file-preview-popup {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  padding: 8px;
-  width: fit-content;
-  height: fit-content;
-  max-width: 376px;
-  max-height: 376px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  z-index: 10;
-
-  img {
-    display: block;
-    width: auto;
-    height: auto;
-    max-width: 360px;
-    max-height: 360px;
-    object-fit: contain;
-  }
-}
-.file-preview-empty {
-  display: block;
-  min-width: 200px;
-  padding: 12px 16px;
-  white-space: nowrap;
-  @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-  color: #666;
-}
-
-.store-basic-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.store-select-fixed {
-  width: 300px;
-  flex-shrink: 0;
-}
-
-.store-tooltip-fixed {
-  flex-shrink: 0;
-}
-
-.store-business-guide {
-  margin-bottom: 10px;
-}
-
-.store-business-guide-text {
-  font-size: 14px;
-  color: #aaa;
-}
-
-.input-inline-help {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.input-grow {
-  flex: 1;
-  min-width: 0;
-}
-
-.store-name-input {
-  min-width: 240px;
-}
-
-.input-helper-inline {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.address-row {
-  display: flex;
-  align-items: center;
-}
-
-.file-preview-wrap:hover .file-preview-popup {
-  opacity: 1;
-  visibility: visible;
-}
-.searchable-select {
-  position: relative;
-  width: 100%;
-
-  .searchable-select-input {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 8px;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    background: #fff;
-
-    &.is-open {
-      border-color: #6a7e96;
-      box-shadow: 0 0 0 2px rgba(106, 126, 150, 0.2);
-    }
-
-    &.is-disabled {
-      background: #f5f5f5;
-      color: #999;
-    }
-
-    input {
-      width: 100%;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-      color: #333;
-    }
-  }
-
-  .searchable-select-clear,
-  .searchable-select-toggle {
-    border: 0;
-    background: transparent;
-    padding: 0 4px;
-    cursor: pointer;
-    color: #666;
-    line-height: 1;
-  }
-
-  .searchable-select-list {
-    position: absolute;
-    left: 0;
-    top: calc(100% + 4px);
-    width: 100%;
-    max-height: 220px;
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-    z-index: 20;
-  }
-
-  .searchable-select-item {
-    width: 100%;
-    text-align: left;
-    padding: 8px 10px;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-    color: #333;
-
-    &:hover {
-      background: #f4f6f8;
-    }
-
-    &.is-selected {
-      background: #e9edf2;
-      font-weight: 600;
-    }
-
-    &.is-active {
-      background: #eef2f6;
-    }
-  }
-
-  .searchable-select-empty {
-    padding: 10px;
-    color: #999;
-    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-  }
 }
 .tooltip-btn {
   position: relative;
@@ -1427,6 +1236,7 @@
   transition: all 0.15s ease-in-out;
   &:hover {
     background-color: #f3f5f8;
+    .authority-check,
     .depth-btn-wrap {
       opacity: 1;
       visibility: visible;
@@ -1524,6 +1334,14 @@
         background-color: #e4eaf3;
       }
     }
+  }
+  .authority-check {
+    @include flex(12px);
+    align-items: center;
+    justify-content: flex-end;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.15s ease-in-out;
   }
 }
 

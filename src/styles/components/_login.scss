@@ -1,0 +1,251 @@
+@use '../abstracts' as *;
+.login-wrap{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 51px 0;
+  .login-inner{
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  &.find{
+    background-color: #F5F5F5;
+    .find-inner{
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+  }
+}
+.login_header{
+  text-align: center;
+  .logo{
+    position: relative;
+  }
+  .login_title{
+    span{
+      display: block;
+      @include fontDefinition($font-ds-32, $font-w-600, $line-h-120);
+      color: #444;
+    }
+  }
+}
+.login-form{
+  padding: 42px 40px;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  margin-top: 28px;
+  .login-form-tit{
+    text-align: center;
+    @include fontDefinition($font-ds-24, $font-w-600, $line-h-140);
+    color: #444;
+    margin-bottom: 27px;
+  }
+}
+.login-form-box{
+  @include flex(10px);
+  flex-direction: column;
+}
+.login-form-btn{
+  margin-top: 24px;
+}
+.login-check-wrap{
+  @include flex(10px);
+  align-items: center;
+  margin-top: 24px;
+  .check-form-box{
+    label{
+      color: #5E697B;
+      &:before{
+        border-color: #AAB4C4;
+      }
+    }
+  }
+  .find-btn-wrap{
+    margin-left: auto;
+    .find-btn-item{
+      position: relative;
+      @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+      color: #5E697B;
+    }
+  }
+}
+.another-login-wrap{
+  margin-top: 24px;
+  .another-login-tit{
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+    color: #111;
+  }
+  .another-login-list{
+    margin-top: 14px;
+    @include flex(10px);
+    flex-direction: column;
+  }
+}
+.another-login-btn{
+  @include flex(10px);
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  padding: 0 24px;
+  border: 1px solid #D5D7DA;
+  border-radius: 6px;
+  background-color: #FBFBFB;
+  @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
+  color: #444;
+  transition: all 0.15s ease-in-out;
+  .icon{
+    display: block;
+    width: 24px;
+    height: 24px;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    &.kakao{
+      background-image: url('/assets/images/common/kakao_icon.svg');
+    }
+    &.naver{
+      background-image: url('/assets/images/common/naver_icon.svg');
+    }
+    &.google{
+      background-image: url('/assets/images/common/google_icon.svg');
+    }
+  }
+  &:hover{
+    background-color: #e2e2e2;
+  }
+}
+.login-guide{
+  position: relative;
+  padding-left: 15px;
+  margin-top: 32px;
+  span{
+    display: block;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #777;
+    i{
+      color: #007AFF;
+      font-weight: $font-w-600;
+    }
+  }
+  &:before{
+    content: '※';
+    position: absolute;
+    left: 0;
+    top: 0;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #777;
+  }
+}
+
+// ID / Password 찾기
+.find-bx{
+  position: relative;
+  border: 1px solid #C0C5CD;
+  background-color: #fff;
+  border-radius: 8px;
+  .find-close-btn{
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    background: url('/assets/images/common/find_close.svg') no-repeat center;
+    background-size: cover;
+  }
+}
+.find-header{
+  padding: 38px 0 0;
+  @include flex(0px);
+  align-items: center;
+  .find-btn-item{
+    flex: 1;
+    padding: 10px;
+    border-bottom: 1px solid #E5E5E5;
+    @include fontDefinition($font-ds-22, $font-w-500, $line-h-140);
+    color: #ccc;
+    &.act{
+      color: #222;
+      border-color: #222;
+    }
+  }
+}
+.find-body{
+  padding: 38px 32px;
+}
+.find-form-header{
+  margin-bottom: 24px;
+  .find-form-header-tit{
+    @include fontDefinition($font-ds-20, $font-w-500, $line-h-140);
+    color: #222;
+    margin-bottom: 6px;
+  }
+  .find-form-header-desc{
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+    color: #767676;
+  }
+}
+.find-form-content{
+  @include flex(10px);
+  flex-direction: column;
+}
+.find-form-btn{
+  @include flex(8px);
+  align-items: center;
+  margin-top: 24px;
+  button{
+    flex: 1;
+    padding: 0 10px;
+    &.l{
+      min-width: 140px
+    }
+  }
+}
+.id-find{
+  @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+  color: #222;
+  margin-bottom: 24px;
+  span{
+    color: #F97316;
+    font-weight: $font-w-500;
+  }
+}
+
+.login-signup-wrap{
+  @include flex(10px);
+  align-items: center;
+  padding: 24px 0;
+  margin-top: 24px;
+  border-top: 1px solid #EBEBEB;
+  border-bottom: 1px solid #EBEBEB;
+  .login-signup-tit{
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+    color: #222;
+    margin-bottom: 4px;
+  }
+  .login-signup-desc{
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #111;
+  }
+  .login-signup-btn-wrap{
+    margin-left: auto;
+    .login-signup-btn{
+      border: 1px solid #111;
+      height: 48px;
+      border-radius: 6px;
+      background-color: #fff;
+      padding: 0 14px;
+      @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
+      color: #111;
+      transition: all 0.15s ease-in-out;
+      &:hover{
+        background-color: #111;
+        color: #fff;
+      }
+    }
+  }
+}

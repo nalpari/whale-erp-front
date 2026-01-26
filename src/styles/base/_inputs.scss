@@ -32,12 +32,7 @@ input::-webkit-inner-spin-button {
     color: $input-c-placehold;
   }
 
-  &:read-only,
-  &:disabled {
-    border-color: $input-brd-disabled;
-    color: $input-c-disabled;
-    background-color: $input-back-disabled;
-  }
+
   &.blue {
     border-color: #c3ccdc;
     background-color: #e8edf7;
@@ -98,14 +93,16 @@ input::-webkit-inner-spin-button {
       background-image: url('/assets/images/common/input_err.svg');
     }
   }
-  &.pw {
-    .input-icon-btn {
+  .input-icon-btn {
+    &.show {
       width: 16px;
       height: 16px;
       background-image: url('/assets/images/common/input_show.svg');
-      &.show {
-        background-image: url('/assets/images/common/input_hide.svg');
-      }
+    }
+    &.hide {
+      width: 16px;
+      height: 16px;
+      background-image: url('/assets/images/common/input_hide.svg');
     }
   }
 }
@@ -127,10 +124,16 @@ input::-webkit-inner-spin-button {
     background-color: #666;
     color: #fff;
   }
+  &:read-only,
+  &:disabled {
+    border-color: $input-brd-disabled;
+    color: $input-c-disabled;
+    background-color: $input-back-disabled;
+  }
 }
 // 모바일 input default
 .input-log-frame {
-  @include input-frame(56px, #d1d9e6, #fff, $input-font, $input-c-default);
+  @include input-frame(56px, #A4AEBE, #fff, $input-font, #5E697B);
   &:disabled,
   &:read-only {
     background-color: #f5f5f5;
@@ -144,9 +147,9 @@ input::-webkit-inner-spin-button {
   @include input-icon-frame(42px, $input-font, $input-brd-default, $input-back-default);
 }
 .input-icon-log-frame {
-  @include input-icon-frame(56px, $input-font, #d1d9e6, #fff);
-  &.del {
-    .input-icon-btn {
+  @include input-icon-frame(56px, $input-font, #A4AEBE, #fff);
+  .input-icon-btn {
+      &.del {
       width: 16px;
       height: 16px;
       background-image: url('/assets/images/common/login_del.svg');
@@ -156,7 +159,7 @@ input::-webkit-inner-spin-button {
   &:has(input:read-only),
   &:has(input:disabled) {
     background-color: #f5f5f5;
-    border: 1px solid #d1d9e6;
+    border: 1px solid #A4AEBE;
     color: #999;
   }
 }
@@ -167,15 +170,5 @@ input::-webkit-inner-spin-button {
   }
   label {
     display: inline-block;
-  }
-}
-
-.form-helper {
-  margin-top: 6px;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #666;
-  &.error {
-    color: $input-c-error;
   }
 }

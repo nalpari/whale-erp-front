@@ -16,12 +16,6 @@ export default function ServiceTab() {
           <button className="service-item icon02">
             <Image src="/assets/images/common/service_icon02.svg" alt="service-icon02" fill />
           </button>
-          <button className="service-item icon03">
-            <Image src="/assets/images/common/service_icon03.svg" alt="service-icon03" fill />
-          </button>
-          <button className="service-item icon04">
-            <Image src="/assets/images/common/service_icon04.svg" alt="service-icon04" fill />
-          </button>
           <button className="service-item service-tab" onClick={() => setTabOpen(!tabOpen)}></button>
         </div>
       </div>

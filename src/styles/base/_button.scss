@@ -1,15 +1,5 @@
 @use '../abstracts' as *;
 
-// 의미 없음
-.icon {
-  width: 24px;
-  height: 24px;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
-  background-image: url(/assets/images/common/btn_icon.svg);
-  margin-right: 8px;
-}
 
 /******************** btn-color 모음 *****************/
 .basic {
@@ -103,12 +93,14 @@
   }
 }
 .btn-log-frame {
-  @include btn-frame(56px, 10px, $n-btn-font, 24px);
-  background-color: #212121;
+  @include btn-frame(56px, 10px, 16px, 24px);
   font-weight: 600;
-  color: #fff;
-  &:hover {
-    background-color: #323232;
+  &.basic{
+    background-color: #77828D;
+  }
+  &.gray{
+    background-color: #EBEDEE;
+    color: #77828D;
   }
 }
 
