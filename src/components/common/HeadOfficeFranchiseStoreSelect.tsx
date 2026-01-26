@@ -13,6 +13,7 @@
  *
  * 사용 방법:
  * - officeId/franchiseId/storeId와 onChange 콜백을 전달.
+ * - fields로 본사/가맹점/점포 표시 조합을 제어.
  * - isHeadOfficeRequired/showHeadOfficeError로 본사 필수/에러 표시 제어.
  * - onChange는 선택된 값(또는 null)을 받아 상위 상태를 갱신.
  *
@@ -20,6 +21,7 @@
  * <HeadOfficeFranchiseStoreSelect
  *   isHeadOfficeRequired={true}
  *   showHeadOfficeError={showOfficeError}
+ *   fields={['office', 'franchise', 'store']}
  *   officeId={filters.officeId ?? null}
  *   franchiseId={filters.franchiseId ?? null}
  *   storeId={filters.storeId ?? null}
@@ -53,12 +55,15 @@ export type OfficeFranchiseStoreValue = {
     store: number | null // 점포 선택 값(id)
 }
 
+type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
+
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
     officeId: number | null // 본사 선택 값(id)
     franchiseId: number | null // 가맹점 선택 값(id)
     storeId: number | null // 점포 선택 값(id)
+    fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
 }
 
@@ -274,10 +279,12 @@ export default function HeadOfficeFranchiseStoreSelect({
     officeId,
     franchiseId,
     storeId,
+    fields,
     onChange,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
+    const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree, loading: bpLoading } = useBp(isReady)
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
@@ -295,71 +302,83 @@ export default function HeadOfficeFranchiseStoreSelect({
 
     return (
         <>
-            <th>본사 {isHeadOfficeRequired ? '*' : ''}</th>
-            <td>
-                <div className="data-filed">
-                    <SearchableSelect
-                        value={officeId}
-                        options={officeOptions}
-                        placeholder="전체"
-                        disabled={bpLoading}
-                        onChange={(nextOfficeId) => {
-                            const nextFranchiseOptions = nextOfficeId
-                                ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
-                                : bpTree.flatMap((office) => office.franchises)
-                            const shouldClearFranchise =
-                                franchiseId !== null &&
-                                franchiseId !== undefined &&
-                                !nextFranchiseOptions.some((franchise) => franchise.id === franchiseId)
+            {visibleFields.includes('office') && (
+                <>
+                    <th>본사 {isHeadOfficeRequired ? '*' : ''}</th>
+                    <td>
+                        <div className="data-filed">
+                            <SearchableSelect
+                                value={officeId}
+                                options={officeOptions}
+                                placeholder="전체"
+                                disabled={bpLoading}
+                                onChange={(nextOfficeId) => {
+                                    const nextFranchiseOptions = nextOfficeId
+                                        ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
+                                        : bpTree.flatMap((office) => office.franchises)
+                                    const shouldClearFranchise =
+                                        franchiseId !== null &&
+                                        franchiseId !== undefined &&
+                                        !nextFranchiseOptions.some((franchise) => franchise.id === franchiseId)
 
-                            onChange({
-                                head_office: nextOfficeId,
-                                franchise: shouldClearFranchise ? null : franchiseId ?? null,
-                                store: null,
-                            })
-                        }}
-                    />
-                    {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
-                        <span className="form-helper error">※ 필수 입력 항목입니다.</span>
-                    )}
-                </div>
-            </td>
-            <th>가맹점</th>
-            <td>
-                <div className="data-filed">
-                    <SearchableSelect
-                        value={franchiseId}
-                        options={franchiseOptions}
-                        placeholder="전체"
-                        disabled={bpLoading}
-                        onChange={(nextFranchiseId) =>
-                            onChange({
-                                head_office: officeId,
-                                franchise: nextFranchiseId,
-                                store: null,
-                            })
-                        }
-                    />
-                </div>
-            </td>
-            <th>점포</th>
-            <td>
-                <div className="data-filed">
-                    <SearchableSelect
-                        value={storeId}
-                        options={storeOptions}
-                        placeholder="전체"
-                        disabled={storeLoading}
-                        onChange={(nextStoreId) =>
-                            onChange({
-                                head_office: officeId,
-                                franchise: franchiseId,
-                                store: nextStoreId,
-                            })
-                        }
-                    />
-                </div>
-            </td>
+                                    onChange({
+                                        head_office: nextOfficeId,
+                                        franchise: shouldClearFranchise ? null : franchiseId ?? null,
+                                        store: null,
+                                    })
+                                }}
+                            />
+                            {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
+                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                            )}
+                        </div>
+                    </td>
+                </>
+            )}
+            {visibleFields.includes('franchise') && (
+                <>
+                    <th>가맹점</th>
+                    <td>
+                        <div className="data-filed">
+                            <SearchableSelect
+                                value={franchiseId}
+                                options={franchiseOptions}
+                                placeholder="전체"
+                                disabled={bpLoading}
+                                onChange={(nextFranchiseId) =>
+                                    onChange({
+                                        head_office: officeId,
+                                        franchise: nextFranchiseId,
+                                        store: null,
+                                    })
+                                }
+                            />
+                        </div>
+                    </td>
+                </>
+            )}
+            {visibleFields.includes('store') && (
+                <>
+                    <th>점포</th>
+                    <td>
+                        <div className="data-filed">
+                            <SearchableSelect
+                                value={storeId}
+                                options={storeOptions}
+                                placeholder="전체"
+                                disabled={storeLoading}
+                                onChange={(nextStoreId) =>
+                                    onChange({
+                                        head_office: officeId,
+                                        franchise: franchiseId,
+                                        store: nextStoreId,
+                                    })
+                                }
+                            />
+                        </div>
+                    </td>
+                </>
+            )}
         </>
     )
 }
