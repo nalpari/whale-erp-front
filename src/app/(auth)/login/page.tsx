@@ -250,6 +250,17 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Sign Up */}
+          <div className="login-signup-wrap">
+            <div className="login-signup-txt">
+              <div className="login-signup-tit">처음 오셨나요?</div>
+              <div className="login-signup-desc">요금제 선택하고 가입하기</div>
+            </div>
+            <div className="login-signup-btn-wrap">
+              <button type="button" className="login-signup-btn">가입하기</button>
+            </div>
+          </div>
+
           {/* Social Login */}
           <div className="another-login-wrap">
             <div className="another-login-tit">다른 방법으로 로그인</div>
