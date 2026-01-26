@@ -2,7 +2,8 @@
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import DatePicker from '@/components/ui/common/DatePicker'
-import HeadOfficeFranchiseStoreSelect from '@/components/ui/common/HeadOfficeFranchiseStoreSelect'
+import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+
 
 // 점포 검색 필터 상태
 export interface StoreSearchFilters {
@@ -25,7 +26,7 @@ interface StoreSearchProps {
   onReset: () => void
 }
 
-// 점포 목록 검색 영역
+// 점포 목록 검색 영역 (본사 필수/기간 유효성 검사 포함)
 export default function StoreSearch({
   filters,
   statusOptions,
@@ -35,6 +36,25 @@ export default function StoreSearch({
   onReset,
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
+  const [showOfficeError, setShowOfficeError] = useState(false)
+  const [showDateError, setShowDateError] = useState(false)
+
+  const handleSearch = () => {
+    const hasOfficeError = !filters.officeId
+    const hasDateError = Boolean(filters.from && filters.to && filters.to < filters.from)
+    setShowOfficeError(hasOfficeError)
+    setShowDateError(hasDateError)
+    if (hasOfficeError || hasDateError) {
+      return
+    }
+    onSearch()
+  }
+
+  const handleReset = () => {
+    setShowOfficeError(false)
+    setShowDateError(false)
+    onReset()
+  }
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="searh-result-wrap">
@@ -58,16 +78,21 @@ export default function StoreSearch({
             <tbody>
               <tr>
                 <HeadOfficeFranchiseStoreSelect
+                  isHeadOfficeRequired={true}
+                  showHeadOfficeError={showOfficeError}
                   officeId={filters.officeId ?? null}
                   franchiseId={filters.franchiseId ?? null}
                   storeId={filters.storeId ?? null}
-                  onChange={(next) =>
+                  onChange={(next) => {
+                    if (next.head_office) {
+                      setShowOfficeError(false)
+                    }
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
                       storeId: next.store,
                     })
-                  }
+                  }}
                 />
               </tr>
               <tr>
@@ -101,10 +126,27 @@ export default function StoreSearch({
                 <th>등록일</th>
                 <td colSpan={3}>
                   <div className="date-picker-wrap">
-                    <DatePicker value={filters.from} onChange={(date) => onChange({ from: date })} />
+                    <DatePicker
+                      value={filters.from}
+                      onChange={(date) => {
+                        setShowDateError(false)
+                        onChange({ from: date })
+                      }}
+                    />
                     <span>~</span>
-                    <DatePicker value={filters.to} onChange={(date) => onChange({ to: date })} />
+                    <DatePicker
+                      value={filters.to}
+                      onChange={(date) => {
+                        setShowDateError(false)
+                        onChange({ to: date })
+                      }}
+                    />
                   </div>
+                  {showDateError && (
+                    <span className="form-helper error">
+                      ※ 종료일은 시작일보다 과거일자로 설정할 수 없습니다.
+                    </span>
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -113,10 +155,10 @@ export default function StoreSearch({
             <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">
               닫기
             </button>
-            <button className="btn-form gray" onClick={onReset} type="button">
+            <button className="btn-form gray" onClick={handleReset} type="button">
               초기화
             </button>
-            <button className="btn-form basic" onClick={onSearch} type="button">
+            <button className="btn-form basic" onClick={handleSearch} type="button">
               검색
             </button>
           </div>
