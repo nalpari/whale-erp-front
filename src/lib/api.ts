@@ -4,6 +4,26 @@ import { useAuthStore } from '@/stores/auth-store';
 import { validateApiResponse } from '@/lib/zod-utils';
 import { env } from '@/lib/schemas/env';
 
+/**
+ * API 에러 타입
+ */
+export type ApiError = {
+  response?: {
+    data?: {
+      message?: string
+    }
+  }
+  name?: string
+}
+
+/**
+ * API 에러에서 메시지 추출
+ */
+export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다.'): string {
+  const apiError = error as ApiError;
+  return apiError.response?.data?.message ?? fallback;
+}
+
 const api = axios.create({
   baseURL: env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
