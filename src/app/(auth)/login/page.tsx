@@ -71,6 +71,12 @@ export default function LoginPage() {
         // 권한이 1개인 경우: authority에 programs 포함되어 있음
         console.log("Processing single authority...");
 
+        // programs 데이터 검증
+        if (!authority.programs) {
+          alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
+          return;
+        }
+
         // zustand에 authority programs 저장
         setAuthority(authority.programs);
 
@@ -90,6 +96,9 @@ export default function LoginPage() {
         })));
         setPendingTokens({ accessToken, refreshToken });
         setShowAuthorityModal(true);
+      } else {
+        // authority와 companies 모두 없는 경우
+        alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
       }
     } catch (error: unknown) {
       console.log("Login failed:", error);
@@ -123,6 +132,11 @@ export default function LoginPage() {
       // zustand에 authority programs 저장
       if (authoritiesResponse.data?.data?.authority?.programs) {
         setAuthority(authoritiesResponse.data.data.authority.programs);
+      } else {
+        // programs 데이터가 없는 경우
+        setSelectedAuthorityId(null);
+        alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
+        return;
       }
 
       // affiliation header 설정을 위한 id 저장
