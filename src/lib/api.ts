@@ -37,6 +37,16 @@ export async function postWithSchema<T>(
 
 // 요청 인터셉터 - 토큰 자동 첨부
 api.interceptors.request.use((config) => {
+  const url = config.url || '';
+
+  // auth 관련 API는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
+  if (url.startsWith('/api/auth/')) {
+    if (typeof window !== 'undefined') {
+      config.headers['currentPath'] = window.location.pathname;
+    }
+    return config;
+  }
+
   let { accessToken, affiliationId } = useAuthStore.getState();
 
   // store가 아직 hydrate되지 않은 경우 localStorage에서 직접 읽기
