@@ -61,39 +61,33 @@ export default function LoginPage() {
       const response = await api.post("/api/auth/login", validation.data);
       console.log("Login success:", response.data);
 
-      const { accessToken, refreshToken, authorities } = response.data.data;
+      const { accessToken, refreshToken, authority, companies } = response.data.data;
 
-      console.log(authorities);
-      // authorities 처리
-      if (authorities && authorities.length === 1) {
+      console.log("authority:", authority);
+      console.log("companies:", companies);
+
+      // 권한 처리
+      if (authority) {
+        // 권한이 1개인 경우: authority에 programs 포함되어 있음
         console.log("Processing single authority...");
-        // authorities가 하나인 경우: authorities API 호출
-        const authoritiesResponse = await api.get(
-          `/api/system/authorities/${authorities[0].id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        console.log("Authorities:", authoritiesResponse.data);
 
-        // zustand에 authority detail 저장
-        if (authoritiesResponse.data?.data?.detail) {
-          setAuthority(authoritiesResponse.data.data.detail);
-        }
+        // zustand에 authority programs 저장
+        setAuthority(authority.programs);
 
         // affiliation header 설정을 위한 id 저장
-        setAffiliationId(authorities[0].id);
+        setAffiliationId(String(authority.authority_id));
 
         setTokens(accessToken, refreshToken);
 
         // 로그인 성공 후 메인 페이지로 이동
         router.push("/");
-      } else if (authorities && authorities.length > 1) {
-        // authorities가 여러 개인 경우: 모달로 선택하도록 함
-        console.log("Multiple authorities found:", authorities);
-        setAuthorities(authorities);
+      } else if (companies && companies.length > 0) {
+        // 권한이 여러 개인 경우: 회사 선택 모달
+        console.log("Multiple companies found:", companies);
+        setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
+          id: String(c.authority_id),
+          name: c.company_name || c.brand_name || `회사 ${c.authority_id}`,
+        })));
         setPendingTokens({ accessToken, refreshToken });
         setShowAuthorityModal(true);
       }
@@ -115,8 +109,9 @@ export default function LoginPage() {
     setSelectedAuthorityId(authority.id);
 
     try {
-      const authoritiesResponse = await api.get(
-        `/api/system/authorities/${authority.id}`,
+      const authoritiesResponse = await api.post(
+        `/api/auth/authority`,
+        { authority_id: Number(authority.id) },
         {
           headers: {
             Authorization: `Bearer ${pendingTokens.accessToken}`,
@@ -125,9 +120,9 @@ export default function LoginPage() {
       );
       console.log("Selected Authority:", authoritiesResponse.data);
 
-      // zustand에 authority detail 저장
-      if (authoritiesResponse.data?.data?.detail) {
-        setAuthority(authoritiesResponse.data.data.detail);
+      // zustand에 authority programs 저장
+      if (authoritiesResponse.data?.data?.authority?.programs) {
+        setAuthority(authoritiesResponse.data.data.authority.programs);
       }
 
       // affiliation header 설정을 위한 id 저장
