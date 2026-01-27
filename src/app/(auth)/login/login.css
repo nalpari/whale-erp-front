@@ -1,5 +1,5 @@
 /* Login Page Styles - Whale ERP (Pub Design) */
-@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 /* ===== Variables ===== */
 :root {
@@ -326,6 +326,55 @@
 
 .find-btn-item:hover {
   text-decoration: underline;
+}
+
+/* ===== Sign Up Section ===== */
+.login-signup-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0;
+  margin-top: 24px;
+  border-top: 1px solid #EBEBEB;
+  border-bottom: 1px solid #EBEBEB;
+}
+
+.login-signup-tit {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 140%;
+  color: #222;
+  margin-bottom: 4px;
+}
+
+.login-signup-desc {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 140%;
+  color: #111;
+}
+
+.login-signup-btn-wrap {
+  margin-left: auto;
+}
+
+.login-signup-btn {
+  border: 1px solid #111;
+  height: 48px;
+  border-radius: 6px;
+  background-color: #fff;
+  padding: 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 140%;
+  color: #111;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.login-signup-btn:hover {
+  background-color: #111;
+  color: #fff;
 }
 
 /* ===== Social Login ===== */

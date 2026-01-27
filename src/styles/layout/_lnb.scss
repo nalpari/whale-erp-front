@@ -1,6 +1,6 @@
 @use '../abstracts' as *;
 .lnb {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 280px;
@@ -59,18 +59,45 @@
   .lnb-menu-icon {
     width: 60px;
     height: 60px;
-    background-color: #fff;
+    background-color: #1A2129;
     padding: 17px;
     border-radius: 50%;
   }
   .lnb_menu_name {
-    @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
-    color: #f0f2f5;
+    @include fontDefinition($font-ds-20, $font-w-700, $line-h-140);
+    color: #D4D5D7;
     white-space: nowrap;
+  }
+  .lnb-meu-grade{
+    padding: 0 8px;
+    @include fontDefinition($font-ds-13, $font-w-500, $line-h-140);
+    background-color: #323B55;
+    color: #71BCF4;
+    border-radius: 3px;
   }
 }
 .lnb-body {
   padding: 36px 0;
+}
+.lnb-list{
+  height: calc(100vh - 350px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-right: -4px;
+  padding-right: 4px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  &::-webkit-scrollbar-thumb { 
+    background-color: #a3a7ac;
+    border-radius: 50px;
+  }
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
 }
 .menu-depth01 {
   @include flex(12px);
@@ -81,6 +108,9 @@
   background-position: right 16px center;
   background-size: 8px 5px;
   transition: all 0.15s ease-in-out;
+  &.home {
+    background-image: none;
+  }
   img {
     max-width: 20px;
     opacity: 0.7;
@@ -95,7 +125,8 @@
 }
 
 .lnb-list-depth02 {
-  padding-top: 20px;
+  padding-top: 14px;
+  padding-bottom: 14px;
   .menu-depth02 {
     display: block;
     padding: 9px 20px;
@@ -114,7 +145,7 @@
 }
 
 .lnb-list-depth03 {
-  padding: 15px 0;
+  padding: 6px 0;
   .menu-depth03 {
     display: block;
     padding: 3px 36px;
@@ -145,6 +176,9 @@
         opacity: 1;
       }
     }
+    .home{
+      background: none;
+    }
   }
 }
 .lnb-depth02-item {
@@ -166,6 +200,10 @@
     padding: 0 16px;
     .lnb-toggle-btn {
       transform: rotate(180deg);
+    }
+    .lnb-list{
+      overflow: unset;
+      height: auto;
     }
     .sm-tit {
       display: block;
