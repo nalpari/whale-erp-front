@@ -4,11 +4,24 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 
 export type SearchableSelectValue = string | number
 
+/**
+ * 검색형 셀렉트 옵션 타입.
+ * - value: 실제 값(숫자/문자열)
+ * - label: 화면에 표시할 문구
+ */
 export type SearchableSelectOption<TValue extends SearchableSelectValue = SearchableSelectValue> = {
     value: TValue
     label: string
 }
 
+/**
+ * 검색형 셀렉트 컴포넌트 props.
+ * - value: 현재 선택된 값(null이면 미선택)
+ * - options: 표시할 옵션 목록
+ * - placeholder: 입력/표시용 기본 문구
+ * - includeAllOption/allLabel: "전체" 옵션 노출 여부/라벨
+ * - ariaLabel: 접근성 라벨(없으면 placeholder 사용)
+ */
 type SearchableSelectProps<TValue extends SearchableSelectValue = SearchableSelectValue> = {
     value: TValue | null
     options: SearchableSelectOption<TValue>[]
@@ -20,6 +33,13 @@ type SearchableSelectProps<TValue extends SearchableSelectValue = SearchableSele
     onChange: (value: TValue | null) => void
 }
 
+/**
+ * 검색형 셀렉트 컴포넌트.
+ * - 드롭다운 메뉴를 통해 대량의 옵션 중에서 빠르게 필터링 가능한 UI를 제공.
+ * - 검색어 입력 시 실시간으로 옵션 필터링하여 검색 결과를 보여준다.
+ * - 키보드 내비게이션(↑/↓/Enter/Esc)을 지원하여 빠른 선택이 가능하다.
+ * - 선택된 값을 초기화하는 버튼도 제공한다.
+ */
 export default function SearchableSelect<TValue extends SearchableSelectValue = SearchableSelectValue>({
     value,
     options,
@@ -37,12 +57,14 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
     const [activeIndex, setActiveIndex] = useState(-1)
     const listId = useId()
     const prevActiveIndex = useRef(-1)
+    // 현재 선택된 값에 해당하는 라벨(표시용)
     const selectedLabel = useMemo(
         () => options.find((option) => option.value === value)?.label ?? '',
         [options, value]
     )
 
     useEffect(() => {
+        // 바깥 클릭 시 드롭다운 닫기
         const handleClick = (event: MouseEvent) => {
             if (!containerRef.current) return
             if (!containerRef.current.contains(event.target as Node)) {
@@ -55,12 +77,14 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
         return () => window.removeEventListener('mousedown', handleClick)
     }, [])
 
+    // 검색어 기준으로 옵션 필터링
     const filteredOptions = useMemo(() => {
         const keyword = searchValue.trim().toLowerCase()
         if (!keyword) return options
         return options.filter((option) => option.label.toLowerCase().includes(keyword))
     }, [options, searchValue])
 
+    // 검색 중이 아닐 때만 "전체" 옵션을 상단에 노출
     const showAllOption = includeAllOption && !searchValue
     const listItems = useMemo(
         () => [
@@ -73,6 +97,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
     const displayValue =
         open && searchValue === '' ? selectedLabel : open ? searchValue : selectedLabel
 
+    // 항목 선택 시 값 적용 후 닫기
     const selectItem = (nextValue: TValue | null) => {
         onChange(nextValue)
         setOpen(false)
@@ -80,6 +105,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
         setActiveIndex(-1)
     }
 
+    // 키보드 내비게이션(↑/↓/Enter/Esc)
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (disabled) return
         if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
@@ -112,6 +138,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
     }
 
     useEffect(() => {
+        // 키보드로 이동 시 활성 항목이 보이도록 스크롤 보정
         if (!open || activeIndex < 0) return
         if (prevActiveIndex.current === activeIndex) return
         prevActiveIndex.current = activeIndex
@@ -129,6 +156,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
             >
                 <input
                     type="text"
+                    // 열려있을 때는 검색어, 닫혀있을 때는 선택 라벨을 표시
                     value={displayValue}
                     placeholder={placeholder}
                     aria-label={ariaLabel ?? placeholder}

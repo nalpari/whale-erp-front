@@ -538,7 +538,7 @@ export default function WorkSchedulePlan() {
       await upsertMutation.mutateAsync({ storeId: lastQuery.storeId, payload });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : '?? ?? ??? ??????.';
+        error instanceof Error ? error.message : '근무 계획 저장에 실패했습니다.';
       alert(message);
       return;
     }
