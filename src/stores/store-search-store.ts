@@ -73,7 +73,18 @@ export const useStoreSearchStore = create<StoreSearchState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
-        state.setFilters(state.appliedFilters)
+        const reviveDate = (value: Date | string | null) => {
+          if (!value) return null
+          if (value instanceof Date) return value
+          const parsed = new Date(value)
+          return Number.isNaN(parsed.getTime()) ? null : parsed
+        }
+        const restoredFilters = {
+          ...state.appliedFilters,
+          from: reviveDate(state.appliedFilters.from),
+          to: reviveDate(state.appliedFilters.to),
+        }
+        state.setFilters(restoredFilters)
         state.setHydrated(true)
       },
     }

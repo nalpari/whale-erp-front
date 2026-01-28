@@ -86,7 +86,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
 
     // 검색 중이 아닐 때만 "전체" 옵션을 상단에 노출
     const showAllOption = includeAllOption && !searchValue
-    const listItems = useMemo(
+    const listItems = useMemo<Array<{ value: TValue | null; label: string }>>(
         () => [
             ...(showAllOption ? [{ value: null, label: allLabel }] : []),
             ...filteredOptions,
@@ -181,12 +181,13 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
                     <button
                         type="button"
                         className="searchable-select-clear"
+                        aria-label="선택 초기화"
                         onClick={() => {
                             setSearchValue('')
                             onChange(null)
                         }}
                     >
-                        x
+                        <span aria-hidden="true">×</span>
                     </button>
                 )}
                 <button

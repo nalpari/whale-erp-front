@@ -1,5 +1,5 @@
 ﻿import type { UploadFile } from './upload-files'
-import type { DayType } from './work-schedule'
+import type { DayType } from '@/types/work-schedule'
 
 export type OperationStatusCode = string // 운영여부 코드(STOPR_001: 운영, STOPR_002: 휴무)
 

@@ -2,8 +2,6 @@
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
-type UploadPolicy = 'skipError' | 'cancelOnError'
-
 type UploadErrorRow = {
   row: number
   message: string
@@ -20,7 +18,7 @@ type UploadExcelProps = {
   isUploading?: boolean
   result?: UploadResult | null
   onClose: () => void
-  onUpload: (file: File, policy: UploadPolicy) => void
+  onUpload: (file: File) => void
   onDownloadSample?: () => void
   onDownloadErrorFile?: () => void
 }
@@ -49,7 +47,7 @@ export default function UploadExcel({
       alert('엑셀 파일을 선택해주세요.')
       return
     }
-    onUpload(file, 'skipError')
+    onUpload(file)
   }
 
   return (
@@ -64,8 +62,8 @@ export default function UploadExcel({
             <div className="search-filed">
               <table className="default-table">
                 <colgroup>
-                  <col width="140px" />
-                  <col />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: 'auto' }} />
                 </colgroup>
                 <tbody>
                   <tr>
@@ -105,6 +103,7 @@ export default function UploadExcel({
                         accept=".xlsx,.xls"
                         style={{ display: 'none' }}
                         onChange={handleFileChange}
+                        aria-label="엑셀 파일 선택"
                       />
                     </td>
                   </tr>

@@ -50,8 +50,10 @@ const toEmployeePage = (payload: unknown): PageResponse<EmployeeInfoListResponse
     if (content) {
       const totalElements =
         typeof record.totalElements === 'number' ? record.totalElements : content.length
-      const totalPages = typeof record.totalPages === 'number' ? record.totalPages : 1
-      const size = typeof record.size === 'number' ? record.size : content.length
+      const size =
+        typeof record.size === 'number' && record.size > 0 ? record.size : content.length || 1
+      const totalPages =
+        typeof record.totalPages === 'number' ? record.totalPages : Math.ceil(totalElements / size)
       const number = typeof record.number === 'number' ? record.number : 0
       const first = typeof record.first === 'boolean' ? record.first : true
       const last = typeof record.last === 'boolean' ? record.last : true

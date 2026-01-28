@@ -92,11 +92,6 @@ export default function StoreSchedulePageClient() {
     }
   };
 
-  const handleUploadExcelWithPolicy = async (file: File, policy: 'skipError' | 'cancelOnError') => {
-    void policy;
-    await handleUploadExcel(file);
-  };
-
   const handlePlan = () => {
     const params = buildStoreScheduleParams(lastQuery ?? filters);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
@@ -138,7 +133,7 @@ export default function StoreSchedulePageClient() {
           isUploading={isLoading}
           result={null}
           onClose={() => setUploadOpen(false)}
-          onUpload={handleUploadExcelWithPolicy}
+          onUpload={handleUploadExcel}
         />
       )}
     </div>

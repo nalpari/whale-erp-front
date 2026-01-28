@@ -160,8 +160,7 @@ export const useStoreScheduleUploadExcel = () => {
       try {
         const response = await api.post<ApiResponse<ScheduleSummary[]>>(
           `${STORE_SCHEDULE_BASE}/excel/${storeId}`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
+          formData
         )
         return response.data.data ?? []
       } catch (error) {

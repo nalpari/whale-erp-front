@@ -7,8 +7,8 @@ import { useEmployeeInfoList } from '@/hooks/queries'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 type EmployeeRow = {
-  id: number
-  workerId: number
+  id: string
+  workerId: number | null
   officeId?: number | null
   franchiseId?: number | null
   storeId?: number | null
@@ -18,6 +18,7 @@ type EmployeeRow = {
   store: string
   name: string
   contractType: string
+  isSelected: boolean
 }
 
 type EmploymentStatus = '근무' | '휴직' | '퇴사'
@@ -56,7 +57,7 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
     status: '근무',
     name: '',
   })
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const queryParams = useMemo(() => ({
     officeId: filters.officeId ?? undefined,
     franchiseId: filters.franchiseId ?? undefined,
@@ -68,17 +69,22 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
   const { data: employeePage, isPending, error } = useEmployeeInfoList(queryParams, true)
   const rowData = useMemo<EmployeeRow[]>(
     () =>
-      (employeePage?.content ?? []).map((employee) => ({
-        id: employee.employeeInfoId ?? employee.memberId ?? employee.rowNumber ?? 0,
-        workerId: employee.memberId ?? employee.employeeInfoId ?? 0,
-        status: employee.workStatusName ?? employee.workStatus ?? '',
-        office: employee.headOfficeOrganizationName ?? '',
-        franchise: employee.franchiseOrganizationName ?? '',
-        store: employee.storeName ?? '',
-        name: employee.employeeName,
-        contractType: getContractTypeLabel(employee.contractClassification),
-      })),
-    [employeePage?.content]
+      (employeePage?.content ?? []).map((employee, index) => {
+        const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
+        const workerId = employee.memberId ?? employee.employeeInfoId ?? null
+        return {
+          id,
+          workerId,
+          status: employee.workStatusName ?? employee.workStatus ?? '',
+          office: employee.headOfficeOrganizationName ?? '',
+          franchise: employee.franchiseOrganizationName ?? '',
+          store: employee.storeName ?? '',
+          name: employee.employeeName,
+          contractType: getContractTypeLabel(employee.contractClassification),
+          isSelected: selectedId === id,
+        }
+      }),
+    [employeePage?.content, selectedId]
   )
   const filteredRows = useMemo(() => {
     return rowData.filter((row) => {
@@ -114,7 +120,7 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
               type="radio"
               name="employee-select"
               id={`employee-${params.data?.id}`}
-              checked={selectedId === params.data?.id}
+              checked={params.data?.isSelected ?? false}
               onChange={() => setSelectedId(params.data?.id ?? null)}
             />
             <label htmlFor={`employee-${params.data?.id}`}></label>
@@ -127,7 +133,7 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
       { field: 'store', headerName: '점포', width: 180 },
       { field: 'name', headerName: '직원명', flex: 1 },
     ],
-    [selectedId]
+    []
   )
 
   return (
@@ -265,6 +271,10 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
                   const selected = rowData.find((row) => row.id === selectedId)
                   if (!selected) {
                     alert('직원을 선택해주세요.')
+                    return
+                  }
+                  if (!selected.workerId) {
+                    alert('직원 정보가 올바르지 않습니다.')
                     return
                   }
                   onApply({

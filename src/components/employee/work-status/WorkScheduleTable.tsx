@@ -124,6 +124,7 @@ export default function WorkScheduleTable({
   onPlan,
   onSelectDate,
 }: WorkScheduleTableProps) {
+  const { hours, timeBlocks } = useMemo(() => buildTimeAxis(), []);
   const sortedSchedules = useMemo(
     () => [...schedules].sort((a, b) => a.date.localeCompare(b.date)),
     [schedules]
@@ -156,7 +157,6 @@ export default function WorkScheduleTable({
             <div className="store-work-wrap">
               {sortedSchedules.map((schedule) => {
                 const sortedWorkers = sortWorkersByRule(schedule.workerList);
-                const { hours, timeBlocks } = buildTimeAxis();
                 return (
                   <div key={`${schedule.date}-${schedule.storeId ?? 'store'}`} className="store-work-date-wrap">
                     <button
@@ -167,7 +167,7 @@ export default function WorkScheduleTable({
                       {formatDateLabel(schedule.date, schedule.day)}
                     </button>
                     <div className="store-work-data-wrap-list">
-                      {schedule.workerList.length === 0 ? (
+                      {sortedWorkers.length === 0 ? (
                         <div className="empty-wrap">
                           <div className="empty-data">근무자가 없습니다.</div>
                         </div>
