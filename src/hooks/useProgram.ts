@@ -1,8 +1,6 @@
-import { useEffect } from 'react'
-
-import api, { type ApiError, getErrorMessage } from '@/lib/api'
-import type { Program, ProgramSearchResult } from '@/lib/schemas/program'
+import type { Program, ProgramSearchResult, ProgramFormData } from '@/lib/schemas/program'
 import { useProgramStore } from '@/stores/program-store'
+import { useProgramList, useCreateProgram, useUpdateProgram } from '@/hooks/queries'
 
 /**
  * 재귀로 모든 프로그램 ID 수집 (트리 전체 열기용)
@@ -36,101 +34,109 @@ const searchPrograms = (items: Program[], keyword: string, parentPath: string[] 
 }
 
 /**
- * 프로그램 관리 훅
- * - 프로그램 목록 조회 및 트리 상태 관리
- * - 검색 및 모달 제어
+ * 프로그램 관리 훅 (래퍼 훅)
+ * - React Query로 서버 상태 관리 (use-program-queries)
+ * - Zustand로 UI 상태 관리 (program-store)
+ * - 기존 컴포넌트와의 호환성을 위한 래퍼 레이어
  */
 export function useProgram() {
-  const programs = useProgramStore((state) => state.programs)
-  const loading = useProgramStore((state) => state.loading)
-  const error = useProgramStore((state) => state.error)
+  // React Query: 서버 데이터
+  const {
+    data: programs = [],
+    isPending: isLoading,
+    error,
+    refetch,
+  } = useProgramList()
+
+  // Zustand: UI 상태
   const searchKeyword = useProgramStore((state) => state.searchKeyword)
   const searchResults = useProgramStore((state) => state.searchResults)
   const openItems = useProgramStore((state) => state.openItems)
   const isModalOpen = useProgramStore((state) => state.isModalOpen)
   const modalMode = useProgramStore((state) => state.modalMode)
   const modalProgram = useProgramStore((state) => state.modalProgram)
-  const { openModal, closeModal } = useProgramStore()
+  const {
+    setSearchKeyword,
+    setSearchResults,
+    clearSearch,
+    setOpenItems,
+    toggleItem,
+    openModal,
+    closeModal,
+  } = useProgramStore()
 
-  const fetchPrograms = async (signal?: AbortSignal) => {
-    try {
-      useProgramStore.setState({ loading: true, error: null })
-      const response = await api.get('/api/system/programs', { signal })
-      const data = response.data.data as Program[]
-      useProgramStore.setState({
-        programs: data,
-        openItems: new Set(collectIds(data)),
-      })
-    } catch (err: unknown) {
-      if ((err as ApiError).name === 'AbortError' || (err as ApiError).name === 'CanceledError') {
-        return
-      }
-      useProgramStore.setState({
-        error: getErrorMessage(err, '프로그램 목록을 불러오는데 실패했습니다.'),
-      })
-    } finally {
-      useProgramStore.setState({ loading: false })
-    }
-  }
+  // Mutation 훅들
+  const createMutation = useCreateProgram()
+  const updateMutation = useUpdateProgram()
 
+  // 검색 핸들러
   const handleSearch = (keyword: string) => {
     const trimmed = keyword.trim()
     if (!trimmed) {
-      useProgramStore.setState({ searchKeyword: '', searchResults: [] })
+      clearSearch()
       return
     }
-    useProgramStore.setState({
-      searchKeyword: trimmed,
-      searchResults: searchPrograms(programs, trimmed),
-    })
+    setSearchKeyword(trimmed)
+    setSearchResults(searchPrograms(programs, trimmed))
   }
 
-  const clearSearch = () => {
-    useProgramStore.setState({ searchKeyword: '', searchResults: [] })
-  }
-
-  const toggleItem = (itemId: number) => {
-    const newSet = new Set(openItems)
-    if (newSet.has(itemId)) {
-      newSet.delete(itemId)
-    } else {
-      newSet.add(itemId)
+  // 트리 전체 열기 (초기 로드시)
+  const expandAll = () => {
+    if (programs.length > 0) {
+      setOpenItems(new Set(collectIds(programs)))
     }
-    useProgramStore.setState({ openItems: newSet })
   }
 
-  const setOpenItems = (items: Set<number>) => {
-    useProgramStore.setState({ openItems: items })
-  }
-
-  useEffect(() => {
-    const abortController = new AbortController()
-    fetchPrograms(abortController.signal)
-    return () => {
-      abortController.abort()
-      clearSearch()
+  // 프로그램 제출 핸들러
+  const handleSubmit = async (data: ProgramFormData) => {
+    try {
+      if (modalMode === 'create') {
+        await createMutation.mutateAsync({
+          ...data,
+          parent_id: modalProgram?.id || null,
+        })
+        alert('등록되었습니다.')
+      } else if (modalProgram?.id) {
+        await updateMutation.mutateAsync({
+          id: modalProgram.id,
+          data,
+        })
+        alert('수정되었습니다.')
+      }
+      closeModal()
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message =
+        axiosError.response?.data?.message ??
+        (modalMode === 'create' ? '등록에 실패하였습니다.' : '수정에 실패하였습니다.')
+      alert(message)
+      throw error // 모달 유지를 위해 에러 재throw
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }
 
   return {
-    // 상태
+    // 서버 상태 (React Query)
     programs,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message ?? null,
+    refetch,
+
+    // UI 상태 (Zustand)
     searchKeyword,
     searchResults,
     openItems,
     isModalOpen,
     modalMode,
     modalProgram,
+
     // 액션
-    fetchPrograms,
     handleSearch,
     clearSearch,
     toggleItem,
     setOpenItems,
+    expandAll,
     openModal,
     closeModal,
+    handleSubmit,
   }
 }

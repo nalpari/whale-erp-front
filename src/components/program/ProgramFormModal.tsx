@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 
-import type { Program, ProgramFormData } from '@/lib/schemas/program'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
+import { programFormSchema, type Program, type ProgramFormData } from '@/lib/schemas/program'
+import { formatDateYmd } from '@/util/date-util'
 
 interface ProgramFormModalProps {
   isOpen: boolean
@@ -49,16 +51,21 @@ export default function ProgramFormModal({
       : INITIAL_FORM_DATA
 
   const [formData, setFormData] = useState<ProgramFormData>(initialData)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   /**
-   * 폼 제출 핸들러 - 검증 후 상위 컴포넌트로 전달
+   * 폼 제출 핸들러 - Zod 검증 후 상위 컴포넌트로 전달
    */
   const handleSubmit = () => {
-    if (!formData.name.trim()) {
-      alert('메뉴명을 입력해주세요.')
+    const result = programFormSchema.safeParse(formData)
+
+    if (!result.success) {
+      setFieldErrors(formatZodFieldErrors(result.error))
       return
     }
-    onSubmit(formData)
+
+    setFieldErrors({}) // 에러 초기화
+    onSubmit(result.data)
   }
 
   /**
@@ -84,12 +91,14 @@ export default function ProgramFormModal({
                 <colgroup>
                   <col width="120px" />
                   <col />
+                  <col width="120px" />
+                  <col />
                 </colgroup>
                 <tbody>
                   {level1Name && (
                     <tr>
                       <th>Level 1</th>
-                      <td>
+                      <td colSpan={3}>
                         <div className="block">
                           <input type="text" className="input-frame" value={level1Name} readOnly />
                         </div>
@@ -99,7 +108,7 @@ export default function ProgramFormModal({
                   {level2Name && (
                     <tr>
                       <th>Level 2</th>
-                      <td>
+                      <td colSpan={3}>
                         <div className="block">
                           <input type="text" className="input-frame" value={level2Name} readOnly />
                         </div>
@@ -110,7 +119,7 @@ export default function ProgramFormModal({
                     <th>
                       운영 여부<span className="red">*</span>
                     </th>
-                    <td>
+                    <td colSpan={3}>
                       <div className="filed-flx">
                         <div className="toggle-btn">
                           <input
@@ -128,7 +137,7 @@ export default function ProgramFormModal({
                     <th>
                       메뉴명 <span className="red">*</span>
                     </th>
-                    <td>
+                    <td colSpan={3}>
                       <div className="block">
                         <input
                           type="text"
@@ -138,22 +147,75 @@ export default function ProgramFormModal({
                           placeholder="메뉴명을 입력하세요"
                         />
                       </div>
+                      {fieldErrors.name && <div className="form-helper error">{fieldErrors.name}</div>}
                     </td>
                   </tr>
                   <tr>
                     <th>메뉴 URL</th>
-                    <td>
+                    <td colSpan={3}>
                       <div className="block">
                         <input
                           type="text"
                           className="input-frame"
-                          value={formData.path}
+                          value={formData.path ?? ''}
                           onChange={(e) => setFormData({ ...formData, path: e.target.value })}
                           placeholder="/path/to/menu"
                         />
                       </div>
                     </td>
                   </tr>
+                  {mode === 'edit' && editData && (
+                    <>
+                      <tr>
+                        <th>등록자</th>
+                        <td>
+                          <div className="block">
+                            <input
+                              type="text"
+                              className="input-frame"
+                              value={editData.created_by_name || '-'}
+                              readOnly
+                            />
+                          </div>
+                        </td>
+                        <th>등록일</th>
+                        <td>
+                          <div className="block">
+                            <input
+                              type="text"
+                              className="input-frame"
+                              value={formatDateYmd(editData.created_at)}
+                              readOnly
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>최종 수정자</th>
+                        <td>
+                          <div className="block">
+                            <input
+                              type="text"
+                              className="input-frame"
+                              value={editData.updated_by_name || '-'}
+                              readOnly
+                            />
+                          </div>
+                        </td>
+                        <th>최종 수정일</th>
+                        <td>
+                          <div className="block">
+                            <input
+                              type="text"
+                              className="input-frame"
+                              value={formatDateYmd(editData.updated_at)}
+                              readOnly
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>

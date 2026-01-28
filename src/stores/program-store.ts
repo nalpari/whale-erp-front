@@ -2,12 +2,12 @@ import { create } from 'zustand'
 
 import type { Program, ProgramSearchResult } from '@/lib/schemas/program'
 
+/**
+ * 프로그램 UI 상태 관리 (Zustand)
+ * - 서버 데이터는 React Query로 관리
+ * - UI 상태만 Zustand로 관리 (검색, 트리, 모달)
+ */
 interface ProgramState {
-  // 프로그램 목록
-  programs: Program[]
-  loading: boolean
-  error: string | null
-
   // 검색
   searchKeyword: string
   searchResults: ProgramSearchResult[]
@@ -20,16 +20,18 @@ interface ProgramState {
   modalMode: 'create' | 'edit'
   modalProgram: Program | null
 
-  // Actions - 복잡한 로직이 필요한 것만
+  // Actions
+  setSearchKeyword: (keyword: string) => void
+  setSearchResults: (results: ProgramSearchResult[]) => void
+  clearSearch: () => void
+  setOpenItems: (items: Set<number>) => void
+  toggleItem: (itemId: number) => void
   openModal: (mode: 'create' | 'edit', program?: Program) => void
   closeModal: () => void
 }
 
-export const useProgramStore = create<ProgramState>((set) => ({
+export const useProgramStore = create<ProgramState>((set, get) => ({
   // 초기 상태
-  programs: [],
-  loading: false,
-  error: null,
   searchKeyword: '',
   searchResults: [],
   openItems: new Set(),
@@ -38,6 +40,19 @@ export const useProgramStore = create<ProgramState>((set) => ({
   modalProgram: null,
 
   // Actions
+  setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
+  setSearchResults: (results) => set({ searchResults: results }),
+  clearSearch: () => set({ searchKeyword: '', searchResults: [] }),
+  setOpenItems: (items) => set({ openItems: items }),
+  toggleItem: (itemId) => {
+    const newSet = new Set(get().openItems)
+    if (newSet.has(itemId)) {
+      newSet.delete(itemId)
+    } else {
+      newSet.add(itemId)
+    }
+    set({ openItems: newSet })
+  },
   openModal: (mode, program) =>
     set({
       isModalOpen: true,

@@ -14,7 +14,9 @@ export const programSchema: z.ZodType<Program> = z.object({
   level: z.number(),
   is_active: z.boolean(),
   created_by_id: z.number().nullable(),
+  created_by_name: z.string().nullable(),
   updated_by_id: z.number().nullable(),
+  updated_by_name: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
   children: z.lazy(() => z.array(programSchema)).default([]),
@@ -37,7 +39,9 @@ export interface Program {
   level: number;
   is_active: boolean;
   created_by_id: number | null;
+  created_by_name: string | null;
   updated_by_id: number | null;
+  updated_by_name: string | null;
   created_at: string;
   updated_at: string;
   children: Program[];
@@ -49,19 +53,27 @@ export interface Program {
 export type ProgramListResponse = z.infer<typeof programListResponseSchema>;
 
 /**
+ * 프로그램 폼 밸리데이션 스키마
+ */
+export const programFormSchema = z.object({
+  name: z.string().trim().min(1, '※ 필수 입력입니다.'),
+  path: z.string().transform(val => val.trim() === '' ? null : val).nullable(),
+  is_active: z.boolean(),
+});
+
+/**
  * 프로그램 폼 데이터 (생성/수정 공통)
  */
-export interface ProgramFormData {
-  name: string;
-  path: string;
-  is_active: boolean;
-}
+export type ProgramFormData = z.infer<typeof programFormSchema>;
 
 /**
  * 프로그램 생성 요청 데이터
  */
-export interface ProgramCreateRequest extends ProgramFormData {
+export interface ProgramCreateRequest {
   parent_id: number | null;
+  name: string;
+  path: string | null;
+  is_active: boolean;
 }
 
 /**

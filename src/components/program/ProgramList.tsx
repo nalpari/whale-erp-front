@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AnimateHeight from 'react-animate-height'
 
 import ProgramFormModal from '@/components/program/ProgramFormModal'
 import { useProgram } from '@/hooks/useProgram'
-import api, { getErrorMessage } from '@/lib/api'
-import type { Program, ProgramFormData } from '@/lib/schemas/program'
+import type { Program } from '@/lib/schemas/program'
 
 /**
  * 프로그램 목록 및 계층 관리 컴포넌트
@@ -23,17 +22,25 @@ export default function ProgramList() {
     isModalOpen,
     modalMode,
     modalProgram,
-    fetchPrograms,
     handleSearch,
-    clearSearch,
     toggleItem,
     setOpenItems,
+    expandAll,
     openModal,
     closeModal,
+    handleSubmit,
   } = useProgram()
 
   // 실시간 입력 검색어 (로컬 state)
   const [inputKeyword, setInputKeyword] = useState('')
+
+  // 초기 로드시 트리 전체 열기 (한 번만)
+  useEffect(() => {
+    if (programs.length > 0 && openItems.size === 0) {
+      expandAll()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programs.length])
 
   /**
    * 프로그램 트리에서 특정 프로그램의 부모 정보 찾기
@@ -126,28 +133,6 @@ export default function ProgramList() {
     alert('삭제 기능은 아직 구현되지 않았습니다.')
   }
 
-  /**
-   * 프로그램 등록/수정 제출
-   * @param data - 폼 데이터
-   */
-  const handleSubmit = async (data: ProgramFormData) => {
-    try {
-      if (modalMode === 'create') {
-        await api.post('/api/system/programs', {
-          ...data,
-          parent_id: modalProgram?.id || null,
-        })
-        alert('프로그램이 등록되었습니다.')
-      } else {
-        await api.put(`/api/system/programs/${modalProgram?.id}`, data)
-        alert('프로그램이 수정되었습니다.')
-      }
-      closeModal()
-      fetchPrograms()
-    } catch (err: unknown) {
-      alert(getErrorMessage(err, '작업 중 오류가 발생했습니다.'))
-    }
-  }
 
   /**
    * 트리 아이템 재귀 렌더링
@@ -158,6 +143,7 @@ export default function ProgramList() {
   const renderTreeItem = (program: Program, depth: number) => {
     const hasChildren = program.children && program.children.length > 0
     const isOpen = program.id !== null && openItems.has(program.id)
+    const canAddChild = depth < 3 // depth 3(최하위)이 아니면 하위 추가 가능
     // children ul에는 다음 depth 클래스 적용 (depth01 -> depth02 -> depth03)
     const childDepthClass = `depth0${Math.min(depth + 1, 3)}`
 
@@ -182,7 +168,7 @@ export default function ProgramList() {
             {program.path && <div className="path-name">{program.path}</div>}
             {!program.is_active && <div className="disable-badge">비활성</div>}
             <div className="depth-btn-wrap">
-              {hasChildren && (
+              {canAddChild && (
                 <button className="depth-btn create" onClick={() => handleCreate(program)}></button>
               )}
               <button className="depth-btn edit" onClick={() => handleEdit(program)}></button>
