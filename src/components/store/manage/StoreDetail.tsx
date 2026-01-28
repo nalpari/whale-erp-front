@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
-import { useStoreActions, useStoreDetail } from '@/hooks/store/useStore'
+import { useStoreDetail, useCreateStore, useUpdateStore } from '@/hooks/queries'
 import { useBp } from '@/hooks/useBp'
 import type { StoreDetailResponse, FieldErrors, StoreFormState } from '@/types/store'
 import { StoreDetailBasicInfo } from '@/components/store/manage/StoreDetailBasicInfo'
@@ -28,7 +28,7 @@ export default function StoreDetail() {
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const isEditMode = !!storeId
 
-  const { data: detail, loading } = useStoreDetail(storeId)
+  const { data: detail, isPending: loading } = useStoreDetail(storeId)
 
   const breadcrumbs = useMemo(() => ['Home', '가맹점 및 점포 관리', '점포 정보 관리'], [])
 
@@ -86,7 +86,9 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formErrors, setFormErrors] = useState<string[]>([])
 
-  const { create, update, saving } = useStoreActions()
+  const { mutateAsync: createStore, isPending: createPending } = useCreateStore()
+  const { mutateAsync: updateStore, isPending: updatePending } = useUpdateStore()
+  const saving = createPending || updatePending
 
   const {
     existingStoreImages,
@@ -125,9 +127,9 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
 
     try {
       if (isEditMode && detail?.storeInfo.id) {
-        await update(detail.storeInfo.id, payload, files)
+        await updateStore({ storeId: detail.storeInfo.id, payload, files })
       } else {
-        await create(payload, files)
+        await createStore({ payload, files })
       }
 
       if (typeof window !== 'undefined') {

@@ -40,7 +40,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useBp } from '@/hooks/useBp'
-import { useStoreOptions } from '@/hooks/store/useStore'
+import { useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
 
@@ -289,7 +289,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
     const franchiseOptions = useMemo(() => buildFranchiseOptions(bpTree, officeId), [bpTree, officeId])
-    const { options: storeOptionList, loading: storeLoading } = useStoreOptions(
+    const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
         officeId,
         franchiseId,
         isReady

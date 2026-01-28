@@ -17,7 +17,8 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 - **React 19** with React Compiler enabled (`next.config.ts`)
 - **Tailwind CSS 4** via `@tailwindcss/postcss`
 - **TypeScript** in strict mode
-- **Zustand** for state management
+- **TanStack Query** for server state (API data caching, loading/error states)
+- **Zustand** for client state (auth, UI state)
 - **Axios** for API calls
 - **Zod 4** for schema validation and type inference
 - **AG Grid** for data tables
@@ -76,6 +77,28 @@ import type { LoginRequest } from '@/lib/schemas/auth';
 ```
 
 ### State Management
+
+**Server State (TanStack Query)** — API 데이터 캐싱
+
+- **`src/lib/query-client.ts`**: QueryClient 설정
+  - `staleTime: 5분` (적극적 캐싱)
+  - `refetchOnWindowFocus: false` (ERP 특성상 비활성화)
+- **`src/hooks/queries/`**: 쿼리 훅 모음
+  - `query-keys.ts` — 쿼리 키 팩토리 (타입 안전 invalidation)
+  - `use-store-queries.ts` — 점포 CRUD 훅
+  - `use-file-queries.ts` — 파일 관련 훅
+
+```typescript
+// 조회
+const { data, isPending, error } = useStoreList(params)
+const { data, isPending } = useStoreDetail(storeId)
+
+// 생성/수정/삭제
+const { mutateAsync, isPending } = useCreateStore()
+await mutateAsync({ payload, files })
+```
+
+**Client State (Zustand)** — UI 상태
 
 - **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
   - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID)
