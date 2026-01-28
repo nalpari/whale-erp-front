@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import '@/styles/style.scss'
+import { QueryProvider } from '@/providers/query-provider'
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        {children}
+        <QueryProvider>
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );
