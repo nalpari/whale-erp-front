@@ -112,10 +112,11 @@ export default function WorkScheduleSearch({
       officeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
+      workStatus: 'EMPWK_001',
       page: 0,
       size: 100,
     },
-    Boolean(form.officeId)
+    true
   );
   const employeeOptions = useMemo(
     () =>
@@ -126,10 +127,10 @@ export default function WorkScheduleSearch({
     [employeePage?.content]
   );
   const employeePlaceholder = employeeError
-    ? '직원 이름을 입력해주세요.'
+    ? '전체'
     : isEmployeeLoading
       ? '직원 정보를 조회중입니다.'
-      : '직원 이름을 입력해주세요.';
+      : '전체';
 
   useEffect(() => {
     setForm(initialForm);

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse } from '@/lib/schemas/api'
@@ -28,11 +28,11 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 const getFileNameFromDisposition = (value?: string): string | null => {
   if (!value) return null
-  const utf8Match = value.match(/filename\\*=UTF-8''([^;]+)/i)
+  const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i)
   if (utf8Match?.[1]) {
     return decodeURIComponent(utf8Match[1])
   }
-  const basicMatch = value.match(/filename=\"?([^\";]+)\"?/i)
+  const basicMatch = value.match(/filename="?([^";]+)"?/i)
   if (!basicMatch?.[1]) return null
   try {
     return decodeURIComponent(basicMatch[1])

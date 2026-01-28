@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
@@ -69,10 +69,13 @@ export default function UploadExcel({
                 </colgroup>
                 <tbody>
                   <tr>
-                    <th>엑셀 파일</th>
+                    <th>
+                      <label htmlFor="excel-upload-file">엑셀 파일</label>
+                    </th>
                     <td>
                       <div className="filed-check-flx">
                         <input
+                          id="excel-upload-file"
                           className="input-frame"
                           type="text"
                           value={file?.name ?? ''}
@@ -113,7 +116,6 @@ export default function UploadExcel({
                 </button>
               </div>
             </div>
-
 
             <div className="pop-btn-content" style={{ marginTop: 16 }}>
               <button

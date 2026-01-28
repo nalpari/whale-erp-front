@@ -1,4 +1,4 @@
-import type { StoreScheduleQuery } from '@/types/work-schedule'
+﻿import type { StoreScheduleQuery } from '@/types/work-schedule'
 
 /**
  * 점포별 근무 계획표 검색 조건을 API 파라미터/URL 쿼리스트링으로 변환하는 유틸.
@@ -10,14 +10,14 @@ import type { StoreScheduleQuery } from '@/types/work-schedule'
 
 type StoreScheduleParamSource =
   | {
-      officeId?: number | null
-      franchiseId?: number | null
-      storeId?: number | null
-      employeeName?: string
-      dayType?: StoreScheduleQuery['dayType'] | ''
-      from?: string
-      to?: string
-    }
+    officeId?: number | null
+    franchiseId?: number | null
+    storeId?: number | null
+    employeeName?: string
+    dayType?: StoreScheduleQuery['dayType'] | ''
+    from?: string
+    to?: string
+  }
   | null
   | undefined
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
@@ -16,6 +16,7 @@ type SearchableSelectProps<TValue extends SearchableSelectValue = SearchableSele
     disabled?: boolean
     includeAllOption?: boolean
     allLabel?: string
+    ariaLabel?: string
     onChange: (value: TValue | null) => void
 }
 
@@ -26,6 +27,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
     disabled = false,
     includeAllOption = true,
     allLabel = '전체',
+    ariaLabel,
     onChange,
 }: SearchableSelectProps<TValue>) {
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -129,6 +131,7 @@ export default function SearchableSelect<TValue extends SearchableSelectValue = 
                     type="text"
                     value={displayValue}
                     placeholder={placeholder}
+                    aria-label={ariaLabel ?? placeholder}
                     onFocus={() => {
                         setOpen(true)
                         if (listItems.length > 0) setActiveIndex(0)
