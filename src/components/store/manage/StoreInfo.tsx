@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { StoreSearchFilters } from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
-import { StoreListParams, useStoreList, useStoreOptions } from '@/hooks/store/useStore'
+import { useStoreList, useStoreOptions, type StoreListParams } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 
@@ -135,11 +135,9 @@ export default function StoreInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  const { options: storeOptionList } = useStoreOptions(filters.officeId ?? undefined, filters.franchiseId ?? undefined)
-  // 세션 동기화가 완료된 뒤에만 목록 API 호출
-  const { data: response, loading, error } = useStoreList(storeParams, hydrated)
-  const { getHierarchyChildren, getChildren } = useCommonCode()
-  const statusChildren = getChildren('STOPR')
+  const { data: storeOptionList = [] } = useStoreOptions(filters.officeId, filters.franchiseId)
+  const { data: response, isPending: loading, error } = useStoreList(storeParams, hydrated)
+  const { children: statusChildren } = useCommonCode('STOPR', hydrated)
 
   // 선택된 storeId가 옵션 목록에서 사라졌으면 필터에서 제거
   useEffect(() => {
@@ -153,12 +151,6 @@ export default function StoreInfo() {
       appliedFilters: { ...prev.appliedFilters, storeId: null },
     }))
   }, [filters.storeId, appliedFilters.storeId, storeOptionList])
-
-  useEffect(() => {
-    if (statusChildren.length === 0) {
-      void getHierarchyChildren('STOPR')
-    }
-  }, [statusChildren.length, getHierarchyChildren])
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
   const handleSearch = () => {
@@ -213,7 +205,7 @@ export default function StoreInfo() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error}
+        error={error?.message}
         statusMap={statusMap}
         onPageChange={(nextPage) => {
           setStoreState((prev) => ({ ...prev, page: nextPage }))

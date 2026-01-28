@@ -1,4 +1,11 @@
-﻿import { create } from 'zustand'
+﻿/**
+ * @deprecated
+ * This store has been migrated to TanStack Query.
+ * Use `useCommonCodeHierarchy` from '@/hooks/queries' instead.
+ * See: src/hooks/queries/use-common-code-queries.ts
+ */
+
+import { create } from 'zustand'
 import api from '@/lib/api'
 
 interface CommonCodeNode {

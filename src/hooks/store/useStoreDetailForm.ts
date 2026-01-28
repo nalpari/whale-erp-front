@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRequest } from '@/types/store'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
-import { useCommonCode } from '@/hooks/useCommonCode'
+import { useCommonCodeCache } from '@/hooks/queries'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
   A001: '※ 필수 입력 항목입니다.',
@@ -415,7 +415,7 @@ export const useStoreDetailForm = ({
   bpTree,
   getBpDetail,
 }: UseStoreDetailFormParams) => {
-  const { getHierarchyChildren, getChildren } = useCommonCode()
+  const { getHierarchyChildren, getChildren } = useCommonCodeCache()
   // 상세/신규 모드에 따라 초기값 설정
   const [formState, setFormState] = useState<StoreFormState>(() =>
     detail ? mapDetailToForm(detail, buildInitialForm('edit')) : buildInitialForm(isEditMode ? 'edit' : 'create'),

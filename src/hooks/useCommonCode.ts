@@ -1,20 +1,12 @@
-import { useShallow } from 'zustand/react/shallow'
-import { useCommonCodeStore } from '@/stores/common-code-store'
+import { useCommonCodeHierarchy } from '@/hooks/queries'
 
-export const useCommonCode = () => {
-  const { fetchChildren, getChildren, loadingByCode, errorByCode } = useCommonCodeStore(
-    useShallow((state) => ({
-      fetchChildren: state.fetchChildren,
-      getChildren: state.getChildren,
-      loadingByCode: state.loadingByCode,
-      errorByCode: state.errorByCode,
-    }))
-  )
+export const useCommonCode = (code: string, enabled = true) => {
+  const { data, isPending, error, refetch } = useCommonCodeHierarchy(code, enabled)
 
   return {
-    getHierarchyChildren: fetchChildren,
-    getChildren,
-    loadingByCode,
-    errorByCode,
+    children: data ?? [],
+    loading: isPending,
+    error: error?.message ?? null,
+    refetch,
   }
 }

@@ -1,3 +1,10 @@
+/**
+ * @deprecated
+ * This store has been migrated to TanStack Query.
+ * Use `useBpHeadOfficeTree` and `useBpDetail` from '@/hooks/queries' instead.
+ * See: src/hooks/queries/use-bp-queries.ts
+ */
+
 import { create } from 'zustand'
 import api from '@/lib/api'
 import { ApiResponse } from '@/lib/schemas/api'
