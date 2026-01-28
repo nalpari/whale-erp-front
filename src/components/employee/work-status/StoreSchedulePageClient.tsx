@@ -1,53 +1,57 @@
 ﻿'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import UploadExcel from '@/components/employee/popup/UploadExcel';
 import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
 import WorkScheduleTable from '@/components/employee/work-status/WorkScheduleTable';
 import Location from '@/components/ui/Location';
-import useStoreSchedule from '@/hooks/useStoreSchedule';
-import type { ScheduleResponse, StoreScheduleQuery } from '@/types/work-schedule';
-
+import {
+  storeScheduleKeys,
+  useStoreScheduleDownloadExcel,
+  useStoreScheduleList,
+  useStoreScheduleUploadExcel,
+} from '@/hooks/queries';
+import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
+import { useQueryClient } from '@tanstack/react-query';
+import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
+import type { StoreScheduleQuery } from '@/types/work-schedule';
+ 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
-  const { getSchedules, downloadExcel, uploadExcel } = useStoreSchedule();
-  const [schedules, setSchedules] = useState<ScheduleResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  const queryClient = useQueryClient();
+  const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
+  const filters = useStoreScheduleViewStore((state) => state.filters);
+  const hydrated = useStoreScheduleViewStore((state) => state.hydrated);
+  const isUploadOpen = useStoreScheduleViewStore((state) => state.isUploadOpen);
+  const setLastQuery = useStoreScheduleViewStore((state) => state.setLastQuery);
+  const setFilters = useStoreScheduleViewStore((state) => state.setFilters);
+  const setUploadOpen = useStoreScheduleViewStore((state) => state.setUploadOpen);
+  const resetFilters = useStoreScheduleViewStore((state) => state.resetFilters);
+  const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
+  const uploadMutation = useStoreScheduleUploadExcel();
+  const downloadMutation = useStoreScheduleDownloadExcel();
+  const schedules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
+  const isLoading =
+    scheduleQuery.isFetching || uploadMutation.isPending || downloadMutation.isPending;
 
   const resultCount = useMemo(
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),
     [schedules]
   );
-  const employeeOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    schedules.forEach((schedule) => {
-      schedule.workerList.forEach((worker) => {
-        if (!worker.workerName) return;
-        if (!worker.hasWork) return;
-        if (!map.has(worker.workerName)) {
-          map.set(worker.workerName, worker.workerName);
-        }
-      });
-    });
-    return Array.from(map.values()).map((name) => ({ label: name, value: name }));
-  }, [schedules]);
+  useEffect(() => {
+    if (!scheduleQuery.error) return;
+    alert(scheduleQuery.error.message);
+  }, [scheduleQuery.error]);
 
   const handleSearch = async (query: StoreScheduleQuery) => {
-    setIsLoading(true);
-    const { data, error } = await getSchedules(query);
-    if (error) {
-      alert(error);
-    } else {
-      setSchedules(data ?? []);
-      setLastQuery(query);
-    }
-    setIsLoading(false);
+    setLastQuery(query);
+    setFilters(query);
+    await queryClient.invalidateQueries({ queryKey: storeScheduleKeys.list(query) });
   };
 
   const handleReset = () => {
-    setSchedules([]);
-    setLastQuery(null);
+    resetFilters();
   };
 
   const handleDownloadExcel = async () => {
@@ -55,24 +59,24 @@ export default function StoreSchedulePageClient() {
       alert('엑셀 다운로드는 점포 ID를 선택해야 합니다.');
       return;
     }
-    const { data, error } = await downloadExcel(lastQuery.storeId, {
-      from: lastQuery.from,
-      to: lastQuery.to,
-    });
-    if (error) {
-      alert(error);
-      return;
+    try {
+      const data = await downloadMutation.mutateAsync({
+        storeId: lastQuery.storeId,
+        params: { from: lastQuery.from, to: lastQuery.to },
+      });
+      const { blob, fileName } = data;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
+      alert(message);
     }
-    if (!data) return;
-    const { blob, fileName } = data;
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
   };
 
   const handleUploadExcel = async (file: File) => {
@@ -80,47 +84,32 @@ export default function StoreSchedulePageClient() {
       alert('엑셀 업로드는 점포 ID를 선택해야 합니다.');
       return;
     }
-    setIsLoading(true);
-    const { error } = await uploadExcel(lastQuery.storeId, file);
-    if (error) {
-      alert(error);
-      setIsLoading(false);
-      return;
+    try {
+      await uploadMutation.mutateAsync({ storeId: lastQuery.storeId, file });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '엑셀 업로드에 실패했습니다.';
+      alert(message);
     }
-    if (lastQuery) {
-      const { data } = await getSchedules(lastQuery);
-      setSchedules(data ?? []);
-    }
-    setIsLoading(false);
+  };
+
+  const handleUploadExcelWithPolicy = async (file: File, policy: 'skipError' | 'cancelOnError') => {
+    void policy;
+    await handleUploadExcel(file);
   };
 
   const handlePlan = () => {
-    const params = new URLSearchParams();
-    if (lastQuery?.officeId) params.set('officeId', String(lastQuery.officeId));
-    if (lastQuery?.franchiseId) params.set('franchiseId', String(lastQuery.franchiseId));
-    if (lastQuery?.storeId) params.set('storeId', String(lastQuery.storeId));
-    if (lastQuery?.employeeName) params.set('employeeName', lastQuery.employeeName);
-    if (lastQuery?.dayType) params.set('dayType', lastQuery.dayType);
-    if (lastQuery?.from) params.set('from', lastQuery.from);
-    if (lastQuery?.to) params.set('to', lastQuery.to);
-    const queryString = params.toString();
-    router.push(`/employee/schedule/plan${queryString ? `?${queryString}` : ''}`);
+    const params = buildStoreScheduleParams(lastQuery ?? filters);
+    router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
   const handleSelectDate = (date: string, storeId?: number | null) => {
-    const params = new URLSearchParams();
-    if (lastQuery?.officeId) params.set('officeId', String(lastQuery.officeId));
-    if (lastQuery?.franchiseId) params.set('franchiseId', String(lastQuery.franchiseId));
-    if (lastQuery?.storeId) params.set('storeId', String(lastQuery.storeId));
-    if (lastQuery?.employeeName) params.set('employeeName', lastQuery.employeeName);
-    if (lastQuery?.dayType) params.set('dayType', lastQuery.dayType);
-    if (lastQuery?.from) params.set('from', lastQuery.from);
-    if (lastQuery?.to) params.set('to', lastQuery.to);
-    params.set('date', date);
-    if (storeId) {
-      params.set('storeId', String(storeId));
-    }
-    router.push(`/employee/schedule/plan?${params.toString()}`);
+    const params = buildStoreScheduleParams(lastQuery, {
+      from: date,
+      to: date,
+      date,
+      storeId: storeId ?? lastQuery?.storeId ?? filters.storeId,
+    });
+    router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
   return (
@@ -132,7 +121,7 @@ export default function StoreSchedulePageClient() {
       <WorkScheduleSearch
         resultCount={resultCount}
         isLoading={isLoading}
-        employeeOptions={employeeOptions}
+        initialQuery={filters}
         onSearch={handleSearch}
         onReset={handleReset}
       />
@@ -140,10 +129,18 @@ export default function StoreSchedulePageClient() {
         schedules={schedules}
         isLoading={isLoading}
         onDownloadExcel={handleDownloadExcel}
-        onUploadExcel={handleUploadExcel}
+        onOpenUploadExcel={() => setUploadOpen(true)}
         onPlan={handlePlan}
         onSelectDate={handleSelectDate}
       />
+      {isUploadOpen && (
+        <UploadExcel
+          isUploading={isLoading}
+          result={null}
+          onClose={() => setUploadOpen(false)}
+          onUpload={handleUploadExcelWithPolicy}
+        />
+      )}
     </div>
   );
 }

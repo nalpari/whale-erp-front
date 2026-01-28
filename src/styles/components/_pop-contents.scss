@@ -16,6 +16,12 @@
   align-items: center;
   justify-content: center;
 }
+.upload-result-box {
+  border: 1px solid #ebebeb;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background-color: #fff;
+}
 .pop-guide {
   padding: 0 16px 20px;
   @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);

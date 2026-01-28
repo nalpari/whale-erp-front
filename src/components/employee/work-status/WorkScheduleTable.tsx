@@ -1,13 +1,13 @@
 ﻿'use client';
 
-import { useMemo, useRef, type ChangeEvent } from 'react';
+import { useMemo } from 'react';
 import type { ScheduleResponse, WorkerResponse } from '@/types/work-schedule';
 
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
   isLoading: boolean;
   onDownloadExcel: () => void;
-  onUploadExcel: (file: File) => void;
+  onOpenUploadExcel: () => void;
   onPlan: () => void;
   onSelectDate: (date: string, storeId?: number | null) => void;
 };
@@ -68,23 +68,8 @@ const calculateTotalHours = (worker: WorkerResponse) => {
   return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
 };
 
-const buildTimeAxis = (workers: WorkerResponse[]) => {
-  const times = workers
-    .map((worker) => ({
-      start: parseTimeToMinutes(worker.workStartTime),
-      end: parseTimeToMinutes(worker.workEndTime),
-    }))
-    .filter((item) => item.start != null && item.end != null && item.end > item.start);
-
-  let minMinute = 9 * 60;
-  let maxMinute = 18 * 60;
-  if (times.length > 0) {
-    minMinute = Math.min(...times.map((item) => item.start ?? minMinute));
-    maxMinute = Math.max(...times.map((item) => item.end ?? maxMinute));
-  }
-  const startHour = Math.max(0, Math.floor(minMinute / 60));
-  const endHour = Math.min(24, Math.ceil(maxMinute / 60));
-  const hours = Array.from({ length: Math.max(1, endHour - startHour) }, (_, i) => startHour + i);
+const buildTimeAxis = () => {
+  const hours = Array.from({ length: 24 }, (_, i) => i);
   const timeBlocks: TimeBlock[] = hours.flatMap((hour) => [
     { hour, minute: 0, startMinute: hour * 60 },
     { hour, minute: 30, startMinute: hour * 60 + 30 },
@@ -135,31 +120,30 @@ export default function WorkScheduleTable({
   schedules,
   isLoading,
   onDownloadExcel,
-  onUploadExcel,
+  onOpenUploadExcel,
   onPlan,
   onSelectDate,
 }: WorkScheduleTableProps) {
-  const uploadRef = useRef<HTMLInputElement | null>(null);
   const sortedSchedules = useMemo(
     () => [...schedules].sort((a, b) => a.date.localeCompare(b.date)),
     [schedules]
   );
 
-  const handleUploadClick = () => {
-    uploadRef.current?.click();
-  };
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    onUploadExcel(file);
-    event.target.value = '';
-  };
-
   return (
     <div className="contents-wrap">
       <div className="contents-body">
         <div className="content-wrap">
+          <div className="store-work-btn">
+            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading}>
+              엑셀 파일 다운로드
+            </button>
+            <button className="btn-form outline s" onClick={onOpenUploadExcel} disabled={isLoading}>
+              엑셀 파일 업로드
+            </button>
+            <button className="btn-form basic" onClick={onPlan} disabled={isLoading}>
+              계획 수립
+            </button>
+          </div>
           {isLoading ? (
             <div className="empty-wrap">
               <div className="empty-data">데이터를 불러오는 중입니다.</div>
@@ -172,7 +156,7 @@ export default function WorkScheduleTable({
             <div className="store-work-wrap">
               {sortedSchedules.map((schedule) => {
                 const sortedWorkers = sortWorkersByRule(schedule.workerList);
-                const { hours, timeBlocks } = buildTimeAxis(sortedWorkers);
+                const { hours, timeBlocks } = buildTimeAxis();
                 return (
                   <div key={`${schedule.date}-${schedule.storeId ?? 'store'}`} className="store-work-date-wrap">
                     <button
@@ -237,24 +221,6 @@ export default function WorkScheduleTable({
               })}
             </div>
           )}
-          <div className="store-work-btn">
-            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading}>
-              엑셀 파일 다운로드
-            </button>
-            <button className="btn-form outline s" onClick={handleUploadClick} disabled={isLoading}>
-              엑셀 파일 업로드
-            </button>
-            <button className="btn-form basic" onClick={onPlan} disabled={isLoading}>
-              계획 수립
-            </button>
-            <input
-              ref={uploadRef}
-              type="file"
-              accept=".xlsx,.xls"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-          </div>
         </div>
       </div>
     </div>
