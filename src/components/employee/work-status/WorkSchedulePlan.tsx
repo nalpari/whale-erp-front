@@ -4,9 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import WorkScheduleSearch from './WorkScheduleSearch';
 import type { DayType, ScheduleResponse, StoreScheduleQuery } from '@/types/work-schedule';
-import useStoreSchedule from '@/hooks/useStoreSchedule';
+import {
+  fetchStoreSchedules,
+  storeScheduleKeys,
+  useStoreScheduleUpsert,
+} from '@/hooks/queries';
+import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
+import { useQueryClient } from '@tanstack/react-query';
 import { Tooltip } from 'react-tooltip';
 import EmployeeSearch from '../popup/EmployeeSearch';
+import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
 
 type WorkerPlan = {
   id: string;
@@ -173,10 +180,12 @@ const createWorkerPlan = ({
   breakEndIndex: DEFAULT_BREAK_RANGE.endIndex,
 });
 
-const buildWorkerRequest = (worker: WorkerPlan, isDeleted = false) => ({
+const buildWorkerRequest = (worker: WorkerPlan, isDeleted = false) => {
+  const hasWorkerId = worker.workerId !== null && worker.workerId !== undefined;
+  return ({
   shiftId: worker.shiftId ?? null,
   workerId: worker.workerId ?? null,
-  tempWorkerName: worker.workerId ? null : worker.tempWorkerName ?? worker.name ?? null,
+  tempWorkerName: hasWorkerId ? null : worker.tempWorkerName ?? worker.name ?? null,
   hasWork: isDeleted ? false : worker.hasWork,
   workStartTime: !isDeleted && worker.hasWork ? indexToTimeWithSeconds(worker.startIndex) : null,
   workEndTime: !isDeleted && worker.hasWork ? indexToTimeWithSeconds(worker.endIndex) : null,
@@ -191,9 +200,11 @@ const buildWorkerRequest = (worker: WorkerPlan, isDeleted = false) => ({
       : null,
   isDeleted,
 });
+};
 
 const validatePlans = (plans: DayPlan[]) => {
   for (const day of plans) {
+    const workRangesByKey = new Map<string, Array<{ start: number; end: number }>>();
     for (const worker of day.workers) {
       const label = `${day.date} ${worker.name || '근무자'}`;
       if (!worker.workerId && !worker.tempWorkerName && !worker.name) {
@@ -213,18 +224,47 @@ const validatePlans = (plans: DayPlan[]) => {
           return `${label} : 휴게 시간이 근무 시간 범위를 벗어났습니다.`;
         }
       }
+      if (worker.hasWork) {
+        const key = worker.workerId
+          ? `worker-${worker.workerId}`
+          : worker.tempWorkerName
+            ? `temp-${worker.tempWorkerName}`
+            : `name-${worker.name}`;
+        const ranges = workRangesByKey.get(key) ?? [];
+        const current = { start: worker.startIndex, end: worker.endIndex };
+        const hasOverlap = ranges.some((range) => current.start < range.end && current.end > range.start);
+        if (hasOverlap) {
+          return `${label} : 동일한 날짜에 중복된 근무 시간이 있습니다.`;
+        }
+        ranges.push(current);
+        workRangesByKey.set(key, ranges);
+      }
     }
   }
   return null;
 };
 
+const buildWorkerSnapshot = (worker: WorkerPlan) => ({
+  workerId: worker.workerId ?? null,
+  tempWorkerName: worker.tempWorkerName ?? null,
+  hasWork: worker.hasWork,
+  hasBreak: worker.hasBreak,
+  startIndex: worker.startIndex,
+  endIndex: worker.endIndex,
+  breakStartIndex: worker.breakStartIndex,
+  breakEndIndex: worker.breakEndIndex,
+});
+
+
 export default function WorkSchedulePlan() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { getSchedules, upsertSchedules } = useStoreSchedule();
+  const queryClient = useQueryClient();
+  const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
+  const setLastQuery = useStoreScheduleViewStore((state) => state.setLastQuery);
+  const upsertMutation = useStoreScheduleUpsert();
   const [plans, setPlans] = useState<DayPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
   const [employeeModal, setEmployeeModal] = useState<{
     mode: 'add' | 'replace';
@@ -236,6 +276,11 @@ export default function WorkSchedulePlan() {
     afterWorkerId?: string;
   } | null>(null);
   const [tempWorkerName, setTempWorkerName] = useState('');
+  const initialWorkersRef = useRef<Map<string, Map<string, ReturnType<typeof buildWorkerSnapshot>>>>(
+    new Map()
+  );
+  const dirtyWorkersRef = useRef<Set<string>>(new Set());
+  const isLoading = isFetching || upsertMutation.isPending;
   
   const dragRef = useRef<{
     dayIndex: number;
@@ -270,27 +315,46 @@ export default function WorkSchedulePlan() {
 
   const handleSearch = useCallback(
     async (query: StoreScheduleQuery) => {
-      setIsLoading(true);
-      const { data, error } = await getSchedules(query);
-      if (error) {
-        alert(error);
-        setIsLoading(false);
-        return;
+      setIsFetching(true);
+      try {
+        const data = await queryClient.fetchQuery({
+          queryKey: storeScheduleKeys.list(query),
+          queryFn: () => fetchStoreSchedules(query),
+        });
+        const nextPlans = buildPlansFromSchedules(data ?? []);
+        setPlans(nextPlans);
+        setPendingDeletes({});
+        dirtyWorkersRef.current = new Set();
+        const nextInitial = new Map<string, Map<string, ReturnType<typeof buildWorkerSnapshot>>>();
+        nextPlans.forEach((day) => {
+          const dayMap = new Map<string, ReturnType<typeof buildWorkerSnapshot>>();
+          day.workers.forEach((worker) => {
+            if (worker.shiftId) {
+              dayMap.set(`shift-${worker.shiftId}`, buildWorkerSnapshot(worker));
+            }
+          });
+          nextInitial.set(day.date, dayMap);
+        });
+        initialWorkersRef.current = nextInitial;
+        setLastQuery(query);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : '근무 계획 조회에 실패했습니다.';
+        alert(message);
+      } finally {
+        setIsFetching(false);
       }
-      const nextPlans = buildPlansFromSchedules(data ?? []);
-      setPlans(nextPlans);
-      setPendingDeletes({});
-      setLastQuery(query);
-      setIsLoading(false);
     },
-    [getSchedules]
+    [queryClient, setLastQuery]
   );
 
   const handleReset = useCallback(() => {
     setPlans([]);
     setPendingDeletes({});
+    initialWorkersRef.current = new Map();
+    dirtyWorkersRef.current = new Set();
     setLastQuery(null);
-  }, []);
+  }, [setLastQuery]);
 
   const handleBreakToggle = (dayIndex: number, workerId: string, enabled: boolean) => {
     setPlans((prev) =>
@@ -300,6 +364,7 @@ export default function WorkSchedulePlan() {
           ...day,
           workers: day.workers.map((worker) => {
             if (worker.id !== workerId) return worker;
+            dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
             if (!enabled) {
               return { ...worker, hasBreak: false };
             }
@@ -351,6 +416,7 @@ export default function WorkSchedulePlan() {
             workerId: employee.workerId,
             baseRange,
           });
+          dirtyWorkersRef.current.add(`${day.date}|${nextWorker.id}`);
           if (!employeeModal.workerId) {
             return { ...day, workers: [...day.workers, nextWorker] };
           }
@@ -361,6 +427,9 @@ export default function WorkSchedulePlan() {
           const nextWorkers = [...day.workers];
           nextWorkers.splice(targetIndex + 1, 0, nextWorker);
           return { ...day, workers: nextWorkers };
+        }
+        if (employeeModal.workerId) {
+          dirtyWorkersRef.current.add(`${day.date}|${employeeModal.workerId}`);
         }
         return {
           ...day,
@@ -399,6 +468,7 @@ export default function WorkSchedulePlan() {
           tempWorkerName: trimmed,
           baseRange,
         });
+        dirtyWorkersRef.current.add(`${day.date}|${nextWorker.id}`);
         if (!tempWorkerModal.afterWorkerId) {
           return { ...day, workers: [...day.workers, nextWorker] };
         }
@@ -446,40 +516,39 @@ export default function WorkSchedulePlan() {
       alert(validationError);
       return;
     }
-    const payload = plans.map((day) => ({
-      date: day.date,
-      workerRequests: [
-        ...day.workers.map((worker) => buildWorkerRequest(worker)),
-        ...(pendingDeletes[day.date] ?? []).map((worker) => buildWorkerRequest(worker, true)),
-      ],
-    }));
-    setIsLoading(true);
-    const { error } = await upsertSchedules(lastQuery.storeId, payload);
-    if (error) {
-      alert(error);
-      setIsLoading(false);
+    const payload = plans
+      .map((day) => {
+        const changedWorkers = day.workers.filter((worker) =>
+          dirtyWorkersRef.current.has(`${day.date}|${worker.id}`)
+        );
+        const deletedWorkers = pendingDeletes[day.date] ?? [];
+        const workerRequests = [
+          ...changedWorkers.map((worker) => buildWorkerRequest(worker)),
+          ...deletedWorkers.map((worker) => buildWorkerRequest(worker, true)),
+        ];
+        return workerRequests.length > 0 ? { date: day.date, workerRequests } : null;
+      })
+      .filter((item): item is { date: string; workerRequests: ReturnType<typeof buildWorkerRequest>[] } => Boolean(item));
+
+    if (payload.length === 0) {
+      alert('변경된 데이터가 없습니다.');
       return;
     }
-    if (lastQuery) {
-      await handleSearch(lastQuery);
+    try {
+      await upsertMutation.mutateAsync({ storeId: lastQuery.storeId, payload });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '?? ?? ??? ??????.';
+      alert(message);
+      return;
     }
-    setIsLoading(false);
-  }, [handleSearch, isLoading, lastQuery, pendingDeletes, plans, upsertSchedules]);
+    const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
+      lastQuery ?? initialQuery ?? null;
+    const params = buildStoreScheduleParams(source);
+    router.push(`/employee/schedule/view${toQueryString(params)}`);
+  }, [initialQuery, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
 
   const renderedPlans = useMemo(() => plans, [plans]);
-  const employeeOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    plans.forEach((day) => {
-      day.workers.forEach((worker) => {
-        if (!worker.name) return;
-        if (!worker.hasWork) return;
-        if (!map.has(worker.name)) {
-          map.set(worker.name, worker.name);
-        }
-      });
-    });
-    return Array.from(map.values()).map((name) => ({ label: name, value: name }));
-  }, [plans]);
   const resultCount = useMemo(
     () => plans.reduce((sum, day) => sum + day.workers.length, 0),
     [plans]
@@ -504,18 +573,30 @@ export default function WorkSchedulePlan() {
 
               if (type === 'work-start') {
                 const startIndex = clamp(nextIndex, 0, worker.endIndex - 1);
+                if (startIndex !== worker.startIndex) {
+                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
+                }
                 return { ...worker, startIndex };
               }
               if (type === 'work-end') {
                 const endIndex = clamp(nextIndex, worker.startIndex + 1, 48);
+                if (endIndex !== worker.endIndex) {
+                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
+                }
                 return { ...worker, endIndex };
               }
               if (type === 'break-start') {
                 const breakStartIndex = clamp(nextIndex, worker.startIndex, worker.breakEndIndex - 1);
+                if (breakStartIndex !== worker.breakStartIndex) {
+                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
+                }
                 return { ...worker, breakStartIndex };
               }
               if (type === 'break-end') {
                 const breakEndIndex = clamp(nextIndex, worker.breakStartIndex + 1, worker.endIndex);
+                if (breakEndIndex !== worker.breakEndIndex) {
+                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
+                }
                 return { ...worker, breakEndIndex };
               }
               return worker;
@@ -589,7 +670,6 @@ export default function WorkSchedulePlan() {
         resultCount={resultCount}
         isLoading={isLoading}
         initialQuery={initialQuery}
-        employeeOptions={employeeOptions}
         onSearch={handleSearch}
         onReset={handleReset}
       />
@@ -602,7 +682,10 @@ export default function WorkSchedulePlan() {
                 if (!confirm('입력한 내용을 저장하지 않았습니다. 점포별 근무 계획표로 이동하시겠습니까?')) {
                   return;
                 }
-                router.push('/employee/schedule/view');
+                const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
+                  lastQuery ?? initialQuery ?? null;
+                const params = buildStoreScheduleParams(source);
+                router.push(`/employee/schedule/view${toQueryString(params)}`);
               }}
             >
               취소
@@ -740,6 +823,7 @@ export default function WorkSchedulePlan() {
                                               };
                                             })
                                           );
+                                          dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
                                         }}
                                       />
                                       <span className="slider" />
@@ -792,6 +876,13 @@ export default function WorkSchedulePlan() {
                                     return <div key={index} className={className} style={style} />;
                                   })}
                                 </div>
+                              </div>
+                              <div className="time-header">
+                                {HOURS.map((hour) => (
+                                  <div key={hour} className="time-label">
+                                    {String(hour).padStart(2, '0')}
+                                  </div>
+                                ))}
                               </div>
                               <div className="work-hours-preview" style={{ marginTop: 8, marginBottom: 8 }}>
                                 <div

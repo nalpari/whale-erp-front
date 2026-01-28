@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
+import { useEmployeeInfoList } from '@/hooks/queries'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 type EmployeeRow = {
@@ -19,49 +20,6 @@ type EmployeeRow = {
   contractType: string
 }
 
-const EMPLOYEES: EmployeeRow[] = [
-  {
-    id: 1,
-    workerId: 1,
-    status: '근무',
-    office: '따름인',
-    franchise: '을지로1가점',
-    store: '을지로1가점',
-    name: '관리자',
-    contractType: '정직원',
-  },
-  {
-    id: 2,
-    workerId: 2,
-    status: '근무',
-    office: '따름인',
-    franchise: '을지로2가점',
-    store: '을지로2가점',
-    name: '본사 마스터',
-    contractType: '정직원',
-  },
-  {
-    id: 3,
-    workerId: 3,
-    status: '근무',
-    office: '따름인',
-    franchise: '을지로3가점',
-    store: '을지로3가점',
-    name: '가맹점 마스터',
-    contractType: '파트타이머',
-  },
-  {
-    id: 4,
-    workerId: 4,
-    status: '휴직',
-    office: '따름인',
-    franchise: '을지로3가점',
-    store: '을지로3가점',
-    name: '일반사용자',
-    contractType: '파트타이머',
-  }
-]
-
 type EmploymentStatus = '근무' | '휴직' | '퇴사'
 
 type SearchForm = {
@@ -75,6 +33,12 @@ type SearchForm = {
 type EmployeeSearchProps = {
   onClose: () => void
   onApply: (employee: { workerId: number; workerName: string; contractType: string }) => void
+}
+
+const getContractTypeLabel = (code?: string | null) => {
+  if (code === 'CNTCFWK_001' || code === 'CNTCFWK_002') return '정직원'
+  if (code === 'CNTCFWK_003') return '파트타이머'
+  return '임시근무'
 }
 
 export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps) {
@@ -93,17 +57,35 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
     name: '',
   })
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const rowData = useMemo(() => EMPLOYEES, [])
+  const queryParams = useMemo(() => ({
+    officeId: filters.officeId ?? undefined,
+    franchiseId: filters.franchiseId ?? undefined,
+    storeId: filters.storeId ?? undefined,
+    employeeName: filters.name ? filters.name : undefined,
+    page: 0,
+    size: 100,
+  }), [filters])
+  const { data: employeePage, isPending, error } = useEmployeeInfoList(queryParams, true)
+  const rowData = useMemo<EmployeeRow[]>(
+    () =>
+      (employeePage?.content ?? []).map((employee) => ({
+        id: employee.employeeInfoId ?? employee.memberId ?? employee.rowNumber ?? 0,
+        workerId: employee.memberId ?? employee.employeeInfoId ?? 0,
+        status: employee.workStatusName ?? employee.workStatus ?? '',
+        office: employee.headOfficeOrganizationName ?? '',
+        franchise: employee.franchiseOrganizationName ?? '',
+        store: employee.storeName ?? '',
+        name: employee.employeeName,
+        contractType: getContractTypeLabel(employee.contractClassification),
+      })),
+    [employeePage?.content]
+  )
   const filteredRows = useMemo(() => {
     return rowData.filter((row) => {
-      if (filters.status && row.status !== filters.status) return false
-      if (filters.name && !row.name.includes(filters.name)) return false
-      if (filters.officeId && row.officeId && row.officeId !== filters.officeId) return false
-      if (filters.franchiseId && row.franchiseId && row.franchiseId !== filters.franchiseId) return false
-      if (filters.storeId && row.storeId && row.storeId !== filters.storeId) return false
+      if (filters.status && row.status && !row.status.includes(filters.status)) return false
       return true
     })
-  }, [filters, rowData])
+  }, [filters.status, rowData])
 
   const handleSearch = () => {
     setFilters(form)
@@ -239,14 +221,30 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
             </div>
 
             <div className="searh-result-wrap" style={{ marginTop: 12 }}>
-              <div className="search-result">검색결과 {filteredRows.length}건</div>
+              <div className="search-result">
+                {isPending
+                  ? '검색결과 조회 중'
+                  : error
+                    ? '검색결과 조회 실패'
+                    : `검색결과 ${filteredRows.length}건`}
+              </div>
             </div>
 
             <div
               className="data-list-bx"
               style={{ marginTop: 8, maxHeight: 320, overflowY: 'auto' }}
             >
-              {filteredRows.length === 0 ? (
+              {isPending ? (
+                <div className="empty-wrap">
+                  <div className="empty-data">직원 목록을 불러오는 중입니다.</div>
+                </div>
+              ) : error ? (
+                <div className="empty-wrap">
+                  <div className="empty-data">
+                    {error instanceof Error ? error.message : '직원 목록을 불러오지 못했습니다.'}
+                  </div>
+                </div>
+              ) : filteredRows.length === 0 ? (
                 <div className="empty-wrap">
                   <div className="empty-data">검색 결과 없습니다</div>
                 </div>
