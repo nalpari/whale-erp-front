@@ -30,7 +30,53 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 - `src/app/(auth)/` — Authentication pages (login) with dedicated CSS, no shared layout
 - `src/app/(sub)/` — Main ERP pages with shared layout (LNB sidebar, Header, FullDownMenu)
+  - `masterlist/` — Master list page
+  - `store/(manage)/info/` — Store management pages (list, detail, header)
 - `src/app/editor/` — Standalone rich text editor page
+
+### Component Structure
+
+```
+src/components/
+├── common/                        # 공통 컴포넌트
+│   ├── FileUploader.tsx           # 파일 업로드
+│   └── HeadOfficeFranchiseStoreSelect.tsx  # 본사-가맹점-점포 계층 선택
+├── editor/                        # Tiptap 에디터
+│   ├── Editor.tsx
+│   ├── SlashCommand.tsx
+│   └── slash-commands.ts
+├── login/                         # 로그인 관련
+│   ├── FindIdPw.tsx
+│   └── find/
+├── masterlist/                    # 마스터리스트
+│   ├── MasterList.tsx
+│   └── MasterSearch.tsx
+├── store/manage/                  # 점포 관리
+│   ├── StoreList.tsx
+│   ├── StoreInfo.tsx
+│   ├── StoreDetail.tsx
+│   └── StoreHeader.tsx
+└── ui/                            # 공통 UI
+    ├── AgGrid.tsx
+    ├── Header.tsx
+    ├── Location.tsx
+    ├── Pagination.tsx
+    └── common/
+        ├── DatePicker.tsx
+        ├── FullDownMenu.tsx
+        ├── Lnb.tsx
+        ├── MyData.tsx
+        └── ServiceTab.tsx
+```
+
+### Types
+
+```
+src/types/
+├── bp.ts              # BP (본사/가맹점/점포) 타입
+├── store.ts           # 점포 관련 타입
+└── upload-files.ts    # 파일 업로드 타입
+```
 
 ### API Layer
 
@@ -82,28 +128,48 @@ import type { LoginRequest } from '@/lib/schemas/auth';
 
 - **`src/lib/query-client.ts`**: QueryClient 설정
   - `staleTime: 5분` (적극적 캐싱)
+  - `gcTime: 10분` (가비지 컬렉션 시간)
   - `refetchOnWindowFocus: false` (ERP 특성상 비활성화)
+- **`src/providers/query-provider.tsx`**: QueryClientProvider 래퍼 (DevTools 포함)
 - **`src/hooks/queries/`**: 쿼리 훅 모음
-  - `query-keys.ts` — 쿼리 키 팩토리 (타입 안전 invalidation)
+  - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조: storeKeys, fileKeys, bpKeys, commonCodeKeys)
   - `use-store-queries.ts` — 점포 CRUD 훅
-  - `use-file-queries.ts` — 파일 관련 훅
+  - `use-file-queries.ts` — 파일 다운로드 URL 조회
+  - `use-bp-queries.ts` — BP 본사/가맹점/점포 트리 조회
+  - `use-common-code-queries.ts` — 공통코드 계층 조회 및 캐시 유틸
 
 ```typescript
-// 조회
+// 점포 조회
 const { data, isPending, error } = useStoreList(params)
 const { data, isPending } = useStoreDetail(storeId)
 
-// 생성/수정/삭제
+// 점포 생성/수정/삭제
 const { mutateAsync, isPending } = useCreateStore()
 await mutateAsync({ payload, files })
+
+// BP 트리 조회
+const { data, isPending } = useBpHeadOfficeTree()
+
+// 공통코드 조회
+const { data, isPending } = useCommonCodeHierarchy('GENDER')
+
+// 레거시 호환 래퍼 훅
+import { useBp } from '@/hooks/useBp'
+import { useCommonCode } from '@/hooks/useCommonCode'
 ```
 
 **Client State (Zustand)** — UI 상태
 
 - **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
-  - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID)
-  - Methods: `setTokens()`, `setAccessToken()`, `setAuthority()`, `setAffiliationId()`, `clearAuth()`
+  - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID), `subscriptionPlan`
+  - Methods: `setTokens()`, `setAccessToken()`, `setAuthority()`, `setAffiliationId()`, `setSubscriptionPlan()`, `clearAuth()`
+- **`src/stores/bp-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useBpHeadOfficeTree` instead)
+- **`src/stores/common-code-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useCommonCodeHierarchy` instead)
 - Access state outside React: `useAuthStore.getState()`
+
+**상태 관리 전략:**
+- 서버에서 오는 데이터 → TanStack Query (점포, BP, 공통코드 등)
+- 클라이언트 전용 데이터 → Zustand (인증 토큰, UI 상태)
 
 ### Authentication Flow
 
@@ -147,5 +213,55 @@ Available at `/editor`:
 ## Key Configuration
 
 - Path alias: `@/*` maps to `./src/*`
-- Tailwind 4 uses CSS `@import "tailwindcss"` syntax and `@theme` directive
+- Tailwind 4 uses CSS `@import "tailwindcss"` syntax and `@theme` directive in `src/app/globals.css`
 - ESLint uses flat config with Next.js core-web-vitals and TypeScript presets
+- React Compiler enabled in `next.config.ts` for automatic memoization
+- S3 image remote patterns configured for file uploads
+
+## Best Practices
+
+### State Management
+- Use TanStack Query for all server-side data (API calls)
+- Use Zustand only for client-side state (auth tokens, UI state)
+- Avoid using deprecated stores (`bp-store.ts`, `common-code-store.ts`)
+
+### API Calls
+- Always use the `api` instance from `@/lib/api.ts`
+- Prefer `getWithSchema()`, `postWithSchema()` for type-safe API calls
+- Let interceptors handle authentication headers automatically
+
+### Schema Validation
+- Define Zod schemas in `src/lib/schemas/`
+- Use `safeParse()` for form validation
+- Use `z.infer<>` for type inference from schemas
+
+### Component Organization
+- Keep domain-specific components in their own folders (`store/`, `login/`, etc.)
+- Reusable UI components go in `components/ui/`
+- Use `'use client'` only when necessary (state, events, browser APIs)
+
+### Styling
+- Use Tailwind for simple utilities
+- Use Sass for complex component styles
+- Follow BEM-like naming in Sass: `block-element-state`
+
+## Development Guidelines
+
+### Adding New Features
+1. Define types in `src/types/` if needed
+2. Create Zod schemas in `src/lib/schemas/`
+3. Add API hooks in `src/hooks/queries/`
+4. Create components in appropriate folders
+5. Add routes in `src/app/(sub)/`
+
+### Working with TanStack Query
+- Always define query keys in `query-keys.ts` using factory pattern
+- Use hierarchical keys for proper cache invalidation
+- Set appropriate `staleTime` based on data volatility
+- Use `enabled` option for dependent queries
+
+### Code Quality
+- Run `pnpm lint` before committing
+- Follow TypeScript strict mode
+- Avoid `any` types
+- Keep components focused and single-purpose

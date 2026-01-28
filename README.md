@@ -11,8 +11,9 @@ Whale ERP 시스템의 프론트엔드 애플리케이션입니다.
 | TypeScript | 5.x | Strict 모드 |
 | Tailwind CSS | 4.x | PostCSS 통합 |
 | Sass | 1.93.x | 7-1 패턴 스타일 구조 |
-| Zustand | 5.x | 상태 관리 |
-| Axios | 1.x | HTTP 클라이언트 |
+| TanStack Query | 5.90.x | 서버 상태 관리 |
+| Zustand | 5.x | 클라이언트 상태 관리 |
+| Axios | 1.13.x | HTTP 클라이언트 |
 | Zod | 4.x | 스키마 유효성 검사 및 타입 추론 |
 | AG Grid | 35.x | 데이터 그리드 |
 | Tiptap | 3.14.x | 리치 텍스트 에디터 |
@@ -42,9 +43,9 @@ pnpm dev
 ```
 src/
 ├── app/                          # App Router 페이지 및 레이아웃
-│   ├── layout.tsx                # 루트 레이아웃 (Geist 폰트 설정)
+│   ├── layout.tsx                # 루트 레이아웃 (QueryProvider 설정)
 │   ├── page.tsx                  # 홈 페이지
-│   ├── globals.css               # 글로벌 스타일 (Tailwind CSS)
+│   ├── globals.css               # 글로벌 스타일 (Tailwind CSS 4)
 │   ├── (auth)/                   # 인증 라우트 그룹
 │   │   └── login/
 │   │       ├── page.tsx          # 로그인 페이지
@@ -53,16 +54,32 @@ src/
 │   │   └── page.tsx              # 에디터 페이지 (독립 레이아웃)
 │   └── (sub)/                    # ERP 메인 라우트 그룹
 │       ├── layout.tsx            # 공용 레이아웃 (LNB, Header)
-│       └── masterlist/
-│           └── page.tsx          # 마스터리스트 페이지
+│       ├── masterlist/
+│       │   └── page.tsx          # 마스터리스트 페이지
+│       └── store/(manage)/
+│           └── info/
+│               ├── page.tsx      # 점포 목록
+│               ├── detail/page.tsx  # 점포 상세
+│               └── header/page.tsx  # 점포 헤더
 ├── components/
+│   ├── common/                   # 공통 컴포넌트
+│   │   ├── FileUploader.tsx
+│   │   └── HeadOfficeFranchiseStoreSelect.tsx
 │   ├── editor/                   # 리치 텍스트 에디터
 │   │   ├── Editor.tsx
 │   │   ├── SlashCommand.tsx
 │   │   └── slash-commands.ts
+│   ├── login/                    # 로그인 컴포넌트
+│   │   ├── FindIdPw.tsx
+│   │   └── find/
 │   ├── masterlist/               # 마스터리스트 컴포넌트
 │   │   ├── MasterList.tsx
 │   │   └── MasterSearch.tsx
+│   ├── store/manage/             # 점포 관리 컴포넌트
+│   │   ├── StoreList.tsx
+│   │   ├── StoreInfo.tsx
+│   │   ├── StoreDetail.tsx
+│   │   └── StoreHeader.tsx
 │   └── ui/                       # 공용 UI 컴포넌트
 │       ├── AgGrid.tsx            # AG Grid 래퍼
 │       ├── Header.tsx            # 상단 헤더
@@ -76,8 +93,22 @@ src/
 │           └── ServiceTab.tsx    # 서비스 탭
 ├── data/
 │   └── HeaderMenu.ts             # 메뉴 데이터 (계층 구조)
+├── hooks/
+│   ├── queries/                  # TanStack Query 훅
+│   │   ├── index.ts              # 통합 export
+│   │   ├── query-keys.ts         # 쿼리 키 팩토리
+│   │   ├── use-store-queries.ts  # 점포 쿼리/뮤테이션
+│   │   ├── use-file-queries.ts   # 파일 쿼리
+│   │   ├── use-bp-queries.ts     # BP 쿼리
+│   │   └── use-common-code-queries.ts  # 공통코드 쿼리
+│   ├── store/                    # 도메인 특화 훅
+│   │   ├── useStoreDetailForm.ts
+│   │   └── useStoreFiles.ts
+│   ├── useBp.ts                  # BP 래퍼 훅 (레거시 호환)
+│   └── useCommonCode.ts          # 공통코드 래퍼 훅 (레거시 호환)
 ├── lib/
 │   ├── api.ts                    # Axios 인스턴스 및 인터셉터
+│   ├── query-client.ts           # QueryClient 설정
 │   ├── zod-utils.ts              # Zod 유틸리티 함수
 │   └── schemas/                  # Zod 스키마
 │       ├── index.ts              # 통합 내보내기
@@ -86,14 +117,22 @@ src/
 │       ├── env.ts                # 환경변수 스키마
 │       ├── forms.ts              # 폼 유효성 검사 스키마
 │       └── menu.ts               # 메뉴 타입 스키마
+├── providers/
+│   └── query-provider.tsx        # QueryClientProvider 래퍼
 ├── stores/
-│   └── auth-store.ts             # Zustand 인증 스토어
-└── styles/                       # Sass 스타일 (7-1 패턴)
-    ├── style.scss                # 메인 진입점
-    ├── abstracts/                # 변수, 믹스인
-    ├── base/                     # 리셋, 폰트, 폼 요소
-    ├── layout/                   # 헤더, LNB, AG Grid
-    └── components/               # 콘텐츠, 테이블, 팝업
+│   ├── auth-store.ts             # Zustand 인증 스토어
+│   ├── bp-store.ts               # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
+│   └── common-code-store.ts      # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
+├── styles/                       # Sass 스타일 (7-1 패턴)
+│   ├── style.scss                # 메인 진입점
+│   ├── abstracts/                # 변수, 믹스인
+│   ├── base/                     # 리셋, 폰트, 폼 요소
+│   ├── layout/                   # 헤더, LNB, AG Grid
+│   └── components/               # 콘텐츠, 테이블, 팝업
+└── types/                        # TypeScript 타입 정의
+    ├── bp.ts                     # BP 관련 타입
+    ├── store.ts                  # 점포 관련 타입
+    └── upload-files.ts           # 파일 업로드 타입
 ```
 
 ## 환경 설정
@@ -146,7 +185,20 @@ const response = await api.get('/users/me');
 
 ### 상태 관리
 
-Zustand를 사용한 인증 상태 관리:
+**서버 상태 (TanStack Query):**
+
+```typescript
+import { useStoreList, useCreateStore } from '@/hooks/queries';
+
+// 데이터 조회
+const { data, isPending, error } = useStoreList(params);
+
+// 데이터 변경
+const { mutateAsync, isPending } = useCreateStore();
+await mutateAsync({ payload, files });
+```
+
+**클라이언트 상태 (Zustand):**
 
 ```typescript
 import { useAuthStore } from '@/stores/auth-store';
@@ -162,6 +214,50 @@ const { accessToken, affiliationId } = useAuthStore.getState();
 - `accessToken`, `refreshToken`: JWT 토큰
 - `authority`: 선택된 조직의 권한 상세 정보
 - `affiliationId`: 현재 선택된 조직 ID (API 헤더에 사용)
+- `subscriptionPlan`: 구독 플랜 정보
+
+**상태 관리 전략:**
+- 서버에서 오는 데이터 → **TanStack Query** (점포, BP, 공통코드 등)
+- 클라이언트 전용 데이터 → **Zustand** (인증 토큰, UI 상태)
+- `bp-store.ts`, `common-code-store.ts`는 deprecated (사용 금지)
+
+### TanStack Query 사용법
+
+**조회 (Query):**
+
+```typescript
+import { useBpHeadOfficeTree, useCommonCodeHierarchy } from '@/hooks/queries';
+
+// BP 트리 조회
+const { data, isPending } = useBpHeadOfficeTree();
+
+// 공통코드 조회
+const { data, isPending } = useCommonCodeHierarchy('GENDER');
+```
+
+**변경 (Mutation):**
+
+```typescript
+import { useCreateStore, useUpdateStore } from '@/hooks/queries';
+
+// 생성
+const { mutateAsync: create } = useCreateStore();
+await create({ payload, files });
+
+// 수정
+const { mutateAsync: update } = useUpdateStore();
+await update({ storeId, payload, files });
+```
+
+**레거시 호환 래퍼 훅:**
+
+```typescript
+import { useBp } from '@/hooks/useBp';
+import { useCommonCode } from '@/hooks/useCommonCode';
+
+const { data, loading, error, refresh } = useBp();
+const { children, loading, error } = useCommonCode('STATUS');
+```
 
 ### 스키마 유효성 검사 (Zod)
 
@@ -294,7 +390,7 @@ ModuleRegistry.registerModules([AllCommunityModule])
    - `layout/`: 레이아웃 (헤더, LNB, AG Grid)
    - `components/`: UI 컴포넌트
 
-### 메뉴 데이터 구조
+## 메뉴 데이터 구조
 
 `src/data/HeaderMenu.ts`에서 메뉴 계층 구조를 정의합니다:
 
@@ -307,3 +403,49 @@ interface HeaderMenuItem {
   children?: HeaderMenuItem[]
 }
 ```
+
+## 개발 가이드
+
+### 코드 컨벤션
+
+프로젝트의 코딩 컨벤션은 다음 문서를 참고하세요:
+- `reference-docs/Conventions.md` - 기본 코딩 규칙
+- `reference-docs/Tanstack-query-Development-guide.md` - TanStack Query 사용 가이드
+- `reference-docs/Zustand-Development-guide.md` - Zustand 사용 가이드
+
+### 새 기능 추가하기
+
+1. **타입 정의**: `src/types/`에 필요한 타입 추가
+2. **Zod 스키마**: `src/lib/schemas/`에 유효성 검사 스키마 추가
+3. **API 훅**: `src/hooks/queries/`에 TanStack Query 훅 추가
+   - 쿼리 키를 `query-keys.ts`에 팩토리 패턴으로 정의
+4. **컴포넌트**: 적절한 폴더에 컴포넌트 생성
+5. **라우트**: `src/app/(sub)/`에 페이지 추가
+
+### TanStack Query 사용 시 주의사항
+
+- 쿼리 키는 반드시 `query-keys.ts`에서 팩토리 패턴으로 정의
+- 계층 구조로 키를 관리하여 캐시 무효화를 쉽게 처리
+- `staleTime`을 데이터 특성에 맞게 설정
+- 의존성 있는 쿼리는 `enabled` 옵션 활용
+
+### Zustand 사용 시 주의사항
+
+- 서버 데이터는 TanStack Query 사용 (Zustand 사용 금지)
+- 클라이언트 전용 상태만 Zustand에 저장
+- 필요한 상태만 선택하여 구독 (리렌더링 최소화)
+- Persist가 필요한 경우 `persist` 미들웨어 사용
+
+### 스타일링 가이드
+
+- 간단한 유틸리티: **Tailwind CSS**
+- 복잡한 컴포넌트: **Sass** (7-1 패턴)
+- 클래스 네이밍: BEM-like 컨벤션 (`block-element-state`)
+
+## 참고 문서
+
+- [CLAUDE.md](./CLAUDE.md) - AI 개발 가이드
+- [reference-docs/](./reference-docs/) - 상세 개발 가이드
+  - Conventions.md
+  - Tanstack-query-Development-guide.md
+  - Zustand-Development-guide.md
