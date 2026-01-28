@@ -29,6 +29,7 @@ export default function ProgramList() {
     openModal,
     closeModal,
     handleSubmit,
+    handleDelete, // eslint-disable-line @typescript-eslint/no-unused-vars -- 기획에 없어 현재 미사용
   } = useProgram()
 
   // 실시간 입력 검색어 (로컬 state)
@@ -123,18 +124,6 @@ export default function ProgramList() {
   }
 
   /**
-   * 프로그램 삭제
-   * @param program - 삭제할 프로그램
-   */
-  const handleDelete = (program: Program) => {
-    if (!confirm(`"${program.name}" 프로그램을 삭제하시겠습니까?`)) return
-
-    // TODO: 삭제 API 구현
-    alert('삭제 기능은 아직 구현되지 않았습니다.')
-  }
-
-
-  /**
    * 트리 아이템 재귀 렌더링
    * @param program - 렌더링할 프로그램 객체
    * @param depth - 현재 depth 레벨
@@ -172,7 +161,8 @@ export default function ProgramList() {
                 <button className="depth-btn create" onClick={() => handleCreate(program)}></button>
               )}
               <button className="depth-btn edit" onClick={() => handleEdit(program)}></button>
-              <button className="depth-btn delete" onClick={() => handleDelete(program)}></button>
+              {/* 삭제 기능 - 기획에 없어 주석 처리 */}
+              {/* <button className="depth-btn delete" onClick={() => program.id && handleDelete(program.id, program.name)}></button> */}
             </div>
           </div>
         </div>

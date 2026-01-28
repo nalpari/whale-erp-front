@@ -1,6 +1,6 @@
 import type { Program, ProgramSearchResult, ProgramFormData } from '@/lib/schemas/program'
 import { useProgramStore } from '@/stores/program-store'
-import { useProgramList, useCreateProgram, useUpdateProgram } from '@/hooks/queries'
+import { useProgramList, useCreateProgram, useUpdateProgram, useDeleteProgram } from '@/hooks/queries'
 
 /**
  * 재귀로 모든 프로그램 ID 수집 (트리 전체 열기용)
@@ -68,6 +68,7 @@ export function useProgram() {
   // Mutation 훅들
   const createMutation = useCreateProgram()
   const updateMutation = useUpdateProgram()
+  const deleteMutation = useDeleteProgram()
 
   // 검색 핸들러
   const handleSearch = (keyword: string) => {
@@ -114,6 +115,20 @@ export function useProgram() {
     }
   }
 
+  // 프로그램 삭제 핸들러
+  const handleDelete = async (id: number, name: string) => {
+    if (!confirm(`"${name}" 프로그램을 삭제하시겠습니까?`)) return
+
+    try {
+      await deleteMutation.mutateAsync(id)
+      alert('삭제되었습니다.')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message = axiosError.response?.data?.message ?? '삭제에 실패하였습니다.'
+      alert(message)
+    }
+  }
+
   return {
     // 서버 상태 (React Query)
     programs,
@@ -138,5 +153,6 @@ export function useProgram() {
     openModal,
     closeModal,
     handleSubmit,
+    handleDelete,
   }
 }
