@@ -1,6 +1,12 @@
 import type { Program, ProgramSearchResult, ProgramFormData } from '@/lib/schemas/program'
 import { useProgramStore } from '@/stores/program-store'
-import { useProgramList, useCreateProgram, useUpdateProgram, useDeleteProgram } from '@/hooks/queries'
+import {
+  useProgramList,
+  useCreateProgram,
+  useUpdateProgram,
+  useDeleteProgram,
+  useReorderPrograms,
+} from '@/hooks/queries'
 
 /**
  * 재귀로 모든 프로그램 ID 수집 (트리 전체 열기용)
@@ -41,12 +47,7 @@ const searchPrograms = (items: Program[], keyword: string, parentPath: string[] 
  */
 export function useProgram() {
   // React Query: 서버 데이터
-  const {
-    data: programs = [],
-    isPending: isLoading,
-    error,
-    refetch,
-  } = useProgramList()
+  const { data: programs = [], isPending: isLoading, error, refetch } = useProgramList()
 
   // Zustand: UI 상태
   const searchKeyword = useProgramStore((state) => state.searchKeyword)
@@ -55,20 +56,14 @@ export function useProgram() {
   const isModalOpen = useProgramStore((state) => state.isModalOpen)
   const modalMode = useProgramStore((state) => state.modalMode)
   const modalProgram = useProgramStore((state) => state.modalProgram)
-  const {
-    setSearchKeyword,
-    setSearchResults,
-    clearSearch,
-    setOpenItems,
-    toggleItem,
-    openModal,
-    closeModal,
-  } = useProgramStore()
+  const { setSearchKeyword, setSearchResults, clearSearch, setOpenItems, toggleItem, openModal, closeModal } =
+    useProgramStore()
 
   // Mutation 훅들
   const createMutation = useCreateProgram()
   const updateMutation = useUpdateProgram()
   const deleteMutation = useDeleteProgram()
+  const reorderMutation = useReorderPrograms()
 
   // 검색 핸들러
   const handleSearch = (keyword: string) => {
@@ -129,6 +124,23 @@ export function useProgram() {
     }
   }
 
+  // 프로그램 순서 변경 핸들러
+  const handleReorder = async (parentId: number | null, items: Program[]) => {
+    try {
+      await reorderMutation.mutateAsync({
+        parent_id: parentId,
+        orders: items.map((item, index) => ({
+          id: item.id!,
+          order_index: index + 1,
+        })),
+      })
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message = axiosError.response?.data?.message ?? '순서 변경에 실패하였습니다.'
+      alert(message)
+    }
+  }
+
   return {
     // 서버 상태 (React Query)
     programs,
@@ -154,5 +166,6 @@ export function useProgram() {
     closeModal,
     handleSubmit,
     handleDelete,
+    handleReorder,
   }
 }

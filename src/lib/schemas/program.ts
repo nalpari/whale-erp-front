@@ -28,6 +28,11 @@ export const programSchema: z.ZodType<Program> = z.object({
 export const programListResponseSchema = apiResponseSchema(z.array(programSchema));
 
 /**
+ * 프로그램 단일 응답 스키마 (ApiResponse<ProgramResponse>)
+ */
+export const programResponseSchema = apiResponseSchema(programSchema);
+
+/**
  * 프로그램 타입
  */
 export interface Program {
@@ -53,7 +58,7 @@ export interface Program {
 export type ProgramListResponse = z.infer<typeof programListResponseSchema>;
 
 /**
- * 프로그램 폼 밸리데이션 스키마
+ * 프로그램 폼 밸리데이션 스키마 (생성/수정 공통)
  */
 export const programFormSchema = z.object({
   name: z.string().trim().min(1, '※ 필수 입력입니다.'),
@@ -67,10 +72,19 @@ export const programFormSchema = z.object({
 export type ProgramFormData = z.infer<typeof programFormSchema>;
 
 /**
- * 프로그램 생성 요청 데이터
+ * 프로그램 생성 요청 (API)
  */
 export interface ProgramCreateRequest {
   parent_id: number | null;
+  name: string;
+  path: string | null;
+  is_active: boolean;
+}
+
+/**
+ * 프로그램 수정 요청 (API)
+ */
+export interface ProgramUpdateRequest {
   name: string;
   path: string | null;
   is_active: boolean;

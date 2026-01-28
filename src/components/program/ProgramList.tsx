@@ -1,15 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import AnimateHeight from 'react-animate-height'
 
-import ProgramFormModal from '@/components/program/ProgramFormModal'
-import { useProgram } from '@/hooks/useProgram'
 import type { Program } from '@/lib/schemas/program'
+import { useProgram } from '@/hooks/useProgram'
+import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
+import ProgramFormModal from '@/components/program/ProgramFormModal'
 
 /**
  * 프로그램 목록 및 계층 관리 컴포넌트
- * @returns {JSX.Element} 프로그램 목록 UI
+ * - 프로그램 검색
+ * - 계층 구조 표시 (3단계)
+ * - 드래그 앤 드롭으로 순서 변경
  */
 export default function ProgramList() {
   const {
@@ -30,12 +32,12 @@ export default function ProgramList() {
     closeModal,
     handleSubmit,
     handleDelete, // eslint-disable-line @typescript-eslint/no-unused-vars -- 기획에 없어 현재 미사용
+    handleReorder,
   } = useProgram()
 
-  // 실시간 입력 검색어 (로컬 state)
   const [inputKeyword, setInputKeyword] = useState('')
 
-  // 초기 로드시 트리 전체 열기 (한 번만)
+  // 초기 로드시 트리 전체 열기
   useEffect(() => {
     if (programs.length > 0 && openItems.size === 0) {
       expandAll()
@@ -43,11 +45,7 @@ export default function ProgramList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programs.length])
 
-  /**
-   * 프로그램 트리에서 특정 프로그램의 부모 정보 찾기
-   * @param targetId - 찾을 프로그램 ID
-   * @returns Level1, Level2 부모 이름
-   */
+  // 프로그램의 부모 이름 찾기 (모달에서 표시용)
   const findProgramParents = (targetId: number | null): { level1Name?: string; level2Name?: string } => {
     if (targetId === null) return {}
 
@@ -72,19 +70,11 @@ export default function ProgramList() {
     return findInTree(programs)
   }
 
-  /**
-   * 키워드 하이라이트 처리
-   * @param text - 원본 텍스트
-   * @param keyword - 하이라이트할 키워드
-   * @returns 하이라이트 처리된 JSX 요소
-   */
+  // 검색 키워드 하이라이트 (대소문자 구분 없음)
   const highlightKeyword = (text: string, keyword: string) => {
     if (!keyword.trim()) return text
 
-    const lowerText = text.toLowerCase()
-    const lowerKeyword = keyword.toLowerCase()
-    const index = lowerText.indexOf(lowerKeyword)
-
+    const index = text.toLowerCase().indexOf(keyword.toLowerCase())
     if (index === -1) return text
 
     const before = text.slice(0, index)
@@ -100,49 +90,20 @@ export default function ProgramList() {
     )
   }
 
-  /**
-   * 최상위 프로그램 추가 모달 열기
-   */
-  const handleCreateTop = () => {
-    openModal('create')
-  }
-
-  /**
-   * 하위 프로그램 추가 모달 열기
-   * @param program - 부모 프로그램
-   */
-  const handleCreate = (program: Program) => {
-    openModal('create', program)
-  }
-
-  /**
-   * 프로그램 수정 모달 열기
-   * @param program - 수정할 프로그램
-   */
-  const handleEdit = (program: Program) => {
-    openModal('edit', program)
-  }
-
-  /**
-   * 트리 아이템 재귀 렌더링
-   * @param program - 렌더링할 프로그램 객체
-   * @param depth - 현재 depth 레벨
-   * @returns {JSX.Element} 트리 아이템 JSX
-   */
-  const renderTreeItem = (program: Program, depth: number) => {
-    const hasChildren = program.children && program.children.length > 0
-    const isOpen = program.id !== null && openItems.has(program.id)
-    const canAddChild = depth < 3 // depth 3(최하위)이 아니면 하위 추가 가능
-    // children ul에는 다음 depth 클래스 적용 (depth01 -> depth02 -> depth03)
-    const childDepthClass = `depth0${Math.min(depth + 1, 3)}`
+  // 프로그램 트리 아이템 렌더링 (DraggableTree의 renderItem 콜백)
+  const renderProgramItem = (
+    program: Program,
+    depth: number,
+    dragHandleProps: DragHandleProps,
+    hasChildren: boolean,
+    isOpen: boolean,
+  ) => {
+    const canAddChild = depth < 3
 
     return (
-      <li
-        key={program.id}
-        className={`hierarchy-item ${!program.is_active ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}
-      >
+      <div className={`hierarchy-item ${!program.is_active ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
         <div className="hierarchy-depth">
-          <button className="order-btn"></button>
+          <button className="order-btn" {...dragHandleProps.attributes} {...dragHandleProps.listeners}></button>
           <div className="depth-inner">
             {hasChildren && (
               <button
@@ -154,38 +115,30 @@ export default function ProgramList() {
             <div className="depth-name">{program.name}</div>
           </div>
           <div className="depth-right">
-            {program.path && <div className="path-name">{program.path}</div>}
-            {!program.is_active && <div className="disable-badge">비활성</div>}
+            {program.path ? <div className="path-name">{program.path}</div> : null}
+            {!program.is_active ? <div className="disable-badge">비활성</div> : null}
             <div className="depth-btn-wrap">
               {canAddChild && (
-                <button className="depth-btn create" onClick={() => handleCreate(program)}></button>
+                <button className="depth-btn create" onClick={() => openModal('create', program)}></button>
               )}
-              <button className="depth-btn edit" onClick={() => handleEdit(program)}></button>
+              <button className="depth-btn edit" onClick={() => openModal('edit', program)}></button>
               {/* 삭제 기능 - 기획에 없어 주석 처리 */}
               {/* <button className="depth-btn delete" onClick={() => program.id && handleDelete(program.id, program.name)}></button> */}
             </div>
           </div>
         </div>
-        {hasChildren && (
-          <AnimateHeight duration={300} height={isOpen ? 'auto' : 0}>
-            <ul className={`hierarchy-list ${childDepthClass}`}>
-              {program.children.map((child) => renderTreeItem(child, depth + 1))}
-            </ul>
-          </AnimateHeight>
-        )}
-      </li>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="contents-wrap">
-        <div className="contents-body">{/* 로딩 중... */}</div>
       </div>
     )
   }
 
-  if (error) {
+  // 로딩/에러 상태 처리
+  if (loading)
+    return (
+      <div className="contents-wrap">
+        <div className="contents-body"></div>
+      </div>
+    )
+  if (error)
     return (
       <div className="contents-wrap">
         <div className="contents-body">
@@ -193,11 +146,8 @@ export default function ProgramList() {
         </div>
       </div>
     )
-  }
 
-  /**
-   * 모달 부모 이름 계산
-   */
+  // 모달에 표시할 부모 이름 계산 (생성/수정 모드에 따라 다름)
   const getModalParentNames = () => {
     if (!modalProgram) return { level1Name: undefined, level2Name: undefined }
 
@@ -233,11 +183,6 @@ export default function ProgramList() {
                     className="input-frame"
                     value={inputKeyword}
                     onChange={(e) => setInputKeyword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSearch(inputKeyword)
-                      }
-                    }}
                   />
                 </td>
               </tr>
@@ -245,10 +190,7 @@ export default function ProgramList() {
                 <td colSpan={2}>
                   <div className="filed-flx">
                     <div className="auto-right g8">
-                      <button
-                        className="btn-form gray"
-                        onClick={() => setInputKeyword('')}
-                      >
+                      <button className="btn-form gray" onClick={() => setInputKeyword('')}>
                         초기화
                       </button>
                       <button className="btn-form basic" onClick={() => handleSearch(inputKeyword)}>
@@ -260,7 +202,7 @@ export default function ProgramList() {
               </tr>
             </tbody>
           </table>
-          {searchResults.length > 0 && (
+          {searchResults.length > 0 ? (
             <div className="program-result">
               <div className="program-result-tit">검색결과</div>
               <div className="program-result-list-wrap">
@@ -275,7 +217,7 @@ export default function ProgramList() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
         <div className="content-wrap">
           <div className="data-list-header">
@@ -287,18 +229,21 @@ export default function ProgramList() {
               <button className="btn-form gray s" onClick={() => setOpenItems(new Set())}>
                 All Close
               </button>
-              <button className="btn-form basic s" onClick={handleCreateTop}>
+              <button className="btn-form basic s" onClick={() => openModal('create')}>
                 <i className="plus"></i> 최상위 추가
               </button>
             </div>
           </div>
           <div className="hierarchy-wrap">
             {programs.length === 0 ? (
-              <div>{/* 등록된 프로그램이 없습니다. */}</div>
+              <div></div>
             ) : (
-              <ul className="hierarchy-list depth01">
-                {programs.map((program) => renderTreeItem(program, 1))}
-              </ul>
+              <DraggableTree
+                items={programs}
+                openItems={openItems}
+                renderItem={renderProgramItem}
+                onReorder={handleReorder}
+              />
             )}
           </div>
         </div>

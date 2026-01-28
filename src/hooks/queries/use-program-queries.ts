@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchPrograms, createProgram, updateProgram, deleteProgram } from '@/lib/api/program'
-import type { ProgramFormData } from '@/lib/schemas/program'
+import { fetchPrograms, createProgram, updateProgram, deleteProgram, reorderPrograms } from '@/lib/api/program'
+import type { ProgramCreateRequest, ProgramUpdateRequest } from '@/lib/schemas/program'
+import type { ProgramReorderRequest } from '@/lib/api/program'
 import { programKeys } from './query-keys'
 
 /**
@@ -21,7 +22,7 @@ export const useCreateProgram = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: ProgramFormData & { parent_id: number | null }) => createProgram(data),
+    mutationFn: (data: ProgramCreateRequest) => createProgram(data),
     onSuccess: () => {
       // 목록 캐시 무효화 → 자동으로 최신 데이터 다시 요청
       queryClient.invalidateQueries({ queryKey: programKeys.lists() })
@@ -36,7 +37,7 @@ export const useUpdateProgram = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ProgramFormData }) => updateProgram(id, data),
+    mutationFn: ({ id, data }: { id: number; data: ProgramUpdateRequest }) => updateProgram(id, data),
     onSuccess: (_, { id }) => {
       // 목록과 해당 상세 캐시 무효화
       queryClient.invalidateQueries({ queryKey: programKeys.lists() })
@@ -56,6 +57,21 @@ export const useDeleteProgram = () => {
     onSuccess: () => {
       // 프로그램 관련 모든 캐시 무효화
       queryClient.invalidateQueries({ queryKey: programKeys.all })
+    },
+  })
+}
+
+/**
+ * 프로그램 순서 변경
+ */
+export const useReorderPrograms = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: ProgramReorderRequest) => reorderPrograms(data),
+    onSuccess: () => {
+      // 목록 캐시 무효화 → 자동으로 최신 순서로 다시 요청
+      queryClient.invalidateQueries({ queryKey: programKeys.lists() })
     },
   })
 }
