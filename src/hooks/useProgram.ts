@@ -92,12 +92,22 @@ export function useProgram() {
           parent_id: modalProgram?.id || null,
         })
         alert('등록되었습니다.')
-      } else if (modalProgram?.id) {
+      } else if (modalMode === 'edit') {
+        if (!modalProgram?.id) {
+          alert('수정할 대상을 찾을 수 없습니다.')
+          closeModal()
+          return
+        }
         await updateMutation.mutateAsync({
           id: modalProgram.id,
           data,
         })
         alert('수정되었습니다.')
+      } else {
+        // 예상하지 못한 모드
+        alert('잘못된 요청입니다.')
+        closeModal()
+        return
       }
       closeModal()
     } catch (error: unknown) {
