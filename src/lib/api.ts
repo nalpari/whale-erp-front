@@ -5,9 +5,9 @@ import { validateApiResponse } from '@/lib/zod-utils';
 import { env } from '@/lib/schemas/env';
 
 /**
- * API 에러 타입
+ * Axios 에러 타입 (클라이언트 측)
  */
-export type ApiError = {
+type AxiosApiError = {
   response?: {
     data?: {
       message?: string
@@ -20,7 +20,7 @@ export type ApiError = {
  * API 에러에서 메시지 추출
  */
 export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다.'): string {
-  const apiError = error as ApiError;
+  const apiError = error as AxiosApiError;
   return apiError.response?.data?.message ?? fallback;
 }
 
