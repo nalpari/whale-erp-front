@@ -312,7 +312,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 'system-02',
         name: '프로그램 관리',
-        link: '/',
+        link: '/system/program',
       },
       {
         id: 'system-03',

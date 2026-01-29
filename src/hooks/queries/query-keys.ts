@@ -36,6 +36,13 @@ export const commonCodeKeys = {
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
 }
 
+export const programKeys = {
+  all: ['programs'] as const,
+  lists: () => [...programKeys.all, 'list'] as const,
+  details: () => [...programKeys.all, 'detail'] as const,
+  detail: (id: number) => [...programKeys.details(), id] as const,
+}
+
 export const storeScheduleKeys = {
   all: ['store-schedule'] as const,
   lists: () => [...storeScheduleKeys.all, 'list'] as const,
