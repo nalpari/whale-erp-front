@@ -1,4 +1,4 @@
-import api, { getWithSchema, postWithSchema } from '@/lib/api'
+import api, { getWithSchema, postWithSchema, putWithSchema } from '@/lib/api'
 import type { Program, ProgramCreateRequest, ProgramUpdateRequest } from '@/lib/schemas/program'
 import { programListResponseSchema, programResponseSchema } from '@/lib/schemas/program'
 
@@ -30,8 +30,8 @@ export async function createProgram(data: ProgramCreateRequest): Promise<Program
  * 프로그램 수정
  */
 export async function updateProgram(id: number, data: ProgramUpdateRequest): Promise<Program> {
-  const response = await api.put(`/api/system/programs/${id}`, data)
-  return response.data.data as Program
+  const response = await putWithSchema(`/api/system/programs/${id}`, data, programResponseSchema)
+  return response.data
 }
 
 /**

@@ -43,7 +43,7 @@ export const useProgramStore = create<ProgramState>((set, get) => ({
   setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
   setSearchResults: (results) => set({ searchResults: results }),
   clearSearch: () => set({ searchKeyword: '', searchResults: [] }),
-  setOpenItems: (items) => set({ openItems: items }),
+  setOpenItems: (items) => set({ openItems: new Set(items) }),
   toggleItem: (itemId) => {
     const newSet = new Set(get().openItems)
     if (newSet.has(itemId)) {

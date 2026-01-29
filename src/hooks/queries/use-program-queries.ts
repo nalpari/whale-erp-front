@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchPrograms, createProgram, updateProgram, deleteProgram, reorderPrograms } from '@/lib/api/program'
 import type { ProgramCreateRequest, ProgramUpdateRequest } from '@/lib/schemas/program'
 import type { ProgramReorderRequest } from '@/lib/api/program'
-import { programKeys } from './query-keys'
+import { programKeys } from '@/hooks/queries/query-keys'
 
 /**
  * 프로그램 목록 조회
