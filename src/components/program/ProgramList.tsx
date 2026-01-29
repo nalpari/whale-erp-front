@@ -103,7 +103,12 @@ export default function ProgramList() {
     return (
       <div className={`hierarchy-item ${!program.is_active ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
         <div className="hierarchy-depth">
-          <button className="order-btn" {...dragHandleProps.attributes} {...dragHandleProps.listeners}></button>
+          <button
+            className="order-btn"
+            aria-label="순서 변경"
+            {...dragHandleProps.attributes}
+            {...dragHandleProps.listeners}
+          ></button>
           <div className="depth-inner">
             {hasChildren && (
               <button
@@ -119,9 +124,17 @@ export default function ProgramList() {
             {!program.is_active ? <div className="disable-badge">비활성</div> : null}
             <div className="depth-btn-wrap">
               {canAddChild && (
-                <button className="depth-btn create" onClick={() => openModal('create', program)}></button>
+                <button
+                  className="depth-btn create"
+                  aria-label="하위 메뉴 추가"
+                  onClick={() => openModal('create', program)}
+                ></button>
               )}
-              <button className="depth-btn edit" onClick={() => openModal('edit', program)}></button>
+              <button
+                className="depth-btn edit"
+                aria-label="메뉴 수정"
+                onClick={() => openModal('edit', program)}
+              ></button>
               {/* 삭제 기능 - 기획에 없어 주석 처리 */}
               {/* <button className="depth-btn delete" onClick={() => program.id && handleDelete(program.id, program.name)}></button> */}
             </div>
