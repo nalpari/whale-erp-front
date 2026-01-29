@@ -56,3 +56,9 @@ next-env.d.ts
 
 # Codex
 AGENTS.md
+
+# zenflow
+.zenflow
+
+# Interllij
+.idea
