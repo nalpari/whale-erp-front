@@ -9,6 +9,7 @@ import type {
   ScheduleResponse,
   ScheduleSummary,
   StoreScheduleQuery,
+  DayType,
 } from '@/types/work-schedule'
 
 /**
@@ -124,14 +125,12 @@ export const useStoreScheduleUpsert = () => {
 export const useStoreScheduleDownloadExcel = () => {
   return useMutation({
     mutationFn: async ({
-      storeId,
       params,
     }: {
-      storeId: number
-      params: { from: string; to: string }
+      params: { storeId: number; startDate: string; endDate: string; employeeName?: string; dayOfWeek?: DayType }
     }): Promise<ExcelDownloadResult> => {
       try {
-        const response = await api.get(`${STORE_SCHEDULE_BASE}/excel-download/${storeId}`, {
+        const response = await api.get(`${STORE_SCHEDULE_BASE}/excel`, {
           params,
           responseType: 'blob',
         })

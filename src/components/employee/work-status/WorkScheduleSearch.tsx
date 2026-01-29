@@ -10,6 +10,8 @@ import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 type WorkScheduleSearchProps = {
   resultCount: number;
   isLoading: boolean;
+  showStoreError?: boolean;
+  onStoreErrorChange?: (next: boolean) => void;
   initialQuery?: {
     officeId?: number | null;
     franchiseId?: number | null;
@@ -49,6 +51,8 @@ const DAY_OPTIONS: { label: string; value: DayType | '' }[] = [
 export default function WorkScheduleSearch({
   resultCount,
   isLoading,
+  showStoreError = false,
+  onStoreErrorChange,
   initialQuery,
   onSearch,
   onReset,
@@ -189,6 +193,7 @@ export default function WorkScheduleSearch({
     setShowOfficeError(false);
     setShowPeriodError(false);
     setShowDateError(false);
+    onStoreErrorChange?.(false);
     onReset();
   };
 
@@ -223,12 +228,16 @@ export default function WorkScheduleSearch({
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={true}
                   showHeadOfficeError={showOfficeError}
+                  showStoreError={showStoreError}
                   officeId={form.officeId ?? null}
                   franchiseId={form.franchiseId ?? null}
                   storeId={form.storeId ?? null}
                   onChange={(next) => {
                     if (next.head_office) {
                       setShowOfficeError(false);
+                    }
+                    if (next.store) {
+                      onStoreErrorChange?.(false);
                     }
                     setForm((prev) => ({
                       ...prev,
@@ -248,7 +257,6 @@ export default function WorkScheduleSearch({
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       allLabel="전체"
-                      disabled={!form.officeId}
                       onChange={(nextValue) =>
                         setForm((prev) => ({
                           ...prev,
