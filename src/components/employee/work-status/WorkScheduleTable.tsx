@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useMemo } from 'react';
 import type { ScheduleResponse, WorkerResponse } from '@/types/work-schedule';
 

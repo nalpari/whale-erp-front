@@ -1,0 +1,28 @@
+/* WorkHoursTable Component Styles 
+
+미구현 컴포넌트 스타일의 예시로 작성되었습니다.
+추후 퍼블리싱이 완료 된 이후 삭제 예정입니다.
+
+*/
+
+.store-info-work-hours-table {
+  width: 100%;
+  table-layout: auto;
+  box-sizing: border-box;
+}
+
+.store-info-work-hours-table th {
+  padding: 11px 16px;
+  background-color: #fff;
+  border: 1px solid #ebebeb !important;
+}
+
+.store-info-work-hours-table th.p0 {
+  padding: 0;
+}
+
+.store-info-work-hours-table td {
+  background-color: #fafafa;
+  border: 1px solid #ebebeb !important;
+  vertical-align: top;
+}

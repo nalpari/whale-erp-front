@@ -6,6 +6,7 @@ import type { OperatingFormState } from '@/types/store'
 
 import 'swiper/css'
 import 'swiper/css/pagination'
+import '@/components/store/custom-css/WorkHoursTable.css'
 
 // HH:mm 형태의 문자열을 안전하게 자르는 유틸
 const normalizeTime = (value?: string | null) => {

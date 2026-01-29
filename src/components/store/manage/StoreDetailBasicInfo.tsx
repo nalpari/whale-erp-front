@@ -1,4 +1,6 @@
 import type { RefObject } from 'react'
+import '@/components/common/custom-css/FormHelper.css'
+import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
