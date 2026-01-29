@@ -244,6 +244,7 @@ Available at `/editor`:
 - Use Tailwind for simple utilities
 - Use Sass for complex component styles
 - Follow BEM-like naming in Sass: `block-element-state`
+- **기존 CSS/Sass 파일 수정 금지** - pub 프로젝트 코드 참조 시에도 새로운 스타일은 Tailwind 클래스 사용 또는 컴포넌트 내 인라인 스타일로 처리
 
 ## Development Guidelines
 
