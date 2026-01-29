@@ -153,6 +153,12 @@ export default function DraggableTree<T extends TreeItem>({
   const renderTreeItems = (items: T[], depth: number): ReactNode => {
     // null id 필터링 (드래그 불가능한 아이템 제외)
     const validItems = items.filter((item): item is T & { id: number } => item.id !== null)
+
+    // 형제 전체를 전달하기 위해 원본 배열도 유지
+    if (validItems.length !== items.length) {
+      console.warn('일부 아이템의 ID가 null입니다. 드래그가 제한될 수 있습니다.')
+    }
+
     const depthClass = `depth0${Math.min(depth, 3)}`
 
     return (

@@ -126,6 +126,19 @@ export function useProgram() {
 
   // 프로그램 순서 변경 핸들러
   const handleReorder = async (parentId: number | null, items: Program[]) => {
+    // 검증 1: null ID가 있으면 에러
+    if (items.some((item) => item.id === null)) {
+      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      return
+    }
+
+    // 검증 2: ID 중복 체크
+    const ids = items.map((item) => item.id!)
+    if (new Set(ids).size !== ids.length) {
+      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      return
+    }
+
     try {
       await reorderMutation.mutateAsync({
         parent_id: parentId,
