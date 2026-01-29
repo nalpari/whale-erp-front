@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -12,6 +12,8 @@ import {
 import { formatZodFieldErrors } from "@/lib/zod-utils";
 import FindIdPw from "@/components/login/FindIdPw";
 import "./login.css";
+
+const SAVED_LOGIN_ID_KEY = "savedLoginId";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,6 +41,15 @@ export default function LoginPage() {
 
   // ID/Password 찾기 팝업 상태
   const [showFindIdPw, setShowFindIdPw] = useState(false);
+
+  // 저장된 아이디 복원
+  useEffect(() => {
+    const savedId = localStorage.getItem(SAVED_LOGIN_ID_KEY);
+    if (savedId) {
+      setLoginId(savedId);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleClearLoginId = () => {
     setLoginId("");
@@ -84,6 +95,13 @@ export default function LoginPage() {
         setAffiliationId(String(authority.authority_id));
 
         setTokens(accessToken, refreshToken);
+
+        // 아이디 저장 처리
+        if (rememberMe) {
+          localStorage.setItem(SAVED_LOGIN_ID_KEY, loginId);
+        } else {
+          localStorage.removeItem(SAVED_LOGIN_ID_KEY);
+        }
 
         // 로그인 성공 후 메인 페이지로 이동
         router.push("/");
@@ -143,6 +161,13 @@ export default function LoginPage() {
       setAffiliationId(authority.id);
 
       setTokens(pendingTokens.accessToken, pendingTokens.refreshToken);
+
+      // 아이디 저장 처리
+      if (rememberMe) {
+        localStorage.setItem(SAVED_LOGIN_ID_KEY, loginId);
+      } else {
+        localStorage.removeItem(SAVED_LOGIN_ID_KEY);
+      }
 
       // 모달 닫기 및 상태 초기화
       setShowAuthorityModal(false);

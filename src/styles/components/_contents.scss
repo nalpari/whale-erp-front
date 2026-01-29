@@ -98,6 +98,212 @@
   background: url('/assets/images/contents/file_preview.svg') no-repeat center;
   background-size: cover;
 }
+
+.file-preview-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.file-preview-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: 8px;
+  width: fit-content;
+  height: fit-content;
+  max-width: 376px;
+  max-height: 376px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+
+  img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 360px;
+    max-height: 360px;
+    object-fit: contain;
+  }
+}
+.file-preview-empty {
+  display: block;
+  min-width: 200px;
+  padding: 12px 16px;
+  white-space: nowrap;
+  @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  color: #666;
+}
+
+.store-basic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-select-fixed {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.store-tooltip-fixed {
+  flex-shrink: 0;
+}
+
+.store-business-guide {
+  margin-bottom: 10px;
+}
+
+.store-business-guide-text {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.input-inline-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.store-name-input {
+  min-width: 240px;
+}
+
+.input-helper-inline {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.address-row {
+  display: flex;
+  align-items: center;
+}
+
+.file-preview-wrap:hover .file-preview-popup {
+  opacity: 1;
+  visibility: visible;
+}
+.searchable-select {
+  position: relative;
+  width: 100%;
+
+  .searchable-select-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid $sel-brd-default;
+    border-radius: 6px;
+    background: #fff;
+    transition: all 0.15s ease-in-out;
+
+    &.is-open {
+      border-color: $sel-brd-focus;
+    }
+
+    &.is-disabled {
+      color: $txtarea-disable-c-font;
+      background-color: $txtarea-disable-c-back;
+      border-color: $txtarea-disable-c-border;
+    }
+
+    input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      padding-right: 48px;
+      @include fontDefinition($sel-font, $font-w-400, $line-h-140);
+      color: $sel-c-font;
+    }
+  }
+
+  .searchable-select-clear,
+  .searchable-select-toggle {
+    position: absolute;
+    top: 50%;
+    border: 0;
+    background-color: transparent;
+    padding: 0;
+    cursor: pointer;
+    line-height: 1;
+    transform: translateY(-50%);
+  }
+
+  .searchable-select-clear {
+    right: 44px;
+    width: 20px;
+    height: 20px;
+    color: $sel-c-font;
+  }
+
+  .searchable-select-toggle {
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    color: transparent;
+    text-indent: -9999px;
+    background: url('/assets/images/common/select_arr.svg') no-repeat center;
+    background-size: 24px 24px;
+  }
+
+  .searchable-select-list {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 4px);
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid $sel-brd-default;
+    border-radius: 6px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    z-index: 20;
+  }
+
+  .searchable-select-item {
+    width: 100%;
+    text-align: left;
+    padding: 8px 16px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    @include fontDefinition($sel-font, $font-w-400, $line-h-140);
+    color: $sel-c-font;
+
+    &:hover {
+      background: #f4f6f8;
+    }
+
+    &.is-selected {
+      background: #e9edf2;
+      font-weight: 600;
+    }
+
+    &.is-active {
+      background: #eef2f6;
+    }
+  }
+
+  .searchable-select-empty {
+    padding: 10px;
+    color: #999;
+    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  }
+}
 .tooltip-btn {
   position: relative;
   display: inline-block;
@@ -961,6 +1167,68 @@
 }
 .staff-work-table {
   margin-top: 18px;
+  .time-slider {
+    position: relative;
+    height: 20px;
+    cursor: ew-resize;
+  }
+  .time-slider.is-disabled {
+    opacity: 0.4;
+    .time-handle {
+      pointer-events: none;
+    }
+  }
+  .break-slider {
+    margin-top: 20px;
+  }
+  .time-handle {
+    position: absolute;
+    top: -6px;
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #222;
+    pointer-events: auto;
+    cursor: ew-resize;
+  }
+  .time-handle.end {
+    background-color: #555;
+  }
+  .time-handle.break {
+    background-color: #8d8d8d;
+  }
+  .time-range {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 20px;
+    opacity: 0;
+    cursor: ew-resize;
+    pointer-events: auto;
+    appearance: none;
+  }
+  .time-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    pointer-events: auto;
+  }
+  .time-range::-moz-range-thumb {
+    width: 12px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    pointer-events: auto;
+    border: none;
+  }
+  .time-range-start {
+    z-index: 2;
+  }
+  .time-range-end {
+    z-index: 3;
+  }
   .time-header {
     display: flex;
     margin-top: 6px;
@@ -970,13 +1238,48 @@
       @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
       color: #222;
       min-width: 0;
+      position: relative;
+      padding-top: 2px;
+      padding-bottom: 2px;
+      &:not(:first-child)::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1px;
+        height: 12px;
+        background-color: #b5b5b5;
+      }
     }
   }
   .time-blocks {
     display: flex;
-    gap: 3px;
+    gap: 4px;
     height: 20px;
     overflow: hidden;
+    position: relative;
+    &:after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          to right,
+          rgba(0, 0, 0, 0.16),
+          rgba(0, 0, 0, 0.16) 1px,
+          transparent 1px,
+          transparent calc(100% / 24)
+        ),
+        repeating-linear-gradient(
+          to right,
+          rgba(0, 0, 0, 0.06),
+          rgba(0, 0, 0, 0.06) 1px,
+          transparent 1px,
+          transparent calc(100% / 48)
+        );
+      pointer-events: none;
+    }
     &.blue {
       .time-block {
         background-color: #76a3f8;
@@ -1171,6 +1474,9 @@
 }
 
 // 프로그램 계층 관리
+.hierarchy-select {
+  width: 200px;
+}
 .hierarchy-wrap {
   padding: 16px;
   border: 1px solid #ebebeb;
@@ -1438,84 +1744,4 @@
 .subscrip-form-footer {
   text-align: center;
   margin-top: 24px;
-}
-
-// 결제수단 관리
-.pay-method-wrap {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 30px;
-}
-
-.pay-method-inner {
-  padding: 23px 30px;
-  background-color: #fff;
-  border: 1px solid #eee;
-  border-radius: 24px;
-  box-shadow: 0 29px 80px 0 rgba(0, 0, 0, 0.03), 0 5.8px 13px 0 rgba(0, 0, 0, 0.01);
-  .pay-method-tit {
-    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
-    color: #222;
-    margin-bottom: 10px;
-  }
-  .pay-method-num {
-    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
-    color: #222;
-    margin-bottom: 12px;
-  }
-  .pay-method-btn {
-    display: block;
-    width: 100%;
-    @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
-    color: #999;
-    padding: 0 14px;
-    height: 35px;
-    border-radius: 100px;
-    background-color: #f4f5f6;
-    border: 1px solid #eee;
-    transition: all 0.15s ease-in-out;
-    &:hover {
-      background-color: #e4eaf3;
-      border-color: #e4eaf3;
-    }
-  }
-}
-.pay-method-date {
-  @include flex(10px);
-  align-items: center;
-  padding-left: 8px;
-  margin-top: 16px;
-  span {
-    display: block;
-    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
-    color: #767676;
-  }
-}
-.pay-method-btn-wrap {
-  margin-top: 42px;
-}
-.pay-method-btn {
-  @include flex(8px);
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 68px;
-  padding: 0 24px;
-  border-radius: 6px;
-  background-color: #f4f5f6;
-  @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
-  color: #222;
-  transition: all 0.15s ease-in-out;
-  &:hover {
-    background-color: #e4eaf3;
-  }
-  .create {
-    display: block;
-    width: 36px;
-    height: 36px;
-    background-image: url('/assets/images/contents/payment_create.svg');
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
-  }
 }

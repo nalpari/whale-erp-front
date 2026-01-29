@@ -36,6 +36,25 @@ export const commonCodeKeys = {
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
 }
 
+export const programKeys = {
+  all: ['programs'] as const,
+  lists: () => [...programKeys.all, 'list'] as const,
+  details: () => [...programKeys.all, 'detail'] as const,
+  detail: (id: number) => [...programKeys.details(), id] as const,
+}
+
+export const storeScheduleKeys = {
+  all: ['store-schedule'] as const,
+  lists: () => [...storeScheduleKeys.all, 'list'] as const,
+  list: (params?: unknown) => [...storeScheduleKeys.lists(), params ?? null] as const,
+}
+
+export const employeeKeys = {
+  all: ['employees'] as const,
+  lists: () => [...employeeKeys.all, 'list'] as const,
+  list: (params?: unknown) => [...employeeKeys.lists(), params ?? null] as const,
+}
+
 
 export interface PlansListParams {
   planType?: string | null

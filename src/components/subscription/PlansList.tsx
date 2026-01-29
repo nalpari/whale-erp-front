@@ -13,15 +13,15 @@ export default function PlansList({
     loading: boolean
 }) {
     const columnDefs: ColDef<PlansListItem>[] = [
-        { field: 'planTypeName', headerName: '요금제명', flex: 1 },
-        { field: 'storeLimit', headerName: '점포', flex: 1 },
-        { field: 'employeeLimit', headerName: '직원', flex: 1 },
-        { field: 'featureCount', headerName: '포함기능', flex: 1 },
-        { field: 'featureCount', headerName: '1개월 요금', flex: 1 },
-        { field: 'featureCount', headerName: '6개월 요금', flex: 1 },
-        { field: 'featureCount', headerName: '12개월 요금', flex: 1 },
-        { field: 'updatedAt', headerName: '수정일시', flex: 1 },
-        { field: 'updater', headerName: '수정자', flex: 1 },
+        { field: 'planTypeName', headerName: '요금제명' },
+        { field: 'storeLimit', headerName: '점포' },
+        { field: 'employeeLimit', headerName: '직원' },
+        { field: 'featureCount', headerName: '포함기능' },
+        { field: 'featureCount', headerName: '1개월 요금' },
+        { field: 'featureCount', headerName: '6개월 요금' },
+        { field: 'featureCount', headerName: '12개월 요금' },
+        { field: 'updatedAt', headerName: '수정일시' },
+        { field: 'updater', headerName: '수정자' },
     ]
     return (
         <div className="data-list-wrap">

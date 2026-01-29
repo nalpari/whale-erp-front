@@ -56,3 +56,6 @@ next-env.d.ts
 
 # Codex
 AGENTS.md
+
+#IntelliJ
+.idea   

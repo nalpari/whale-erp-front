@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import Lnb from '@/components/ui/common/Lnb'
 import FullDownMenu from '@/components/ui/common/FullDownMenu'
 import Header from '@/components/ui/Header'
+import MyPageLayout from '@/components/mypage/MyPageLayout'
 
 interface MainLayoutProps {
     children: ReactNode
@@ -75,6 +76,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     {children}
                 </div>
             </div>
+            <MyPageLayout />
         </div>
     )
 }

@@ -4,6 +4,26 @@ import { useAuthStore } from '@/stores/auth-store';
 import { validateApiResponse } from '@/lib/zod-utils';
 import { env } from '@/lib/schemas/env';
 
+/**
+ * Axios 에러 타입 (클라이언트 측)
+ */
+type AxiosApiError = {
+  response?: {
+    data?: {
+      message?: string
+    }
+  }
+  name?: string
+}
+
+/**
+ * API 에러에서 메시지 추출
+ */
+export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다.'): string {
+  const apiError = error as AxiosApiError;
+  return apiError.response?.data?.message ?? fallback;
+}
+
 const api = axios.create({
   baseURL: env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
@@ -32,6 +52,19 @@ export async function postWithSchema<T>(
   config?: Parameters<typeof api.post>[2]
 ): Promise<T> {
   const response = await api.post(url, data, config);
+  return validateApiResponse(schema, response.data);
+}
+
+/**
+ * 스키마 검증이 포함된 PUT 요청
+ */
+export async function putWithSchema<T>(
+  url: string,
+  data: unknown,
+  schema: z.ZodType<T>,
+  config?: Parameters<typeof api.put>[2]
+): Promise<T> {
+  const response = await api.put(url, data, config);
   return validateApiResponse(schema, response.data);
 }
 

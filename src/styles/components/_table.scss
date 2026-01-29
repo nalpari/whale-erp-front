@@ -375,3 +375,136 @@ table {
     }
   }
 }
+
+
+// 마이페이지 데이터 테이블
+.mypage-data-table{
+  width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  th{
+    padding: 14px 5px 14px 0;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #222;
+    border-bottom: 1px solid #ebebeb;
+  }
+  td{
+    padding: 14px 0px 14px 5px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666666;
+    border-bottom: 1px solid #ebebeb;
+    .data-list{
+      @include flex(0px);
+      align-items: center;
+      .data-item{
+        position: relative;
+        padding: 0 10px;
+        &:before{
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 0;
+          transform: translateY(-50%);
+          width: 1px;
+          height: 11px;
+          background-color: #D9D9D9;
+        }
+        &:first-child {
+          padding-left: 0;
+          &:before{
+            display: none;
+          }
+        }
+        &:last-child {
+          padding-right: 0;
+        }
+        .data-btn{
+          display: inline-block;
+          width: 100%;
+          text-align: left;
+          @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+          color: #366FE3;
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+  tr{
+    &:last-child {
+      th {
+        border-bottom: none;
+      }
+      td {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+// 마이페이지 메인 테이블
+.mypage-main-table{
+  width: 100%;
+  table-layout: auto;
+  box-sizing: border-box;
+  th{
+    padding: 15px 10px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #F5F5F5;
+    background-color: #444;
+    text-align: center;
+    &:first-child {
+      border-radius: 6px 0 0 0;
+    }
+    &:last-child {
+      border-radius: 0 6px 0 0;
+    }
+  }
+  td{
+    padding: 14px 16px;
+    text-align: center;
+    border: 1px solid #EBEBEB;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+  }
+  &.bold{
+    td{
+      font-weight: $font-w-600;
+    }
+  }
+}
+
+.mypage-sub-table{
+  width: 100%;
+  table-layout: auto;
+  box-sizing: border-box;
+  th{
+    padding: 14px 10px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #666;
+    text-align: center;
+    background-color: #F8F8F8;
+    box-shadow: 0 -1px 0 0 #EBEBEB;
+    &:first-child {
+      border-radius: 6px 0 0 0;
+      box-shadow: -1px -1px 0 0 #EBEBEB;
+    }
+    &:last-child {
+      border-radius: 0 6px 0 0;
+      box-shadow: 1px -1px 0 0 #EBEBEB;
+    }
+  }
+  td{
+    padding: 9px 16px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #666;
+    border: 1px solid #EBEBEB;
+    text-align: center;
+    &.bold{
+      font-weight: $font-w-600;
+      color: #222;
+    }
+    &.empty{
+      padding: 14px 16px;
+    }
+  }
+}

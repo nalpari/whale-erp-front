@@ -32,6 +32,12 @@
     &.xl {
       max-width: 1032px;
     }
+    &.mypage{
+      max-width: 1232px;
+      .modal-content {
+        border-radius: 30px;
+      }
+    }
     .modal-content {
       flex: 1;
       position: relative;
@@ -41,6 +47,9 @@
       outline: 0 none;
       pointer-events: auto;
       border-radius: 8px;
+      &.mypage-sub{
+        border-radius: 30px;
+      }
       .modal-header {
         display: flex;
         align-items: center;
