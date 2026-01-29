@@ -331,4 +331,27 @@ export const HeaderMenu: HeaderMenuItem[] = [
       },
     ],
   },
+  {
+    id: 'charge',
+    name: '과금 관리',
+    icon: 'lnb_menu_icon07.svg',
+    link: '#',
+    children: [
+      {
+        id: 'charge-01',
+        name: 'ERP요금제 관리',
+        link: '/subscription',
+      },
+      {
+        id: 'charge-02',
+        name: '부가서비스 요금제 관리',
+        link: '/',
+      },
+      {
+        id: 'charge-03',
+        name: '결제현황',
+        link: '/',
+      },
+    ],
+  },
 ]

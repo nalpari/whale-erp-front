@@ -35,3 +35,18 @@ export const commonCodeKeys = {
   all: ['common-codes'] as const,
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
 }
+
+
+export interface PlansListParams {
+  planType?: string | null
+  updater?: string | null
+  page?: number
+  size?: number
+  sort?: string
+}
+
+export const plansKeys = {
+  all: ['plans'] as const,
+  lists: () => [...plansKeys.all, 'list'] as const,
+  list: (params: PlansListParams) => [...plansKeys.lists(), params] as const,
+}
