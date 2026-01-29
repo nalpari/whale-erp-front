@@ -1,21 +1,25 @@
 'use client'
-import { useState } from "react";
 import MyPageTab01Layout from "./mypagetab/MyPageTab01Layout";
 import MyPageTab02 from "./mypagetab/MyPageTab02";
 import MypageTab03 from "./mypagetab/MypageTab03";
 import MypageTab04 from "./mypagetab/MypageTab04";
 import MypageTab05 from "./mypagetab/MypageTab05";
 import MyPageTab06 from "./mypagetab/MyPageTab06";
+import { useMyPageStore } from "@/stores/mypage-store";
 
 export default function MyPageLayout() {
-  const [activeTab, setActiveTab] = useState(0)
+  const { isOpen, activeTab, setActiveTab, closeMyPage } = useMyPageStore()
+
+  if (!isOpen) {
+    return null
+  }
   return (
     <div className="modal-popup">
       <div className="modal-dialog mypage">
         <div className="modal-content">
           <div className="mypage-header">
             <h2>MYPAGE</h2>
-            <button className="modal-close"></button>
+            <button className="modal-close" onClick={closeMyPage}></button>
           </div>
           <div className="mypage-body">
             <div className="pop-frame">

@@ -172,3 +172,14 @@ input::-webkit-inner-spin-button {
     display: inline-block;
   }
 }
+
+.form-helper {
+  display: inline-block;
+  margin-top: 6px;
+  @include fontDefinition($font-ds-13, $font-w-400, $line-h-140);
+  color: #777;
+
+  &.error {
+    color: $input-c-error;
+  }
+}

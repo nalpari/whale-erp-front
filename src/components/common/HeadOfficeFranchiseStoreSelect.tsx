@@ -38,16 +38,14 @@
  */
 'use client'
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useMemo } from 'react'
 import { useBp } from '@/hooks/useBp'
 import { useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
+import SearchableSelect, { type SearchableSelectOption } from '@/components/common/SearchableSelect'
 
-export interface SelectOption {
-    value: number // 옵션 값(id)
-    label: string // 옵션 라벨 (name)
-}
+export type SelectOption = SearchableSelectOption<number>
 
 export type OfficeFranchiseStoreValue = {
     head_office: number | null // 본사 선택 값(id)
@@ -60,19 +58,12 @@ type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
+    showStoreError?: boolean
     officeId: number | null // 본사 선택 값(id)
     franchiseId: number | null // 가맹점 선택 값(id)
     storeId: number | null // 점포 선택 값(id)
     fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
-}
-
-type SearchableSelectProps = {
-    value: number | null // 선택된 값(id)
-    options: SelectOption[] // 옵션 목록
-    placeholder: string // 플레이스홀더 텍스트
-    disabled?: boolean // 비활성화 여부
-    onChange: (value: number | null) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
 }
 
 const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
@@ -87,195 +78,10 @@ const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | nu
             office.franchises.map((franchise) => ({ value: franchise.id, label: franchise.name }))
         )
 
-function SearchableSelect({
-    value,
-    options,
-    placeholder,
-    disabled = false,
-    onChange,
-}: SearchableSelectProps) {
-    const containerRef = useRef<HTMLDivElement | null>(null)
-    const listRef = useRef<HTMLDivElement | null>(null)
-    const [open, setOpen] = useState(false)
-    const [searchValue, setSearchValue] = useState('')
-    const [activeIndex, setActiveIndex] = useState(-1)
-    const listId = useId()
-    const prevActiveIndex = useRef(-1)
-    // 선택된 값의 라벨 표시용 (검색어 입력 중에는 searchValue가 표시됨)
-    const selectedLabel = useMemo(
-        () => options.find((option) => option.value === value)?.label ?? '',
-        [options, value]
-    )
-
-    useEffect(() => {
-        const handleClick = (event: MouseEvent) => {
-            if (!containerRef.current) return
-            if (!containerRef.current.contains(event.target as Node)) {
-                // 외부 클릭 시 닫고 검색어 초기화
-                setOpen(false)
-                setSearchValue('')
-                setActiveIndex(-1)
-            }
-        }
-        window.addEventListener('mousedown', handleClick)
-        return () => window.removeEventListener('mousedown', handleClick)
-    }, [])
-
-    const filteredOptions = useMemo(() => {
-        const keyword = searchValue.trim().toLowerCase()
-        if (!keyword) return options
-        // 입력 키워드 포함 옵션만 표시
-        return options.filter((option) => option.label.toLowerCase().includes(keyword))
-    }, [options, searchValue])
-
-    const showAllOption = !searchValue
-    const listItems = useMemo(
-        () => [
-            ...(showAllOption ? [{ value: null, label: '전체' }] : []),
-            ...filteredOptions,
-        ],
-        [filteredOptions, showAllOption]
-    )
-
-    const displayValue =
-        open && searchValue === '' ? selectedLabel : open ? searchValue : selectedLabel
-
-    const selectItem = (nextValue: number | null) => {
-        onChange(nextValue)
-        setOpen(false)
-        setSearchValue('')
-        setActiveIndex(-1)
-    }
-
-    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (disabled) return
-        if (!open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
-            setOpen(true)
-            setActiveIndex(0)
-            return
-        }
-        if (!open) return
-        if (event.key === 'ArrowDown') {
-            event.preventDefault()
-            setActiveIndex((prev) => Math.min(prev + 1, listItems.length - 1))
-        }
-        if (event.key === 'ArrowUp') {
-            event.preventDefault()
-            setActiveIndex((prev) => Math.max(prev - 1, 0))
-        }
-        if (event.key === 'Enter') {
-            event.preventDefault()
-            const current = listItems[activeIndex]
-            if (current) {
-                selectItem(current.value)
-            }
-        }
-        if (event.key === 'Escape') {
-            event.preventDefault()
-            setOpen(false)
-            setSearchValue('')
-            setActiveIndex(-1)
-        }
-    }
-
-    useEffect(() => {
-        if (!open || activeIndex < 0) return
-        if (prevActiveIndex.current === activeIndex) return
-        prevActiveIndex.current = activeIndex
-        const items = listRef.current?.querySelectorAll<HTMLButtonElement>('.searchable-select-item')
-        const target = items?.[activeIndex]
-        target?.scrollIntoView({ block: 'nearest' })
-    }, [activeIndex, open])
-
-    return (
-        <div className="searchable-select" ref={containerRef}>
-            <div className={`searchable-select-input${open ? ' is-open' : ''}${disabled ? ' is-disabled' : ''}`}>
-                <input
-                    type="text"
-                    value={displayValue}
-                    placeholder={placeholder}
-                    onFocus={() => { setOpen(true); if (listItems.length > 0) setActiveIndex(0) }}
-                    onChange={(event) => {
-                        if (disabled) return
-                        setOpen(true)
-                        setSearchValue(event.target.value)
-                        setActiveIndex(0)
-                    }}
-                    onKeyDown={handleKeyDown}
-                    disabled={disabled}
-                    role="combobox"
-                    aria-expanded={open}
-                    aria-controls={`searchable-select-list-${listId}`}
-                    aria-autocomplete="list"
-                />
-                {displayValue && !disabled && (
-                    <button
-                        type="button"
-                        className="searchable-select-clear"
-                        onClick={() => {
-                            setSearchValue('')
-                            onChange(null)
-                        }}
-                    >
-                        x
-                    </button>
-                )}
-                <button
-                    type="button"
-                    className="searchable-select-toggle"
-                    onClick={() => {
-                        if (disabled) return
-                        setOpen((prev) => {
-                            const next = !prev
-                            if (next && listItems.length > 0) setActiveIndex(0)
-                            if (!next) {
-                                setSearchValue('')
-                                setActiveIndex(-1)
-                            }
-                            return next
-                        })
-                    }}
-                    aria-label="toggle"
-                >
-                    v
-                </button>
-            </div>
-            {open && !disabled && (
-                <div
-                    className="searchable-select-list"
-                    role="listbox"
-                    id={`searchable-select-list-${listId}`}
-                    ref={listRef}
-                >
-                    {listItems.map((option, index) => (
-                        <button
-                            key={option.value ?? 'all'}
-                            type="button"
-                            className={`searchable-select-item${option.value === value ? ' is-selected' : ''}${
-                                index === activeIndex ? ' is-active' : ''
-                            }`}
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                                selectItem(option.value)
-                            }}
-                            role="option"
-                            aria-selected={option.value === value}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
-                    {filteredOptions.length === 0 && searchValue && (
-                        <div className="searchable-select-empty">검색 결과가 없습니다.</div>
-                    )}
-                </div>
-            )}
-        </div>
-    )
-}
-
 export default function HeadOfficeFranchiseStoreSelect({
     isHeadOfficeRequired = true,
     showHeadOfficeError = false,
+    showStoreError = false,
     officeId,
     franchiseId,
     storeId,
@@ -375,6 +181,9 @@ export default function HeadOfficeFranchiseStoreSelect({
                                     })
                                 }
                             />
+                            {showStoreError && !storeId && (
+                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                            )}
                         </div>
                     </td>
                 </>
