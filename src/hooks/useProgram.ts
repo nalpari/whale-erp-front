@@ -136,14 +136,16 @@ export function useProgram() {
 
   // 프로그램 순서 변경 핸들러
   const handleReorder = async (parentId: number | null, items: Program[]) => {
-    // 검증 1: null ID가 있으면 에러
-    if (items.some((item) => item.id === null)) {
+    // 검증 1: null ID 필터링 및 타입 좁히기
+    const validItems = items.filter((item): item is Program & { id: number } => item.id !== null)
+
+    if (validItems.length !== items.length) {
       alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
     }
 
     // 검증 2: ID 중복 체크
-    const ids = items.map((item) => item.id!)
+    const ids = validItems.map((item) => item.id)
     if (new Set(ids).size !== ids.length) {
       alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
@@ -152,8 +154,8 @@ export function useProgram() {
     try {
       await reorderMutation.mutateAsync({
         parent_id: parentId,
-        orders: items.map((item, index) => ({
-          id: item.id!,
+        orders: validItems.map((item, index) => ({
+          id: item.id,
           order_index: index + 1,
         })),
       })
