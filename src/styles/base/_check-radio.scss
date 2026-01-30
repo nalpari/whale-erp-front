@@ -17,7 +17,7 @@
   position: relative;
   display: inline-block;
   margin-bottom: 0;
-  line-height: $line-h-150;
+  line-height: $line-h-140;
   font-size: $check-ds-font;
   color: #999;
 
@@ -53,7 +53,10 @@
       border: 1px solid $check-c-bord;
       border-radius: 4px;
       background-color: #fff;
-      transition: border 0.15s ease-in-out, color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+      transition:
+        border 0.15s ease-in-out,
+        color 0.15s ease-in-out,
+        background-color 0.15s ease-in-out;
       cursor: pointer;
     }
     &::after {
@@ -70,7 +73,9 @@
       transform: translate(7.75px, 4.5px) rotate(45deg);
       -ms-transform: translate(7.75px, 4.5px) rotate(45deg);
       cursor: pointer;
-      transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
+      transition:
+        border 0.15s ease-in-out,
+        color 0.15s ease-in-out;
     }
   }
   input[type='checkbox']:checked + label {
@@ -143,7 +148,9 @@
       border-radius: 100%;
       background-color: #fff;
       text-align: center;
-      transition: border 0.15s ease-in-out, color 0.15s ease-in-out;
+      transition:
+        border 0.15s ease-in-out,
+        color 0.15s ease-in-out;
       cursor: pointer;
     }
     &::after {
