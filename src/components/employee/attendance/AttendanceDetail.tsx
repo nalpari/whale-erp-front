@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import DatePicker from '@/components/ui/common/DatePicker'
 import Location from '@/components/ui/Location'
 import { useAttendanceRecords } from '@/hooks/queries'
-import { useBp } from '@/hooks/useBp'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { AttendanceRecordItem, AttendanceRecordParams } from '@/types/attendance'
@@ -28,20 +27,6 @@ export default function AttendanceDetail() {
   const franchiseId = Number(searchParams.get('franchiseId')) || null
   const storeId = Number(searchParams.get('storeId')) || null
   const employeeId = Number(searchParams.get('employeeId')) || null
-  const employeeName = searchParams.get('employeeName') ?? ''
-  const storeName = searchParams.get('storeName') ?? ''
-
-  // BP 트리에서 본사/가맹점 이름 조회
-  const { data: bpTree } = useBp(hydrated)
-  const officeName = useMemo(
-    () => bpTree.find((o) => o.id === officeId)?.name ?? '',
-    [bpTree, officeId]
-  )
-  const franchiseName = useMemo(() => {
-    if (!officeId) return ''
-    const office = bpTree.find((o) => o.id === officeId)
-    return office?.franchises.find((f) => f.id === franchiseId)?.name ?? ''
-  }, [bpTree, officeId, franchiseId])
 
   const defaultTo = useMemo(() => new Date(), [])
   const defaultFrom = useMemo(() => {
@@ -135,16 +120,18 @@ export default function AttendanceDetail() {
                   <td>
                     <div className="filed-flx">
                       <div className="mx-500">
-                        <input type="text" className="input-frame" value={officeName} readOnly />
+                        <input type="text" className="input-frame" value={response?.officeName ?? ''} readOnly />
                       </div>
-                      <div className="mx-500">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={franchiseName}
-                          readOnly
-                        />
-                      </div>
+                      {(response?.franchiseId != null || response?.franchiseName) && (
+                        <div className="mx-500">
+                          <input
+                            type="text"
+                            className="input-frame"
+                            value={response?.franchiseName ?? ''}
+                            readOnly
+                          />
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -155,7 +142,7 @@ export default function AttendanceDetail() {
                       <input
                         type="text"
                         className="input-frame"
-                        value={storeName}
+                        value={response?.storeName ?? ''}
                         readOnly
                       />
                     </div>
@@ -169,7 +156,7 @@ export default function AttendanceDetail() {
                         <input
                           type="text"
                           className="input-frame"
-                          value={employeeName}
+                          value={response?.employeeName ?? ''}
                           readOnly
                         />
                       </div>

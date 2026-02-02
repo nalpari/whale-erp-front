@@ -118,7 +118,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'franchise-store-01-03',
             name: '점포 정보 관리',
-            link: '/',
+            link: '/store/info',
           },
         ],
       },
@@ -226,17 +226,17 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'employee-03-01',
             name: '출퇴근 현황',
-            link: '/',
+            link: '/employee/attendance',
           },
           {
             id: 'employee-03-02',
             name: '매장별 근무 계획표',
-            link: '/',
+            link: '/employee/schedule/view',
           },
           {
             id: 'employee-03-03',
             name: '매장별 근무 계획 수립',
-            link: '/',
+            link: '/employee/schedule/plan',
           },
         ],
       },

@@ -40,8 +40,8 @@ interface AttendanceSearchProps {
 
 const WORK_DAY_OPTIONS = [
   { value: 'WEEKDAY', label: '평일' },
-  { value: 'SATURDAY', label: '토' },
-  { value: 'SUNDAY', label: '일' },
+  { value: 'SATURDAY', label: '토요일' },
+  { value: 'SUNDAY', label: '일요일' },
 ]
 
 export default function AttendanceSearch({
