@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import './custom-css/SearchableSelect.css'
 
 export type SearchableSelectValue = string | number
 
