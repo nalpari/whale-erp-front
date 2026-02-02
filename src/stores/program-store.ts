@@ -75,7 +75,10 @@ export const useProgramStore = create<ProgramState>()((set, get) => ({
       modalProgram: null,
     }),
   setSelectedMenuKind: (menuKind) => {
-    set({ selectedMenuKind: menuKind })
+    set({
+      selectedMenuKind: menuKind,
+      openItems: new Set()
+    })
     get().clearSearch()
   },
 }))
