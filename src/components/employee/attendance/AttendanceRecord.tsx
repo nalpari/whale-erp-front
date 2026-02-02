@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import AttendanceSearch, {
   type AttendanceSearchFilters,
@@ -46,28 +46,25 @@ export default function AttendanceRecord() {
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, setAppliedFilters] =
     useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const page = useMemo(() => normalizePage(searchParams.get('page')), [searchParams])
-  const pageSize = useMemo(() => normalizeSize(searchParams.get('size')), [searchParams])
+  const page = normalizePage(searchParams.get('page'))
+  const pageSize = normalizeSize(searchParams.get('size'))
 
-  const syncQueryParams = useCallback(
-    (nextPage: number, nextSize: number) => {
-      const params = new URLSearchParams(searchParams.toString())
-      if (nextPage > 0) {
-        params.set('page', String(nextPage))
-      } else {
-        params.delete('page')
-      }
-      params.set('size', String(nextSize))
-      const query = params.toString()
-      const nextUrl = query ? `${pathname}?${query}` : pathname
-      const currentQuery = searchParams.toString()
-      const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname
-      if (nextUrl !== currentUrl) {
-        router.replace(nextUrl)
-      }
-    },
-    [pathname, router, searchParams]
-  )
+  const syncQueryParams = (nextPage: number, nextSize: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextPage > 0) {
+      params.set('page', String(nextPage))
+    } else {
+      params.delete('page')
+    }
+    params.set('size', String(nextSize))
+    const query = params.toString()
+    const nextUrl = query ? `${pathname}?${query}` : pathname
+    const currentQuery = searchParams.toString()
+    const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname
+    if (nextUrl !== currentUrl) {
+      router.replace(nextUrl)
+    }
+  }
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', hydrated)
@@ -80,28 +77,25 @@ export default function AttendanceRecord() {
     hydrated
   )
 
-  const attendanceParams: AttendanceListParams = useMemo(
-    () => ({
-      officeId: appliedFilters.officeId ?? undefined,
-      franchiseId: appliedFilters.franchiseId ?? undefined,
-      storeId: appliedFilters.storeId ?? undefined,
-      workStatus:
-        appliedFilters.workStatus === 'ALL' ? undefined : appliedFilters.workStatus,
-      employeeName: appliedFilters.employeeName || undefined,
-      workDays: appliedFilters.workDays.length > 0 ? appliedFilters.workDays : undefined,
-      employeeClassification:
-        appliedFilters.employeeClassification === 'ALL'
-          ? undefined
-          : appliedFilters.employeeClassification,
-      contractClassification:
-        appliedFilters.contractClassification === 'ALL'
-          ? undefined
-          : appliedFilters.contractClassification,
-      page,
-      size: pageSize,
-    }),
-    [appliedFilters, page, pageSize]
-  )
+  const attendanceParams: AttendanceListParams = {
+    officeId: appliedFilters.officeId ?? undefined,
+    franchiseId: appliedFilters.franchiseId ?? undefined,
+    storeId: appliedFilters.storeId ?? undefined,
+    status:
+      appliedFilters.workStatus === 'ALL' ? undefined : appliedFilters.workStatus,
+    employeeName: appliedFilters.employeeName || undefined,
+    dayType: appliedFilters.workDays.length > 0 ? appliedFilters.workDays : undefined,
+    employeeClassify:
+      appliedFilters.employeeClassification === 'ALL'
+        ? undefined
+        : appliedFilters.employeeClassification,
+    contractClassify:
+      appliedFilters.contractClassification === 'ALL'
+        ? undefined
+        : appliedFilters.contractClassification,
+    page,
+    size: pageSize,
+  }
 
   const { data: response, isPending: loading, error } = useAttendanceList(attendanceParams, hydrated)
 

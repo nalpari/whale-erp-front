@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DatePicker from '@/components/ui/common/DatePicker'
 import Location from '@/components/ui/Location'
@@ -28,12 +28,12 @@ export default function AttendanceDetail() {
   const storeId = Number(searchParams.get('storeId')) || null
   const employeeId = Number(searchParams.get('employeeId')) || null
 
-  const defaultTo = useMemo(() => new Date(), [])
-  const defaultFrom = useMemo(() => {
+  const defaultTo = new Date()
+  const defaultFrom = (() => {
     const d = new Date()
     d.setDate(d.getDate() - 7)
     return d
-  }, [])
+  })()
 
   const [from, setFrom] = useState<Date | null>(defaultFrom)
   const [to, setTo] = useState<Date | null>(defaultTo)
@@ -41,40 +41,36 @@ export default function AttendanceDetail() {
   const [appliedTo, setAppliedTo] = useState<Date | null>(defaultTo)
   const [showDateError, setShowDateError] = useState(false)
 
-  const recordParams: AttendanceRecordParams = useMemo(
-    () => ({
-      officeId: officeId!,
-      franchiseId: franchiseId ?? undefined,
-      storeId: storeId ?? undefined,
-      employeeId: employeeId!,
-      from: formatDateYmdOrUndefined(appliedFrom),
-      to: formatDateYmdOrUndefined(appliedTo),
-    }),
-    [officeId, franchiseId, storeId, employeeId, appliedFrom, appliedTo]
-  )
+  const recordParams: AttendanceRecordParams = {
+    officeId: officeId!,
+    franchiseId: franchiseId ?? undefined,
+    storeId: storeId ?? undefined,
+    employeeId: employeeId!,
+    from: formatDateYmdOrUndefined(appliedFrom),
+    to: formatDateYmdOrUndefined(appliedTo),
+  }
 
   const { data: response, isPending: loading } = useAttendanceRecords(recordParams, hydrated)
 
   // 같은 날짜의 레코드를 그룹핑
-  const groupedRecords = useMemo(() => {
-    const rawRecords = response?.record ?? []
-    const map = new Map<string, AttendanceRecordItem[]>()
-    for (const rec of rawRecords) {
-      const existing = map.get(rec.date)
-      if (existing) {
-        existing.push(rec)
-      } else {
-        map.set(rec.date, [rec])
-      }
+  const rawRecords = response?.record ?? []
+  const groupMap = new Map<string, AttendanceRecordItem[]>()
+  for (const rec of rawRecords) {
+    const existing = groupMap.get(rec.date)
+    if (existing) {
+      existing.push(rec)
+    } else {
+      groupMap.set(rec.date, [rec])
     }
-    return Array.from(map.entries()).map(([date, items]) => ({
-      date,
-      day: items[0].day,
-      isHoliday: items[0].isHoliday,
-      hasContract: items.some((r) => !!r.contractStartTime),
-      records: items,
-    }))
-  }, [response?.record])
+  }
+  const groupedRecords = Array.from(groupMap.entries()).map(([date, items]) => ({
+    date,
+    day: items[0].day,
+    isHoliday: items[0].isHoliday,
+    hasContract: items.some((r) => !!r.contractStartTime),
+    hasWork: items.some((r) => !!r.workStartTime || !!r.workEndTime),
+    records: items,
+  }))
 
   const handleSearch = () => {
     const hasDateError = Boolean(from && to && to < from)
@@ -84,13 +80,10 @@ export default function AttendanceDetail() {
     setAppliedTo(to)
   }
 
-  const isAbsent = (rec: AttendanceRecordItem) =>
-    !!rec.contractStartTime && !rec.workStartTime && !rec.workEndTime
-
   const getBoxClass = (group: (typeof groupedRecords)[number]) => {
     if (group.isHoliday) return 'commute-bx gray-bx'
-    if (!group.hasContract) return 'commute-bx gray-bx'
-    if (group.records.every(isAbsent)) return 'commute-bx red-bx'
+    if (!group.hasContract && !group.hasWork) return 'commute-bx gray-bx'
+    if (group.hasContract && !group.hasWork) return 'commute-bx red-bx'
     return 'commute-bx'
   }
 
@@ -219,12 +212,12 @@ export default function AttendanceDetail() {
                     </div>
                     <div className="commute-body">
                       <ul className="commute-list">
-                        {!group.hasContract ? (
+                        {!group.hasContract && !group.hasWork ? (
                           <li className="commute-item">
                             <div className="work-time">
                             </div>
                           </li>
-                        ) : group.records.every(isAbsent) ? (
+                        ) : group.hasContract && !group.hasWork ? (
                           <li className="commute-item">
                             <div className="commute-time">
                               <div className="commute-time-item">
