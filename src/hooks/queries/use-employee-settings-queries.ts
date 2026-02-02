@@ -7,18 +7,6 @@ import {
   type SaveEmployeeInfoCommonCodeRequest,
 } from '@/lib/api/employeeInfoSettings'
 
-import {
-  getLaborContractSettingsCode,
-  saveLaborContractSettingsCode,
-  type SaveLaborContractSettingsCodeRequest,
-} from '@/lib/api/laborContractSettings'
-
-import {
-  getPayrollStatementSettingsCode,
-  savePayrollStatementSettingsCode,
-  type PayrollStatementSettingsContent,
-} from '@/lib/api/payrollStatementSettings'
-
 // Settings staleTime: 30 minutes (settings change infrequently)
 const SETTINGS_STALE_TIME = 30 * 60 * 1000
 
@@ -50,64 +38,7 @@ export const useSaveEmployeeInfoSettings = () => {
 }
 
 // ==================== Labor Contract Settings ====================
-
-export const useLaborContractSettings = (params?: SettingsParams, enabled = true) => {
-  return useQuery({
-    queryKey: settingsKeys.laborContract(params),
-    queryFn: () => getLaborContractSettingsCode(params),
-    staleTime: SETTINGS_STALE_TIME,
-    enabled,
-  })
-}
-
-export const useSaveLaborContractSettings = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (request: SaveLaborContractSettingsCodeRequest) =>
-      saveLaborContractSettingsCode(request),
-    onSuccess: (_, request) => {
-      queryClient.invalidateQueries({
-        queryKey: settingsKeys.laborContract({
-          headOfficeId: request.headOfficeId,
-          franchiseId: request.franchiseId,
-        }),
-      })
-    },
-  })
-}
+// TODO: Implement when laborContractSettings API module is created
 
 // ==================== Payroll Statement Settings ====================
-
-export const usePayrollStatementSettings = (params?: SettingsParams, enabled = true) => {
-  return useQuery({
-    queryKey: settingsKeys.payrollStatement(params),
-    queryFn: () => getPayrollStatementSettingsCode(params),
-    staleTime: SETTINGS_STALE_TIME,
-    enabled,
-  })
-}
-
-export const useSavePayrollStatementSettings = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({
-      headOfficeId,
-      franchiseId,
-      settings,
-    }: {
-      headOfficeId: number
-      franchiseId?: number
-      settings: PayrollStatementSettingsContent
-    }) => savePayrollStatementSettingsCode(headOfficeId, franchiseId, settings),
-    onSuccess: (_, { headOfficeId, franchiseId }) => {
-      queryClient.invalidateQueries({
-        queryKey: settingsKeys.payrollStatement({
-          headOfficeId,
-          franchiseId,
-        }),
-      })
-    },
-  })
-}
+// TODO: Implement when payrollStatementSettings API module is created

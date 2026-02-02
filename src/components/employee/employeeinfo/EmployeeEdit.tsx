@@ -703,8 +703,8 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="date-picker-wrap">
                       <DatePicker
-                        value={formData.birthDate}
-                        onChange={(date) => handleInputChange('birthDate', date)}
+                        value={formData.birthDate ? new Date(formData.birthDate) : null}
+                        onChange={(date) => handleInputChange('birthDate', date ? date.toISOString().split('T')[0] : '')}
                         placeholder="생년월일 선택"
                       />
                     </div>
@@ -817,8 +817,8 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="date-picker-wrap">
                       <DatePicker
-                        value={formData.hireDate}
-                        onChange={(date) => handleInputChange('hireDate', date)}
+                        value={formData.hireDate ? new Date(formData.hireDate) : null}
+                        onChange={(date) => handleInputChange('hireDate', date ? date.toISOString().split('T')[0] : '')}
                         placeholder="입사일 선택"
                       />
                     </div>
@@ -832,8 +832,8 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     <div className="filed-flx">
                       <div className="date-picker-wrap">
                         <DatePicker
-                          value={formData.resignationDate}
-                          onChange={(date) => handleInputChange('resignationDate', date)}
+                          value={formData.resignationDate ? new Date(formData.resignationDate) : null}
+                          onChange={(date) => handleInputChange('resignationDate', date ? date.toISOString().split('T')[0] : '')}
                           placeholder="퇴사일 선택"
                         />
                       </div>
@@ -1123,8 +1123,8 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="date-picker-wrap">
                       <DatePicker
-                        value={formData.healthCheckExpiryDate}
-                        onChange={(date) => handleInputChange('healthCheckExpiryDate', date)}
+                        value={formData.healthCheckExpiryDate ? new Date(formData.healthCheckExpiryDate) : null}
+                        onChange={(date) => handleInputChange('healthCheckExpiryDate', date ? date.toISOString().split('T')[0] : '')}
                         placeholder="만료일 선택"
                       />
                     </div>
