@@ -75,6 +75,9 @@ src/
 │   ├── masterlist/               # 마스터리스트 컴포넌트
 │   │   ├── MasterList.tsx
 │   │   └── MasterSearch.tsx
+│   ├── program/                  # 프로그램 관리 컴포넌트
+│   │   ├── ProgramList.tsx       # 프로그램 목록 및 계층 관리
+│   │   └── ProgramFormModal.tsx  # 프로그램 등록/수정 모달
 │   ├── store/manage/             # 점포 관리 컴포넌트
 │   │   ├── StoreList.tsx
 │   │   ├── StoreInfo.tsx
@@ -100,7 +103,8 @@ src/
 │   │   ├── use-store-queries.ts  # 점포 쿼리/뮤테이션
 │   │   ├── use-file-queries.ts   # 파일 쿼리
 │   │   ├── use-bp-queries.ts     # BP 쿼리
-│   │   └── use-common-code-queries.ts  # 공통코드 쿼리
+│   │   ├── use-common-code-queries.ts  # 공통코드 쿼리
+│   │   └── use-program-queries.ts  # 프로그램 쿼리/뮤테이션
 │   ├── store/                    # 도메인 특화 훅
 │   │   ├── useStoreDetailForm.ts
 │   │   └── useStoreFiles.ts
@@ -116,11 +120,13 @@ src/
 │       ├── auth.ts               # 인증 관련 스키마
 │       ├── env.ts                # 환경변수 스키마
 │       ├── forms.ts              # 폼 유효성 검사 스키마
-│       └── menu.ts               # 메뉴 타입 스키마
+│       ├── menu.ts               # 메뉴 타입 스키마
+│       └── program.ts            # 프로그램 스키마
 ├── providers/
 │   └── query-provider.tsx        # QueryClientProvider 래퍼
 ├── stores/
 │   ├── auth-store.ts             # Zustand 인증 스토어
+│   ├── program-store.ts          # 프로그램 UI 상태 스토어
 │   ├── bp-store.ts               # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
 │   └── common-code-store.ts      # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
 ├── styles/                       # Sass 스타일 (7-1 패턴)
