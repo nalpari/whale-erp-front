@@ -1,0 +1,1234 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import AnimateHeight from 'react-animate-height'
+import DatePicker from '../../ui/common/DatePicker'
+import { Tooltip } from 'react-tooltip'
+import { checkEmployeeNumber, updateEmployeeWithFiles, getEmployee } from '@/lib/api/employee'
+import { getDownloadUrl } from '@/lib/api/file'
+import { getEmployeeInfoCommonCode, type ClassificationItem } from '@/lib/api/employeeInfoSettings'
+import type { UpdateEmployeeInfoRequest } from '@/types/employee'
+
+// Daum 우편번호 서비스 타입 (useStoreDetailForm.ts와 공유)
+interface DaumPostcodeData {
+  zonecode?: string
+  address?: string
+  roadAddress?: string
+  jibunAddress?: string
+  buildingName?: string
+  userSelectedType?: 'R' | 'J'
+}
+
+interface EmployeeEditProps {
+  employeeId?: number
+}
+
+export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
+  const router = useRouter()
+  const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
+  const [workplaceType, setWorkplaceType] = useState<'headquarters' | 'franchise'>('headquarters')
+  const [workStatus, setWorkStatus] = useState<'working' | 'leave' | 'retired'>('working')
+  const [tempSaveEnabled, setTempSaveEnabled] = useState(true)
+  const [selectedIcon, setSelectedIcon] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [employeeNumberChecked, setEmployeeNumberChecked] = useState(false)
+  const [employeeNumberValid, setEmployeeNumberValid] = useState(false)
+  const [originalEmployeeNumber, setOriginalEmployeeNumber] = useState<string | null>(null) // DB에서 조회한 원래 사번
+
+  // Common code 옵션 상태
+  const [employeeClassificationOptions, setEmployeeClassificationOptions] = useState<ClassificationItem[]>([])
+  const [rankOptions, setRankOptions] = useState<ClassificationItem[]>([])
+  const [positionOptions, setPositionOptions] = useState<ClassificationItem[]>([])
+
+  // 파일 상태
+  const [files, setFiles] = useState<{
+    resident: File | null
+    family: File | null
+    health: File | null
+    resume: File | null
+  }>({
+    resident: null,
+    family: null,
+    health: null,
+    resume: null
+  })
+
+  // 기존 업로드된 파일 ID 상태
+  const [existingFileIds, setExistingFileIds] = useState<{
+    resident: number | null
+    family: number | null
+    health: number | null
+    resume: number | null
+  }>({
+    resident: null,
+    family: null,
+    health: null,
+    resume: null
+  })
+
+  // 기존 파일 이름 상태 (UI 표시용)
+  const [existingFileNames, setExistingFileNames] = useState<{
+    resident: string | null
+    family: string | null
+    health: string | null
+    resume: string | null
+  }>({
+    resident: null,
+    family: null,
+    health: null,
+    resume: null
+  })
+
+  // 파일 선택 핸들러
+  const handleFileChange = (fileType: 'resident' | 'family' | 'health' | 'resume', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setFiles(prev => ({ ...prev, [fileType]: file }))
+  }
+
+  // 파일 삭제 핸들러
+  const handleFileRemove = (fileType: 'resident' | 'family' | 'health' | 'resume') => {
+    setFiles(prev => ({ ...prev, [fileType]: null }))
+    setExistingFileIds(prev => ({ ...prev, [fileType]: null }))
+    setExistingFileNames(prev => ({ ...prev, [fileType]: null }))
+    // input 초기화
+    const inputElement = document.getElementById(`file-${fileType}`) as HTMLInputElement
+    if (inputElement) {
+      inputElement.value = ''
+    }
+  }
+
+  // 폼 데이터 상태 - 본사/가맹점/점포는 고정값 1, 2, 1
+  const [formData, setFormData] = useState({
+    headOfficeOrganizationId: '1',
+    franchiseOrganizationId: '2',
+    storeId: '1',
+    employeeName: '',
+    employeeCode: '',
+    employeeNumber: '',
+    birthDate: '',
+    employeeClassification: '',
+    contractClassification: '',
+    rank: '',  // 직급
+    position: '',  // 직책
+    hireDate: '',
+    resignationDate: '',
+    resignationReason: '',
+    mobilePhone: '',
+    emergencyContact: '',
+    email: '',
+    zipCode: '',
+    address: '',
+    addressDetail: '',
+    bankCode: '',
+    accountNumber: '',
+    accountHolder: '',
+    healthCheckExpiryDate: '',
+    memo: ''
+  })
+
+  // 직원 정보 조회
+  useEffect(() => {
+    const fetchEmployeeInfo = async () => {
+      if (!employeeId) return
+
+      try {
+        setIsLoading(true)
+        const employee = await getEmployee(employeeId)
+
+        // workplaceType 설정
+        if (employee.workplaceType === 'HEAD_OFFICE') {
+          setWorkplaceType('headquarters')
+        } else {
+          setWorkplaceType('franchise')
+        }
+
+        // workStatus 설정
+        if (employee.workStatus === 'WORKING' || employee.workStatusName === '근무') {
+          setWorkStatus('working')
+        } else if (employee.workStatus === 'LEAVE' || employee.workStatusName === '휴직') {
+          setWorkStatus('leave')
+        } else if (employee.workStatus === 'RETIRED' || employee.workStatusName === '퇴사') {
+          setWorkStatus('retired')
+        }
+
+        // formData 설정
+        setFormData(prev => ({
+          ...prev,
+          headOfficeOrganizationId: employee.headOfficeOrganizationId?.toString() || '1',
+          franchiseOrganizationId: employee.franchiseOrganizationId?.toString() || '2',
+          storeId: employee.storeId?.toString() || '1',
+          employeeName: employee.employeeName || '',
+          employeeNumber: employee.employeeNumber || '',
+          birthDate: employee.birthDate || '',
+          mobilePhone: employee.mobilePhone || '',
+          emergencyContact: employee.emergencyContact || '',
+          email: employee.email || '',
+          zipCode: employee.zipCode || '',
+          address: employee.address || '',
+          addressDetail: employee.addressDetail || '',
+          employeeClassification: employee.employeeClassification || '',
+          contractClassification: employee.contractClassification || '',
+          rank: employee.rank || '',
+          position: employee.position || '',
+          hireDate: employee.hireDate || '',
+          resignationDate: employee.resignationDate || '',
+          resignationReason: employee.resignationReason || '',
+          bankCode: employee.salaryBank || '',
+          accountNumber: employee.salaryAccountNumber || '',
+          accountHolder: employee.salaryAccountHolder || '',
+          healthCheckExpiryDate: employee.healthCheckExpiryDate || '',
+          memo: employee.memo || ''
+        }))
+
+        // 아이콘 타입 설정
+        if (employee.iconType !== null && employee.iconType !== undefined) {
+          setSelectedIcon(employee.iconType)
+        }
+
+        // DB에서 조회한 원래 사번 저장 (수정 불가 판단용)
+        if (employee.employeeNumber) {
+          setOriginalEmployeeNumber(employee.employeeNumber)
+        }
+
+        // 기존 파일 ID 설정
+        setExistingFileIds({
+          resident: employee.residentRegistrationFileId ?? null,
+          family: employee.familyRelationFileId ?? null,
+          health: employee.healthCheckFileId ?? null,
+          resume: employee.resumeFileId ?? null
+        })
+
+        // 기존 파일이 있으면 파일 정보 조회
+        const filePromises: Promise<void>[] = []
+        const fileNamesTemp: typeof existingFileNames = {
+          resident: null,
+          family: null,
+          health: null,
+          resume: null
+        }
+
+        if (employee.residentRegistrationFileId) {
+          filePromises.push(
+            getDownloadUrl(employee.residentRegistrationFileId)
+              .then(res => { fileNamesTemp.resident = res.originalFileName })
+              .catch(() => {})
+          )
+        }
+        if (employee.familyRelationFileId) {
+          filePromises.push(
+            getDownloadUrl(employee.familyRelationFileId)
+              .then(res => { fileNamesTemp.family = res.originalFileName })
+              .catch(() => {})
+          )
+        }
+        if (employee.healthCheckFileId) {
+          filePromises.push(
+            getDownloadUrl(employee.healthCheckFileId)
+              .then(res => { fileNamesTemp.health = res.originalFileName })
+              .catch(() => {})
+          )
+        }
+        if (employee.resumeFileId) {
+          filePromises.push(
+            getDownloadUrl(employee.resumeFileId)
+              .then(res => { fileNamesTemp.resume = res.originalFileName })
+              .catch(() => {})
+          )
+        }
+
+        await Promise.all(filePromises)
+        setExistingFileNames(fileNamesTemp)
+      } catch (error) {
+        console.error('직원 정보 조회 실패:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEmployeeInfo()
+  }, [employeeId])
+
+  // 다음 우편번호 스크립트 로드
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+    script.async = true
+    document.head.appendChild(script)
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
+  // Common code 조회
+  const fetchCommonCode = useCallback(async () => {
+    const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : 1
+    const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : 2
+    const storeId = formData.storeId ? parseInt(formData.storeId) : 1
+
+    if (!headOfficeId || !franchiseId || !storeId) {
+      return
+    }
+
+    try {
+      const commonCode = await getEmployeeInfoCommonCode({
+        headOfficeId,
+        franchiseId
+      })
+
+      if (commonCode?.codeMemoContent) {
+        setEmployeeClassificationOptions(commonCode.codeMemoContent.EMPLOYEE || [])
+        setRankOptions(commonCode.codeMemoContent.RANK || [])
+        setPositionOptions(commonCode.codeMemoContent.POSITION || [])
+      } else {
+        setEmployeeClassificationOptions([])
+        setRankOptions([])
+        setPositionOptions([])
+      }
+    } catch (error) {
+      console.error('공통코드 조회 실패:', error)
+      setEmployeeClassificationOptions([])
+      setRankOptions([])
+      setPositionOptions([])
+    }
+  }, [formData.headOfficeOrganizationId, formData.franchiseOrganizationId, formData.storeId])
+
+  // 조직 ID가 변경되면 common code 다시 조회
+  useEffect(() => {
+    fetchCommonCode()
+  }, [fetchCommonCode])
+
+  // 주소 찾기 핸들러
+  const handleSearchAddress = () => {
+    if (!window.daum) {
+      alert('우편번호 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
+
+    new window.daum.Postcode({
+      oncomplete: (data: DaumPostcodeData) => {
+        // 도로명 주소 우선, 없으면 지번 주소 사용
+        const address = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
+        setFormData(prev => ({
+          ...prev,
+          zipCode: data.zonecode ?? '',
+          address: address ?? ''
+        }))
+      }
+    }).open()
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // 사번이 변경되면 중복확인 상태 초기화
+    if (field === 'employeeNumber') {
+      setEmployeeNumberChecked(false)
+      setEmployeeNumberValid(false)
+    }
+  }
+
+  // 사번 중복 확인
+  const handleCheckEmployeeNumber = async () => {
+    // 1. 사번 입력 검증
+    if (!formData.employeeNumber.trim()) {
+      alert('사번을 입력해주세요.')
+      return
+    }
+
+    // 2. 본사 선택 검증 (필수)
+    if (!formData.headOfficeOrganizationId) {
+      alert('본사를 선택해주세요.')
+      return
+    }
+
+    // 3. 가맹점 근무자인 경우 가맹점 선택 검증
+    if (workplaceType === 'franchise' && !formData.franchiseOrganizationId) {
+      alert('가맹점을 선택해주세요.')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const result = await checkEmployeeNumber(
+        formData.employeeNumber,
+        Number(formData.headOfficeOrganizationId),
+        formData.franchiseOrganizationId ? Number(formData.franchiseOrganizationId) : undefined,
+        formData.storeId ? Number(formData.storeId) : undefined
+      )
+      setEmployeeNumberChecked(true)
+
+      if (result.isDuplicate) {
+        setEmployeeNumberValid(false)
+        alert('이미 사용 중인 사번입니다.')
+      } else {
+        setEmployeeNumberValid(true)
+        alert('사용 가능한 사번입니다.')
+      }
+    } catch (error) {
+      console.error('사번 중복 확인 실패:', error)
+      alert('사번 중복 확인 중 오류가 발생했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 저장
+  const handleSave = async () => {
+    // 필수값 검증
+    if (!formData.employeeName.trim()) {
+      alert('직원명을 입력해주세요.')
+      return
+    }
+
+    if (!formData.employeeClassification) {
+      alert('직원 분류를 선택해주세요.')
+      return
+    }
+
+    if (!formData.contractClassification) {
+      alert('계약 분류를 선택해주세요.')
+      return
+    }
+
+    if (!formData.hireDate) {
+      alert('입사일을 선택해주세요.')
+      return
+    }
+
+    if (!formData.mobilePhone.trim()) {
+      alert('휴대폰 번호를 입력해주세요.')
+      return
+    }
+
+    if (formData.mobilePhone.trim().length < 10) {
+      alert('휴대폰 번호를 정확히 입력해주세요.')
+      return
+    }
+
+    if (!formData.email.trim()) {
+      alert('이메일 주소를 입력해주세요.')
+      return
+    }
+
+    if (!formData.zipCode || !formData.address) {
+      alert('주소를 입력해주세요.')
+      return
+    }
+
+    if (!formData.accountNumber.trim()) {
+      alert('급여 계좌번호를 입력해주세요.')
+      return
+    }
+
+    if (!formData.accountHolder.trim()) {
+      alert('예금주를 입력해주세요.')
+      return
+    }
+
+    if (!employeeId) {
+      alert('직원 ID가 없습니다.')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      const workStatusMap: Record<string, string> = {
+        working: 'EMPWK_001',  // 근무
+        leave: 'EMPWK_002',    // 휴직
+        retired: 'EMPWK_003'   // 퇴사
+      }
+
+      const updateData: UpdateEmployeeInfoRequest = {
+        // 사번 (기존에 사번이 없는 경우에만 전송)
+        employeeNumber: !originalEmployeeNumber && formData.employeeNumber ? formData.employeeNumber : undefined,
+        // 근무 상태
+        workStatus: workStatusMap[workStatus] || null,
+        // 개인 정보
+        birthDate: formData.birthDate || null,
+        mobilePhone: formData.mobilePhone || null,
+        emergencyContact: formData.emergencyContact || null,
+        email: formData.email || null,
+        // 주소 정보
+        zipCode: formData.zipCode || null,
+        address: formData.address || null,
+        addressDetail: formData.addressDetail || null,
+        // 분류 정보
+        employeeClassification: formData.employeeClassification || null,
+        contractClassification: formData.contractClassification || null,
+        rank: formData.rank || null,
+        position: formData.position || null,
+        // 입퇴사 정보
+        hireDate: formData.hireDate,  // 필수값
+        resignationDate: formData.resignationDate || null,
+        resignationReason: formData.resignationReason || null,
+        // 급여 정보
+        salaryBank: formData.bankCode || null,
+        salaryAccountNumber: formData.accountNumber || null,
+        salaryAccountHolder: formData.accountHolder || null,
+        // 파일 ID (새 파일이 없는 경우 기존 ID 유지)
+        residentRegistrationFileId: files.resident ? null : existingFileIds.resident,
+        familyRelationFileId: files.family ? null : existingFileIds.family,
+        healthCheckFileId: files.health ? null : existingFileIds.health,
+        healthCheckExpiryDate: formData.healthCheckExpiryDate || null,
+        resumeFileId: files.resume ? null : existingFileIds.resume,
+        // 기타
+        memo: formData.memo || null,
+        iconType: selectedIcon
+      }
+
+      // 파일과 함께 저장 (트랜잭션으로 처리됨)
+      await updateEmployeeWithFiles(employeeId, updateData, {
+        residentRegistrationFile: files.resident,
+        familyRelationFile: files.family,
+        healthCheckFile: files.health,
+        resumeFile: files.resume
+      })
+
+      alert('저장되었습니다.')
+      router.push(`/employee/info/${employeeId}`)
+    } catch (error) {
+      console.error('저장 실패:', error)
+      alert('저장 중 오류가 발생했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    router.push(`/employee/info/${employeeId}`)
+  }
+
+  const icons = ['👤', '👩', '👨', '👧']
+
+  return (
+    <div className="master-detail-data">
+      {/* 직원 Header 정보 관리 */}
+      <div className={`slidebox-wrap ${headerInfoOpen ? '' : 'close'}`}>
+        <div className="slidebox-header">
+          <h2>직원 Header 정보 관리</h2>
+          <div className="slidebox-btn-wrap">
+            <div className="toggle-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+              <span style={{ fontSize: '13px' }}>임시저장</span>
+              <div className="toggle-btn">
+                <input
+                  type="checkbox"
+                  id="temp-save-toggle"
+                  checked={tempSaveEnabled}
+                  onChange={() => setTempSaveEnabled(!tempSaveEnabled)}
+                />
+                <label className="slider" htmlFor="temp-save-toggle"></label>
+              </div>
+            </div>
+            <button className="slidebox-btn" onClick={handleSave} disabled={isLoading}>
+              {isLoading ? '저장 중...' : '저장'}
+            </button>
+            <button className="slidebox-btn arr" onClick={() => setHeaderInfoOpen(!headerInfoOpen)}>
+              <i className="arr-icon"></i>
+            </button>
+          </div>
+        </div>
+        <AnimateHeight duration={300} height={headerInfoOpen ? 'auto' : 0}>
+          <div className="slidebox-body">
+            <table className="default-table">
+              <colgroup>
+                <col width="190px" />
+                <col />
+              </colgroup>
+              <tbody>
+                {/* 근무처 선택 */}
+                <tr>
+                  <th>
+                    근무처 선택 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-check-flx">
+                      <button
+                        type="button"
+                        className={`btn-form ${workplaceType === 'headquarters' ? 'basic' : 'outline'}`}
+                        onClick={() => setWorkplaceType('headquarters')}
+                        style={{ minWidth: '80px' }}
+                      >
+                        본사
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-form ${workplaceType === 'franchise' ? 'basic' : 'outline'}`}
+                        onClick={() => setWorkplaceType('franchise')}
+                        style={{ minWidth: '80px' }}
+                      >
+                        가맹점
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 본사/가맹점 */}
+                <tr>
+                  <th>
+                    본사/가맹점 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <select
+                          className="select-form"
+                          value={formData.headOfficeOrganizationId}
+                          onChange={(e) => handleInputChange('headOfficeOrganizationId', e.target.value)}
+                        >
+                          <option value="">본사 선택</option>
+                          <option value="1">따름인</option>
+                        </select>
+                      </div>
+                      <div className="mx-300">
+                        <select
+                          className="select-form"
+                          value={formData.franchiseOrganizationId}
+                          onChange={(e) => handleInputChange('franchiseOrganizationId', e.target.value)}
+                        >
+                          <option value="">가맹점 선택</option>
+                          <option value="1">을지로3가점</option>
+                        </select>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 점포 선택 */}
+                <tr>
+                  <th>점포 선택</th>
+                  <td>
+                    <div className="mx-500">
+                      <select
+                        className="select-form"
+                        value={formData.storeId}
+                        onChange={(e) => handleInputChange('storeId', e.target.value)}
+                      >
+                        <option value="">#힘이나는커피생활 을지로3가점</option>
+                      </select>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 직원명/사번 */}
+                <tr>
+                  <th>
+                    직원명/사번 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.employeeName}
+                          onChange={(e) => handleInputChange('employeeName', e.target.value)}
+                          placeholder="직원명"
+                        />
+                      </div>
+                      <div className="mx-200">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.employeeNumber}
+                          onChange={(e) => handleInputChange('employeeNumber', e.target.value)}
+                          placeholder="사번"
+                          disabled={!!originalEmployeeNumber}
+                          style={{
+                            backgroundColor: originalEmployeeNumber ? '#f5f5f5' : undefined,
+                            borderColor: employeeNumberChecked
+                              ? (employeeNumberValid ? '#28a745' : '#dc3545')
+                              : undefined
+                          }}
+                        />
+                      </div>
+                      {!originalEmployeeNumber && (
+                        <button
+                          className="btn-form outline s"
+                          onClick={handleCheckEmployeeNumber}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? '확인 중...' : '사번 중복 확인'}
+                        </button>
+                      )}
+                      {employeeNumberChecked && (
+                        <span style={{ color: employeeNumberValid ? '#28a745' : '#dc3545', fontSize: '13px' }}>
+                          {employeeNumberValid ? '✓ 사용 가능' : '✗ 사용 불가'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 근무 여부 */}
+                <tr>
+                  <th>
+                    근무 여부 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-check-flx">
+                      <button
+                        type="button"
+                        className={`btn-form ${workStatus === 'working' ? 'basic' : 'outline'}`}
+                        onClick={() => setWorkStatus('working')}
+                        style={{ minWidth: '80px' }}
+                      >
+                        근무
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-form ${workStatus === 'leave' ? 'basic' : 'outline'}`}
+                        onClick={() => setWorkStatus('leave')}
+                        style={{ minWidth: '80px' }}
+                      >
+                        휴직
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-form ${workStatus === 'retired' ? 'basic' : 'outline'}`}
+                        onClick={() => setWorkStatus('retired')}
+                        style={{ minWidth: '80px' }}
+                      >
+                        퇴사
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 생년월일 */}
+                <tr>
+                  <th>생년월일</th>
+                  <td>
+                    <div className="date-picker-wrap">
+                      <DatePicker
+                        value={formData.birthDate}
+                        onChange={(date) => handleInputChange('birthDate', date)}
+                        placeholder="생년월일 선택"
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 직원 분류 */}
+                <tr>
+                  <th>
+                    직원 분류 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <select
+                          className="select-form"
+                          value={formData.employeeClassification}
+                          onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
+                        >
+                          <option value="">선택</option>
+                          {employeeClassificationOptions.map((item) => (
+                            <option key={item.code} value={item.code}>{item.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        className="btn-form outline s"
+                        type="button"
+                        onClick={() => router.push('/employee/employee-settings')}
+                      >
+                        분류설정
+                      </button>
+                      <span className="tooltip-icon" id="employee-class-tooltip">ⓘ</span>
+                      <Tooltip className="tooltip-txt" anchorSelect="#employee-class-tooltip">
+                        <div>직원 분류에 대한 설명입니다.</div>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 계약 분류 */}
+                <tr>
+                  <th>
+                    계약 분류 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="mx-300">
+                      <select
+                        className="select-form"
+                        value={formData.contractClassification}
+                        onChange={(e) => handleInputChange('contractClassification', e.target.value)}
+                      >
+                        <option value="">정직원</option>
+                        <option value="contract">계약직</option>
+                        <option value="parttime">파트타이머</option>
+                      </select>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 직급 / 직책 */}
+                <tr>
+                  <th>직급 / 직책</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-200">
+                        <select
+                          className="select-form"
+                          value={formData.rank}
+                          onChange={(e) => handleInputChange('rank', e.target.value)}
+                        >
+                          <option value="">선택</option>
+                          {rankOptions.map((item) => (
+                            <option key={item.code} value={item.code}>{item.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mx-200">
+                        <select
+                          className="select-form"
+                          value={formData.position}
+                          onChange={(e) => handleInputChange('position', e.target.value)}
+                        >
+                          <option value="">선택</option>
+                          {positionOptions.map((item) => (
+                            <option key={item.code} value={item.code}>{item.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        className="btn-form outline s"
+                        type="button"
+                        onClick={() => router.push('/employee/employee-settings?tab=rank')}
+                      >
+                        분류설정
+                      </button>
+                      <span className="tooltip-icon" id="position-tooltip">ⓘ</span>
+                      <Tooltip className="tooltip-txt" anchorSelect="#position-tooltip">
+                        <div>직급/직책에 대한 설명입니다.</div>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 입사일 */}
+                <tr>
+                  <th>
+                    입사일 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="date-picker-wrap">
+                      <DatePicker
+                        value={formData.hireDate}
+                        onChange={(date) => handleInputChange('hireDate', date)}
+                        placeholder="입사일 선택"
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 퇴사일 / 퇴사사유 */}
+                <tr>
+                  <th>퇴사일 / 퇴사사유</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="date-picker-wrap">
+                        <DatePicker
+                          value={formData.resignationDate}
+                          onChange={(date) => handleInputChange('resignationDate', date)}
+                          placeholder="퇴사일 선택"
+                        />
+                      </div>
+                      <div className="mx-300">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.resignationReason}
+                          onChange={(e) => handleInputChange('resignationReason', e.target.value)}
+                          placeholder="퇴사사유"
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 휴대폰 번호 */}
+                <tr>
+                  <th>
+                    휴대폰 번호 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.mobilePhone}
+                          onChange={(e) => handleInputChange('mobilePhone', e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="01012345678"
+                          maxLength={11}
+                        />
+                      </div>
+                      <span className="explain">※ 숫자만 입력</span>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 비상 연락처 */}
+                <tr>
+                  <th>비상 연락처</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.emergencyContact}
+                          onChange={(e) => handleInputChange('emergencyContact', e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="01012345678"
+                          maxLength={11}
+                        />
+                      </div>
+                      <span className="explain">※ 숫자만 입력</span>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 이메일 주소 */}
+                <tr>
+                  <th>
+                    이메일 주소 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="mx-400">
+                      <input
+                        type="email"
+                        className="input-frame"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 주소 */}
+                <tr>
+                  <th>
+                    주소 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <button className="btn-form outline s" type="button" onClick={handleSearchAddress}>주소찾기</button>
+                      <div className="mx-100">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.zipCode}
+                          disabled
+                          style={{ backgroundColor: '#f5f5f5' }}
+                          placeholder="우편번호"
+                        />
+                      </div>
+                      <div className="mx-350">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.address}
+                          disabled
+                          style={{ backgroundColor: '#f5f5f5' }}
+                          placeholder="주소"
+                        />
+                      </div>
+                      <div className="mx-200">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.addressDetail}
+                          onChange={(e) => handleInputChange('addressDetail', e.target.value)}
+                          placeholder="상세주소"
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 급여 계좌번호 */}
+                <tr>
+                  <th>
+                    급여 계좌번호 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-300">
+                        <select
+                          className="select-form"
+                          value={formData.bankCode}
+                          onChange={(e) => handleInputChange('bankCode', e.target.value)}
+                        >
+                          <option value="woori">우리은행</option>
+                          <option value="kb">국민은행</option>
+                          <option value="shinhan">신한은행</option>
+                          <option value="hana">하나은행</option>
+                        </select>
+                      </div>
+                      <div className="mx-250">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.accountNumber}
+                          onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                          placeholder="계좌번호"
+                        />
+                      </div>
+                      <div className="mx-150">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.accountHolder}
+                          onChange={(e) => handleInputChange('accountHolder', e.target.value)}
+                          placeholder="예금주"
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 주민등록등본 */}
+                <tr>
+                  <th>주민등록등본</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="filed-file">
+                        <input
+                          type="file"
+                          className="file-input"
+                          id="file-resident"
+                          onChange={(e) => handleFileChange('resident', e)}
+                        />
+                        <label htmlFor="file-resident" className="btn-form outline s">파일찾기</label>
+                      </div>
+                      {(files.resident || existingFileNames.resident) && (
+                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                          <span className="file-name-text" style={{ color: '#333' }}>{files.resident?.name || existingFileNames.resident}</span>
+                          <button
+                            type="button"
+                            className="btn-form outline s"
+                            onClick={() => handleFileRemove('resident')}
+                            style={{
+                              minWidth: '28px',
+                              width: '28px',
+                              height: '28px',
+                              padding: '0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#dc3545',
+                              borderColor: '#dc3545',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 가족관계증명서 */}
+                <tr>
+                  <th>가족관계증명서</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="filed-file">
+                        <input
+                          type="file"
+                          className="file-input"
+                          id="file-family"
+                          onChange={(e) => handleFileChange('family', e)}
+                        />
+                        <label htmlFor="file-family" className="btn-form outline s">파일찾기</label>
+                      </div>
+                      {(files.family || existingFileNames.family) && (
+                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                          <span className="file-name-text" style={{ color: '#333' }}>{files.family?.name || existingFileNames.family}</span>
+                          <button
+                            type="button"
+                            className="btn-form outline s"
+                            onClick={() => handleFileRemove('family')}
+                            style={{
+                              minWidth: '28px',
+                              width: '28px',
+                              height: '28px',
+                              padding: '0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#dc3545',
+                              borderColor: '#dc3545',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 건강진단결과서 */}
+                <tr>
+                  <th>건강진단결과서</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="filed-file">
+                        <input
+                          type="file"
+                          className="file-input"
+                          id="file-health"
+                          onChange={(e) => handleFileChange('health', e)}
+                        />
+                        <label htmlFor="file-health" className="btn-form outline s">파일찾기</label>
+                      </div>
+                      {(files.health || existingFileNames.health) && (
+                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                          <span className="file-name-text" style={{ color: '#333' }}>{files.health?.name || existingFileNames.health}</span>
+                          <button
+                            type="button"
+                            className="btn-form outline s"
+                            onClick={() => handleFileRemove('health')}
+                            style={{
+                              minWidth: '28px',
+                              width: '28px',
+                              height: '28px',
+                              padding: '0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#dc3545',
+                              borderColor: '#dc3545',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 건강진단결과서 만료일 */}
+                <tr>
+                  <th>건강진단결과서 만료일</th>
+                  <td>
+                    <div className="date-picker-wrap">
+                      <DatePicker
+                        value={formData.healthCheckExpiryDate}
+                        onChange={(date) => handleInputChange('healthCheckExpiryDate', date)}
+                        placeholder="만료일 선택"
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 이력서 */}
+                <tr>
+                  <th>이력서</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="filed-file">
+                        <input
+                          type="file"
+                          className="file-input"
+                          id="file-resume"
+                          onChange={(e) => handleFileChange('resume', e)}
+                        />
+                        <label htmlFor="file-resume" className="btn-form outline s">파일찾기</label>
+                      </div>
+                      {(files.resume || existingFileNames.resume) && (
+                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                          <span className="file-name-text" style={{ color: '#333' }}>{files.resume?.name || existingFileNames.resume}</span>
+                          <button
+                            type="button"
+                            className="btn-form outline s"
+                            onClick={() => handleFileRemove('resume')}
+                            style={{
+                              minWidth: '28px',
+                              width: '28px',
+                              height: '28px',
+                              padding: '0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#dc3545',
+                              borderColor: '#dc3545',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* MEMO */}
+                <tr>
+                  <th>MEMO</th>
+                  <td>
+                    <div className="block">
+                      <input
+                        type="text"
+                        className="input-frame"
+                        value={formData.memo}
+                        onChange={(e) => handleInputChange('memo', e.target.value)}
+                        placeholder="메모 내용을 입력하세요"
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 아이콘 */}
+                <tr>
+                  <th>
+                    아이콘 <span className="red">*</span>
+                  </th>
+                  <td>
+                    <div className="icon-select-group">
+                      {icons.map((icon, index) => (
+                        <button
+                          key={index}
+                          className={`icon-select-btn ${selectedIcon === index ? 'active' : ''}`}
+                          onClick={() => setSelectedIcon(index)}
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            fontSize: '32px',
+                            border: selectedIcon === index ? '2px solid #333' : '1px solid #ddd',
+                            borderRadius: '4px',
+                            background: selectedIcon === index ? '#f5f5f5' : '#fff',
+                            cursor: 'pointer',
+                            marginRight: '8px'
+                          }}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AnimateHeight>
+      </div>
+
+      {/* 하단 버튼 */}
+      <div className="btn-filed" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
+        <button className="btn-form gray" onClick={handleCancel}>취소</button>
+        <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
+          {isLoading ? '저장 중...' : '저장'}
+        </button>
+      </div>
+    </div>
+  )
+}

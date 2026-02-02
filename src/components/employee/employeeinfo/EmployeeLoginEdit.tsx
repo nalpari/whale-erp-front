@@ -1,0 +1,297 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import AnimateHeight from 'react-animate-height'
+import { getEmployee, sendEmployeeRegistrationEmail, getAuthoritiesByOrganization, updateEmployeeLoginInfo, withdrawEmployeeMember, AuthorityItem } from '@/lib/api/employee'
+import type { EmployeeInfoDetailResponse } from '@/types/employee'
+
+interface EmployeeLoginEditProps {
+  employeeId?: number
+}
+
+export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps) {
+  const router = useRouter()
+  const [loginInfoOpen, setLoginInfoOpen] = useState(true)
+  const [employee, setEmployee] = useState<EmployeeInfoDetailResponse | null>(null)
+  const [authorities, setAuthorities] = useState<AuthorityItem[]>([])
+  const [selectedAuthorityId, setSelectedAuthorityId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!employeeId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+
+        // 직원 정보 조회
+        const employeeData = await getEmployee(employeeId)
+        setEmployee(employeeData)
+
+        // 권한 목록 조회 (BP 권한: PRGRP_002)
+        try {
+          const authList = await getAuthoritiesByOrganization('PRGRP_002')
+          setAuthorities(authList)
+        } catch {
+          // 권한 조회 실패해도 페이지 표시
+          console.error('권한 목록 조회 실패')
+        }
+
+        setError(null)
+      } catch (err) {
+        console.error('데이터 조회 실패:', err)
+        setError('데이터를 불러오는데 실패했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [employeeId])
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '-'
+    return dateString.split('T')[0]
+  }
+
+  // 회원 가입 상태 계산
+  const getMemberStatus = (): string => {
+    if (!employee) return '-'
+    if (employee.memberId) return '가입완료'
+    return '가입요청전'
+  }
+
+  const handleSendRegistrationEmail = async () => {
+    if (!employeeId) return
+
+    if (!employee?.email) {
+      alert('직원의 이메일 주소가 없습니다.')
+      return
+    }
+
+    if (!confirm('직원 회원 가입 요청 메일을 발송하시겠습니까?')) return
+
+    try {
+      setSendingEmail(true)
+      await sendEmployeeRegistrationEmail(employeeId)
+      alert('회원 가입 요청 메일이 발송되었습니다.')
+    } catch (err) {
+      console.error('메일 발송 실패:', err)
+      alert('메일 발송에 실패했습니다.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    if (!employeeId || !employee?.memberId) return
+
+    if (!confirm('정말 탈퇴 처리하시겠습니까?\n탈퇴 처리 후에는 해당 회원의 로그인이 불가능합니다.')) return
+
+    try {
+      setWithdrawing(true)
+      await withdrawEmployeeMember(employeeId)
+      alert('탈퇴 처리가 완료되었습니다.')
+      // 페이지 새로고침
+      window.location.reload()
+    } catch (err) {
+      console.error('탈퇴 처리 실패:', err)
+      alert('탈퇴 처리에 실패했습니다.')
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!employeeId) return
+
+    try {
+      setSaving(true)
+      await updateEmployeeLoginInfo(employeeId, {
+        partnerOfficeAuthorityId: selectedAuthorityId
+      })
+      alert('저장되었습니다.')
+      router.push(`/employee/info/${employeeId}`)
+    } catch (err) {
+      console.error('저장 실패:', err)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleBack = () => {
+    router.push(`/employee/info/${employeeId}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="master-detail-data">
+        <div style={{ textAlign: 'center', padding: '40px' }}>로딩 중...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="master-detail-data">
+        <div style={{ textAlign: 'center', padding: '40px', color: '#dc3545' }}>{error}</div>
+      </div>
+    )
+  }
+
+  if (!employee) {
+    return (
+      <div className="master-detail-data">
+        <div style={{ textAlign: 'center', padding: '40px', color: '#dc3545' }}>직원 정보를 찾을 수 없습니다.</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="master-detail-data">
+      {/* 로그인 정보 및 권한 */}
+      <div className={`slidebox-wrap ${loginInfoOpen ? '' : 'close'}`}>
+        <div className="slidebox-header">
+          <h2>로그인 정보 및 권한</h2>
+          <div className="slidebox-btn-wrap">
+            <button className="slidebox-btn" onClick={handleSave} disabled={saving}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+            <button className="slidebox-btn arr" onClick={() => setLoginInfoOpen(!loginInfoOpen)}>
+              <i className="arr-icon"></i>
+            </button>
+          </div>
+        </div>
+        <AnimateHeight duration={300} height={loginInfoOpen ? 'auto' : 0}>
+          <div className="slidebox-body">
+            <table className="default-table">
+              <colgroup>
+                <col width="190px" />
+                <col />
+              </colgroup>
+              <tbody>
+                {/* 1. 직원 회원 가입 상태 */}
+                <tr>
+                  <th>직원 회원 가입 상태</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-200">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={getMemberStatus()}
+                          disabled
+                          style={{ backgroundColor: '#f5f5f5' }}
+                        />
+                      </div>
+                      {!employee.memberId && employee.email && (
+                        <button
+                          className="btn-form basic"
+                          onClick={handleSendRegistrationEmail}
+                          disabled={sendingEmail}
+                        >
+                          {sendingEmail ? '발송 중...' : '직원 회원 가입 요청 메일 발송'}
+                        </button>
+                      )}
+                      {employee.memberId && (
+                        <button
+                          className="btn-form outline"
+                          onClick={handleWithdraw}
+                          disabled={withdrawing}
+                        >
+                          {withdrawing ? '처리 중...' : '탈퇴 처리'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 2. 로그인 ID */}
+                <tr>
+                  <th>로그인 ID</th>
+                  <td>
+                    <div className="mx-200">
+                      <input
+                        type="text"
+                        className="input-frame"
+                        value={employee.memberLoginId || '-'}
+                        disabled
+                        style={{ backgroundColor: '#f5f5f5' }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 3. Partner Office 권한 설정 */}
+                <tr>
+                  <th>Partner Office 권한 설정</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="mx-200">
+                        <select
+                          className="select-form"
+                          value={selectedAuthorityId || ''}
+                          onChange={(e) => setSelectedAuthorityId(e.target.value ? Number(e.target.value) : null)}
+                        >
+                          <option value="">선택하세요</option>
+                          {authorities.map((auth) => (
+                            <option key={auth.id} value={auth.id}>
+                              {auth.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <span style={{ color: '#666', fontSize: '13px' }}>
+                        ※ 직원이 Partner Office에서 관리자로 접입할 때 사용합니다.
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 4. 직원 회원 가입 요청일 */}
+                <tr>
+                  <th>직원 회원 가입 요청일</th>
+                  <td>
+                    <div className="mx-200">
+                      <input
+                        type="text"
+                        className="input-frame"
+                        value={formatDate(employee.createdAt)}
+                        disabled
+                        style={{ backgroundColor: '#f5f5f5' }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 5. 직원 회원 가입일 */}
+                <tr>
+                  <th>직원 회원 가입일</th>
+                  <td>
+                    <div className="mx-200">
+                      <input
+                        type="text"
+                        className="input-frame"
+                        value={employee.memberId ? formatDate(employee.createdAt) : '-'}
+                        disabled
+                        style={{ backgroundColor: '#f5f5f5' }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AnimateHeight>
+      </div>
+    </div>
+  )
+}

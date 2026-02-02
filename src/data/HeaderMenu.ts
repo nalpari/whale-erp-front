@@ -167,17 +167,22 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'employee-01-01',
             name: '직원 정보 관리',
-            link: '/',
+            link: '/employee/info',
           },
           {
             id: 'employee-01-02',
             name: '근로 계약 관리',
-            link: '/',
+            link: '/employee/contract',
           },
           {
             id: 'employee-01-03',
             name: '직원 정보 환경 설정',
-            link: '/',
+            link: '/employee/employee-settings',
+          },
+          {
+            id: 'employee-01-04',
+            name: '근로 계약 환경 설정',
+            link: '/employee/employee-contract-settings',
           },
         ],
       },
@@ -189,22 +194,22 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'employee-02-01',
             name: '정직원 급여명세서',
-            link: '/',
+            link: '/employee/payroll/regular',
           },
           {
             id: 'employee-02-02',
             name: '파트타이머 급여명세서',
-            link: '/',
+            link: '/employee/payroll/parttime',
           },
           {
             id: 'employee-02-03',
             name: '연장근무 수당명세서',
-            link: '/',
+            link: '/employee/payroll/overtime',
           },
           {
             id: 'employee-02-04',
             name: '급여명세서 환경 설정',
-            link: '/',
+            link: '/employee/payroll/settings',
           },
         ],
       },

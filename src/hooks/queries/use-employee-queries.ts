@@ -1,8 +1,36 @@
-﻿import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
 import { employeeKeys } from './query-keys'
-import type { EmployeeInfoListResponse } from '@/types/employee'
+import type {
+  EmployeeInfoListResponse, PostEmployeeInfoRequest,
+  SaveEmployeeCareersRequest,
+  SaveEmployeeCertificatesRequest, UpdateEmployeeInfoRequest,
+} from '@/types/employee'
+import {
+  getEmployee,
+  createEmployee,
+  updateEmployee,
+  updateEmployeeWithFiles,
+  deleteEmployee,
+  checkEmployeeNumber,
+  sendEmployeeRegistrationEmail,
+  getEmployeeCareers,
+  saveEmployeeCareers,
+  deleteAllEmployeeCareers,
+  getEmployeeCertificates,
+  saveEmployeeCertificates,
+  saveEmployeeCertificatesWithFiles,
+  deleteAllEmployeeCertificates,
+  getMinimumWage,
+  getEmployeeListByType,
+  updateEmployeeLoginInfo,
+  withdrawEmployeeMember,
+  type EmployeeFiles,
+  type GetEmployeeListByTypeParams,
+  type UpdateEmployeeLoginInfoRequest,
+} from '@/lib/api/employee'
+
 
 /**
  * 직원 목록 조회 파라미터.
@@ -95,5 +123,246 @@ export const useEmployeeInfoList = (params: EmployeeListParams, enabled = true) 
       return toEmployeePage(response.data.data)
     },
     enabled,
+  })
+}
+
+export const useEmployeeDetail = (id?: number | null) => {
+  return useQuery({
+    queryKey: employeeKeys.detail(id!),
+    queryFn: () => getEmployee(id!),
+    enabled: !!id,
+  })
+}
+
+export const useEmployeeCareers = (employeeId: number, enabled = true) => {
+  return useQuery({
+    queryKey: employeeKeys.careers(employeeId),
+    queryFn: () => getEmployeeCareers(employeeId),
+    enabled,
+  })
+}
+
+export const useEmployeeCertificates = (employeeId: number, enabled = true) => {
+  return useQuery({
+    queryKey: employeeKeys.certificates(employeeId),
+    queryFn: () => getEmployeeCertificates(employeeId),
+    enabled,
+  })
+}
+
+export const useEmployeeListByType = (params: GetEmployeeListByTypeParams, enabled = true) => {
+  return useQuery({
+    queryKey: employeeKeys.byType(params),
+    queryFn: () => getEmployeeListByType(params),
+    enabled,
+  })
+}
+
+export const useMinimumWage = (year: number, enabled = true) => {
+  return useQuery({
+    queryKey: employeeKeys.minimumWage(year),
+    queryFn: () => getMinimumWage(year),
+    enabled,
+  })
+}
+
+// ========== Mutation Hooks ==========
+
+export const useCreateEmployee = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: PostEmployeeInfoRequest) => createEmployee(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+    },
+  })
+}
+
+export const useUpdateEmployee = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateEmployeeInfoRequest }) =>
+      updateEmployee(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) })
+    },
+  })
+}
+
+export const useUpdateEmployeeWithFiles = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+                   id,
+                   data,
+                   files,
+                 }: {
+      id: number
+      data: UpdateEmployeeInfoRequest
+      files: EmployeeFiles
+    }) => updateEmployeeWithFiles(id, data, files),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) })
+    },
+  })
+}
+
+export const useDeleteEmployee = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => deleteEmployee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all })
+    },
+  })
+}
+
+export const useCheckEmployeeNumber = () => {
+  return useMutation({
+    mutationFn: ({
+                   employeeNumber,
+                   headOfficeOrganizationId,
+                   franchiseOrganizationId,
+                   storeId,
+                 }: {
+      employeeNumber: string
+      headOfficeOrganizationId: number
+      franchiseOrganizationId?: number | null
+      storeId?: number | null
+    }) =>
+      checkEmployeeNumber(
+        employeeNumber,
+        headOfficeOrganizationId,
+        franchiseOrganizationId,
+        storeId
+      ),
+  })
+}
+
+export const useSendEmployeeRegistrationEmail = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (employeeId: number) => sendEmployeeRegistrationEmail(employeeId),
+    onSuccess: (_, employeeId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeId) })
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+    },
+  })
+}
+
+// ========== Career Mutation Hooks ==========
+
+export const useSaveEmployeeCareers = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+                   employeeInfoId,
+                   data,
+                 }: {
+      employeeInfoId: number
+      data: SaveEmployeeCareersRequest
+    }) => saveEmployeeCareers(employeeInfoId, data),
+    onSuccess: (_, { employeeInfoId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(employeeInfoId) })
+    },
+  })
+}
+
+export const useDeleteAllEmployeeCareers = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (employeeInfoId: number) => deleteAllEmployeeCareers(employeeInfoId),
+    onSuccess: (_, employeeInfoId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(employeeInfoId) })
+    },
+  })
+}
+
+// ========== Certificate Mutation Hooks ==========
+
+export const useSaveEmployeeCertificates = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+                   employeeInfoId,
+                   data,
+                 }: {
+      employeeInfoId: number
+      data: SaveEmployeeCertificatesRequest
+    }) => saveEmployeeCertificates(employeeInfoId, data),
+    onSuccess: (_, { employeeInfoId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    },
+  })
+}
+
+export const useSaveEmployeeCertificatesWithFiles = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+                   employeeInfoId,
+                   data,
+                   files,
+                 }: {
+      employeeInfoId: number
+      data: SaveEmployeeCertificatesRequest
+      files: File[]
+    }) => saveEmployeeCertificatesWithFiles(employeeInfoId, data, files),
+    onSuccess: (_, { employeeInfoId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    },
+  })
+}
+
+export const useDeleteAllEmployeeCertificates = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (employeeInfoId: number) => deleteAllEmployeeCertificates(employeeInfoId),
+    onSuccess: (_, employeeInfoId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    },
+  })
+}
+
+// ========== Login Info Mutation Hooks ==========
+
+export const useUpdateEmployeeLoginInfo = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+                   employeeInfoId,
+                   request,
+                 }: {
+      employeeInfoId: number
+      request: UpdateEmployeeLoginInfoRequest
+    }) => updateEmployeeLoginInfo(employeeInfoId, request),
+    onSuccess: (_, { employeeInfoId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeInfoId) })
+    },
+  })
+}
+
+export const useWithdrawEmployeeMember = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (employeeInfoId: number) => withdrawEmployeeMember(employeeInfoId),
+    onSuccess: (_, employeeInfoId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeInfoId) })
+      queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+    },
   })
 }
