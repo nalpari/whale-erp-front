@@ -27,6 +27,44 @@ export interface AttendanceListResponse {
   empty: boolean
 }
 
+// 일별 출퇴근 기록 항목
+export interface AttendanceRecordItem {
+  recordId: number | null
+  date: string // YYYY-MM-DD
+  day: string // 월요일, 화요일, ...
+  isHoliday: boolean
+  contractStartTime: string | null // 계약 출근시간 (HH:mm:ss)
+  contractEndTime: string | null // 계약 퇴근시간 (HH:mm:ss)
+  workStartTime: string | null // 실제 출근시간 (HH:mm:ss)
+  workEndTime: string | null // 실제 퇴근시간 (HH:mm:ss)
+}
+
+// 출퇴근 기록 상세 응답
+export interface AttendanceRecordResponse {
+  officeId: number
+  officeName: string
+  franchiseId: number | null
+  franchiseName: string | null
+  storeId: number
+  storeName: string
+  employeeId: number
+  employeeName: string
+  employeeNumber: string | null
+  dateFrom: string
+  dateEnd: string
+  record: AttendanceRecordItem[]
+}
+
+// 출퇴근 기록 상세 조회 파라미터
+export interface AttendanceRecordParams {
+  officeId: number
+  franchiseId?: number
+  storeId?: number
+  employeeId: number
+  from?: string // YYYY-MM-DD
+  to?: string // YYYY-MM-DD
+}
+
 // 근태 기록 검색 파라미터
 export interface AttendanceListParams {
   officeId?: number

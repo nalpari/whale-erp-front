@@ -30,6 +30,7 @@ interface AttendanceSearchProps {
   filters: AttendanceSearchFilters
   workStatusOptions: { value: string; label: string }[]
   employeeClassificationOptions: { value: string; label: string }[]
+  empClassDisabled?: boolean
   contractClassificationOptions: { value: string; label: string }[]
   resultCount: number
   onChange: (next: Partial<AttendanceSearchFilters>) => void
@@ -47,6 +48,7 @@ export default function AttendanceSearch({
   filters,
   workStatusOptions,
   employeeClassificationOptions,
+  empClassDisabled = false,
   contractClassificationOptions,
   resultCount,
   onChange,
@@ -171,6 +173,7 @@ export default function AttendanceSearch({
                     <select
                       className="select-form"
                       value={filters.employeeClassification}
+                      disabled={empClassDisabled}
                       onChange={(e) => onChange({ employeeClassification: e.target.value })}
                     >
                       <option value="ALL">전체</option>

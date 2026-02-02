@@ -20,6 +20,7 @@ interface AttendanceListProps {
   error?: string | null
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
+  onRowClick?: (row: AttendanceListItem) => void
 }
 
 export default function AttendanceList({
@@ -31,6 +32,7 @@ export default function AttendanceList({
   error,
   onPageChange,
   onPageSizeChange,
+  onRowClick,
 }: AttendanceListProps) {
   const columnDefs: ColDef<AttendanceListItem>[] = [
     {
@@ -92,7 +94,13 @@ export default function AttendanceList({
             <div className="empty-data">검색 결과가 없습니다.</div>
           </div>
         ) : (
-          <AgGrid rowData={rows} columnDefs={columnDefs} />
+          <AgGrid
+            rowData={rows}
+            columnDefs={columnDefs}
+            onRowClicked={(event) => {
+              if (event.data && onRowClick) onRowClick(event.data)
+            }}
+          />
         )}
         {!loading && rows.length > 0 && (
           <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />

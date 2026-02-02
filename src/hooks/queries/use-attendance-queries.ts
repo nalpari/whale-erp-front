@@ -2,7 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
 import { attendanceKeys } from './query-keys'
-import type { AttendanceListItem, AttendanceListParams } from '@/types/attendance'
+import type {
+  AttendanceListItem,
+  AttendanceListParams,
+  AttendanceRecordParams,
+  AttendanceRecordResponse,
+} from '@/types/attendance'
 
 const toAttendancePage = (payload: unknown): PageResponse<AttendanceListItem> => {
   if (Array.isArray(payload)) {
@@ -70,6 +75,20 @@ export const useAttendanceList = (params: AttendanceListParams, enabled = true) 
       })
       return toAttendancePage(response.data.data)
     },
-    enabled,
+    enabled: enabled && !!params.officeId,
+  })
+}
+
+export const useAttendanceRecords = (params: AttendanceRecordParams, enabled = true) => {
+  return useQuery({
+    queryKey: attendanceKeys.records(params),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<AttendanceRecordResponse>>(
+        '/api/v1/employee/attendances/records',
+        { params }
+      )
+      return response.data.data ?? null
+    },
+    enabled: enabled && !!params.officeId && !!params.employeeId,
   })
 }

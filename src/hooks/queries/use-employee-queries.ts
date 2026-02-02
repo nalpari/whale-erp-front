@@ -84,6 +84,36 @@ const toEmployeePage = (payload: unknown): PageResponse<EmployeeInfoListResponse
 }
 
 /**
+ * 직원 분류 공통코드 항목 타입.
+ */
+export type EmployeeCommonCodeItem = {
+  code: string
+  name: string
+}
+
+/**
+ * 직원 분류 공통코드 조회 훅.
+ * - headOfficeId 필수: 값이 없으면 쿼리를 실행하지 않는다.
+ */
+export const useEmployeeCommonCode = (
+  headOfficeId?: number | null,
+  franchiseId?: number | null,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: employeeKeys.commonCode(headOfficeId, franchiseId),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<EmployeeCommonCodeItem[]>>(
+        '/api/employee/info/common-code',
+        { params: { headOfficeId, franchiseId } }
+      )
+      return response.data.data ?? []
+    },
+    enabled: enabled && !!headOfficeId,
+  })
+}
+
+/**
  * 직원 목록 조회 훅.
  * - 페이지네이션 응답을 정규화하여 UI에서 일관되게 사용한다.
  */

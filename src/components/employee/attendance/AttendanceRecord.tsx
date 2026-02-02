@@ -1,33 +1,84 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import AttendanceSearch, {
   type AttendanceSearchFilters,
   DEFAULT_ATTENDANCE_FILTERS,
 } from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
-import { useAttendanceList } from '@/hooks/queries'
+import { useAttendanceList, useEmployeeCommonCode } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
 import type { AttendanceListParams } from '@/types/attendance'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
 
+const CONTRACT_CLASS_LABEL: Record<string, string> = {
+  CNTCFWK_001: '정직원',
+  CNTCFWK_002: '정직원',
+  CNTCFWK_003: '파트타이머',
+}
+
+const PAGE_SIZE_OPTIONS = [50, 100, 200] as const
+const DEFAULT_PAGE_SIZE = 50
+
+const normalizePage = (value: string | null) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0
+}
+
+const normalizeSize = (value: string | null) => {
+  const parsed = Number(value)
+  return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number])
+    ? parsed
+    : DEFAULT_PAGE_SIZE
+}
+
 export default function AttendanceRecord() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const accessToken = useAuthStore((s) => s.accessToken)
   const hydrated = Boolean(accessToken)
 
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, setAppliedFilters] =
     useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
+  const page = useMemo(() => normalizePage(searchParams.get('page')), [searchParams])
+  const pageSize = useMemo(() => normalizeSize(searchParams.get('size')), [searchParams])
 
-  // 공통코드 조회: 근무여부, 직원분류, 계약분류
-  const { children: workStatusChildren } = useCommonCode('WRKST', hydrated)
-  const { children: empClassChildren } = useCommonCode('CNTCF', hydrated)
-  const { children: contractClassChildren } = useCommonCode('CNTCS', hydrated)
+  const syncQueryParams = useCallback(
+    (nextPage: number, nextSize: number) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (nextPage > 0) {
+        params.set('page', String(nextPage))
+      } else {
+        params.delete('page')
+      }
+      params.set('size', String(nextSize))
+      const query = params.toString()
+      const nextUrl = query ? `${pathname}?${query}` : pathname
+      const currentQuery = searchParams.toString()
+      const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl)
+      }
+    },
+    [pathname, router, searchParams]
+  )
+
+  // 공통코드 조회: 근무여부, 계약분류
+  const { children: workStatusChildren } = useCommonCode('EMPWK', hydrated)
+  const { children: contractClassChildren } = useCommonCode('CNTCFWK', hydrated)
+
+  // 직원 분류: 본사/가맹점 기반 API 조회
+  const { data: empClassList = [] } = useEmployeeCommonCode(
+    filters.officeId,
+    filters.franchiseId,
+    hydrated
+  )
 
   const attendanceParams: AttendanceListParams = useMemo(
     () => ({
@@ -56,7 +107,7 @@ export default function AttendanceRecord() {
 
   const handleSearch = () => {
     setAppliedFilters(filters)
-    setPage(0)
+    syncQueryParams(0, pageSize)
   }
 
   const handleReset = () => {
@@ -73,13 +124,14 @@ export default function AttendanceRecord() {
       <AttendanceSearch
         filters={filters}
         workStatusOptions={workStatusChildren.map((c) => ({ value: c.code, label: c.name }))}
-        employeeClassificationOptions={empClassChildren.map((c) => ({
+        employeeClassificationOptions={empClassList.map((c) => ({
           value: c.code,
           label: c.name,
         }))}
+        empClassDisabled={!filters.officeId}
         contractClassificationOptions={contractClassChildren.map((c) => ({
           value: c.code,
-          label: c.name,
+          label: CONTRACT_CLASS_LABEL[c.code] ?? c.name,
         }))}
         resultCount={totalCount}
         onChange={(next) => setFilters({ ...filters, ...next })}
@@ -93,10 +145,21 @@ export default function AttendanceRecord() {
         totalPages={totalPages}
         loading={loading}
         error={error?.message}
-        onPageChange={setPage}
+        onPageChange={(nextPage) => syncQueryParams(nextPage, pageSize)}
         onPageSizeChange={(size) => {
-          setPageSize(size)
-          setPage(0)
+          if (size === pageSize) return
+          syncQueryParams(0, size)
+        }}
+        onRowClick={(row) => {
+          const params = new URLSearchParams({
+            officeId: String(row.officeId),
+            franchiseId: String(row.franchiseId),
+            storeId: String(row.storeId),
+            employeeId: String(row.employeeId),
+            employeeName: row.employeeName,
+            storeName: row.storeName,
+          })
+          router.push(`/employee/attendance/detail?${params.toString()}`)
         }}
       />
     </div>

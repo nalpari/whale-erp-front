@@ -53,10 +53,13 @@ export const employeeKeys = {
   all: ['employees'] as const,
   lists: () => [...employeeKeys.all, 'list'] as const,
   list: (params?: unknown) => [...employeeKeys.lists(), params ?? null] as const,
+  commonCode: (headOfficeId?: number | null, franchiseId?: number | null) =>
+    [...employeeKeys.all, 'common-code', { headOfficeId, franchiseId }] as const,
 }
 
 export const attendanceKeys = {
   all: ['attendances'] as const,
   lists: () => [...attendanceKeys.all, 'list'] as const,
   list: (params?: unknown) => [...attendanceKeys.lists(), params ?? null] as const,
+  records: (params?: unknown) => [...attendanceKeys.all, 'records', params ?? null] as const,
 }
