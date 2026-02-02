@@ -54,3 +54,9 @@ export const employeeKeys = {
   lists: () => [...employeeKeys.all, 'list'] as const,
   list: (params?: unknown) => [...employeeKeys.lists(), params ?? null] as const,
 }
+
+export const attendanceKeys = {
+  all: ['attendances'] as const,
+  lists: () => [...attendanceKeys.all, 'list'] as const,
+  list: (params?: unknown) => [...attendanceKeys.lists(), params ?? null] as const,
+}
