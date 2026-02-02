@@ -4,10 +4,23 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { HeaderMenu } from '@/data/HeaderMenu'
 import AnimateHeight from 'react-animate-height'
+import { SupportMenu } from '@/data/SupportMenu'
 
-export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (isOpen: boolean) => void }) {
+export default function Lnb({
+  isOpen,
+  setIsOpen,
+  menuType = 'header',
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  menuType?: 'header' | 'support';
+}) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null)
+
+  // 메뉴 리스트 설정
+  const menuList = menuType === 'support' ? SupportMenu : HeaderMenu
+
 
   const handleMenuToggle = (id: string, isSubMenu: boolean, link: boolean, e: React.MouseEvent<HTMLAnchorElement>) => {
     if (link) {
@@ -27,7 +40,6 @@ export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen:
   return (
     <div className={`lnb ${isOpen ? 'sm' : ''}`}>
       <button className="lnb-toggle-btn" onClick={() => setIsOpen(!isOpen)}></button>
-
       <div className="lnb-header">
         <Link href="/list" className="lnb-logo">
           <Image src="/assets/images/ui/lnb_logo.svg" alt="logo" width={54} height={54} priority />
@@ -41,16 +53,18 @@ export default function Lnb({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen:
         <div className="lnb-menu-icon">
           <Image src="/assets/images/ui/lnb_menu_img01.svg" alt="menu" fill />
         </div>
-        <div className="lnb_menu_name">파트너 오피스</div>
-        <div className="lnb-meu-grade">Standard</div>
+        <div className="lnb_menu_name">{menuType === 'support' ? '고객지원' : '파트너 오피스'}</div>
+        {menuType !== 'support' && (
+          <div className="lnb-meu-grade">Standard</div>
+        )}
       </div>
       <div className="lnb-body">
         <ul className="lnb-list">
-          {HeaderMenu.map((menu) => (
+          {menuList.map((menu) => (
             <li className={`lnb-item ${activeMenu === menu.id ? 'act' : ''}`} key={menu.id}>
               <Link
                 href={menu.link}
-                className={`menu-depth01 ${menu.id === 'home' ? 'home' : ''}`}
+                className={`menu-depth01 ${menu.children ? '' : 'home'}`}
                 onClick={(e: React.MouseEvent<HTMLAnchorElement>) =>
                   handleMenuToggle(menu.id, false, menu.link === '#', e)
                 }

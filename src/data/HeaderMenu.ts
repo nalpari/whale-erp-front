@@ -1,10 +1,20 @@
 // HeaderMenu 타입 정의
-import { type HeaderMenuItem } from '@/lib/schemas/menu';
 
-// HeaderMenuItem 타입 재내보내기
-export type { HeaderMenuItem };
+export interface HeaderMenuItem {
+  id: string
+  name: string
+  icon?: string
+  link: string
+  children?: HeaderMenuItem[]
+}
 
 export const HeaderMenu: HeaderMenuItem[] = [
+  {
+    id: 'home',
+    name: 'Home',
+    icon: 'lnb_menu_icon00.svg',
+    link: '/',
+  },
   {
     id: 'master',
     name: 'Master data 관리',
@@ -108,7 +118,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'franchise-store-01-03',
             name: '점포 정보 관리',
-            link: '/store/info',
+            link: '/',
           },
         ],
       },
@@ -155,7 +165,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
   },
   {
     id: 'employee',
-    name: '직원 관리',
+    name: 'BP 직원 관리',
     icon: 'lnb_menu_icon03.svg',
     link: '#',
     children: [
@@ -221,17 +231,17 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 'employee-03-01',
             name: '출퇴근 현황',
-            link: '/employee/attendance',
+            link: '/',
           },
           {
             id: 'employee-03-02',
             name: '매장별 근무 계획표',
-            link: '/employee/schedule/view',
+            link: '/',
           },
           {
             id: 'employee-03-03',
             name: '매장별 근무 계획 수립',
-            link: '/employee/schedule/plan',
+            link: '/',
           },
         ],
       },
@@ -239,7 +249,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
   },
   {
     id: 'finance',
-    name: '재무 관리',
+    name: 'BP 재무 관리',
     icon: 'lnb_menu_icon04.svg',
     link: '#',
     children: [
@@ -262,7 +272,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
   },
   {
     id: 'work',
-    name: '업무 관리',
+    name: 'BP 업무 관리',
     icon: 'lnb_menu_icon05.svg',
     link: '#',
     children: [
@@ -317,7 +327,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 'system-02',
         name: '프로그램 관리',
-        link: '/system/program',
+        link: '/',
       },
       {
         id: 'system-03',
@@ -336,4 +346,40 @@ export const HeaderMenu: HeaderMenuItem[] = [
       },
     ],
   },
+  {
+    id: 'charge',
+    name: '과금 관리',
+    icon: 'lnb_menu_icon07.svg',
+    link: '#',
+    children: [
+      {
+        id: 'charge-01',
+        name: 'ERP요금제 관리',
+        link: '/',
+      },
+      {
+        id: 'charge-02',
+        name: '부가서비스 요금제 관리',
+        link: '/',
+      },
+      {
+        id: 'charge-03',
+        name: '결제현황',
+        link: '/',
+      },
+    ],
+  },
+  {
+    id: 'additional-service',
+    name: '부가서비스 관리',
+    icon: 'lnb_menu_icon08.svg',
+    link: '#',
+    children: [
+      {
+        id: 'additional-service-01',
+        name: '부가서비스 셋팅',
+        link: '/',
+      },
+    ],
+  }
 ]
