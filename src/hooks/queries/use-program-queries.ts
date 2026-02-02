@@ -5,12 +5,12 @@ import type { ProgramReorderRequest } from '@/lib/api/program'
 import { programKeys } from '@/hooks/queries/query-keys'
 
 /**
- * 프로그램 목록 조회
+ * 프로그램 목록 조회 (menu_kind별 필터링)
  */
-export const useProgramList = () => {
+export const useProgramList = (menuKind: string) => {
   return useQuery({
-    queryKey: programKeys.lists(),
-    queryFn: ({ signal }) => fetchPrograms(signal),
+    queryKey: programKeys.list(menuKind),
+    queryFn: ({ signal }) => fetchPrograms(menuKind, signal),
     staleTime: 60 * 1000, // 1분간 fresh
   })
 }

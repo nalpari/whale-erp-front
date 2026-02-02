@@ -6,6 +6,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { programFormSchema, type Program, type ProgramFormData } from '@/lib/schemas/program'
 import { formatDateYmd } from '@/util/date-util'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 
 interface ProgramFormModalProps {
   isOpen: boolean
@@ -14,12 +15,15 @@ interface ProgramFormModalProps {
   onSubmit: (data: ProgramFormData) => void
   level1Name?: string
   level2Name?: string
+  parentMenuKind?: string
   editData?: Program | null
 }
 
 const INITIAL_FORM_DATA: ProgramFormData = {
+  menu_kind: '',
   name: '',
   path: '',
+  icon_url: '',
   is_active: true,
 }
 
@@ -40,16 +44,29 @@ export default function ProgramFormModal({
   onSubmit,
   level1Name,
   level2Name,
+  parentMenuKind,
   editData,
 }: ProgramFormModalProps) {
+  const { data: menuKindCodes = [] } = useCommonCodeHierarchy('MNKND')
+
   const initialData =
     mode === 'edit' && editData
       ? {
+          menu_kind: editData.menu_kind,
           name: editData.name,
           path: editData.path || '',
+          icon_url: editData.icon_url || '',
           is_active: editData.is_active,
         }
-      : INITIAL_FORM_DATA
+      : mode === 'create' && parentMenuKind
+        ? {
+            ...INITIAL_FORM_DATA,
+            menu_kind: parentMenuKind,
+          }
+        : {
+            ...INITIAL_FORM_DATA,
+            menu_kind: menuKindCodes[0]?.code || '',
+          }
 
   const [formData, setFormData] = useState<ProgramFormData>(initialData)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -96,6 +113,36 @@ export default function ProgramFormModal({
                   <col />
                 </colgroup>
                 <tbody>
+                  <tr>
+                    <th>
+                      메뉴 구분 {mode === 'create' && !parentMenuKind && <span className="red">*</span>}
+                    </th>
+                    <td colSpan={3}>
+                      <div className="block">
+                        {mode === 'create' && !parentMenuKind ? (
+                          <select
+                            className="select-form"
+                            value={formData.menu_kind}
+                            onChange={(e) => setFormData({ ...formData, menu_kind: e.target.value })}
+                          >
+                            {menuKindCodes.map((code) => (
+                              <option key={code.code} value={code.code}>
+                                {code.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            className="input-frame"
+                            value={menuKindCodes.find((c) => c.code === formData.menu_kind)?.name || formData.menu_kind}
+                            readOnly
+                          />
+                        )}
+                      </div>
+                      {fieldErrors.menu_kind && <div className="form-helper error">{fieldErrors.menu_kind}</div>}
+                    </td>
+                  </tr>
                   {level1Name && (
                     <tr>
                       <th>Level 1</th>
@@ -145,7 +192,6 @@ export default function ProgramFormModal({
                           className="input-frame"
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder="메뉴명을 입력하세요"
                         />
                       </div>
                       {fieldErrors.name && <div className="form-helper error">{fieldErrors.name}</div>}
@@ -160,7 +206,19 @@ export default function ProgramFormModal({
                           className="input-frame"
                           value={formData.path ?? ''}
                           onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                          placeholder="/path/to/menu"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>아이콘 URL</th>
+                    <td colSpan={3}>
+                      <div className="block">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.icon_url ?? ''}
+                          onChange={(e) => setFormData({ ...formData, icon_url: e.target.value })}
                         />
                       </div>
                     </td>
