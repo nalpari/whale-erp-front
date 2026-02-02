@@ -23,6 +23,11 @@
       border: 1px solid #ebebeb;
     }
   }
+  .main-container {
+    flex: 1;
+    padding: 42px 62px 62px;
+    background-color: #fff;
+  }
   &.sm {
     padding-left: 86px;
   }
