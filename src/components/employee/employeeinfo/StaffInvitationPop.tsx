@@ -99,6 +99,16 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [sundayEndHour, setSundayEndHour] = useState('13')
   const [sundayEndMinute, setSundayEndMinute] = useState('00')
 
+  // 평일 근무 시간 상태
+  const [weekdayStartHour, setWeekdayStartHour] = useState('09')
+  const [weekdayStartMinute, setWeekdayStartMinute] = useState('00')
+  const [weekdayEndHour, setWeekdayEndHour] = useState('18')
+  const [weekdayEndMinute, setWeekdayEndMinute] = useState('00')
+  const [weekdayBreakStartHour, setWeekdayBreakStartHour] = useState('12')
+  const [weekdayBreakStartMinute, setWeekdayBreakStartMinute] = useState('00')
+  const [weekdayBreakEndHour, setWeekdayBreakEndHour] = useState('13')
+  const [weekdayBreakEndMinute, setWeekdayBreakEndMinute] = useState('00')
+
   // 근무 시간 업데이트 함수
   const updateWorkHour = (dayType: DayType, field: keyof EmploymentContractWorkHourDto, value: unknown) => {
     setWorkHours((prev) => prev.map((wh) => (wh.dayType === dayType ? { ...wh, [field]: value } : wh)))
@@ -145,8 +155,24 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         throw new Error('일요일 격주 시작일을 선택해주세요.')
       }
 
-      // 토요일/일요일 근무 정보 반영
+      // 평일/토요일/일요일 근무 정보 반영
+      const weekdays: DayType[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']
+      const weekdayWorkStartTime = formatTime(weekdayStartHour, weekdayStartMinute)
+      const weekdayWorkEndTime = formatTime(weekdayEndHour, weekdayEndMinute)
+      const weekdayBreakStart = formatTime(weekdayBreakStartHour, weekdayBreakStartMinute)
+      const weekdayBreakEnd = formatTime(weekdayBreakEndHour, weekdayBreakEndMinute)
+
       const updatedWorkHours = workHours.map((wh) => {
+        // 평일 근무 시간 반영
+        if (weekdays.includes(wh.dayType as DayType)) {
+          return {
+            ...wh,
+            workStartTime: weekdayWorkStartTime,
+            workEndTime: weekdayWorkEndTime,
+            breakStartTime: weekdayBreakStart,
+            breakEndTime: weekdayBreakEnd,
+          }
+        }
         if (wh.dayType === 'SATURDAY') {
           const satStartTime = formatTime(saturdayStartHour, saturdayStartMinute)
           const satEndTime = formatTime(saturdayEndHour, saturdayEndMinute)
@@ -242,6 +268,14 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setSundayStartMinute('00')
     setSundayEndHour('13')
     setSundayEndMinute('00')
+    setWeekdayStartHour('09')
+    setWeekdayStartMinute('00')
+    setWeekdayEndHour('18')
+    setWeekdayEndMinute('00')
+    setWeekdayBreakStartHour('12')
+    setWeekdayBreakStartMinute('00')
+    setWeekdayBreakEndHour('13')
+    setWeekdayBreakEndMinute('00')
     setError(null)
   }
 
@@ -516,20 +550,20 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           <div className="work-time-td">
                             <div className="filed-flx g8">
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'09'} />
+                                <input type="text" className="input-frame xs" value={weekdayStartHour} onChange={(e) => setWeekdayStartHour(e.target.value)} />
                               </div>
                               <span className="explain">시</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'00'} />
+                                <input type="text" className="input-frame xs" value={weekdayStartMinute} onChange={(e) => setWeekdayStartMinute(e.target.value)} />
                               </div>
                               <span className="explain">분</span>
                               <span className="explain">~</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'18'} />
+                                <input type="text" className="input-frame xs" value={weekdayEndHour} onChange={(e) => setWeekdayEndHour(e.target.value)} />
                               </div>
                               <span className="explain">시</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'00'} />
+                                <input type="text" className="input-frame xs" value={weekdayEndMinute} onChange={(e) => setWeekdayEndMinute(e.target.value)} />
                               </div>
                               <span className="explain">분</span>
                             </div>
@@ -542,20 +576,20 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           <div className="work-time-td">
                             <div className="filed-flx g8">
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'12'} />
+                                <input type="text" className="input-frame xs" value={weekdayBreakStartHour} onChange={(e) => setWeekdayBreakStartHour(e.target.value)} />
                               </div>
                               <span className="explain">시</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'00'} />
+                                <input type="text" className="input-frame xs" value={weekdayBreakStartMinute} onChange={(e) => setWeekdayBreakStartMinute(e.target.value)} />
                               </div>
                               <span className="explain">분</span>
                               <span className="explain">~</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'13'} />
+                                <input type="text" className="input-frame xs" value={weekdayBreakEndHour} onChange={(e) => setWeekdayBreakEndHour(e.target.value)} />
                               </div>
                               <span className="explain">시</span>
                               <div>
-                                <input type="text" className="input-frame xs" defaultValue={'00'} />
+                                <input type="text" className="input-frame xs" value={weekdayBreakEndMinute} onChange={(e) => setWeekdayBreakEndMinute(e.target.value)} />
                               </div>
                               <span className="explain">분</span>
                             </div>

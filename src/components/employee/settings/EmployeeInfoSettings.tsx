@@ -24,7 +24,9 @@ import {
   saveEmployeeInfoCommonCode,
   type ClassificationItem as ApiClassificationItem,
 } from '@/lib/api/employeeInfoSettings'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
+
+const DEFAULT_HEAD_OFFICE_ID = 1
+const DEFAULT_FRANCHISE_ID = 2
 
 // 탭 타입 정의
 type TabType = 'employee' | 'rank' | 'position'

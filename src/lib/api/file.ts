@@ -61,9 +61,6 @@ export async function uploadAttachment(
     '/api/v1/files/attachments',
     formData,
     {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
       params: {
         category,
         referenceType,
@@ -90,9 +87,6 @@ export async function uploadImage(
     '/api/v1/files/images',
     formData,
     {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
       params: {
         category,
         referenceType,

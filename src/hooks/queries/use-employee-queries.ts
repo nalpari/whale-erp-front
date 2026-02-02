@@ -1,7 +1,7 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
-import { employeeKeys } from './query-keys'
+import { employeeKeys } from '@/hooks/queries/query-keys'
 import type {
   EmployeeInfoListResponse, PostEmployeeInfoRequest,
   SaveEmployeeCareersRequest,

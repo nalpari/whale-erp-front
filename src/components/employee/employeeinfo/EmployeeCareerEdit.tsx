@@ -150,6 +150,10 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         alert(`${i + 1}번째 경력의 근무 시작일을 입력해주세요.`)
         return
       }
+      if (!career.contractClassification) {
+        alert(`${i + 1}번째 경력의 계약 분류를 선택해주세요.`)
+        return
+      }
     }
 
     try {
@@ -294,16 +298,16 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                         <div className="filed-flx">
                           <div className="date-picker-wrap">
                             <DatePicker
-                              value={career.startDate}
-                              onChange={(date) => handleCareerChange(index, 'startDate', date)}
+                              value={career.startDate ? new Date(career.startDate) : null}
+                              onChange={(date) => handleCareerChange(index, 'startDate', date ? date.toISOString().split('T')[0] : null)}
                               placeholder="시작일"
                             />
                           </div>
                           <span style={{ margin: '0 8px' }}>~</span>
                           <div className="date-picker-wrap">
                             <DatePicker
-                              value={career.endDate ?? ''}
-                              onChange={(date) => handleCareerChange(index, 'endDate', date || null)}
+                              value={career.endDate ? new Date(career.endDate) : null}
+                              onChange={(date) => handleCareerChange(index, 'endDate', date ? date.toISOString().split('T')[0] : null)}
                               placeholder="종료일"
                             />
                           </div>

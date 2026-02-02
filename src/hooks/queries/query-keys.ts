@@ -61,3 +61,15 @@ export const employeeKeys = {
     [...employeeKeys.all, 'by-type', params] as const,
   minimumWage: (year: number) => [...employeeKeys.all, 'minimum-wage', year] as const,
 }
+
+export interface SettingsParams {
+  headOfficeId?: number
+  franchiseId?: number
+}
+
+export const settingsKeys = {
+  all: ['settings'] as const,
+  employeeInfo: (params?: SettingsParams) => [...settingsKeys.all, 'employee-info', params ?? null] as const,
+  laborContract: (params?: SettingsParams) => [...settingsKeys.all, 'labor-contract', params ?? null] as const,
+  payrollStatement: (params?: SettingsParams) => [...settingsKeys.all, 'payroll-statement', params ?? null] as const,
+}

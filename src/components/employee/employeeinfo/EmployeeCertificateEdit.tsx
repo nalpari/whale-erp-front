@@ -290,16 +290,16 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                         <div className="filed-flx">
                           <div className="date-picker-wrap">
                             <DatePicker
-                              value={cert.validityStartDate ?? ''}
-                              onChange={(date) => handleCertificateChange(index, 'validityStartDate', date || null)}
+                              value={cert.validityStartDate ? new Date(cert.validityStartDate) : null}
+                              onChange={(date) => handleCertificateChange(index, 'validityStartDate', date ? date.toISOString().split('T')[0] : null)}
                               placeholder="시작일"
                             />
                           </div>
                           <span style={{ margin: '0 8px' }}>~</span>
                           <div className="date-picker-wrap">
                             <DatePicker
-                              value={cert.validityEndDate ?? ''}
-                              onChange={(date) => handleCertificateChange(index, 'validityEndDate', date || null)}
+                              value={cert.validityEndDate ? new Date(cert.validityEndDate) : null}
+                              onChange={(date) => handleCertificateChange(index, 'validityEndDate', date ? date.toISOString().split('T')[0] : null)}
                               placeholder="종료일"
                             />
                           </div>
@@ -315,8 +315,8 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                       <td>
                         <div className="date-picker-wrap">
                           <DatePicker
-                            value={cert.acquisitionDate}
-                            onChange={(date) => handleCertificateChange(index, 'acquisitionDate', date)}
+                            value={cert.acquisitionDate ? new Date(cert.acquisitionDate) : null}
+                            onChange={(date) => handleCertificateChange(index, 'acquisitionDate', date ? date.toISOString().split('T')[0] : null)}
                             placeholder="취득일 선택"
                           />
                         </div>

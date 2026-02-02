@@ -128,6 +128,10 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
   }
 
   const handleBack = () => {
+    if (!employeeId) {
+      router.push('/employee/info')
+      return
+    }
     router.push(`/employee/info/${employeeId}`)
   }
 
@@ -250,7 +254,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                         </select>
                       </div>
                       <span style={{ color: '#666', fontSize: '13px' }}>
-                        ※ 직원이 Partner Office에서 관리자로 접입할 때 사용합니다.
+                        ※ 직원이 Partner Office에서 관리자로 접근할 때 사용합니다.
                       </span>
                     </div>
                   </td>
@@ -264,7 +268,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                       <input
                         type="text"
                         className="input-frame"
-                        value={formatDate(employee.createdAt)}
+                        value={employee.emailSendDate ? formatDate(employee.emailSendDate) : ''}
                         disabled
                         style={{ backgroundColor: '#f5f5f5' }}
                       />
