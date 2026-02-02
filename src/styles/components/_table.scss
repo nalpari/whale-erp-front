@@ -81,12 +81,15 @@ table {
     background: url('/assets/images/popup/filed_warning.svg') no-repeat center;
     background-size: cover;
   }
-  .warning-txt {
-    @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-    color: #f30c0c;
-  }
 }
-
+.warning-txt {
+  @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  color: #f30c0c;
+}
+.success-txt {
+  @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
+  color: #3a883a;
+}
 .slidebox-body {
   .default-table {
     th {
@@ -376,30 +379,29 @@ table {
   }
 }
 
-
 // 마이페이지 데이터 테이블
-.mypage-data-table{
+.mypage-data-table {
   width: 100%;
   table-layout: fixed;
   box-sizing: border-box;
-  th{
+  th {
     padding: 14px 5px 14px 0;
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
     color: #222;
     border-bottom: 1px solid #ebebeb;
   }
-  td{
+  td {
     padding: 14px 0px 14px 5px;
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
     color: #666666;
     border-bottom: 1px solid #ebebeb;
-    .data-list{
+    .data-list {
       @include flex(0px);
       align-items: center;
-      .data-item{
+      .data-item {
         position: relative;
         padding: 0 10px;
-        &:before{
+        &:before {
           content: '';
           position: absolute;
           top: 50%;
@@ -407,29 +409,29 @@ table {
           transform: translateY(-50%);
           width: 1px;
           height: 11px;
-          background-color: #D9D9D9;
+          background-color: #d9d9d9;
         }
         &:first-child {
           padding-left: 0;
-          &:before{
+          &:before {
             display: none;
           }
         }
         &:last-child {
           padding-right: 0;
         }
-        .data-btn{
+        .data-btn {
           display: inline-block;
           width: 100%;
           text-align: left;
           @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
-          color: #366FE3;
+          color: #366fe3;
           text-decoration: underline;
         }
       }
     }
   }
-  tr{
+  tr {
     &:last-child {
       th {
         border-bottom: none;
@@ -442,14 +444,14 @@ table {
 }
 
 // 마이페이지 메인 테이블
-.mypage-main-table{
+.mypage-main-table {
   width: 100%;
   table-layout: auto;
   box-sizing: border-box;
-  th{
+  th {
     padding: 15px 10px;
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
-    color: #F5F5F5;
+    color: #f5f5f5;
     background-color: #444;
     text-align: center;
     &:first-child {
@@ -459,51 +461,51 @@ table {
       border-radius: 0 6px 0 0;
     }
   }
-  td{
+  td {
     padding: 14px 16px;
     text-align: center;
-    border: 1px solid #EBEBEB;
+    border: 1px solid #ebebeb;
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
     color: #222;
   }
-  &.bold{
-    td{
+  &.bold {
+    td {
       font-weight: $font-w-600;
     }
   }
 }
 
-.mypage-sub-table{
+.mypage-sub-table {
   width: 100%;
   table-layout: auto;
   box-sizing: border-box;
-  th{
+  th {
     padding: 14px 10px;
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
     color: #666;
     text-align: center;
-    background-color: #F8F8F8;
-    box-shadow: 0 -1px 0 0 #EBEBEB;
+    background-color: #f8f8f8;
+    box-shadow: 0 -1px 0 0 #ebebeb;
     &:first-child {
       border-radius: 6px 0 0 0;
-      box-shadow: -1px -1px 0 0 #EBEBEB;
+      box-shadow: -1px -1px 0 0 #ebebeb;
     }
     &:last-child {
       border-radius: 0 6px 0 0;
-      box-shadow: 1px -1px 0 0 #EBEBEB;
+      box-shadow: 1px -1px 0 0 #ebebeb;
     }
   }
-  td{
+  td {
     padding: 9px 16px;
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
     color: #666;
-    border: 1px solid #EBEBEB;
+    border: 1px solid #ebebeb;
     text-align: center;
-    &.bold{
+    &.bold {
       font-weight: $font-w-600;
       color: #222;
     }
-    &.empty{
+    &.empty {
       padding: 14px 16px;
     }
   }

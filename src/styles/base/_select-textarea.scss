@@ -64,6 +64,10 @@
     background: $txtarea-disable-c-back;
     border-color: $txtarea-disable-c-border;
   }
+  &.err {
+    border-color: $input-brd-error;
+    color: $input-c-error;
+  }
 }
 
 // textarea 데스크탑
