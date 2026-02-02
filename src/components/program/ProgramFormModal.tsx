@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import '@/components/common/custom-css/FormHelper.css'
 
 import { formatZodFieldErrors } from '@/lib/zod-utils'
@@ -70,6 +70,21 @@ export default function ProgramFormModal({
 
   const [formData, setFormData] = useState<ProgramFormData>(initialData)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  /**
+   * menuKindCodes 로드 완료 시 기본값 설정
+   * 최상위 프로그램 생성 시 첫 번째 menuKind를 기본 선택
+   * 조건: !formData.menu_kind로 인해 한 번만 실행되므로 cascading render 없음
+   */
+  useEffect(() => {
+    if (mode === 'create' && !parentMenuKind && menuKindCodes.length > 0 && !formData.menu_kind) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData((prev) => ({
+        ...prev,
+        menu_kind: menuKindCodes[0].code,
+      }))
+    }
+  }, [menuKindCodes, mode, parentMenuKind, formData.menu_kind])
 
   /**
    * 폼 제출 핸들러 - Zod 검증 후 상위 컴포넌트로 전달
