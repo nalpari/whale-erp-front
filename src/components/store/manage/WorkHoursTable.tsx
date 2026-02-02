@@ -1,61 +1,47 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Swiper as SwiperClass } from 'swiper'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Navigation } from 'swiper/modules'
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
 import type { OperatingFormState } from '@/types/store'
 
-import 'swiper/css'
-import 'swiper/css/pagination'
+import '@/components/employee/custom-css/WorkScheduleTable.css'
 
-// HH:mm 형태의 문자열을 안전하게 자르는 유틸
-const normalizeTime = (value?: string | null) => {
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+const BLOCKS = Array.from({ length: 48 }, (_, i) => ({
+  index: i,
+  hour: Math.floor(i / 2),
+  minute: i % 2 === 0 ? 0 : 30,
+}))
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+
+const parseTimeToIndex = (value?: string | null) => {
   if (!value) return null
-  const trimmed = value.trim()
-  if (trimmed.length < 5) return null
-  return trimmed.slice(0, 5)
+  const [rawHour, rawMinute] = value.split(':')
+  const hour = Number(rawHour)
+  const minute = Number(rawMinute)
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null
+  const minuteIndex = minute >= 30 ? 1 : 0
+  return clamp(hour * 2 + minuteIndex, 0, 48)
 }
 
-// 숫자 범위를 강제해 입력값이 튀는 것을 방지
-const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-
-// 오전/오후 + 시/분 입력 상태
-type TimeParts = {
-  period: string
-  hour: string
-  minute: string
+const indexToTime = (index: number) => {
+  const hour = Math.floor(index / 2)
+  const minute = index % 2 === 0 ? '00' : '30'
+  return `${String(hour).padStart(2, '0')}:${minute}`
 }
 
-// 24시간 HH:mm 문자열을 오전/오후 + 12시간제로 변환
-const toTimeParts = (value?: string | null) => {
-  const normalized = normalizeTime(value)
-  if (!normalized) {
-    return { period: '오전', hour: '00', minute: '00' }
-  }
-  const [hourText = '00', minuteText = '00'] = normalized.split(':')
-  const hourValue = Number(hourText)
-  const period = hourValue >= 12 ? '오후' : '오전'
-  const hour12 = hourValue % 12 || 12
-  return {
-    period,
-    hour: String(hour12).padStart(2, '0'),
-    minute: minuteText,
-  }
-}
+const buildWorkBlockStates = (startIndex: number, endIndex: number, hasWork: boolean) =>
+  BLOCKS.map((block) => {
+    const isWorking = hasWork && block.index >= startIndex && block.index < endIndex
+    return { state: isWorking ? ('work' as const) : ('empty' as const) }
+  })
 
-const AM_PERIOD = toTimeParts('00:00').period
-const PM_PERIOD = toTimeParts('13:00').period
+const buildBreakBlockStates = (breakStartIndex: number, breakEndIndex: number, hasBreak: boolean) =>
+  BLOCKS.map((block) => {
+    const isBreak = hasBreak && block.index >= breakStartIndex && block.index < breakEndIndex
+    return { state: isBreak ? ('break' as const) : ('empty' as const) }
+  })
 
-// 오전/오후 + 12시간제 입력을 24시간제로 환산
-const to24HourTime = (parts: TimeParts) => {
-  if (!parts.hour || !parts.minute) return ''
-  const hour12 = clampNumber(Number(parts.hour), 1, 12)
-  const minute = clampNumber(Number(parts.minute), 0, 59)
-  const isPm = parts.period === PM_PERIOD
-  const hour24 = isPm ? (hour12 % 12) + 12 : hour12 % 12
-  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-}
-
-// 점포 운영/휴게 시간 선택 UI(스와이퍼 + 입력 병행)
 export const WorkHoursTable = ({
   idPrefix,
   openTime,
@@ -66,7 +52,6 @@ export const WorkHoursTable = ({
   breakTimeEnabled,
   onChange,
 }: {
-  // 동일 화면에서 여러 개 사용되므로 id 충돌 방지용 prefix
   idPrefix: string
   openTime?: string | null
   closeTime?: string | null
@@ -74,660 +59,266 @@ export const WorkHoursTable = ({
   breakEndTime?: string | null
   isOperating: boolean
   breakTimeEnabled: boolean
-  // 입력 변경 시 상위 상태로 부분 업데이트 전달
   onChange?: (next: Partial<OperatingFormState>) => void
 }) => {
-  const [workEnabledOverride, setWorkEnabledOverride] = useState<boolean | null>(null)
-  const [breakEnabledOverride, setBreakEnabledOverride] = useState<boolean | null>(null)
-  const workEnabled = workEnabledOverride ?? isOperating
-  const breakEnabled = breakEnabledOverride ?? breakTimeEnabled
-  const [openParts, setOpenParts] = useState<TimeParts>(() => toTimeParts(openTime))
-  const [closeParts, setCloseParts] = useState<TimeParts>(() => toTimeParts(closeTime))
-  const [breakStartParts, setBreakStartParts] = useState<TimeParts>(() => toTimeParts(breakStartTime))
-  const [breakEndParts, setBreakEndParts] = useState<TimeParts>(() => toTimeParts(breakEndTime))
-  const openHourSwiperRef = useRef<SwiperClass | null>(null)
-  const openMinuteSwiperRef = useRef<SwiperClass | null>(null)
-  const closeHourSwiperRef = useRef<SwiperClass | null>(null)
-  const closeMinuteSwiperRef = useRef<SwiperClass | null>(null)
-  const breakStartHourSwiperRef = useRef<SwiperClass | null>(null)
-  const breakStartMinuteSwiperRef = useRef<SwiperClass | null>(null)
-  const breakEndHourSwiperRef = useRef<SwiperClass | null>(null)
-  const breakEndMinuteSwiperRef = useRef<SwiperClass | null>(null)
+  // 기본값: 운영 07:00-18:00, B/T 12:00-13:00
+  const DEFAULT_WORK_START = 14  // 07:00
+  const DEFAULT_WORK_END = 36    // 18:00
+  const DEFAULT_BREAK_START = 24 // 12:00
+  const DEFAULT_BREAK_END = 36   // 18:00
 
-  const hourOptions = useMemo(
-    () => Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')),
-    []
-  )
-  const minuteOptions = useMemo(() => ['00', '30'], [])
+  const [workEnabled, setWorkEnabled] = useState(isOperating)
+  const [breakEnabled, setBreakEnabled] = useState(breakTimeEnabled)
+  const [startIndex, setStartIndex] = useState(() => parseTimeToIndex(openTime) ?? DEFAULT_WORK_START)
+  const [endIndex, setEndIndex] = useState(() => parseTimeToIndex(closeTime) ?? DEFAULT_WORK_END)
+  const [breakStartIndex, setBreakStartIndex] = useState(() => parseTimeToIndex(breakStartTime) ?? DEFAULT_BREAK_START)
+  const [breakEndIndex, setBreakEndIndex] = useState(() => parseTimeToIndex(breakEndTime) ?? DEFAULT_BREAK_END)
 
-  const getHourIndex = (value: string) => {
-    const index = Math.max(0, Math.min(11, Number(value) - 1))
-    return Number.isNaN(index) ? 0 : index
-  }
+  const dragRef = useRef<{
+    type: 'work-start' | 'work-end' | 'break-start' | 'break-end'
+    slider: HTMLDivElement
+  } | null>(null)
 
-  const getMinuteIndex = (value: string) => (value === '30' ? 1 : 0)
+  // Sync from props
+  useEffect(() => {
+    setWorkEnabled(isOperating)
+  }, [isOperating])
 
   useEffect(() => {
-    const next = to24HourTime(openParts)
-    if (!next || next === (openTime ?? '')) return
-    onChange?.({ openTime: next })
-  }, [openParts, openTime, onChange])
+    setBreakEnabled(breakTimeEnabled)
+  }, [breakTimeEnabled])
 
   useEffect(() => {
-    const next = to24HourTime(closeParts)
-    if (!next || next === (closeTime ?? '')) return
-    onChange?.({ closeTime: next })
-  }, [closeParts, closeTime, onChange])
+    const index = parseTimeToIndex(openTime)
+    if (index !== null) setStartIndex(index)
+  }, [openTime])
 
   useEffect(() => {
-    const next = to24HourTime(breakStartParts)
-    if (!next || next === (breakStartTime ?? '')) return
-    onChange?.({ breakStartTime: next })
-  }, [breakStartParts, breakStartTime, onChange])
+    const index = parseTimeToIndex(closeTime)
+    if (index !== null) setEndIndex(index)
+  }, [closeTime])
 
   useEffect(() => {
-    const next = to24HourTime(breakEndParts)
-    if (!next || next === (breakEndTime ?? '')) return
-    onChange?.({ breakEndTime: next })
-  }, [breakEndParts, breakEndTime, onChange])
+    const index = parseTimeToIndex(breakStartTime)
+    if (index !== null) setBreakStartIndex(index)
+  }, [breakStartTime])
 
-  const normalizeHourInput = (value: string, currentPeriod: string) => {
-    const digits = value.replace(/\D/g, '').slice(-2)
-    if (!digits) {
-      return { period: currentPeriod, hour: '' }
+  useEffect(() => {
+    const index = parseTimeToIndex(breakEndTime)
+    if (index !== null) setBreakEndIndex(index)
+  }, [breakEndTime])
+
+  // Drag handlers
+  useEffect(() => {
+    const handleMove = (event: MouseEvent) => {
+      if (!dragRef.current) return
+      const { type, slider } = dragRef.current
+      const rect = slider.getBoundingClientRect()
+      const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1)
+      const nextIndex = Math.round(ratio * 48)
+
+      if (type === 'work-start') {
+        const newStartIndex = clamp(nextIndex, 0, endIndex - 1)
+        setStartIndex(newStartIndex)
+        onChange?.({ openTime: indexToTime(newStartIndex) })
+      } else if (type === 'work-end') {
+        const newEndIndex = clamp(nextIndex, startIndex + 1, 48)
+        setEndIndex(newEndIndex)
+        onChange?.({ closeTime: indexToTime(newEndIndex) })
+      } else if (type === 'break-start') {
+        const newBreakStartIndex = clamp(nextIndex, startIndex, breakEndIndex - 1)
+        setBreakStartIndex(newBreakStartIndex)
+        onChange?.({ breakStartTime: indexToTime(newBreakStartIndex) })
+      } else if (type === 'break-end') {
+        const newBreakEndIndex = clamp(nextIndex, breakStartIndex + 1, endIndex)
+        setBreakEndIndex(newBreakEndIndex)
+        onChange?.({ breakEndTime: indexToTime(newBreakEndIndex) })
+      }
     }
-    if (digits.length === 1) {
-      return { period: currentPeriod, hour: digits }
-    }
-    const hour24 = clampNumber(Number(digits), 0, 23)
-    const preferTwoDigits = digits.length > 1
-    let nextPeriod = currentPeriod
-    let hour12 = hour24
 
-    if (hour24 >= 13) {
-      nextPeriod = PM_PERIOD
-      hour12 = hour24 - 12
-    } else if (hour24 === 12) {
-      nextPeriod = currentPeriod === AM_PERIOD ? PM_PERIOD : currentPeriod
-      hour12 = 12
-    } else if (hour24 === 0) {
-      hour12 = 12
+    const handleUp = () => {
+      dragRef.current = null
     }
 
-    const hourText = preferTwoDigits ? String(hour12).padStart(2, '0') : String(hour12)
-    return { period: nextPeriod, hour: hourText }
-  }
-
-  const normalizeMinuteInput = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(-2)
-    if (!digits) return null
-    if (digits.length === 1) {
-      return { minute: digits, finalized: false }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
     }
-    const minute = clampNumber(Number(digits), 0, 59)
-    return { minute: minute >= 30 ? '30' : '00', finalized: true }
+  }, [startIndex, endIndex, breakStartIndex, breakEndIndex, onChange])
+
+  const handleWorkToggle = (checked: boolean) => {
+    setWorkEnabled(checked)
+    if (checked) {
+      // 서버 데이터가 없으면 기본값 설정
+      const hasServerData = parseTimeToIndex(openTime) !== null
+      if (!hasServerData) {
+        setStartIndex(DEFAULT_WORK_START)
+        setEndIndex(DEFAULT_WORK_END)
+        onChange?.({
+          isOperating: true,
+          openTime: indexToTime(DEFAULT_WORK_START),
+          closeTime: indexToTime(DEFAULT_WORK_END)
+        })
+      } else {
+        onChange?.({ isOperating: true })
+      }
+    } else {
+      setBreakEnabled(false)
+      onChange?.({ isOperating: false, breakTimeEnabled: false })
+    }
   }
 
-  const handlePeriodChange = (
-    period: string,
-    setParts: (next: TimeParts | ((prev: TimeParts) => TimeParts)) => void
-  ) => {
-    setParts((prev) => ({ ...prev, period }))
+  const handleBreakToggle = (checked: boolean) => {
+    if (!workEnabled) return
+    setBreakEnabled(checked)
+    if (checked) {
+      // 서버 데이터가 없으면 기본값 설정, 있으면 운영시간 범위 내로 조정
+      const hasBreakData = parseTimeToIndex(breakStartTime) !== null
+      let newBreakStart = hasBreakData ? breakStartIndex : DEFAULT_BREAK_START
+      let newBreakEnd = hasBreakData ? breakEndIndex : DEFAULT_BREAK_END
+
+      // 운영시간 범위 내로 조정
+      newBreakStart = clamp(newBreakStart, startIndex, endIndex - 1)
+      newBreakEnd = clamp(newBreakEnd, newBreakStart + 1, endIndex)
+
+      setBreakStartIndex(newBreakStart)
+      setBreakEndIndex(newBreakEnd)
+      onChange?.({
+        breakTimeEnabled: true,
+        breakStartTime: indexToTime(newBreakStart),
+        breakEndTime: indexToTime(newBreakEnd)
+      })
+    } else {
+      onChange?.({ breakTimeEnabled: false })
+    }
   }
 
-  const syncHourSwiper = (swiperRef: { current: SwiperClass | null }, hour: string) => {
-    if (!hour) return
-    swiperRef.current?.slideTo(getHourIndex(hour))
-  }
+  const workBlockStates = buildWorkBlockStates(startIndex, endIndex, workEnabled)
+  const breakBlockStates = buildBreakBlockStates(breakStartIndex, breakEndIndex, breakEnabled && workEnabled)
+  const startPercent = (startIndex / 48) * 100
+  const endPercent = (endIndex / 48) * 100
+  const breakStartPercent = (breakStartIndex / 48) * 100
+  const breakEndPercent = (breakEndIndex / 48) * 100
 
-  const syncMinuteSwiper = (swiperRef: { current: SwiperClass | null }, minute: string) => {
-    if (!minute) return
-    swiperRef.current?.slideTo(getMinuteIndex(minute))
-  }
-
-  const openKey = normalizeTime(openTime) ?? 'na'
-  const closeKey = normalizeTime(closeTime) ?? 'na'
-  const breakStartKey = normalizeTime(breakStartTime) ?? 'na'
-  const breakEndKey = normalizeTime(breakEndTime) ?? 'na'
+  // 시간 계산 (30분 단위 = 0.5시간)
+  const workHours = workEnabled ? ((endIndex - startIndex) / 2).toFixed(1) : '0'
+  const breakHours = breakEnabled && workEnabled ? ((breakEndIndex - breakStartIndex) / 2).toFixed(1) : '0'
 
   return (
-    <table className="store-info-work-hours-table">
-      <colgroup>
-        <col />
-        <col />
-        <col />
-        <col />
-      </colgroup>
-      <thead>
-        <tr>
-          <th colSpan={2}>
-            <div className="toggle-wrap">
-              <span className="toggle-txt">근무유무</span>
-              <div className="toggle-btn">
-                <input
-                  type="checkbox"
-                  id={`toggle-work-hours-${idPrefix}`}
-                  checked={workEnabled}
-                  onChange={(event) => {
-                    setWorkEnabledOverride(event.target.checked)
-                    onChange?.({ isOperating: event.target.checked })
-                  }}
-                />
-                <label className="slider" htmlFor={`toggle-work-hours-${idPrefix}`}></label>
-              </div>
-            </div>
-          </th>
-          <th colSpan={2}>
-            <div className="toggle-wrap">
-              <span className="toggle-txt">휴게유무</span>
-              <div className="toggle-btn">
-                <input
-                  type="checkbox"
-                  id={`toggle-break-hours-${idPrefix}`}
-                  checked={breakEnabled}
-                  onChange={(event) => {
-                    setBreakEnabledOverride(event.target.checked)
-                    onChange?.({ breakTimeEnabled: event.target.checked })
-                  }}
-                />
-                <label className="slider" htmlFor={`toggle-break-hours-${idPrefix}`}></label>
-              </div>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <div className={`work-hours-box ${workEnabled ? '' : 'disabled'}`}>
-              <div className="work-hours-tab">
-                <button
-                  className={`work-time-tab ${openParts.period === AM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(AM_PERIOD, setOpenParts)}
-                >
-                  {AM_PERIOD}
-                </button>
-                <button
-                  className={`work-time-tab ${openParts.period === PM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(PM_PERIOD, setOpenParts)}
-                >
-                  {PM_PERIOD}
-                </button>
-              </div>
-              <div className="work-hours-inner">
-                <div className="time-swiper hours">
-                  <Swiper
-                    key={`${idPrefix}-open-hour-${openKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={workEnabled}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={workEnabled}
-                    modules={[Navigation]}
-                    className="mySwiper"
-                    initialSlide={getHourIndex(openParts.hour)}
-                    onSwiper={(swiper) => {
-                      openHourSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = hourOptions[index] ?? '01'
-                      setOpenParts((prev) => ({ ...prev, hour: next }))
-                    }}
-                  >
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <SwiperSlide key={index}>
-                        <div className="number-box">{index < 9 ? `0${index + 1}` : index + 1}</div>
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
-                </div>
-                <div className="time-colon">:</div>
-                <div className="time-swiper minutes">
-                  <Swiper
-                    key={`${idPrefix}-open-minute-${openKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={workEnabled}
-                    modules={[Navigation]}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={workEnabled}
-                    className="mySwiper"
-                    initialSlide={getMinuteIndex(openParts.minute)}
-                    onSwiper={(swiper) => {
-                      openMinuteSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = minuteOptions[index] ?? '00'
-                      setOpenParts((prev) => ({ ...prev, minute: next }))
-                    }}
-                  >
-                    <SwiperSlide>
-                      <div className="number-box">00</div>
-                    </SwiperSlide>
-                    <SwiperSlide>
-                      <div className="number-box">30</div>
-                    </SwiperSlide>
-                  </Swiper>
-                </div>
-              </div>
-              <div className="work-hours-preview">
-                <div className="filed-flx g8">
-                  <span className="explain">{openParts.period}</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={openParts.hour}
-                      inputMode="numeric"
-                      onChange={(event) => {
-                        const next = normalizeHourInput(event.target.value, openParts.period)
-                        if (!next) return
-                        setOpenParts((prev) => ({ ...prev, period: next.period, hour: next.hour }))
-                        if (!next.hour) return
-                        syncHourSwiper(openHourSwiperRef, next.hour)
-                      }}
-                    />
-                  </div>
-                  <span className="explain">시</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={openParts.minute}
-                      inputMode="numeric"
-                      maxLength={2}
-                      onChange={(event) => {
-                        const next = normalizeMinuteInput(event.target.value)
-                        if (!next) return
-                        setOpenParts((prev) => ({ ...prev, minute: next.minute }))
-                        if (next.finalized) {
-                          syncMinuteSwiper(openMinuteSwiperRef, next.minute)
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="explain">분</span>
-                  <span className="explain">부터</span>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td>
-            <div className={`work-hours-box ${workEnabled ? '' : 'disabled'}`}>
-              <div className="work-hours-tab">
-                <button
-                  className={`work-time-tab ${closeParts.period === AM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(AM_PERIOD, setCloseParts)}
-                >
-                  {AM_PERIOD}
-                </button>
-                <button
-                  className={`work-time-tab ${closeParts.period === PM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(PM_PERIOD, setCloseParts)}
-                >
-                  {PM_PERIOD}
-                </button>
-              </div>
-              <div className="work-hours-inner">
-                <div className="time-swiper hours">
-                  <Swiper
-                    key={`${idPrefix}-close-hour-${closeKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={workEnabled}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={workEnabled}
-                    modules={[Navigation]}
-                    className="mySwiper"
-                    initialSlide={getHourIndex(closeParts.hour)}
-                    onSwiper={(swiper) => {
-                      closeHourSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = hourOptions[index] ?? '01'
-                      setCloseParts((prev) => ({ ...prev, hour: next }))
-                    }}
-                  >
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <SwiperSlide key={index}>
-                        <div className="number-box">{index < 9 ? `0${index + 1}` : index + 1}</div>
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
-                </div>
-                <div className="time-colon">:</div>
-                <div className="time-swiper minutes">
-                  <Swiper
-                    key={`${idPrefix}-close-minute-${closeKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={workEnabled}
-                    modules={[Navigation]}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={workEnabled}
-                    className="mySwiper"
-                    initialSlide={getMinuteIndex(closeParts.minute)}
-                    onSwiper={(swiper) => {
-                      closeMinuteSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = minuteOptions[index] ?? '00'
-                      setCloseParts((prev) => ({ ...prev, minute: next }))
-                    }}
-                  >
-                    <SwiperSlide>
-                      <div className="number-box">00</div>
-                    </SwiperSlide>
-                    <SwiperSlide>
-                      <div className="number-box">30</div>
-                    </SwiperSlide>
-                  </Swiper>
-                </div>
-              </div>
-              <div className="work-hours-preview">
-                <div className="filed-flx g8">
-                  <span className="explain">{closeParts.period}</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={closeParts.hour}
-                      inputMode="numeric"
-                      onChange={(event) => {
-                        const next = normalizeHourInput(event.target.value, closeParts.period)
-                        if (!next) return
-                        setCloseParts((prev) => ({ ...prev, period: next.period, hour: next.hour }))
-                        if (!next.hour) return
-                        syncHourSwiper(closeHourSwiperRef, next.hour)
-                      }}
-                    />
-                  </div>
-                  <span className="explain">시</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={closeParts.minute}
-                      inputMode="numeric"
-                      maxLength={2}
-                      onChange={(event) => {
-                        const next = normalizeMinuteInput(event.target.value)
-                        if (!next) return
-                        setCloseParts((prev) => ({ ...prev, minute: next.minute }))
-                        if (next.finalized) {
-                          syncMinuteSwiper(closeMinuteSwiperRef, next.minute)
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="explain">분</span>
-                  <span className="explain">까지</span>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td>
-            <div className={`work-hours-box ${breakEnabled ? '' : 'disabled'}`}>
-              <div className="work-hours-tab">
-                <button
-                  className={`work-time-tab ${breakStartParts.period === AM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(AM_PERIOD, setBreakStartParts)}
-                >
-                  {AM_PERIOD}
-                </button>
-                <button
-                  className={`work-time-tab ${breakStartParts.period === PM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(PM_PERIOD, setBreakStartParts)}
-                >
-                  {PM_PERIOD}
-                </button>
-              </div>
-              <div className="work-hours-inner">
-                <div className="time-swiper hours">
-                  <Swiper
-                    key={`${idPrefix}-break-start-hour-${breakStartKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={breakEnabled}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={breakEnabled}
-                    modules={[Navigation]}
-                    className="mySwiper"
-                    initialSlide={getHourIndex(breakStartParts.hour)}
-                    onSwiper={(swiper) => {
-                      breakStartHourSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = hourOptions[index] ?? '01'
-                      setBreakStartParts((prev) => ({ ...prev, hour: next }))
-                    }}
-                  >
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <SwiperSlide key={index}>
-                        <div className="number-box">{index < 9 ? `0${index + 1}` : index + 1}</div>
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
-                </div>
-                <div className="time-colon">:</div>
-                <div className="time-swiper minutes">
-                  <Swiper
-                    key={`${idPrefix}-break-start-minute-${breakStartKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={breakEnabled}
-                    modules={[Navigation]}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={breakEnabled}
-                    className="mySwiper"
-                    initialSlide={getMinuteIndex(breakStartParts.minute)}
-                    onSwiper={(swiper) => {
-                      breakStartMinuteSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = minuteOptions[index] ?? '00'
-                      setBreakStartParts((prev) => ({ ...prev, minute: next }))
-                    }}
-                  >
-                    <SwiperSlide>
-                      <div className="number-box">00</div>
-                    </SwiperSlide>
-                    <SwiperSlide>
-                      <div className="number-box">30</div>
-                    </SwiperSlide>
-                  </Swiper>
-                </div>
-              </div>
-              <div className="work-hours-preview">
-                <div className="filed-flx g8">
-                  <span className="explain">{breakStartParts.period}</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={breakStartParts.hour}
-                      inputMode="numeric"
-                      onChange={(event) => {
-                        const next = normalizeHourInput(event.target.value, breakStartParts.period)
-                        if (!next) return
-                        setBreakStartParts((prev) => ({ ...prev, period: next.period, hour: next.hour }))
-                        if (!next.hour) return
-                        syncHourSwiper(breakStartHourSwiperRef, next.hour)
-                      }}
-                    />
-                  </div>
-                  <span className="explain">시</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={breakStartParts.minute}
-                      inputMode="numeric"
-                      maxLength={2}
-                      onChange={(event) => {
-                        const next = normalizeMinuteInput(event.target.value)
-                        if (!next) return
-                        setBreakStartParts((prev) => ({ ...prev, minute: next.minute }))
-                        if (next.finalized) {
-                          syncMinuteSwiper(breakStartMinuteSwiperRef, next.minute)
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="explain">분</span>
-                  <span className="explain">부터</span>
-                </div>
-              </div>
-            </div>
-          </td>
-          <td>
-            <div className={`work-hours-box ${breakEnabled ? '' : 'disabled'}`}>
-              <div className="work-hours-tab">
-                <button
-                  className={`work-time-tab ${breakEndParts.period === AM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(AM_PERIOD, setBreakEndParts)}
-                >
-                  {AM_PERIOD}
-                </button>
-                <button
-                  className={`work-time-tab ${breakEndParts.period === PM_PERIOD ? 'act' : ''}`}
-                  type="button"
-                  onClick={() => handlePeriodChange(PM_PERIOD, setBreakEndParts)}
-                >
-                  {PM_PERIOD}
-                </button>
-              </div>
-              <div className="work-hours-inner">
-                <div className="time-swiper hours">
-                  <Swiper
-                    key={`${idPrefix}-break-end-hour-${breakEndKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={breakEnabled}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={breakEnabled}
-                    modules={[Navigation]}
-                    className="mySwiper"
-                    initialSlide={getHourIndex(breakEndParts.hour)}
-                    onSwiper={(swiper) => {
-                      breakEndHourSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = hourOptions[index] ?? '01'
-                      setBreakEndParts((prev) => ({ ...prev, hour: next }))
-                    }}
-                  >
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <SwiperSlide key={index}>
-                        <div className="number-box">{index < 9 ? `0${index + 1}` : index + 1}</div>
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
-                </div>
-                <div className="time-colon">:</div>
-                <div className="time-swiper minutes">
-                  <Swiper
-                    key={`${idPrefix}-break-end-minute-${breakEndKey}`}
-                    spaceBetween={10}
-                    slidesPerView={3}
-                    direction={'vertical'}
-                    navigation={breakEnabled}
-                    modules={[Navigation]}
-                    loop={false}
-                    centeredSlides={true}
-                    allowTouchMove={breakEnabled}
-                    className="mySwiper"
-                    initialSlide={getMinuteIndex(breakEndParts.minute)}
-                    onSwiper={(swiper) => {
-                      breakEndMinuteSwiperRef.current = swiper
-                    }}
-                    onSlideChange={(swiper) => {
-                      const index = swiper.realIndex ?? swiper.activeIndex
-                      const next = minuteOptions[index] ?? '00'
-                      setBreakEndParts((prev) => ({ ...prev, minute: next }))
-                    }}
-                  >
-                    <SwiperSlide>
-                      <div className="number-box">00</div>
-                    </SwiperSlide>
-                    <SwiperSlide>
-                      <div className="number-box">30</div>
-                    </SwiperSlide>
-                  </Swiper>
-                </div>
-              </div>
-              <div className="work-hours-preview">
-                <div className="filed-flx g8">
-                  <span className="explain">{breakEndParts.period}</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={breakEndParts.hour}
-                      inputMode="numeric"
-                      onChange={(event) => {
-                        const next = normalizeHourInput(event.target.value, breakEndParts.period)
-                        if (!next) return
-                        setBreakEndParts((prev) => ({ ...prev, period: next.period, hour: next.hour }))
-                        if (!next.hour) return
-                        syncHourSwiper(breakEndHourSwiperRef, next.hour)
-                      }}
-                    />
-                  </div>
-                  <span className="explain">시</span>
-                  <div>
-                    <input
-                      type="text"
-                      className="input-frame xs"
-                      value={breakEndParts.minute}
-                      inputMode="numeric"
-                      maxLength={2}
-                      onChange={(event) => {
-                        const next = normalizeMinuteInput(event.target.value)
-                        if (!next) return
-                        setBreakEndParts((prev) => ({ ...prev, minute: next.minute }))
-                        if (next.finalized) {
-                          syncMinuteSwiper(breakEndMinuteSwiperRef, next.minute)
-                        }
-                      }}
-                    />
-                  </div>
-                  <span className="explain">분</span>
-                  <span className="explain">까지</span>
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="staff-work-table">
+      {/* 운영 시간 슬라이더 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
+        <div className="toggle-wrap">
+          <span className="toggle-txt">운영</span>
+          <label className="toggle-btn" htmlFor={`work-toggle-${idPrefix}`}>
+            <input
+              type="checkbox"
+              id={`work-toggle-${idPrefix}`}
+              checked={workEnabled}
+              onChange={(event) => handleWorkToggle(event.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: '#222' }}>
+          {workEnabled ? `${indexToTime(startIndex)} - ${indexToTime(endIndex)} (${workHours} H)` : '-'}
+        </div>
+      </div>
+
+      <div className={`time-slider${workEnabled ? '' : ' is-disabled'}`}>
+        <div className="time-blocks blue">
+          <span
+            className="time-handle start"
+            style={{ left: `calc(${startPercent}% - 6px)` }}
+            onMouseDown={(event) => {
+              if (!workEnabled) return
+              const slider = event.currentTarget.closest('.time-slider') as HTMLDivElement | null
+              if (!slider) return
+              dragRef.current = { type: 'work-start', slider }
+            }}
+          />
+          <span
+            className="time-handle end"
+            style={{ left: `calc(${endPercent}% - 6px)` }}
+            onMouseDown={(event) => {
+              if (!workEnabled) return
+              const slider = event.currentTarget.closest('.time-slider') as HTMLDivElement | null
+              if (!slider) return
+              dragRef.current = { type: 'work-end', slider }
+            }}
+          />
+          {workBlockStates.map((block, index) => {
+            const style = block.state === 'empty' ? { backgroundColor: 'transparent' } : undefined
+            return <div key={index} className="time-block" style={style} />
+          })}
+        </div>
+      </div>
+      <div className="time-header">
+        {HOURS.map((hour) => (
+          <div key={hour} className="time-label">
+            {String(hour).padStart(2, '0')}
+          </div>
+        ))}
+      </div>
+
+      {/* B/T 시간 슬라이더 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, marginBottom: 6 }}>
+        <div className="toggle-wrap">
+          <span className="toggle-txt">B/T</span>
+          <label className="toggle-btn" htmlFor={`break-toggle-${idPrefix}`}>
+            <input
+              type="checkbox"
+              id={`break-toggle-${idPrefix}`}
+              checked={breakEnabled}
+              disabled={!workEnabled}
+              onChange={(event) => handleBreakToggle(event.target.checked)}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: '#8d8d8d' }}>
+          {breakEnabled && workEnabled ? `${indexToTime(breakStartIndex)} - ${indexToTime(breakEndIndex)} (${breakHours} H)` : '-'}
+        </div>
+      </div>
+
+      <div className={`time-slider${workEnabled && breakEnabled ? '' : ' is-disabled'}`}>
+        <div className="time-blocks">
+          <span
+            className="time-handle start break"
+            style={{ left: `calc(${breakStartPercent}% - 6px)` }}
+            onMouseDown={(event) => {
+              if (!workEnabled || !breakEnabled) return
+              const slider = event.currentTarget.closest('.time-slider') as HTMLDivElement | null
+              if (!slider) return
+              dragRef.current = { type: 'break-start', slider }
+            }}
+          />
+          <span
+            className="time-handle end break"
+            style={{ left: `calc(${breakEndPercent}% - 6px)` }}
+            onMouseDown={(event) => {
+              if (!workEnabled || !breakEnabled) return
+              const slider = event.currentTarget.closest('.time-slider') as HTMLDivElement | null
+              if (!slider) return
+              dragRef.current = { type: 'break-end', slider }
+            }}
+          />
+          {breakBlockStates.map((block, index) => {
+            const className = `time-block${block.state === 'break' ? ' gray' : ''}`
+            const style = block.state === 'empty' ? { backgroundColor: 'transparent' } : undefined
+            return <div key={index} className={className} style={style} />
+          })}
+        </div>
+      </div>
+      <div className="time-header">
+        {HOURS.map((hour) => (
+          <div key={hour} className="time-label">
+            {String(hour).padStart(2, '0')}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

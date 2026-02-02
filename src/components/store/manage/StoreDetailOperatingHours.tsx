@@ -40,8 +40,6 @@ export const StoreDetailOperatingHours = ({
           <colgroup>
             <col width="160px" />
             <col />
-            <col width="160px" />
-            <col />
           </colgroup>
           <tbody>
             <tr>

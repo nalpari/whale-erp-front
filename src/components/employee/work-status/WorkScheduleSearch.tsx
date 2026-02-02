@@ -1,5 +1,7 @@
 ﻿'use client';
 
+import '@/components/common/custom-css/FormHelper.css';
+import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';

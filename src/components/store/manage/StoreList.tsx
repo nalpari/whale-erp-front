@@ -1,4 +1,5 @@
 ﻿'use client'
+import '@/components/common/custom-css/FormHelper.css'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'

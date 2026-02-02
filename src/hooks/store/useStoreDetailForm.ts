@@ -118,19 +118,19 @@ const buildDefaultOperating = (dayType: OperatingDayType, mode: StoreFormMode): 
       openTime: '07:00',
       closeTime: '18:00',
       breakTimeEnabled: true,
-      breakStartTime: '07:00',
-      breakEndTime: '08:00',
+      breakStartTime: '14:00',
+      breakEndTime: '16:00',
     }
   }
 
   return {
     dayType,
     isOperating: false,
-    openTime: '00:00',
-    closeTime: '00:00',
+    openTime: '07:00',
+    closeTime: '18:00',
     breakTimeEnabled: false,
-    breakStartTime: '00:00',
-    breakEndTime: '00:00',
+    breakStartTime: '14:00',
+    breakEndTime: '16:00',
   }
 }
 

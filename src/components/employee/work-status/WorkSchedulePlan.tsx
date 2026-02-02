@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import WorkScheduleSearch from './WorkScheduleSearch';
