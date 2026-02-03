@@ -39,6 +39,7 @@ export const commonCodeKeys = {
 export const programKeys = {
   all: ['programs'] as const,
   lists: () => [...programKeys.all, 'list'] as const,
+  list: (menuKind: string) => [...programKeys.lists(), menuKind] as const,
   details: () => [...programKeys.all, 'detail'] as const,
   detail: (id: number) => [...programKeys.details(), id] as const,
 }

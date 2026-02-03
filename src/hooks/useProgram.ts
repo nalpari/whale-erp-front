@@ -46,18 +46,21 @@ const searchPrograms = (items: Program[], keyword: string, parentPath: string[] 
  * - 기존 컴포넌트와의 호환성을 위한 래퍼 레이어
  */
 export function useProgram() {
-  // React Query: 서버 데이터
-  const { data: programs = [], isPending: isLoading, error, refetch } = useProgramList()
-
   // Zustand: UI 상태
+  const selectedMenuKind = useProgramStore((state) => state.selectedMenuKind)
+  const setSelectedMenuKind = useProgramStore((state) => state.setSelectedMenuKind)
+  const inputKeyword = useProgramStore((state) => state.inputKeyword)
   const searchKeyword = useProgramStore((state) => state.searchKeyword)
   const searchResults = useProgramStore((state) => state.searchResults)
   const openItems = useProgramStore((state) => state.openItems)
   const isModalOpen = useProgramStore((state) => state.isModalOpen)
   const modalMode = useProgramStore((state) => state.modalMode)
   const modalProgram = useProgramStore((state) => state.modalProgram)
-  const { setSearchKeyword, setSearchResults, clearSearch, setOpenItems, toggleItem, openModal, closeModal } =
+  const { setInputKeyword, setSearchKeyword, setSearchResults, clearSearch, setOpenItems, toggleItem, openModal, closeModal } =
     useProgramStore()
+
+  // React Query: 서버 데이터 (menuKind로 필터링)
+  const { data: programs = [], isPending: isLoading, error, refetch } = useProgramList(selectedMenuKind)
 
   // Mutation 훅들
   const createMutation = useCreateProgram()
@@ -87,10 +90,19 @@ export function useProgram() {
   const handleSubmit = async (data: ProgramFormData) => {
     try {
       if (modalMode === 'create') {
+        const parentId = modalProgram?.id || null
         await createMutation.mutateAsync({
           ...data,
-          parent_id: modalProgram?.id || null,
+          parent_id: parentId,
         })
+
+        // 하위 프로그램 추가인 경우 부모 토글 열기
+        if (parentId !== null) {
+          const newOpenItems = new Set(openItems)
+          newOpenItems.add(parentId)
+          setOpenItems(newOpenItems)
+        }
+
         alert('등록되었습니다.')
       } else if (modalMode === 'edit') {
         if (!modalProgram?.id) {
@@ -98,9 +110,10 @@ export function useProgram() {
           closeModal()
           return
         }
+        const { menu_kind, ...updateData } = data
         await updateMutation.mutateAsync({
           id: modalProgram.id,
-          data,
+          data: updateData,
         })
         alert('수정되었습니다.')
       } else {
@@ -132,6 +145,31 @@ export function useProgram() {
       const message = axiosError.response?.data?.message ?? '삭제에 실패하였습니다.'
       alert(message)
     }
+  }
+
+  // 프로그램의 부모 이름 찾기 (모달에서 표시용)
+  const findProgramParents = (targetId: number | null): { level1Name?: string; level2Name?: string } => {
+    if (targetId === null) return {}
+
+    const findInTree = (items: Program[], parents: Program[] = []): { level1Name?: string; level2Name?: string } => {
+      for (const program of items) {
+        if (program.id === targetId) {
+          if (parents.length === 0) return {}
+          if (parents.length === 1) return { level1Name: parents[0].name }
+          return { level1Name: parents[0].name, level2Name: parents[1].name }
+        }
+
+        if (program.children?.length) {
+          parents.push(program)
+          const result = findInTree(program.children, parents)
+          if (Object.keys(result).length > 0) return result
+          parents.pop()
+        }
+      }
+      return {}
+    }
+
+    return findInTree(programs)
   }
 
   // 프로그램 순서 변경 핸들러
@@ -174,6 +212,9 @@ export function useProgram() {
     refetch,
 
     // UI 상태 (Zustand)
+    selectedMenuKind,
+    setSelectedMenuKind,
+    inputKeyword,
     searchKeyword,
     searchResults,
     openItems,
@@ -182,6 +223,7 @@ export function useProgram() {
     modalProgram,
 
     // 액션
+    setInputKeyword,
     handleSearch,
     clearSearch,
     toggleItem,
@@ -192,5 +234,8 @@ export function useProgram() {
     handleSubmit,
     handleDelete,
     handleReorder,
+
+    // 유틸리티
+    findProgramParents,
   }
 }
