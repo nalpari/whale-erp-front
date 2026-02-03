@@ -105,7 +105,34 @@ export default function DatePickerStorybookPage() {
                     </td>
                   </tr>
 
-                  {/* 3. 비활성화 */}
+                  {/* 3. 에러 상태 (error + helpText) */}
+                  <tr>
+                    <th>에러 상태</th>
+                    <td>
+                      <DatePicker
+                        value={null}
+                        onChange={() => { }}
+                        placeholder="날짜를 선택하세요"
+                        error={true}
+                        helpText="필수 입력 항목입니다."
+                      />
+                    </td>
+                  </tr>
+
+                  {/* 4. 도움말 텍스트 (helpText만) */}
+                  <tr>
+                    <th>도움말 텍스트</th>
+                    <td>
+                      <DatePicker
+                        value={new Date()}
+                        onChange={() => { }}
+                        placeholder="날짜를 선택하세요"
+                        helpText="입사일을 선택해주세요."
+                      />
+                    </td>
+                  </tr>
+
+                  {/* 5. 비활성화 */}
                   <tr>
                     <th>비활성화 (disabled)</th>
                     <td>
@@ -248,6 +275,37 @@ export default function DatePickerStorybookPage() {
                       />
                     </td>
                   </tr>
+
+                  {/* 6. 에러 상태 (error + helpText) */}
+                  <tr>
+                    <th>에러 상태</th>
+                    <td>
+                      <RangeDatePicker
+                        startDate={null}
+                        endDate={null}
+                        onChange={() => { }}
+                        startDatePlaceholder="시작일"
+                        endDatePlaceholder="종료일"
+                        error={true}
+                        helpText="기간을 선택해주세요."
+                      />
+                    </td>
+                  </tr>
+
+                  {/* 7. 도움말 텍스트 (helpText만) */}
+                  <tr>
+                    <th>도움말 텍스트</th>
+                    <td>
+                      <RangeDatePicker
+                        startDate={new Date(2024, 0, 1)}
+                        endDate={new Date(2024, 11, 31)}
+                        onChange={() => { }}
+                        startDatePlaceholder="시작일"
+                        endDatePlaceholder="종료일"
+                        helpText="검색 기간을 선택해주세요."
+                      />
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -300,6 +358,22 @@ export default function DatePickerStorybookPage() {
                     <td>string</td>
                     <td>-</td>
                     <td>placeholder 텍스트</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code className="bg-gray-100 px-1 rounded">error</code>
+                    </td>
+                    <td>boolean</td>
+                    <td>false</td>
+                    <td>에러 상태 여부 - true면 빨간 테두리</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code className="bg-gray-100 px-1 rounded">helpText</code>
+                    </td>
+                    <td>string</td>
+                    <td>-</td>
+                    <td>에러 메시지 또는 도움말 텍스트</td>
                   </tr>
                 </tbody>
               </table>
@@ -409,6 +483,22 @@ export default function DatePickerStorybookPage() {
                     <td>string</td>
                     <td>-</td>
                     <td>컨테이너 추가 클래스</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code className="bg-gray-100 px-1 rounded">error</code>
+                    </td>
+                    <td>boolean</td>
+                    <td>false</td>
+                    <td>에러 상태 여부 - true면 빨간 테두리</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code className="bg-gray-100 px-1 rounded">helpText</code>
+                    </td>
+                    <td>string</td>
+                    <td>-</td>
+                    <td>에러 메시지 또는 도움말 텍스트</td>
                   </tr>
                 </tbody>
               </table>
