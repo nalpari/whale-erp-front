@@ -147,9 +147,9 @@ export default function RangeDatePicker({
 
       if (!isControlled) {
         setUncontrolledStartDate(newStartDate)
-        setUncontrolledEndDate(newEndDate)
+        setUncontrolledEndDate(newEndDate ?? null)
       }
-      onChange?.({ startDate: newStartDate, endDate: newEndDate })
+      onChange?.({ startDate: newStartDate, endDate: newEndDate ?? null })
     },
     [endDate, isControlled, onChange]
   )
@@ -165,7 +165,7 @@ export default function RangeDatePicker({
       if (!isControlled) {
         setUncontrolledEndDate(newEndDate)
       }
-      onChange?.({ startDate, endDate: newEndDate })
+      onChange?.({ startDate: startDate ?? null, endDate: newEndDate })
     },
     [startDate, isControlled, onChange]
   )

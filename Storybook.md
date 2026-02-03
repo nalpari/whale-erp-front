@@ -15,6 +15,7 @@ whale-erp-front 프로젝트의 공통 컴포넌트 예제 페이지 목록입�
 | `/storybook/upload` | FileUpload | 파일 업로드 컴포넌트 |
 | `/storybook/image-upload` | ImageUpload | 이미지 업로드 컴포넌트 |
 | `/storybook/datepicker` | DatePicker, RangeDatePicker | 날짜 선택 컴포넌트 |
+| `/storybook/editor` | Editor | 리치 텍스트 에디터 컴포넌트 |
 
 ---
 
@@ -240,6 +241,70 @@ interface DateRange {
 
 ---
 
+### 6. Editor (`/storybook/editor`)
+
+**경로**: `src/app/(sub)/storybook/editor/page.tsx`
+
+**Import**: `import { Editor } from '@/components/common/ui'`
+
+Tiptap 기반의 리치 텍스트 에디터 컴포넌트입니다.
+
+**샘플 목록**:
+- 기본 에디터
+- 라벨 + 필수 입력 (`label`, `required`)
+- 에러 상태 (`error`, `helpText`)
+- 값이 있는 상태
+- 이미지 업로드 (커스텀 핸들러, `onImageUpload`)
+- 높이 제한 (`minHeight`, `maxHeight`)
+- 읽기 전용 (`readOnly`)
+- 비활성화 (`disabled`)
+- 툴바 없음 (`showToolbar`)
+- 슬래시 명령어 비활성화 (`enableSlashCommands`)
+
+**지원 기능**:
+| 기능 | 설명 |
+|------|------|
+| 텍스트 서식 | 굵게, 기울임, 취소선, 인라인 코드 |
+| 제목 | H1, H2, H3 제목 스타일 |
+| 목록 | 글머리 기호 목록, 번호 매기기 목록 |
+| 블록 요소 | 인용구, 코드 블록, 가로줄 |
+| 이미지 | 툴바 버튼, 드래그&드롭, 클립보드 붙여넣기 |
+| 단축키 | Ctrl+B (굵게), Ctrl+I (기울임), Ctrl+Z (실행 취소), Ctrl+Y (다시 실행) |
+| 슬래시 명령어 | `/` 입력 시 명령어 팔레트 표시 (↑↓ 선택, Enter 실행, Esc 취소) |
+
+**주요 Props**:
+| Prop | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `value` | string | `''` | 에디터 내용 (HTML 문자열) |
+| `onChange` | (html: string) => void | - | 내용 변경 핸들러 |
+| `label` | string | - | 라벨 텍스트 |
+| `required` | boolean | false | 필수 입력 여부 |
+| `error` | boolean | false | 에러 상태 |
+| `helpText` | string | - | 에러/도움말 메시지 |
+| `placeholder` | string | `'내용을 입력하세요...'` | 플레이스홀더 텍스트 |
+| `minHeight` | number | 200 | 최소 높이 (px) |
+| `maxHeight` | number | - | 최대 높이 (px) |
+| `disabled` | boolean | false | 비활성화 여부 |
+| `readOnly` | boolean | false | 읽기 전용 여부 |
+| `showToolbar` | boolean | true | 툴바 표시 여부 |
+| `enableSlashCommands` | boolean | true | 슬래시 명령어 사용 여부 |
+| `slashCommands` | SlashCommandItem[] | 기본 명령어 | 커스텀 슬래시 명령어 배열 |
+| `onImageUpload` | (file: File) => Promise\<string\> | - | 이미지 업로드 핸들러 (URL 반환) |
+| `maxImageSize` | number | 10MB | 이미지 최대 크기 (bytes) |
+| `acceptImageTypes` | string[] | `['image/jpeg', 'image/png', 'image/gif', 'image/webp']` | 허용 이미지 타입 |
+
+**SlashCommandItem 타입**:
+```typescript
+interface SlashCommandItem {
+  title: string
+  description: string
+  icon: React.ReactNode
+  command: (editor: TiptapEditor) => void
+}
+```
+
+---
+
 ## 파일 구조
 
 ```
@@ -252,6 +317,8 @@ src/app/(sub)/storybook/
 │   └── page.tsx          # FileUpload 컴포넌트 예제
 ├── image-upload/
 │   └── page.tsx          # ImageUpload 컴포넌트 예제
-└── datepicker/
-    └── page.tsx          # DatePicker, RangeDatePicker 예제
+├── datepicker/
+│   └── page.tsx          # DatePicker, RangeDatePicker 예제
+└── editor/
+    └── page.tsx          # Editor 컴포넌트 예제
 ```

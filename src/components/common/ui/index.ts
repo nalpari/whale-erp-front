@@ -17,3 +17,6 @@ export {
   type ImageUploadProps,
   type ImageItem,
 } from './ImageUpload'
+
+export { default as Editor, type EditorProps, type SlashCommandItem } from './Editor'
+
