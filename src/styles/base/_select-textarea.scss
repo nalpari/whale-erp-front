@@ -19,6 +19,9 @@
   background-size: 24px 24px;
   transition: all 0.15s ease-in-out;
   cursor: pointer;
+  &:hover {
+    border-color: $sel-brd-focus;
+  }
   &:focus {
     outline: none;
     border-color: $sel-brd-focus;

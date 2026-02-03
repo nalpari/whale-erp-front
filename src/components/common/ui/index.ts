@@ -5,3 +5,15 @@ export {
   type AddressData,
   type DaumPostcodeData,
 } from './AddressSearch'
+
+export {
+  default as FileUpload,
+  type FileUploadProps,
+  type FileItem,
+} from './FileUpload'
+
+export {
+  default as ImageUpload,
+  type ImageUploadProps,
+  type ImageItem,
+} from './ImageUpload'

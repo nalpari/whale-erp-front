@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import { useEmployeeInfoList } from '@/hooks/queries'
@@ -58,40 +58,40 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
     name: '',
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const queryParams = useMemo(() => ({
+
+  // 쿼리 파라미터 (React Compiler 자동 메모이제이션)
+  const queryParams = {
     officeId: filters.officeId ?? undefined,
     franchiseId: filters.franchiseId ?? undefined,
     storeId: filters.storeId ?? undefined,
     employeeName: filters.name ? filters.name : undefined,
     page: 0,
     size: 100,
-  }), [filters])
+  }
   const { data: employeePage, isPending, error } = useEmployeeInfoList(queryParams, true)
-  const rowData = useMemo<EmployeeRow[]>(
-    () =>
-      (employeePage?.content ?? []).map((employee, index) => {
-        const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
-        const workerId = employee.memberId ?? employee.employeeInfoId ?? null
-        return {
-          id,
-          workerId,
-          status: employee.workStatusName ?? employee.workStatus ?? '',
-          office: employee.headOfficeOrganizationName ?? '',
-          franchise: employee.franchiseOrganizationName ?? '',
-          store: employee.storeName ?? '',
-          name: employee.employeeName,
-          contractType: getContractTypeLabel(employee.contractClassification),
-          isSelected: selectedId === id,
-        }
-      }),
-    [employeePage?.content, selectedId]
-  )
-  const filteredRows = useMemo(() => {
-    return rowData.filter((row) => {
-      if (filters.status && row.status && !row.status.includes(filters.status)) return false
-      return true
-    })
-  }, [filters.status, rowData])
+
+  // 행 데이터 변환 (React Compiler 자동 메모이제이션)
+  const rowData: EmployeeRow[] = (employeePage?.content ?? []).map((employee, index) => {
+    const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
+    const workerId = employee.memberId ?? employee.employeeInfoId ?? null
+    return {
+      id,
+      workerId,
+      status: employee.workStatusName ?? employee.workStatus ?? '',
+      office: employee.headOfficeName ?? '',
+      franchise: employee.franchiseName ?? '',
+      store: employee.storeName ?? '',
+      name: employee.employeeName,
+      contractType: getContractTypeLabel(employee.contractClassification),
+      isSelected: selectedId === id,
+    }
+  })
+
+  // 필터링된 행 (React Compiler 자동 메모이제이션)
+  const filteredRows = rowData.filter((row) => {
+    if (filters.status && row.status && !row.status.includes(filters.status)) return false
+    return true
+  })
 
   const handleSearch = () => {
     setFilters(form)
@@ -109,32 +109,30 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
     setFilters(nextForm)
     setSelectedId(null)
   }
-  const columnDefs = useMemo<ColDef<EmployeeRow>[]>(
-    () => [
-      {
-        headerName: '선택',
-        width: 80,
-        cellRenderer: (params: ICellRendererParams<EmployeeRow>) => (
-          <div className="radio-form-box">
-            <input
-              type="radio"
-              name="employee-select"
-              id={`employee-${params.data?.id}`}
-              checked={params.data?.isSelected ?? false}
-              onChange={() => setSelectedId(params.data?.id ?? null)}
-            />
-            <label htmlFor={`employee-${params.data?.id}`}></label>
-          </div>
-        ),
-      },
-      { field: 'status', headerName: '운영여부', width: 120 },
-      { field: 'office', headerName: '본사', width: 180 },
-      { field: 'franchise', headerName: '가맹점', width: 180 },
-      { field: 'store', headerName: '점포', width: 180 },
-      { field: 'name', headerName: '직원명', flex: 1 },
-    ],
-    []
-  )
+  // 컬럼 정의 (정적 데이터)
+  const columnDefs: ColDef<EmployeeRow>[] = [
+    {
+      headerName: '선택',
+      width: 80,
+      cellRenderer: (params: ICellRendererParams<EmployeeRow>) => (
+        <div className="radio-form-box">
+          <input
+            type="radio"
+            name="employee-select"
+            id={`employee-${params.data?.id}`}
+            checked={params.data?.isSelected ?? false}
+            onChange={() => setSelectedId(params.data?.id ?? null)}
+          />
+          <label htmlFor={`employee-${params.data?.id}`}></label>
+        </div>
+      ),
+    },
+    { field: 'status', headerName: '운영여부', width: 120 },
+    { field: 'office', headerName: '본사', width: 180 },
+    { field: 'franchise', headerName: '가맹점', width: 180 },
+    { field: 'store', headerName: '점포', width: 180 },
+    { field: 'name', headerName: '직원명', flex: 1 },
+  ]
 
   return (
     <div className="modal-popup">
