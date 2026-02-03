@@ -73,7 +73,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
     franchiseOptions,
     handleOfficeChange,
     handleFranchiseChange,
-    handleAddressSearch,
     handleOperatingChange,
     handleSameAsOwnerChange,
     handleWeekdayToggle,
@@ -178,6 +177,14 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onStoreOwnerChange={handleStoreOwnerChange}
           onOfficeChange={handleOfficeChange}
           onFranchiseChange={handleFranchiseChange}
+            onAddressChange={(data) =>
+              setFormState((prev: StoreFormState) => ({
+                ...prev,
+                storeAddress: data.address,
+                storeAddressDetail: data.addressDetail,
+                postalCode: data.zonecode ?? prev.postalCode,
+              }))
+            }
           onStoreNameChange={(value) => setFormState((prev: StoreFormState) => ({ ...prev, storeName: value }))}
           onOperationStatusChange={(value) => setFormState((prev: StoreFormState) => ({ ...prev, operationStatus: value }))}
           onSameAsOwnerChange={handleSameAsOwnerChange}
@@ -192,7 +199,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
               businessNumber: normalizeBusinessNumber(value),
             }))
           }
-          onStoreAddressDetailChange={(value) => setFormState((prev: StoreFormState) => ({ ...prev, storeAddressDetail: value }))}
           onCeoPhoneChange={(value) =>
             setFormState((prev: StoreFormState) => ({
               ...prev,
@@ -208,7 +214,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onStoreImagesSelect={handleStoreImagesSelect}
           onRemoveNewImage={handleRemoveNewImage}
           onToggleDeleteImage={toggleDeleteImage}
-          onAddressSearch={handleAddressSearch}
           onExistingFileDownload={handleExistingFileDownload}
           onRemoveAllStoreImages={handleRemoveAllStoreImages}
           getFileUrl={getFileUrl}

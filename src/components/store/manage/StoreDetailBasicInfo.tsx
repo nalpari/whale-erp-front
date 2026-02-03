@@ -1,5 +1,6 @@
 import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
+import type { RefObject } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
@@ -50,6 +51,7 @@ interface StoreDetailBasicInfoProps {
   bpTree: BpHeadOfficeNode[]
   bpLoading: boolean
   franchiseOptions: BpFranchiseNode[]
+  addressDetailRef?: RefObject<HTMLInputElement | null>
   /** AddressSearch onChange 핸들러 */
   onAddressChange: (data: AddressData) => void
   existingBusinessFile?: UploadFile
@@ -91,6 +93,7 @@ export const StoreDetailBasicInfo = ({
   bpTree,
   bpLoading,
   franchiseOptions,
+  addressDetailRef,
   onAddressChange,
   existingBusinessFile,
   existingStoreImages,
@@ -337,6 +340,7 @@ export const StoreDetailBasicInfo = ({
                       zonecode: formState.postalCode,
                     }}
                     onChange={onAddressChange}
+                      detailInputRef={addressDetailRef}
                     error={!!fieldErrors.storeAddress}
                     helpText={fieldErrors.storeAddress}
                     addressPlaceholder="주소를 선택하세요"
