@@ -142,6 +142,15 @@ export default function WorkScheduleSearch({
     setForm(initialForm);
   }, [initialForm]);
 
+  // employeeOptions 변경 시 현재 선택된 employeeName이 유효한지 체크
+  useEffect(() => {
+    if (!form.employeeName) return
+    const isValid = employeeOptions.some((opt) => opt.value === form.employeeName)
+    if (!isValid) {
+      setForm((prev) => ({ ...prev, employeeName: '' }))
+    }
+  }, [employeeOptions, form.employeeName]);
+
   useEffect(() => {
     if (!autoSearchKey || autoSearchRef.current === autoSearchKey) return;
     autoSearchRef.current = autoSearchKey;

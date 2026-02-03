@@ -101,7 +101,12 @@ export default function AttendanceSearch({
           검색결과<span>{resultCount}건</span>
         </div>
         <ul className="search-result-list" />
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="검색 결과 토글"
+          aria-expanded={searchOpen}
+        ></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">

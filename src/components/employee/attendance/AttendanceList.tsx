@@ -71,8 +71,11 @@ export default function AttendanceList({
       field: 'workDay',
       headerName: '근무요일',
       flex: 1,
-      valueGetter: (params) =>
-        params.data?.workDay?.map((d) => WORK_DAY_LABEL[d] ?? d).join('/') ?? '-',
+      valueGetter: (params) => {
+        const workDay = params.data?.workDay
+        if (!workDay || workDay.length === 0) return '-'
+        return workDay.map((d) => WORK_DAY_LABEL[d] ?? d).join('/')
+      },
     },
   ]
 

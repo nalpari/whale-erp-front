@@ -202,7 +202,7 @@ export const StoreDetailBasicInfo = ({
   }
 
   // 사업자등록증 파일 클릭 핸들러 (다운로드)
-  const handleBusinessFileClick = async (file: FileItem) => {
+  const handleBusinessFileClick = (file: FileItem) => {
     if (file.file) {
       // 새 파일: 브라우저에서 다운로드
       const url = URL.createObjectURL(file.file)
@@ -239,7 +239,7 @@ export const StoreDetailBasicInfo = ({
   }
 
   // 점포 이미지 파일 클릭 핸들러 (다운로드)
-  const handleStoreImageClick = async (file: FileItem, index: number) => {
+  const handleStoreImageClick = (file: FileItem, index: number) => {
     const existingCount = existingStoreImages.length
     if (file.file) {
       // 새 파일: 브라우저에서 다운로드

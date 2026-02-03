@@ -165,6 +165,8 @@ export default function AttendanceRecord() {
             franchiseId: String(row.franchiseId),
             storeId: String(row.storeId),
             employeeId: String(row.employeeId),
+            page: String(page),
+            size: String(pageSize),
           })
           router.push(`/employee/attendance/detail?${params.toString()}`)
         }}

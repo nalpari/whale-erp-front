@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
-import { attendanceKeys } from './query-keys'
+import { attendanceKeys } from '@/hooks/queries/query-keys'
 import type {
   AttendanceListItem,
   AttendanceListParams,

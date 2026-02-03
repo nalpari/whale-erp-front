@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
 import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRequest } from '@/types/store'
-import type { DaumPostcodeData } from '@/components/common/ui/AddressSearch'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCodeCache } from '@/hooks/queries'
@@ -383,22 +382,6 @@ interface DaumPostcodeDataLocal {
   zonecode?: string
   address?: string
   roadAddress?: string
-}
-// 다음 주소 검색 API 응답 일부 타입
-declare global {
-  interface Window {
-    daum?: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void
-        onclose?: (state: string) => void
-        width?: string | number
-        height?: string | number
-      }) => {
-        open: (options?: { left?: number; top?: number; popupTitle?: string }) => void
-        embed: (element: HTMLElement) => void
-      }
-    }
-  }
 }
 
 // 폼 초기화/매핑에 필요한 입력값

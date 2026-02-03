@@ -53,16 +53,19 @@ export default function AttendanceDetail() {
   const [appliedTo, setAppliedTo] = useState<Date | null>(defaultTo)
   const [showDateError, setShowDateError] = useState(false)
 
-  const recordParams: AttendanceRecordParams = {
-    officeId: officeId!,
+  const recordParams: AttendanceRecordParams | null = officeId && employeeId ? {
+    officeId,
     franchiseId: franchiseId ?? undefined,
     storeId: storeId ?? undefined,
-    employeeId: employeeId!,
+    employeeId,
     from: formatDateYmdOrUndefined(appliedFrom),
     to: formatDateYmdOrUndefined(appliedTo),
-  }
+  } : null
 
-  const { data: response, isPending: loading, error } = useAttendanceRecords(recordParams, hydrated)
+  const { data: response, isPending: loading, error } = useAttendanceRecords(
+    recordParams || { officeId: 0, employeeId: 0 },
+    hydrated && Boolean(officeId && employeeId)
+  )
 
   // 같은 날짜의 레코드를 그룹핑
   const groupedRecords = useMemo(() => {
@@ -109,6 +112,20 @@ export default function AttendanceDetail() {
     const query = params.toString()
     const url = query ? `/employee/attendance?${query}` : '/employee/attendance'
     router.push(url)
+  }
+
+  if (!officeId || !employeeId) {
+    return (
+      <div className="data-wrap">
+        <Location title="근태 기록 상세" list={BREADCRUMBS} />
+        <div className="contents-wrap">
+          <div className="warning-txt">필수 파라미터가 없습니다.</div>
+          <button className="btn-form basic" onClick={handleBackToList}>
+            목록으로 돌아가기
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
