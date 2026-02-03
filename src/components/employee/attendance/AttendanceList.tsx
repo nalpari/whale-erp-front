@@ -1,8 +1,10 @@
 'use client'
 
+import { useMemo } from 'react'
 import { ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { AttendanceListItem } from '@/types/attendance'
 
 const WORK_DAY_LABEL: Record<string, string> = {
@@ -34,6 +36,15 @@ export default function AttendanceList({
   onPageSizeChange,
   onRowClick,
 }: AttendanceListProps) {
+  const pageSizeOptions: SelectOption[] = useMemo(
+    () => [
+      { value: '50', label: '50' },
+      { value: '100', label: '100' },
+      { value: '200', label: '200' },
+    ],
+    []
+  )
+
   const columnDefs: ColDef<AttendanceListItem>[] = [
     {
       headerName: '#',
@@ -71,17 +82,13 @@ export default function AttendanceList({
         <div className="data-header-left"></div>
         <div className="data-header-right">
           <div className="data-count-select">
-            <select
-              className="select-form"
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            >
-              {[50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={pageSizeOptions.find((opt) => opt.value === String(pageSize)) || null}
+              options={pageSizeOptions}
+              isSearchable={false}
+              isClearable={false}
+              onChange={(option) => onPageSizeChange(Number(option?.value ?? 50))}
+            />
           </div>
         </div>
       </div>

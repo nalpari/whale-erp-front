@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
@@ -12,6 +12,12 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { AttendanceRecordItem, AttendanceRecordParams } from '@/types/attendance'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록', '상세']
+
+const parseNumberParam = (value: string | null): number | null => {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
 
 const formatTime = (time: string | null) => {
   if (!time) return '-'
@@ -29,10 +35,10 @@ export default function AttendanceDetail() {
   const page = useAttendanceSearchStore((state) => state.page)
   const pageSize = useAttendanceSearchStore((state) => state.pageSize)
 
-  const officeId = Number(searchParams.get('officeId')) || null
-  const franchiseId = Number(searchParams.get('franchiseId')) || null
-  const storeId = Number(searchParams.get('storeId')) || null
-  const employeeId = Number(searchParams.get('employeeId')) || null
+  const officeId = parseNumberParam(searchParams.get('officeId'))
+  const franchiseId = parseNumberParam(searchParams.get('franchiseId'))
+  const storeId = parseNumberParam(searchParams.get('storeId'))
+  const employeeId = parseNumberParam(searchParams.get('employeeId'))
 
   const defaultTo = new Date()
   const defaultFrom = (() => {
@@ -56,27 +62,29 @@ export default function AttendanceDetail() {
     to: formatDateYmdOrUndefined(appliedTo),
   }
 
-  const { data: response, isPending: loading } = useAttendanceRecords(recordParams, hydrated)
+  const { data: response, isPending: loading, error } = useAttendanceRecords(recordParams, hydrated)
 
   // 같은 날짜의 레코드를 그룹핑
-  const rawRecords = response?.record ?? []
-  const groupMap = new Map<string, AttendanceRecordItem[]>()
-  for (const rec of rawRecords) {
-    const existing = groupMap.get(rec.date)
-    if (existing) {
-      existing.push(rec)
-    } else {
-      groupMap.set(rec.date, [rec])
+  const groupedRecords = useMemo(() => {
+    const rawRecords = response?.record ?? []
+    const groupMap = new Map<string, AttendanceRecordItem[]>()
+    for (const rec of rawRecords) {
+      const existing = groupMap.get(rec.date)
+      if (existing) {
+        existing.push(rec)
+      } else {
+        groupMap.set(rec.date, [rec])
+      }
     }
-  }
-  const groupedRecords = Array.from(groupMap.entries()).map(([date, items]) => ({
-    date,
-    day: items[0].day,
-    isHoliday: items[0].isHoliday,
-    hasContract: items.some((r) => !!r.contractStartTime),
-    hasWork: items.some((r) => !!r.workStartTime || !!r.workEndTime),
-    records: items,
-  }))
+    return Array.from(groupMap.entries()).map(([date, items]) => ({
+      date,
+      day: items[0].day,
+      isHoliday: items[0].isHoliday,
+      hasContract: items.some((r) => !!r.contractStartTime),
+      hasWork: items.some((r) => !!r.workStartTime || !!r.workEndTime),
+      records: items,
+    }))
+  }, [response?.record])
 
   const handleSearch = () => {
     const hasDateError = Boolean(from && to && to < from)
@@ -200,6 +208,11 @@ export default function AttendanceDetail() {
             </table>
           </div>
           <div className="content-wrap">
+            {error && (
+              <div className="warning-txt">
+                데이터를 불러오는 중 오류가 발생했습니다: {error.message}
+              </div>
+            )}
             {loading ? (
               <div></div>
             ) : groupedRecords.length === 0 ? (
