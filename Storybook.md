@@ -201,6 +201,8 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 **샘플 목록**:
 - 기본 사용법
 - 값이 있는 상태
+- 에러 상태 (`error`, `helpText`)
+- 도움말 텍스트 (`helpText`)
 - 비활성화
 
 **주요 Props**:
@@ -209,6 +211,8 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 | `value` | Date \| null | 선택된 날짜 |
 | `onChange` | (date: Date \| null) => void | 날짜 변경 핸들러 |
 | `placeholder` | string | placeholder 텍스트 |
+| `error` | boolean | 에러 상태 여부 |
+| `helpText` | string | 에러/도움말 메시지 |
 
 #### RangeDatePicker (날짜 범위 선택)
 
@@ -218,6 +222,8 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 - 날짜 제한 (`minDate`, `maxDate`)
 - 커스텀 placeholder
 - 비활성화 (`disabled`)
+- 에러 상태 (`error`, `helpText`)
+- 도움말 텍스트 (`helpText`)
 
 **주요 Props**:
 | Prop | 타입 | 설명 |
@@ -231,6 +237,8 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 | `minDate` | Date | 최소 선택 가능 날짜 |
 | `maxDate` | Date | 최대 선택 가능 날짜 |
 | `dateFormat` | string | 날짜 형식 (기본: `yyyy-MM-dd`) |
+| `error` | boolean | 에러 상태 여부 |
+| `helpText` | string | 에러/도움말 메시지 |
 
 **DateRange 타입**:
 ```typescript

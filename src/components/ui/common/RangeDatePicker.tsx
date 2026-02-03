@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useId } from 'react'
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker'
 import * as DateFNS from 'date-fns'
 
@@ -111,6 +111,10 @@ export interface RangeDatePickerProps {
   dateFormat?: string
   /** 컨테이너 추가 클래스 */
   containerClassName?: string
+  /** 에러 상태 여부 - true면 빨간 테두리 */
+  error?: boolean
+  /** 에러 메시지 또는 도움말 텍스트 */
+  helpText?: string
 }
 
 /**
@@ -129,12 +133,15 @@ export default function RangeDatePicker({
   maxDate,
   dateFormat = 'yyyy-MM-dd',
   containerClassName = '',
+  error = false,
+  helpText,
 }: RangeDatePickerProps) {
   const [uncontrolledStartDate, setUncontrolledStartDate] = useState<Date | null>(null)
   const [uncontrolledEndDate, setUncontrolledEndDate] = useState<Date | null>(null)
   const [, setActiveInput] = useState<'start' | 'end' | null>(null)
   const startPickerRef = useRef<ReactDatePicker>(null)
   const endPickerRef = useRef<ReactDatePicker>(null)
+  const inputId = useId()
 
   const isControlled = controlledStartDate !== undefined || controlledEndDate !== undefined
   const startDate = isControlled ? controlledStartDate : uncontrolledStartDate
@@ -179,44 +186,60 @@ export default function RangeDatePicker({
   }, [])
 
   return (
-    <div className={`date-picker-wrap ${containerClassName}`}>
-      <div className="date-picker-custom">
-        <ReactDatePicker
-          ref={startPickerRef}
-          className="date-picker-input"
-          renderCustomHeader={(props) => <CustomHeader {...props} />}
-          selected={startDate}
-          onChange={handleStartDateChange}
-          onFocus={handleStartDateFocus}
-          placeholderText={startDatePlaceholder}
-          dateFormat={dateFormat}
-          disabled={disabled}
-          minDate={minDate}
-          maxDate={maxDate || endDate || undefined}
-          selectsStart
-          startDate={startDate}
-          endDate={endDate}
-        />
+    <div>
+      <div className={`date-picker-wrap ${containerClassName}`}>
+        <div className={`date-picker-custom${error ? ' err' : ''}`}>
+          <ReactDatePicker
+            ref={startPickerRef}
+            className={`date-picker-input${error ? ' border-red-500' : ''}`}
+            renderCustomHeader={(props) => <CustomHeader {...props} />}
+            selected={startDate}
+            onChange={handleStartDateChange}
+            onFocus={handleStartDateFocus}
+            placeholderText={startDatePlaceholder}
+            dateFormat={dateFormat}
+            disabled={disabled}
+            minDate={minDate}
+            maxDate={maxDate || endDate || undefined}
+            selectsStart
+            startDate={startDate}
+            endDate={endDate}
+            aria-invalid={error}
+            aria-describedby={helpText ? `${inputId}-help` : undefined}
+          />
+        </div>
+        <span>~</span>
+        <div className={`date-picker-custom${error ? ' err' : ''}`}>
+          <ReactDatePicker
+            ref={endPickerRef}
+            className={`date-picker-input${error ? ' border-red-500' : ''}`}
+            renderCustomHeader={(props) => <CustomHeader {...props} />}
+            selected={endDate}
+            onChange={handleEndDateChange}
+            onFocus={handleEndDateFocus}
+            placeholderText={endDatePlaceholder}
+            dateFormat={dateFormat}
+            disabled={disabled}
+            minDate={minDate || startDate || undefined}
+            maxDate={maxDate}
+            selectsEnd
+            startDate={startDate}
+            endDate={endDate}
+            aria-invalid={error}
+            aria-describedby={helpText ? `${inputId}-help` : undefined}
+          />
+        </div>
       </div>
-      <span>~</span>
-      <div className="date-picker-custom">
-        <ReactDatePicker
-          ref={endPickerRef}
-          className="date-picker-input"
-          renderCustomHeader={(props) => <CustomHeader {...props} />}
-          selected={endDate}
-          onChange={handleEndDateChange}
-          onFocus={handleEndDateFocus}
-          placeholderText={endDatePlaceholder}
-          dateFormat={dateFormat}
-          disabled={disabled}
-          minDate={minDate || startDate || undefined}
-          maxDate={maxDate}
-          selectsEnd
-          startDate={startDate}
-          endDate={endDate}
-        />
-      </div>
+      {helpText && (
+        <div
+          id={`${inputId}-help`}
+          className={`${error ? 'warning-txt' : 'form-helper'} mt5`}
+          role={error ? 'alert' : undefined}
+        >
+          {error && '* '}
+          {helpText}
+        </div>
+      )}
     </div>
   )
 }
