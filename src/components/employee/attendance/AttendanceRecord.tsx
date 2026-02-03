@@ -160,14 +160,13 @@ export default function AttendanceRecord() {
           syncQueryParams(0, size)
         }}
         onRowClick={(row) => {
-          const params = new URLSearchParams({
-            officeId: String(row.officeId),
-            franchiseId: String(row.franchiseId),
-            storeId: String(row.storeId),
-            employeeId: String(row.employeeId),
-            page: String(page),
-            size: String(pageSize),
-          })
+          const params = new URLSearchParams()
+          params.set('officeId', String(row.officeId))
+          params.set('employeeId', String(row.employeeId))
+          if (row.franchiseId != null) params.set('franchiseId', String(row.franchiseId))
+          if (row.storeId != null) params.set('storeId', String(row.storeId))
+          params.set('page', String(page))
+          params.set('size', String(pageSize))
           router.push(`/employee/attendance/detail?${params.toString()}`)
         }}
       />
