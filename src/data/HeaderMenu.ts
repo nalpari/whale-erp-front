@@ -354,8 +354,8 @@ export const HeaderMenu: HeaderMenuItem[] = [
     children: [
       {
         id: 'charge-01',
-        name: 'ERP요금제 관리',
-        link: '/',
+        name: 'ERP 요금제 관리',
+        link: '/subscription',
       },
       {
         id: 'charge-02',

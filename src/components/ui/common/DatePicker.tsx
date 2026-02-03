@@ -83,9 +83,12 @@ interface DatePickerProps {
   value?: Date | null
   onChange?: (date: Date | null) => void
   placeholder?: string
+  disabled?: boolean
+  minDate?: Date
+  maxDate?: Date
 }
 
-export default function DatePicker({ value, onChange, placeholder }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder, disabled, minDate, maxDate }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? new Date())
   const isControlled = value !== undefined
   const currentValue = isControlled ? value : selectedDate
@@ -106,6 +109,9 @@ export default function DatePicker({ value, onChange, placeholder }: DatePickerP
         onChange={handleChange}
         placeholderText={placeholder}
         dateFormat="yyyy-MM-dd"
+        disabled={disabled}
+        minDate={minDate}
+        maxDate={maxDate}
       />
     </div>
   )

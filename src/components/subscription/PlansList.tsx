@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ColDef, RowClassParams } from 'ag-grid-community'
+import { ColDef, RowClassParams, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import { PlansListItem } from '@/types/plans'
 import { useMemo } from 'react'
@@ -17,8 +17,11 @@ export default function PlansList({
 }) {
     const router = useRouter()
 
-    const handleRowClick = (planId: number) => {
-        router.push(`/subscription/${planId}`)
+    // 행 클릭 시 상세 페이지로 이동
+    const handleRowClick = (event: RowClickedEvent<PlansListItem>) => {
+        if (event.data) {
+            router.push(`/subscription/${event.data.planId}`)
+        }
     }
 
     const rowClassRules = useMemo(() => {
@@ -33,14 +36,6 @@ export default function PlansList({
             field: 'planTypeName',
             headerName: '요금제명',
             flex: 1,
-            cellRenderer: (params: { data: PlansListItem }) => (
-                <button
-                    className="link-btn"
-                    onClick={() => handleRowClick(params.data.planId)}
-                >
-                    {params.data.planTypeName}
-                </button>
-            ),
         },
         {
             field: 'storeLimit',
@@ -60,7 +55,7 @@ export default function PlansList({
         { field: 'monthlyPrice', headerName: '1개월 요금 *', flex: 1 },
         { field: 'sixMonthDiscountPrice', headerName: '6개월 요금', flex: 1 },
         { field: 'yearlyDiscountPrice', headerName: '12개월 요금', flex: 1 },
-        { field: 'updatedAt', headerName: '수정일시', flex: 1 },
+        { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => params.value?.toLocaleString() },
         { field: 'updater', headerName: '수정자', flex: 1 },
     ]
     return (
@@ -81,7 +76,12 @@ export default function PlansList({
                         <div className="empty-data">검색 결과가 없습니다.</div>
                     </div>
                 ) : (
-                    <AgGrid rowData={rows} columnDefs={columnDefs} rowClassRules={rowClassRules} />
+                    <AgGrid
+                        rowData={rows}
+                        columnDefs={columnDefs}
+                        rowClassRules={rowClassRules}
+                        onRowClicked={handleRowClick}
+                    />
                 )}
             </div>
         </div>

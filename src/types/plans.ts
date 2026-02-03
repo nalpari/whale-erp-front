@@ -24,7 +24,7 @@ export interface PlanDetailResponse {
     storeLimit: number | null       // null이면 제한없음
     employeeLimit: number | null    // null이면 제한없음
     features: PlanFeature[]         // 포함 기능 목록
-    pricingList: PlanPricing[]      // 가격 정책 목록
+    pricings: PlanPricing[]      // 가격 정책 목록
     createdAt: string
     createdBy: number
     updatedAt: Date
@@ -33,19 +33,29 @@ export interface PlanDetailResponse {
 
 // 포함 기능
 export interface PlanFeature {
-    featureId: number
+    id: number
     featureCode: string
     featureName: string
-    isIncluded: boolean
+    enabled: boolean
 }
 
 // 가격 정책
 export interface PlanPricing {
-    pricingId: number
-    months: number              // 개월수 (1, 6, 12)
-    originalPrice: number       // 정상가
-    discountPrice: number       // 할인가
-    discountRate: number        // 할인율
+    id: number
+    title: string
+    status: string
+    period: string
+    startDate: Date
+    endDate: Date
+    monthlyPrice: number
+    sixMonthPrice: number
+    sixMonthDiscountRate: number
+    sixMonthDiscountPrice: number
+    sixMonthDiscount: number
+    yearlyPrice: number
+    yearlyDiscountRate: number
+    yearlyDiscountPrice: number
+    yearlyDiscount: number
 }
 export interface PlansListResponse {
     content: PlansListItem[] // 요금제 목록 데이터
@@ -57,3 +67,46 @@ export interface PlansListResponse {
     isLast: boolean // 마지막 페이지 여부
     hasNext: boolean // 다음 페이지 여부
 }
+
+// 요금제 헤더 수정 요청
+export interface UpdatePlanHeaderRequest {
+    storeLimit: number | null       // 점포 수 제한 (null: 제한없음)
+    employeeLimit: number | null    // 직원 수 제한 (null: 제한없음)
+    features: {
+        featureCode: string         // 기능 코드
+        enabled: boolean            // 활성화 여부
+    }[]
+}
+
+// 가격 정책 생성 요청
+export interface CreatePlanPricingRequest {
+    title: string                        // 필수
+    startDate: string                    // 필수, 'yyyy-MM-dd'
+    endDate: string                      // 필수, 'yyyy-MM-dd'
+    monthlyPrice: number                 // 필수, 1개월 요금
+    sixMonthPrice: number | null         // 6개월 월 요금 (비활성화 시 null)
+    sixMonthDiscountRate: number | null  // 할인율 선택 시 값, 할인금액 선택 시 null
+    sixMonthDiscountPrice: number | null // 할인금액 선택 시 값, 할인율 선택 시 null
+    yearlyPrice: number | null           // 12개월 월 요금 (비활성화 시 null)
+    yearlyDiscountRate: number | null    // 할인율 선택 시 값, 할인금액 선택 시 null
+    yearlyDiscountPrice: number | null   // 할인금액 선택 시 값, 할인율 선택 시 null
+}
+
+// 가격 정책 생성 응답
+export interface CreatePlanPricingResponse {
+    id: number
+    planId: number
+    title: string
+    startDate: string
+    endDate: string
+    monthlyPrice: number
+    sixMonthPrice: number | null
+    sixMonthDiscountRate: number | null
+    sixMonthDiscountPrice: number | null
+    yearlyPrice: number | null
+    yearlyDiscountRate: number | null
+    yearlyDiscountPrice: number | null
+}
+
+// 가격 정책 수정 요청 (생성 요청과 동일)
+export type UpdatePlanPricingRequest = CreatePlanPricingRequest
