@@ -37,7 +37,7 @@ header {
       content: '';
       position: absolute;
       top: 50%;
-      transform: translateY(-50%) rotate(180deg);
+      transform: translateY(-50%) rotate(90deg);
       right: 8px;
       width: 32px;
       height: 32px;
@@ -49,14 +49,6 @@ header {
       background-position: center center;
       background-size: 12px 7px;
       cursor: pointer;
-      transition: all 0.2s ease-in-out;
-    }
-  }
-  &.act {
-    .fulldown-menu-tit {
-      &::before {
-        transform: translateY(-50%) rotate(0deg);
-      }
     }
   }
 }
@@ -126,9 +118,9 @@ header {
     .data-name {
       @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
       color: #222;
-      span{
+      span {
         font-weight: $font-w-500;
-        color: #8F8F8F;
+        color: #8f8f8f;
       }
     }
     cursor: default;
@@ -149,7 +141,7 @@ header {
     cursor: pointer;
   }
 }
-.my-data-list-wrap{
+.my-data-list-wrap {
   position: absolute;
   top: calc(100% + 14px);
   left: 0;
@@ -171,10 +163,10 @@ header {
     background-color: #fff;
   }
 }
-.my-data-list-tit{
+.my-data-list-tit {
   @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
   padding-bottom: 12px;
-  border-bottom: 1px solid #E5E5E5;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .my-data-list {
