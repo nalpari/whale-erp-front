@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchableSelect from '@/components/common/SearchableSelect';
+import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker';
 import { useEmployeeInfoList } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 
@@ -291,29 +292,21 @@ export default function WorkScheduleSearch({
                 </td>
                 <th>기간 *</th>
                 <td>
-                  <div className="date-picker-wrap">
-                    <input
-                      type="date"
-                      className="input-frame"
-                      value={form.from}
-                      onChange={(event) => {
-                        setShowPeriodError(false);
-                        setShowDateError(false);
-                        setForm((prev) => ({ ...prev, from: event.target.value }));
-                      }}
-                    />
-                    <span>~</span>
-                    <input
-                      type="date"
-                      className="input-frame"
-                      value={form.to}
-                      onChange={(event) => {
-                        setShowPeriodError(false);
-                        setShowDateError(false);
-                        setForm((prev) => ({ ...prev, to: event.target.value }));
-                      }}
-                    />
-                  </div>
+                  <RangeDatePicker
+                    startDate={form.from ? new Date(form.from) : null}
+                    endDate={form.to ? new Date(form.to) : null}
+                    onChange={(range: DateRange) => {
+                      setShowPeriodError(false);
+                      setShowDateError(false);
+                      setForm((prev) => ({
+                        ...prev,
+                        from: range.startDate ? buildDateInput(range.startDate) : '',
+                        to: range.endDate ? buildDateInput(range.endDate) : '',
+                      }));
+                    }}
+                    startDatePlaceholder="시작일"
+                    endDatePlaceholder="종료일"
+                  />
                   {showPeriodError && (
                     <span className="form-helper error">기간을 선택해주세요.</span>
                   )}
