@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker'
 import * as DateFNS from 'date-fns'
 
@@ -83,15 +83,17 @@ interface DatePickerProps {
   value?: Date | null
   onChange?: (date: Date | null) => void
   placeholder?: string
-  disabled?: boolean
-  minDate?: Date
-  maxDate?: Date
+  /** 에러 상태 여부 - true면 빨간 테두리 */
+  error?: boolean
+  /** 에러 메시지 또는 도움말 텍스트 */
+  helpText?: string
 }
 
-export default function DatePicker({ value, onChange, placeholder, disabled, minDate, maxDate }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder, error = false, helpText }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? new Date())
   const isControlled = value !== undefined
   const currentValue = isControlled ? value : selectedDate
+  const inputId = useId()
 
   const handleChange = (date: Date | null) => {
     if (!isControlled) {
@@ -101,18 +103,29 @@ export default function DatePicker({ value, onChange, placeholder, disabled, min
   }
 
   return (
-    <div className="date-picker-custom">
-      <ReactDatePicker
-        className="date-picker-input"
-        renderCustomHeader={(props) => <CustomHeader {...props} />}
-        selected={currentValue}
-        onChange={handleChange}
-        placeholderText={placeholder}
-        dateFormat="yyyy-MM-dd"
-        disabled={disabled}
-        minDate={minDate}
-        maxDate={maxDate}
-      />
+    <div>
+      <div className={`date-picker-custom${error ? ' err' : ''}`}>
+        <ReactDatePicker
+          className={`date-picker-input${error ? ' border-red-500' : ''}`}
+          renderCustomHeader={(props) => <CustomHeader {...props} />}
+          selected={currentValue}
+          onChange={(date: Date | null) => handleChange(date)}
+          placeholderText={placeholder}
+          dateFormat="yyyy-MM-dd"
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={helpText ? `${inputId}-help` : undefined}
+        />
+      </div>
+      {helpText && (
+        <div
+          id={`${inputId}-help`}
+          className={`${error ? 'warning-txt' : 'form-helper'} mt5`}
+          role={error ? 'alert' : undefined}
+        >
+          {error && '* '}
+          {helpText}
+        </div>
+      )}
     </div>
   )
 }

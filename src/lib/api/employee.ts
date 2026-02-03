@@ -7,10 +7,8 @@ import type {
   EmployeeSearchParams,
   EmployeeListResponse,
   EmployeeCareerResponse,
-  EmployeeCareerItem,
   SaveEmployeeCareersRequest,
   EmployeeCertificateResponse,
-  EmployeeCertificateItem,
   SaveEmployeeCertificatesRequest
 } from '@/types/employee'
 
@@ -196,7 +194,7 @@ export async function getMinimumWageList(): Promise<MinimumWageInfo[]> {
   try {
     const nextWage = await getMinimumWage(nextYear)
     result.push({ year: nextYear, minimumWage: nextWage })
-  } catch (error) {
+  } catch {
     // 다음년도 최저시급이 등록되어 있지 않으면 현재년도만 반환
     console.log(`${nextYear}년 최저시급 미등록`)
   }

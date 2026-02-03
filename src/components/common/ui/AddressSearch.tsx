@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useCallback, useEffect, useId, useRef, type RefObject } from 'react'
+import { forwardRef, useEffect, useId, useRef, type RefObject } from 'react'
 
 /**
  * Daum 우편번호 서비스 응답 데이터 타입
@@ -43,19 +43,27 @@ export interface DaumPostcodeData {
   bcode: string
 }
 
+interface DaumPostcodeInstance {
+  open: (options?: { left?: number; top?: number; popupTitle?: string }) => void
+  embed: (element: HTMLElement) => void
+}
+
+interface DaumPostcodeConstructor {
+  new (options: {
+    oncomplete: (data: DaumPostcodeData) => void
+    onclose?: (state: string) => void
+    width?: string | number
+    height?: string | number
+  }): DaumPostcodeInstance
+}
+
+interface DaumNamespace {
+  Postcode: DaumPostcodeConstructor
+}
+
 declare global {
   interface Window {
-    daum: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void
-        onclose?: (state: string) => void
-        width?: string | number
-        height?: string | number
-      }) => {
-        open: (options?: { left?: number; top?: number; popupTitle?: string }) => void
-        embed: (element: HTMLElement) => void
-      }
-    }
+    daum?: DaumNamespace
   }
 }
 
@@ -175,7 +183,7 @@ const AddressSearch = forwardRef<HTMLInputElement, AddressSearchProps>(
     }, [])
 
     // 주소 검색 팝업 열기
-    const handleOpenPostcode = useCallback(async () => {
+    const handleOpenPostcode = async () => {
       if (disabled) return
 
       await loadDaumPostcodeScript()
@@ -183,7 +191,7 @@ const AddressSearch = forwardRef<HTMLInputElement, AddressSearchProps>(
       const width = 500
       const height = 600
 
-      new window.daum.Postcode({
+      new window.daum!.Postcode({
         oncomplete: (data: DaumPostcodeData) => {
           // 도로명 주소 조합
           let fullAddress = data.address
@@ -225,27 +233,24 @@ const AddressSearch = forwardRef<HTMLInputElement, AddressSearchProps>(
         top: Math.round((window.screen.height - height) / 2),
         popupTitle: '주소 검색',
       })
-    }, [disabled, onChange, value.addressDetail, detailRef])
+    }
 
     // 상세주소 변경 핸들러
-    const handleDetailChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChange({
-          ...value,
-          addressDetail: e.target.value,
-        })
-      },
-      [onChange, value]
-    )
+    const handleDetailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange({
+        ...value,
+        addressDetail: e.target.value,
+      })
+    }
 
     // 상세주소 초기화
-    const handleClearDetail = useCallback(() => {
+    const handleClearDetail = () => {
       onChange({
         ...value,
         addressDetail: '',
       })
       detailRef.current?.focus()
-    }, [onChange, value, detailRef])
+    }
 
     return (
       <div className={containerClassName}>
