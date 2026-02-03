@@ -245,7 +245,9 @@ export default function EmployeeInfoSettings() {
   )
 
   // 쿼리 데이터로 상태 초기화
+  // 서버에서 가져온 데이터를 로컬 편집 가능한 상태로 동기화하는 정당한 사용 사례
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (settingsData?.codeMemoContent) {
       const { EMPLOYEE, RANK, POSITION } = settingsData.codeMemoContent
       setEmployeeClassifications(apiToUiClassifications(EMPLOYEE || []))
@@ -257,6 +259,7 @@ export default function EmployeeInfoSettings() {
       setRankClassifications([])
       setPositionClassifications([])
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [settingsData, isLoading])
 
   // 현재 탭에 따른 데이터 가져오기
