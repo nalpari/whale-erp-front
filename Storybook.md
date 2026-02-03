@@ -16,6 +16,7 @@ whale-erp-front 프로젝트의 공통 컴포넌트 예제 페이지 목록입�
 | `/storybook/image-upload` | ImageUpload | 이미지 업로드 컴포넌트 |
 | `/storybook/datepicker` | DatePicker, RangeDatePicker | 날짜 선택 컴포넌트 |
 | `/storybook/editor` | Editor | 리치 텍스트 에디터 컴포넌트 |
+| `/storybook/radio` | RadioButtonGroup | 버튼형 라디오 그룹 컴포넌트 |
 
 ---
 
@@ -305,6 +306,65 @@ interface SlashCommandItem {
 
 ---
 
+### 7. RadioButtonGroup (`/storybook/radio`)
+
+**경로**: `src/app/(sub)/storybook/radio/page.tsx`
+
+**Import**: `import { RadioButtonGroup, type RadioOption } from '@/components/common/ui'`
+
+버튼 형태의 라디오 그룹 컴포넌트입니다. `radio-wrap`, `radio-btn` 스타일을 사용합니다.
+
+**샘플 목록**:
+- 기본 (처리 상태: 전체/처리전/처리완료)
+- 2개 옵션 (성별: 남성/여성)
+- 라벨 포함 (`label`)
+- 필수 입력 (`label`, `required`)
+- 비활성화 (`disabled`)
+
+**주요 Props**:
+| Prop | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `options` | RadioOption<T>[] | 필수 | 라디오 옵션 배열 |
+| `value` | T (string) | 필수 | 현재 선택된 값 |
+| `onChange` | (value: T) => void | 필수 | 값 변경 핸들러 |
+| `label` | string | - | 그룹 상단에 표시되는 라벨 |
+| `required` | boolean | false | 필수 입력 여부 (라벨에 * 표시) |
+| `disabled` | boolean | false | 비활성화 여부 |
+| `name` | string | auto | 폼 전송용 라디오 버튼 이름 |
+| `className` | string | - | 컨테이너 추가 클래스 |
+
+**RadioOption 타입**:
+```typescript
+interface RadioOption<T extends string = string> {
+  value: T          // 옵션 값
+  label: ReactNode  // 옵션 라벨 (표시 텍스트)
+}
+```
+
+**사용 예제**:
+```typescript
+import { useState } from 'react'
+import { RadioButtonGroup } from '@/components/common/ui'
+
+function MyComponent() {
+  const [status, setStatus] = useState<'all' | 'pending' | 'completed'>('pending')
+
+  return (
+    <RadioButtonGroup
+      options={[
+        { value: 'all', label: '전체' },
+        { value: 'pending', label: '처리전' },
+        { value: 'completed', label: '처리완료' },
+      ]}
+      value={status}
+      onChange={setStatus}
+    />
+  )
+}
+```
+
+---
+
 ## 파일 구조
 
 ```
@@ -319,6 +379,8 @@ src/app/(sub)/storybook/
 │   └── page.tsx          # ImageUpload 컴포넌트 예제
 ├── datepicker/
 │   └── page.tsx          # DatePicker, RangeDatePicker 예제
-└── editor/
-    └── page.tsx          # Editor 컴포넌트 예제
+├── editor/
+│   └── page.tsx          # Editor 컴포넌트 예제
+└── radio/
+    └── page.tsx          # RadioButtonGroup 컴포넌트 예제
 ```
