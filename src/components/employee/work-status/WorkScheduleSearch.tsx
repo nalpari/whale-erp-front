@@ -315,10 +315,10 @@ export default function WorkScheduleSearch({
                     />
                   </div>
                   {showPeriodError && (
-                    <span className="form-helper error">기간을 선택해주세요.</span>
+                    <span className="warning-txt">기간을 선택해주세요.</span>
                   )}
                   {!showPeriodError && showDateError && (
-                    <span className="form-helper error">
+                    <span className="warning-txt">
                       종료일은 시작일보다 과거일자로 설정할 수 없습니다.
                     </span>
                   )}

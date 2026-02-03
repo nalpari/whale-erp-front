@@ -1,4 +1,3 @@
-import type { RefObject } from 'react'
 import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import AnimateHeight from 'react-animate-height'
@@ -7,6 +6,7 @@ import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
 import type { FieldErrors, StoreFormState } from '@/types/store'
 import { UploadFile } from '@/types/upload-files'
 import { FileUploader } from '@/components/common/FileUploader'
+import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
 const formatBusinessNumberInput = (value: string) => {
@@ -50,7 +50,8 @@ interface StoreDetailBasicInfoProps {
   bpTree: BpHeadOfficeNode[]
   bpLoading: boolean
   franchiseOptions: BpFranchiseNode[]
-  addressDetailRef: RefObject<HTMLInputElement | null>
+  /** AddressSearch onChange 핸들러 */
+  onAddressChange: (data: AddressData) => void
   existingBusinessFile?: UploadFile
   existingStoreImages: UploadFile[]
   businessFilePreview: string | null
@@ -69,13 +70,11 @@ interface StoreDetailBasicInfoProps {
   onRemoveBusinessFile: () => void
   onCeoNameChange: (value: string) => void
   onBusinessNumberChange: (value: string) => void
-  onStoreAddressDetailChange: (value: string) => void
   onCeoPhoneChange: (value: string) => void
   onStorePhoneChange: (value: string) => void
   onStoreImagesSelect: (files: File[]) => void
   onRemoveNewImage: (index: number) => void
   onToggleDeleteImage: (fileId: number) => void
-  onAddressSearch: () => void
   onExistingFileDownload: (file: UploadFile) => void
   onRemoveAllStoreImages: () => void
   getFileUrl: (file: UploadFile) => string
@@ -92,7 +91,7 @@ export const StoreDetailBasicInfo = ({
   bpTree,
   bpLoading,
   franchiseOptions,
-  addressDetailRef,
+  onAddressChange,
   existingBusinessFile,
   existingStoreImages,
   businessFilePreview,
@@ -110,13 +109,11 @@ export const StoreDetailBasicInfo = ({
   onRemoveBusinessFile,
   onCeoNameChange,
   onBusinessNumberChange,
-  onStoreAddressDetailChange,
   onCeoPhoneChange,
   onStorePhoneChange,
   onStoreImagesSelect,
   onRemoveNewImage,
   onToggleDeleteImage,
-  onAddressSearch,
   onExistingFileDownload,
   onRemoveAllStoreImages,
   getFileUrl,
@@ -243,7 +240,7 @@ export const StoreDetailBasicInfo = ({
                       </div>
                     )}
                   </div>
-                  {fieldErrors.storeName && <div className="form-helper error">{fieldErrors.storeName}</div>}
+                  {fieldErrors.storeName && <div className="warning-txt">{fieldErrors.storeName}</div>}
                 </td>
               </tr>
               <tr>
@@ -297,7 +294,7 @@ export const StoreDetailBasicInfo = ({
                     resolveExistingFileUrl={resolveExistingFileUrl}
                   />
                   {fieldErrors.businessFile && (
-                    <div className="form-helper error">{fieldErrors.businessFile}</div>
+                    <div className="warning-txt">{fieldErrors.businessFile}</div>
                   )}
                 </td>
               </tr>
@@ -310,7 +307,7 @@ export const StoreDetailBasicInfo = ({
                     value={formState.ceoName}
                     onChange={(event) => onCeoNameChange(event.target.value)}
                   />
-                  {fieldErrors.ceoName && <div className="form-helper error">{fieldErrors.ceoName}</div>}
+                  {fieldErrors.ceoName && <div className="warning-txt">{fieldErrors.ceoName}</div>}
                 </td>
               </tr>
               <tr>
@@ -327,33 +324,24 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.businessNumber && <div className="form-helper error">{fieldErrors.businessNumber}</div>}
+                  {fieldErrors.businessNumber && <div className="warning-txt">{fieldErrors.businessNumber}</div>}
                 </td>
               </tr>
               <tr>
                 <th>점포 주소 *</th>
                 <td>
-                  <div className="filed-flx g8 address-row">
-                    <button className="btn-form basic" type="button" onClick={onAddressSearch}>
-                      주소찾기
-                    </button>
-                    <input
-                      type="text"
-                      className="input-frame"
-                      value={formState.storeAddress}
-                      readOnly
-                      placeholder="주소를 선택하세요"
-                    />
-                    <input
-                      type="text"
-                      className="input-frame"
-                      value={formState.storeAddressDetail}
-                      onChange={(event) => onStoreAddressDetailChange(event.target.value)}
-                      ref={addressDetailRef}
-                      placeholder="상세 주소"
-                    />
-                  </div>
-                  {fieldErrors.storeAddress && <div className="form-helper error">{fieldErrors.storeAddress}</div>}
+                  <AddressSearch
+                    value={{
+                      address: formState.storeAddress,
+                      addressDetail: formState.storeAddressDetail,
+                      zonecode: formState.postalCode,
+                    }}
+                    onChange={onAddressChange}
+                    error={!!fieldErrors.storeAddress}
+                    helpText={fieldErrors.storeAddress}
+                    addressPlaceholder="주소를 선택하세요"
+                    detailPlaceholder="상세 주소"
+                  />
                 </td>
               </tr>
               <tr>
@@ -370,7 +358,7 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.ceoPhone && <div className="form-helper error">{fieldErrors.ceoPhone}</div>}
+                  {fieldErrors.ceoPhone && <div className="warning-txt">{fieldErrors.ceoPhone}</div>}
                 </td>
               </tr>
               <tr>
@@ -387,7 +375,7 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.storePhone && <div className="form-helper error">{fieldErrors.storePhone}</div>}
+                  {fieldErrors.storePhone && <div className="warning-txt">{fieldErrors.storePhone}</div>}
                 </td>
               </tr>
               <tr>
@@ -407,7 +395,7 @@ export const StoreDetailBasicInfo = ({
                     resolveExistingFileUrl={resolveExistingFileUrl}
                   />
                   {fieldErrors.storeImages && (
-                    <div className="form-helper error">{fieldErrors.storeImages}</div>
+                    <div className="warning-txt">{fieldErrors.storeImages}</div>
                   )}
                 </td>
               </tr>
