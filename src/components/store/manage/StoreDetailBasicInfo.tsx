@@ -15,6 +15,7 @@ import {
   type RadioOption,
 } from '@/components/common/ui'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
 const formatBusinessNumberInput = (value: string) => {
@@ -86,13 +87,13 @@ interface StoreDetailBasicInfoProps {
 }
 
 const storeOwnerOptions: RadioOption<StoreFormState['storeOwner']>[] = [
-  { value: 'HEAD_OFFICE', label: '??' },
-  { value: 'FRANCHISE', label: '???' },
+  { value: 'HEAD_OFFICE', label: '본사' },
+  { value: 'FRANCHISE', label: '가맹점' },
 ]
 
 const operationStatusOptions: RadioOption<StoreFormState['operationStatus']>[] = [
-  { value: 'STOPR_001', label: '??' },
-  { value: 'STOPR_002', label: '???' },
+  { value: 'STOPR_001', label: '운영' },
+  { value: 'STOPR_002', label: '미운영' },
 ]
 
 // 점포 기본 정보(소유/조직/사업자/주소/파일) 입력 섹션
@@ -129,6 +130,18 @@ export const StoreDetailBasicInfo = ({
   onToggleDeleteImage,
   onExistingFileDownload,
 }: StoreDetailBasicInfoProps) => {
+  // 본사 옵션
+  const officeOptions = useMemo<SelectOption[]>(
+    () => bpTree.map((office) => ({ value: String(office.id), label: office.name })),
+    [bpTree]
+  )
+
+  // 가맹점 옵션
+  const franchiseSelectOptions = useMemo<SelectOption[]>(
+    () => franchiseOptions.map((franchise) => ({ value: String(franchise.id), label: franchise.name })),
+    [franchiseOptions]
+  )
+
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
   const businessFiles = useMemo<FileItem[]>(() => {
     const files: FileItem[] = []
@@ -277,33 +290,27 @@ export const StoreDetailBasicInfo = ({
                 <th>본사/가맹점 선택</th>
                 <td>
                   <div className="data-filed store-basic-row">
-                    <select
-                      className="select-form store-select-fixed"
-                      value={formState.officeId ?? ''}
-                      onChange={(event) => onOfficeChange(event.target.value ? Number(event.target.value) : null)}
-                      disabled={bpLoading}
-                    >
-                      <option value="">본사 선택</option>
-                      {bpTree.map((office) => (
-                        <option key={office.id} value={office.id}>
-                          {office.name}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      className="store-select-fixed"
+                      value={formState.officeId !== null ? officeOptions.find((opt) => opt.value === String(formState.officeId)) || null : null}
+                      options={officeOptions}
+                      placeholder="본사 선택"
+                      isDisabled={bpLoading}
+                      isSearchable={false}
+                      isClearable={false}
+                      onChange={(option) => onOfficeChange(option ? Number(option.value) : null)}
+                    />
                     {formState.storeOwner === 'FRANCHISE' && (
-                      <select
-                        className="select-form store-select-fixed"
-                        value={formState.franchiseId ?? ''}
-                        onChange={(event) => onFranchiseChange(event.target.value ? Number(event.target.value) : null)}
-                        disabled={bpLoading}
-                      >
-                        <option value="">가맹점 선택</option>
-                        {franchiseOptions.map((franchise) => (
-                          <option key={franchise.id} value={franchise.id}>
-                            {franchise.name}
-                          </option>
-                        ))}
-                      </select>
+                      <SearchSelect
+                        className="store-select-fixed"
+                        value={formState.franchiseId !== null ? franchiseSelectOptions.find((opt) => opt.value === String(formState.franchiseId)) || null : null}
+                        options={franchiseSelectOptions}
+                        placeholder="가맹점 선택"
+                        isDisabled={bpLoading}
+                        isSearchable={false}
+                        isClearable={false}
+                        onChange={(option) => onFranchiseChange(option ? Number(option.value) : null)}
+                      />
                     )}
                     <button className="tooltip-btn store-tooltip-fixed">
                       <span className="tooltip-icon" id="tooltip-btn-anchor"></span>
@@ -351,7 +358,7 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>????</th>
+                <th>운영 여부 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx">
                     <RadioButtonGroup
@@ -361,7 +368,7 @@ export const StoreDetailBasicInfo = ({
                       onChange={(nextValue) => onOperationStatusChange(nextValue)}
                     />
                     {formState.operationStatusEditedDate && (
-                      <span className="form-helper">???? ???: {formState.operationStatusEditedDate}</span>
+                      <span className="form-helper">운영여부 변경일 : {formState.operationStatusEditedDate}</span>
                     )}
                   </div>
                 </td>

@@ -1,9 +1,10 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Input } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 export interface AttendanceSearchFilters {
   officeId?: number | null
@@ -58,6 +59,20 @@ export default function AttendanceSearch({
 }: AttendanceSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  // SearchSelect용 옵션 변환
+  const workStatusSelectOptions: SelectOption[] = useMemo(
+    () => [{ value: 'ALL', label: '전체' }, ...workStatusOptions.map((opt) => ({ value: opt.value, label: opt.label }))],
+    [workStatusOptions]
+  )
+  const employeeClassSelectOptions: SelectOption[] = useMemo(
+    () => [{ value: 'ALL', label: '전체' }, ...employeeClassificationOptions.map((opt) => ({ value: opt.value, label: opt.label }))],
+    [employeeClassificationOptions]
+  )
+  const contractClassSelectOptions: SelectOption[] = useMemo(
+    () => [{ value: 'ALL', label: '전체' }, ...contractClassificationOptions.map((opt) => ({ value: opt.value, label: opt.label }))],
+    [contractClassificationOptions]
+  )
 
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
@@ -121,18 +136,14 @@ export default function AttendanceSearch({
                 <th>근무여부</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.workStatus}
-                      onChange={(e) => onChange({ workStatus: e.target.value })}
-                    >
-                      <option value="ALL">전체</option>
-                      {workStatusOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      value={workStatusSelectOptions.find((opt) => opt.value === filters.workStatus) || null}
+                      options={workStatusSelectOptions}
+                      placeholder="전체"
+                      isSearchable={false}
+                      isClearable={false}
+                      onChange={(option) => onChange({ workStatus: option?.value ?? 'ALL' })}
+                    />
                   </div>
                 </td>
                 <th>직원명</th>
@@ -167,36 +178,28 @@ export default function AttendanceSearch({
                 <th>직원 분류</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.employeeClassification}
-                      disabled={empClassDisabled}
-                      onChange={(e) => onChange({ employeeClassification: e.target.value })}
-                    >
-                      <option value="ALL">전체</option>
-                      {employeeClassificationOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      value={employeeClassSelectOptions.find((opt) => opt.value === filters.employeeClassification) || null}
+                      options={employeeClassSelectOptions}
+                      placeholder="전체"
+                      isDisabled={empClassDisabled}
+                      isSearchable={false}
+                      isClearable={false}
+                      onChange={(option) => onChange({ employeeClassification: option?.value ?? 'ALL' })}
+                    />
                   </div>
                 </td>
                 <th>계약 분류</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={filters.contractClassification}
-                      onChange={(e) => onChange({ contractClassification: e.target.value })}
-                    >
-                      <option value="ALL">전체</option>
-                      {contractClassificationOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      value={contractClassSelectOptions.find((opt) => opt.value === filters.contractClassification) || null}
+                      options={contractClassSelectOptions}
+                      placeholder="전체"
+                      isSearchable={false}
+                      isClearable={false}
+                      onChange={(option) => onChange({ contractClassification: option?.value ?? 'ALL' })}
+                    />
                   </div>
                 </td>
                 <td colSpan={2}></td>

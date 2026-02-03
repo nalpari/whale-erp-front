@@ -39,7 +39,7 @@ export default function StoreSearch({
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  const [showDateError, setShowDateError] = useState(false)
+  
   const statusRadioOptions = useMemo(
     () => [{ value: 'ALL', label: '전체' }, ...statusOptions],
     [statusOptions]
@@ -47,10 +47,8 @@ export default function StoreSearch({
 
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
-    const hasDateError = Boolean(filters.from && filters.to && filters.to < filters.from)
     setShowOfficeError(hasOfficeError)
-    setShowDateError(hasDateError)
-    if (hasOfficeError || hasDateError) {
+    if (hasOfficeError) {
       return
     }
     onSearch()
@@ -58,7 +56,6 @@ export default function StoreSearch({
 
   const handleReset = () => {
     setShowOfficeError(false)
-    setShowDateError(false)
     onReset()
   }
   return (
@@ -118,17 +115,11 @@ export default function StoreSearch({
                     startDate={filters.from}
                     endDate={filters.to}
                     onChange={(range: DateRange) => {
-                      setShowDateError(false)
                       onChange({ from: range.startDate, to: range.endDate })
                     }}
                     startDatePlaceholder="시작일"
                     endDatePlaceholder="종료일"
                   />
-                  {showDateError && (
-                    <span className="warning-txt">
-                      ※ 종료일은 시작일보다 과거일자로 설정할 수 없습니다.
-                    </span>
-                  )}
                 </td>
               </tr>
             </tbody>
