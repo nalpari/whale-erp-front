@@ -146,7 +146,7 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
   return (
     <>
       {formErrors.length > 0 && (
-        <div className="form-helper error">
+        <div className="warning-txt">
           {formErrors.map((message) => (
             <div key={message}>{message}</div>
           ))}

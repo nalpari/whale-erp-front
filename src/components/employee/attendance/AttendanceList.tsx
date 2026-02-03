@@ -86,7 +86,7 @@ export default function AttendanceList({
         </div>
       </div>
       <div className="data-list-bx">
-        {error && <div className="form-helper error">{error}</div>}
+        {error && <div className="warning-txt">{error}</div>}
         {loading ? (
           <div></div>
         ) : rows.length === 0 ? (

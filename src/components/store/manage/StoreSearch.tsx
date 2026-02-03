@@ -144,7 +144,7 @@ export default function StoreSearch({
                     />
                   </div>
                   {showDateError && (
-                    <span className="form-helper error">
+                    <span className="warning-txt">
                       ※ 종료일은 시작일보다 과거일자로 설정할 수 없습니다.
                     </span>
                   )}

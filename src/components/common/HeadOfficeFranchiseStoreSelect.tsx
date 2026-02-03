@@ -136,7 +136,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 }}
                             />
                             {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
-                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                                <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                             )}
                         </div>
                     </td>
@@ -183,7 +183,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 }
                             />
                             {showStoreError && !storeId && (
-                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                                <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                             )}
                         </div>
                     </td>
