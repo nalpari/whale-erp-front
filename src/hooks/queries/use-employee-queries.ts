@@ -32,6 +32,7 @@ import {
   type GetEmployeeListByTypeParams,
   type UpdateEmployeeLoginInfoRequest,
 } from '@/lib/api/employee'
+import api from '@/lib/api'
 
 
 /**
