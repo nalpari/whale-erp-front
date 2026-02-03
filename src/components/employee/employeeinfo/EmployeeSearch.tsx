@@ -2,6 +2,7 @@
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import DatePicker from '../../ui/common/DatePicker'
+import { Input } from '@/components/common/ui'
 import StaffInvitationPop from './StaffInvitationPop'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { EmployeeSearchParams } from '@/types/employee'
@@ -174,12 +175,12 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
                 <th>직원명</th>
                 <td>
                   <div className="data-filed">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <Input
                       placeholder="직원명 입력"
                       value={formData.employeeName}
                       onChange={(e) => handleInputChange('employeeName', e.target.value)}
+                      showClear
+                      onClear={() => handleInputChange('employeeName', '')}
                     />
                   </div>
                 </td>

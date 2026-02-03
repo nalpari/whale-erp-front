@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import DatePicker from '../../ui/common/DatePicker'
+import { Input } from '@/components/common/ui'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -57,8 +58,20 @@ const createInitialWorkHours = (): EmploymentContractWorkHourDto[] => {
   return [...weekdayHours, saturdayHour, sundayHour]
 }
 
+// 에러 상태 타입
+interface FormErrors {
+  employeeName?: string
+  mobilePhone?: string
+  franchiseOrganizationId?: string
+  contractStartDate?: string
+  contractEndDate?: string
+  jobDescription?: string
+  saturdayBiweeklyStartDate?: string
+  sundayBiweeklyStartDate?: string
+}
+
 export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: StaffInvitationPopProps) {
-  const [error, setError] = useState<string | null>(null)
+  const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
   // TanStack Query mutation
   const createEmployeeMutation = useCreateEmployee()
@@ -122,40 +135,54 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:00`
   }
 
+  // 에러 계산 (React 19: 렌더링 시점에서 계산)
+  const getFormErrors = (): FormErrors => {
+    if (!isValidationAttempted) return {}
+    const errors: FormErrors = {}
+
+    if (!employeeName.trim()) {
+      errors.employeeName = '직원명을 입력해주세요.'
+    }
+    if (!mobilePhone.trim()) {
+      errors.mobilePhone = '휴대폰 번호를 입력해주세요.'
+    } else if (mobilePhone.trim().length < 10) {
+      errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
+    }
+    if (workplaceType === 'FRANCHISE' && !franchiseOrganizationId) {
+      errors.franchiseOrganizationId = '가맹점을 선택해주세요.'
+    }
+    if (!contractStartDate) {
+      errors.contractStartDate = '계약 시작일을 선택해주세요.'
+    }
+    if (!noEndDate && !contractEndDate) {
+      errors.contractEndDate = '계약 종료일을 선택해주세요.'
+    }
+    if (!jobDescription.trim()) {
+      errors.jobDescription = '업무 내용을 입력해주세요.'
+    }
+    if (saturdayWorkType === 'biweekly' && !saturdayBiweeklyStartDate) {
+      errors.saturdayBiweeklyStartDate = '토요일 격주 시작일을 선택해주세요.'
+    }
+    if (sundayWorkType === 'biweekly' && !sundayBiweeklyStartDate) {
+      errors.sundayBiweeklyStartDate = '일요일 격주 시작일을 선택해주세요.'
+    }
+
+    return errors
+  }
+
+  const formErrors = getFormErrors()
+  const hasErrors = Object.keys(formErrors).length > 0
+
   const handleSubmit = async () => {
-    setError(null)
+    setIsValidationAttempted(true)
+
+    // 에러가 있으면 저장하지 않음
+    const errors = getFormErrors()
+    if (Object.keys(errors).length > 0) {
+      return
+    }
 
     try {
-      // 필수 필드 검증
-      if (!employeeName.trim()) {
-        throw new Error('직원명을 입력해주세요.')
-      }
-      if (!mobilePhone.trim()) {
-        throw new Error('휴대폰 번호를 입력해주세요.')
-      }
-      if (mobilePhone.trim().length < 10) {
-        throw new Error('휴대폰 번호를 정확히 입력해주세요.')
-      }
-      if (workplaceType === 'FRANCHISE' && !franchiseOrganizationId) {
-        throw new Error('가맹점을 선택해주세요.')
-      }
-      if (!contractStartDate) {
-        throw new Error('계약 시작일을 선택해주세요.')
-      }
-      if (!noEndDate && !contractEndDate) {
-        throw new Error('계약 종료일을 선택해주세요.')
-      }
-      if (!jobDescription.trim()) {
-        throw new Error('업무 내용을 입력해주세요.')
-      }
-
-      // 격주 선택 시 시작일 검증
-      if (saturdayWorkType === 'biweekly' && !saturdayBiweeklyStartDate) {
-        throw new Error('토요일 격주 시작일을 선택해주세요.')
-      }
-      if (sundayWorkType === 'biweekly' && !sundayBiweeklyStartDate) {
-        throw new Error('일요일 격주 시작일을 선택해주세요.')
-      }
 
       // 평일/토요일/일요일 근무 정보 반영
       const weekdays: DayType[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']
@@ -231,7 +258,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       onSuccess?.()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
+      alert(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
     }
   }
 
@@ -276,7 +303,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setWeekdayBreakStartMinute('00')
     setWeekdayBreakEndHour('13')
     setWeekdayBreakEndMinute('00')
-    setError(null)
+    setIsValidationAttempted(false)
   }
 
   const handleClose = () => {
@@ -295,11 +322,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
             <button className="modal-close" onClick={handleClose}></button>
           </div>
           <div className="modal-body">
-            {error && (
-              <div className="error-message" style={{ color: 'red', marginBottom: '16px', padding: '8px', backgroundColor: '#fee' }}>
-                {error}
-              </div>
-            )}
             <div className="pop-frame">
               <table className="pop-table">
                 <colgroup>
@@ -388,16 +410,17 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                       직원명 <span className="red">*</span>
                     </th>
                     <td>
-                      <div className="block">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          placeholder="직원명 입력"
-                          value={employeeName}
-                          onChange={(e) => setEmployeeName(e.target.value)}
-                          maxLength={100}
-                        />
-                      </div>
+                      <Input
+                        placeholder="직원명 입력"
+                        value={employeeName}
+                        onChange={(e) => setEmployeeName(e.target.value)}
+                        maxLength={100}
+                        error={!!formErrors.employeeName}
+                        helpText={formErrors.employeeName}
+                        showClear
+                        onClear={() => setEmployeeName('')}
+                        fullWidth
+                      />
                     </td>
                   </tr>
                   <tr>
@@ -405,16 +428,17 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                       휴대폰 번호 <span className="red">*</span>
                     </th>
                     <td>
-                      <div className="block">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          placeholder="'-' 없이 입력"
-                          value={mobilePhone}
-                          onChange={(e) => setMobilePhone(e.target.value.replace(/[^0-9]/g, ''))}
-                          maxLength={11}
-                        />
-                      </div>
+                      <Input
+                        placeholder="'-' 없이 입력"
+                        value={mobilePhone}
+                        onChange={(e) => setMobilePhone(e.target.value.replace(/[^0-9]/g, ''))}
+                        maxLength={11}
+                        error={!!formErrors.mobilePhone}
+                        helpText={formErrors.mobilePhone}
+                        showClear
+                        onClear={() => setMobilePhone('')}
+                        fullWidth
+                      />
                     </td>
                   </tr>
                   <tr>
@@ -528,15 +552,16 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                       업무 내용 <span className="red">*</span>
                     </th>
                     <td>
-                      <div className="block">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          placeholder="담당 업무 내용 입력"
-                          value={jobDescription}
-                          onChange={(e) => setJobDescription(e.target.value)}
-                        />
-                      </div>
+                      <Input
+                        placeholder="담당 업무 내용 입력"
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        error={!!formErrors.jobDescription}
+                        helpText={formErrors.jobDescription}
+                        showClear
+                        onClear={() => setJobDescription('')}
+                        fullWidth
+                      />
                     </td>
                   </tr>
                   <tr>

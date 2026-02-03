@@ -1,7 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
+import { useQuery } from '@tanstack/react-query'
+import { Input } from '@/components/common/ui'
 import {
   useEmployeeDetail,
   useSendEmployeeRegistrationEmail,
@@ -17,7 +19,6 @@ interface EmployeeLoginEditProps {
 export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps) {
   const router = useRouter()
   const [loginInfoOpen, setLoginInfoOpen] = useState(true)
-  const [authorities, setAuthorities] = useState<AuthorityItem[]>([])
   const [selectedAuthorityId, setSelectedAuthorityId] = useState<number | null>(null)
 
   // TanStack Query 훅들
@@ -26,6 +27,14 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     isPending: isEmployeeLoading,
     error: employeeError
   } = useEmployeeDetail(employeeId)
+
+  // React 19 + TanStack Query: useEffect 대신 useQuery로 권한 목록 조회
+  const { data: authorities = [] } = useQuery<AuthorityItem[]>({
+    queryKey: ['authorities', 'PRGRP_002'],
+    queryFn: () => getAuthoritiesByOrganization('PRGRP_002'),
+    enabled: !!employeeId,
+    staleTime: 5 * 60 * 1000, // 5분
+  })
 
   const sendEmailMutation = useSendEmployeeRegistrationEmail()
   const updateLoginInfoMutation = useUpdateEmployeeLoginInfo()
@@ -36,22 +45,6 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
   const sendingEmail = sendEmailMutation.isPending
   const withdrawing = withdrawMutation.isPending
   const error = employeeError ? '데이터를 불러오는데 실패했습니다.' : null
-
-  // 권한 목록 조회
-  useEffect(() => {
-    const fetchAuthorities = async () => {
-      if (!employeeId) return
-
-      try {
-        const authList = await getAuthoritiesByOrganization('PRGRP_002')
-        setAuthorities(authList)
-      } catch {
-        console.error('권한 목록 조회 실패')
-      }
-    }
-
-    fetchAuthorities()
-  }, [employeeId])
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-'
@@ -176,15 +169,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                   <th>직원 회원 가입 상태</th>
                   <td>
                     <div className="filed-flx">
-                      <div className="mx-200">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={getMemberStatus()}
-                          disabled
-                          style={{ backgroundColor: '#f5f5f5' }}
-                        />
-                      </div>
+                      <Input
+                        value={getMemberStatus()}
+                        disabled
+                        containerClassName="mx-200"
+                      />
                       {!employee.memberId && employee.email && (
                         <button
                           className="btn-form basic"
@@ -211,15 +200,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                 <tr>
                   <th>로그인 ID</th>
                   <td>
-                    <div className="mx-200">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={employee.memberLoginId || '-'}
-                        disabled
-                        style={{ backgroundColor: '#f5f5f5' }}
-                      />
-                    </div>
+                    <Input
+                      value={employee.memberLoginId || '-'}
+                      disabled
+                      containerClassName="mx-200"
+                    />
                   </td>
                 </tr>
 
@@ -253,15 +238,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                 <tr>
                   <th>직원 회원 가입 요청일</th>
                   <td>
-                    <div className="mx-200">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={employee.emailSendDate ? formatDate(employee.emailSendDate) : ''}
-                        disabled
-                        style={{ backgroundColor: '#f5f5f5' }}
-                      />
-                    </div>
+                    <Input
+                      value={employee.emailSendDate ? formatDate(employee.emailSendDate) : ''}
+                      disabled
+                      containerClassName="mx-200"
+                    />
                   </td>
                 </tr>
 
@@ -269,15 +250,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                 <tr>
                   <th>직원 회원 가입일</th>
                   <td>
-                    <div className="mx-200">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={employee.memberId ? formatDate(employee.createdAt) : '-'}
-                        disabled
-                        style={{ backgroundColor: '#f5f5f5' }}
-                      />
-                    </div>
+                    <Input
+                      value={employee.memberId ? formatDate(employee.createdAt) : '-'}
+                      disabled
+                      containerClassName="mx-200"
+                    />
                   </td>
                 </tr>
               </tbody>

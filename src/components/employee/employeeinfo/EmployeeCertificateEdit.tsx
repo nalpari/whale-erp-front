@@ -1,8 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
+import { Input } from '@/components/common/ui'
 import {
   useEmployeeCertificates,
   useSaveEmployeeCertificatesWithFiles,
@@ -20,10 +21,21 @@ interface CertificateFormItem extends EmployeeCertificateItem {
   existingFileName?: string | null  // 기존 파일명
 }
 
+// 빈 자격증 항목 생성 (컴포넌트 외부로 이동 - React 19 권장)
+const createEmptyCertificate = (): CertificateFormItem => ({
+  tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  certificateName: '',
+  validityStartDate: null,
+  validityEndDate: null,
+  acquisitionDate: '',
+  issuingOrganization: null,
+  certificateFileId: null
+})
+
 export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertificateEditProps) {
   const router = useRouter()
   const [sectionOpen, setSectionOpen] = useState(true)
-  const [certificates, setCertificates] = useState<CertificateFormItem[]>([])
+  const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
   // TanStack Query 훅들
   const { data: certificatesData, isPending: isCertificatesLoading } = useEmployeeCertificates(employeeId)
@@ -32,10 +44,9 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
 
   const isLoading = isCertificatesLoading || saveCertificatesMutation.isPending || deleteAllCertificatesMutation.isPending
 
-  // 자격증 데이터 초기화
-  useEffect(() => {
-    if (certificatesData && certificatesData.length > 0) {
-      setCertificates(certificatesData.map(cert => ({
+  // React 19: useEffect 대신 데이터 변환을 렌더링 시점에서 처리
+  const initialCertificates: CertificateFormItem[] = certificatesData && certificatesData.length > 0
+    ? certificatesData.map(cert => ({
         id: cert.id,
         certificateName: cert.certificateName,
         validityStartDate: cert.validityStartDate ?? null,
@@ -44,42 +55,49 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
         issuingOrganization: cert.issuingOrganization ?? null,
         certificateFileId: cert.certificateFileId ?? null,
         existingFileName: cert.certificateFileName ?? null
-      })))
-    } else if (certificatesData) {
-      // 데이터가 없으면 빈 항목 하나 추가
-      setCertificates([createEmptyCertificate()])
-    }
-  }, [certificatesData])
+      }))
+    : [createEmptyCertificate()]
 
-  // 빈 자격증 항목 생성
-  const createEmptyCertificate = (): CertificateFormItem => ({
-    tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    certificateName: '',
-    validityStartDate: null,
-    validityEndDate: null,
-    acquisitionDate: '',
-    issuingOrganization: null,
-    certificateFileId: null
-  })
+  // 로컬 수정 상태
+  const [localCertificates, setLocalCertificates] = useState<CertificateFormItem[] | null>(null)
+  const [dataVersion, setDataVersion] = useState<number | null>(null)
+
+  // 현재 표시할 데이터 결정 (React 19: derived state)
+  const currentVersion = certificatesData?.length ?? 0
+  const certificates = (localCertificates && dataVersion === currentVersion) ? localCertificates : initialCertificates
+
+  // 로컬 상태 업데이트 함수
+  const updateCertificates = (updater: (prev: CertificateFormItem[]) => CertificateFormItem[]) => {
+    setLocalCertificates(updater(certificates))
+    setDataVersion(currentVersion)
+  }
+
+  // 에러 검증 함수 (React 19: 렌더링 시점에서 계산)
+  const getCertificateErrors = (cert: CertificateFormItem) => {
+    if (!isValidationAttempted) return {}
+    const errors: Record<string, string> = {}
+    if (!cert.certificateName.trim()) errors.certificateName = '자격증명을 입력해주세요.'
+    if (!cert.acquisitionDate) errors.acquisitionDate = '취득일을 입력해주세요.'
+    return errors
+  }
 
   // 자격증 항목 추가
   const handleAddCertificate = () => {
-    setCertificates(prev => [...prev, createEmptyCertificate()])
+    updateCertificates(prev => [...prev, createEmptyCertificate()])
   }
 
   // 자격증 항목 삭제
   const handleRemoveCertificate = (index: number) => {
     if (certificates.length === 1) {
-      // 마지막 항목이면 빈 항목으로 초기화
-      setCertificates([createEmptyCertificate()])
+      updateCertificates(() => [createEmptyCertificate()])
       return
     }
-    setCertificates(prev => prev.filter((_, i) => i !== index))
+    updateCertificates(prev => prev.filter((_, i) => i !== index))
   }
 
   // 자격증 항목 값 변경
   const handleCertificateChange = (index: number, field: keyof CertificateFormItem, value: string | number | null) => {
-    setCertificates(prev => prev.map((cert, i) =>
+    updateCertificates(prev => prev.map((cert, i) =>
       i === index ? { ...cert, [field]: value } : cert
     ))
   }
@@ -87,14 +105,14 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
   // 파일 선택 핸들러
   const handleFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
-    setCertificates(prev => prev.map((cert, i) =>
+    updateCertificates(prev => prev.map((cert, i) =>
       i === index ? { ...cert, file, existingFileName: file ? file.name : cert.existingFileName } : cert
     ))
   }
 
   // 파일 삭제 핸들러
   const handleFileRemove = (index: number) => {
-    setCertificates(prev => prev.map((cert, i) =>
+    updateCertificates(prev => prev.map((cert, i) =>
       i === index ? { ...cert, file: null, certificateFileId: null, existingFileName: null } : cert
     ))
     // input 초기화
@@ -112,7 +130,8 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
 
     try {
       await deleteAllCertificatesMutation.mutateAsync(employeeId)
-      setCertificates([createEmptyCertificate()])
+      setLocalCertificates([createEmptyCertificate()])
+      setDataVersion(null)
       alert('모든 자격증 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
@@ -122,21 +141,26 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
 
   // 저장
   const handleSave = async () => {
+    setIsValidationAttempted(true)
+
     // 유효한 자격증 정보만 필터링 (자격증명이 있는 것만)
     const validCertificates = certificates.filter(cert => cert.certificateName.trim())
 
     if (validCertificates.length === 0) {
-      alert('저장할 자격증 정보가 없습니다. 최소 하나의 자격증명을 입력해주세요.')
       return
     }
 
-    // 필수값 검증
-    for (let i = 0; i < validCertificates.length; i++) {
-      const cert = validCertificates[i]
+    // 필수값 검증 (에러가 있으면 저장하지 않음)
+    let hasErrors = false
+    for (const cert of validCertificates) {
       if (!cert.acquisitionDate) {
-        alert(`${i + 1}번째 자격증의 취득일을 입력해주세요.`)
-        return
+        hasErrors = true
+        break
       }
+    }
+
+    if (hasErrors) {
+      return
     }
 
     try {
@@ -209,7 +233,9 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
         </div>
         <AnimateHeight duration={300} height={sectionOpen ? 'auto' : 0}>
           <div className="slidebox-body">
-            {certificates.map((cert, index) => (
+            {certificates.map((cert, index) => {
+              const errors = getCertificateErrors(cert)
+              return (
               <div key={cert.id ?? cert.tempId} style={{ marginBottom: index < certificates.length - 1 ? '24px' : 0 }}>
                 <table className="default-table">
                   <colgroup>
@@ -224,15 +250,16 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                       </th>
                       <td>
                         <div className="filed-flx">
-                          <div className="mx-400">
-                            <input
-                              type="text"
-                              className="input-frame"
-                              value={cert.certificateName}
-                              onChange={(e) => handleCertificateChange(index, 'certificateName', e.target.value)}
-                              placeholder="자격증명을 입력하세요"
-                            />
-                          </div>
+                          <Input
+                            id={`cert-${cert.id ?? cert.tempId}-certificateName`}
+                            value={cert.certificateName}
+                            onChange={(e) => handleCertificateChange(index, 'certificateName', e.target.value)}
+                            placeholder="자격증명을 입력하세요"
+                            error={!!errors.certificateName}
+                            showClear
+                            onClear={() => handleCertificateChange(index, 'certificateName', '')}
+                            containerClassName="mx-400"
+                          />
                           <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
                             <button
                               type="button"
@@ -271,6 +298,9 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                             </button>
                           </div>
                         </div>
+                        {errors.certificateName && (
+                          <div className="warning-txt mt5" role="alert">* {errors.certificateName}</div>
+                        )}
                       </td>
                     </tr>
 
@@ -304,13 +334,16 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                         취득일 <span className="red">*</span>
                       </th>
                       <td>
-                        <div className="date-picker-wrap">
+                        <div className={`date-picker-wrap${errors.acquisitionDate ? ' has-error' : ''}`}>
                           <DatePicker
                             value={cert.acquisitionDate ? new Date(cert.acquisitionDate) : null}
                             onChange={(date) => handleCertificateChange(index, 'acquisitionDate', date ? date.toISOString().split('T')[0] : null)}
                             placeholder="취득일 선택"
                           />
                         </div>
+                        {errors.acquisitionDate && (
+                          <div className="warning-txt mt5" role="alert">* {errors.acquisitionDate}</div>
+                        )}
                       </td>
                     </tr>
 
@@ -318,15 +351,15 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                     <tr>
                       <th>발급기관</th>
                       <td>
-                        <div className="mx-400">
-                          <input
-                            type="text"
-                            className="input-frame"
-                            value={cert.issuingOrganization ?? ''}
-                            onChange={(e) => handleCertificateChange(index, 'issuingOrganization', e.target.value || null)}
-                            placeholder="발급기관을 입력하세요"
-                          />
-                        </div>
+                        <Input
+                          id={`cert-${cert.id ?? cert.tempId}-issuingOrganization`}
+                          value={cert.issuingOrganization ?? ''}
+                          onChange={(e) => handleCertificateChange(index, 'issuingOrganization', e.target.value || null)}
+                          placeholder="발급기관을 입력하세요"
+                          showClear
+                          onClear={() => handleCertificateChange(index, 'issuingOrganization', null)}
+                          containerClassName="mx-400"
+                        />
                       </td>
                     </tr>
 
@@ -382,7 +415,7 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
                   <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px dashed #ddd' }} />
                 )}
               </div>
-            ))}
+            )})}
           </div>
         </AnimateHeight>
       </div>

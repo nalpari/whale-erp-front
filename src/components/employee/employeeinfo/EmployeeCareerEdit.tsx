@@ -1,8 +1,9 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
+import { Input } from '@/components/common/ui'
 import {
   useEmployeeCareers,
   useSaveEmployeeCareers,
@@ -24,10 +25,39 @@ interface CareerFormItem extends EmployeeCareerItem {
   tempId?: string  // 새 항목을 위한 임시 ID
 }
 
+// 빈 경력 항목 생성 (컴포넌트 외부로 이동 - React 19 권장)
+const createEmptyCareer = (): CareerFormItem => ({
+  tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  companyName: '',
+  workplaceType: null,
+  startDate: '',
+  endDate: null,
+  contractClassification: null,
+  rank: null,
+  position: null,
+  jobDescription: null,
+  resignationReason: null
+})
+
+// 근무처 유형 옵션 (상수로 이동)
+const workplaceTypeOptions: ClassificationItem[] = [
+  { code: 'WKPLC_001', name: '본사', sortOrder: 1 },
+  { code: 'WKPLC_002', name: '가맹점', sortOrder: 2 },
+  { code: 'WKPLC_003', name: '외부', sortOrder: 3 }
+]
+
+// 계약 분류 옵션 (상수로 이동)
+const contractClassificationOptions: ClassificationItem[] = [
+  { code: 'CNTCF_001', name: '정규직 직원', sortOrder: 1 },
+  { code: 'CNTCF_002', name: '계약직 직원', sortOrder: 2 },
+  { code: 'CNTCF_003', name: '수습 직원', sortOrder: 3 },
+  { code: 'CNTCF_004', name: '파트타임 직원', sortOrder: 4 }
+]
+
 export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditProps) {
   const router = useRouter()
   const [sectionOpen, setSectionOpen] = useState(true)
-  const [careers, setCareers] = useState<CareerFormItem[]>([])
+  const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
   // TanStack Query 훅들
   const { data: careersData, isPending: isCareersLoading } = useEmployeeCareers(employeeId)
@@ -36,25 +66,9 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
 
   const isLoading = isCareersLoading || saveCareersMutation.isPending || deleteAllCareersMutation.isPending
 
-  // 근무처 유형 옵션
-  const workplaceTypeOptions: ClassificationItem[] = [
-    { code: 'WKPLC_001', name: '본사', sortOrder: 1 },
-    { code: 'WKPLC_002', name: '가맹점', sortOrder: 2 },
-    { code: 'WKPLC_003', name: '외부', sortOrder: 3 }
-  ]
-
-  // 계약 분류 옵션
-  const contractClassificationOptions: ClassificationItem[] = [
-    { code: 'CNTCF_001', name: '정규직 직원', sortOrder: 1 },
-    { code: 'CNTCF_002', name: '계약직 직원', sortOrder: 2 },
-    { code: 'CNTCF_003', name: '수습 직원', sortOrder: 3 },
-    { code: 'CNTCF_004', name: '파트타임 직원', sortOrder: 4 }
-  ]
-
-  // 경력 데이터 초기화
-  useEffect(() => {
-    if (careersData && careersData.length > 0) {
-      setCareers(careersData.map(career => ({
+  // React 19: useEffect 대신 데이터 변환을 렌더링 시점에서 처리
+  const initialCareers: CareerFormItem[] = careersData && careersData.length > 0
+    ? careersData.map(career => ({
         id: career.id,
         companyName: career.companyName,
         workplaceType: career.workplaceType ?? null,
@@ -65,45 +79,40 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         position: career.position ?? null,
         jobDescription: career.jobDescription ?? null,
         resignationReason: career.resignationReason ?? null
-      })))
-    } else if (careersData) {
-      // 데이터가 없으면 빈 항목 하나 추가
-      setCareers([createEmptyCareer()])
-    }
-  }, [careersData])
+      }))
+    : [createEmptyCareer()]
 
-  // 빈 경력 항목 생성
-  const createEmptyCareer = (): CareerFormItem => ({
-    tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    companyName: '',
-    workplaceType: null,
-    startDate: '',
-    endDate: null,
-    contractClassification: null,
-    rank: null,
-    position: null,
-    jobDescription: null,
-    resignationReason: null
-  })
+  // 로컬 수정 상태 (서버 데이터가 변경되면 초기화)
+  const [localCareers, setLocalCareers] = useState<CareerFormItem[] | null>(null)
+  const [dataVersion, setDataVersion] = useState<number | null>(null)
+
+  // 현재 표시할 데이터 결정 (React 19: derived state)
+  const currentVersion = careersData?.length ?? 0
+  const careers = (localCareers && dataVersion === currentVersion) ? localCareers : initialCareers
+
+  // 로컬 상태 업데이트 함수
+  const updateCareers = (updater: (prev: CareerFormItem[]) => CareerFormItem[]) => {
+    setLocalCareers(updater(careers))
+    setDataVersion(currentVersion)
+  }
 
   // 경력 항목 추가
   const handleAddCareer = () => {
-    setCareers(prev => [...prev, createEmptyCareer()])
+    updateCareers(prev => [...prev, createEmptyCareer()])
   }
 
   // 경력 항목 삭제
   const handleRemoveCareer = (index: number) => {
     if (careers.length === 1) {
-      // 마지막 항목이면 빈 항목으로 초기화
-      setCareers([createEmptyCareer()])
+      updateCareers(() => [createEmptyCareer()])
       return
     }
-    setCareers(prev => prev.filter((_, i) => i !== index))
+    updateCareers(prev => prev.filter((_, i) => i !== index))
   }
 
   // 경력 항목 값 변경
   const handleCareerChange = (index: number, field: keyof CareerFormItem, value: string | null) => {
-    setCareers(prev => prev.map((career, i) =>
+    updateCareers(prev => prev.map((career, i) =>
       i === index ? { ...career, [field]: value } : career
     ))
   }
@@ -116,7 +125,8 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
 
     try {
       await deleteAllCareersMutation.mutateAsync(employeeId)
-      setCareers([createEmptyCareer()])
+      setLocalCareers([createEmptyCareer()])
+      setDataVersion(null)
       alert('모든 경력 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
@@ -124,27 +134,38 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
     }
   }
 
+  // 에러 검증 함수 (React 19: 렌더링 시점에서 계산)
+  const getCareerErrors = (career: CareerFormItem, index: number) => {
+    if (!isValidationAttempted) return {}
+    const errors: Record<string, string> = {}
+    if (!career.companyName.trim()) errors.companyName = '근무처를 입력해주세요.'
+    if (!career.startDate) errors.startDate = '근무 시작일을 입력해주세요.'
+    if (!career.contractClassification) errors.contractClassification = '계약 분류를 선택해주세요.'
+    return errors
+  }
+
   // 저장
   const handleSave = async () => {
+    setIsValidationAttempted(true)
+
     // 유효한 경력 정보만 필터링 (회사명이 있는 것만)
     const validCareers = careers.filter(career => career.companyName.trim())
 
     if (validCareers.length === 0) {
-      alert('저장할 경력 정보가 없습니다. 최소 하나의 근무처를 입력해주세요.')
       return
     }
 
-    // 필수값 검증
-    for (let i = 0; i < validCareers.length; i++) {
-      const career = validCareers[i]
-      if (!career.startDate) {
-        alert(`${i + 1}번째 경력의 근무 시작일을 입력해주세요.`)
-        return
+    // 필수값 검증 (에러가 있으면 저장하지 않음)
+    let hasErrors = false
+    for (const career of validCareers) {
+      if (!career.startDate || !career.contractClassification) {
+        hasErrors = true
+        break
       }
-      if (!career.contractClassification) {
-        alert(`${i + 1}번째 경력의 계약 분류를 선택해주세요.`)
-        return
-      }
+    }
+
+    if (hasErrors) {
+      return
     }
 
     try {
@@ -202,7 +223,9 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         </div>
         <AnimateHeight duration={300} height={sectionOpen ? 'auto' : 0}>
           <div className="slidebox-body">
-            {careers.map((career, index) => (
+            {careers.map((career, index) => {
+              const errors = getCareerErrors(career, index)
+              return (
               <div key={career.id ?? career.tempId} style={{ marginBottom: index < careers.length - 1 ? '24px' : 0 }}>
                 <table className="default-table">
                   <colgroup>
@@ -217,15 +240,16 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                       </th>
                       <td>
                         <div className="filed-flx">
-                          <div className="mx-400">
-                            <input
-                              type="text"
-                              className="input-frame"
-                              value={career.companyName}
-                              onChange={(e) => handleCareerChange(index, 'companyName', e.target.value)}
-                              placeholder="회사명을 입력하세요"
-                            />
-                          </div>
+                          <Input
+                            id={`career-${career.id ?? career.tempId}-companyName`}
+                            value={career.companyName}
+                            onChange={(e) => handleCareerChange(index, 'companyName', e.target.value)}
+                            placeholder="회사명을 입력하세요"
+                            error={!!errors.companyName}
+                            showClear
+                            onClear={() => handleCareerChange(index, 'companyName', '')}
+                            containerClassName="mx-400"
+                          />
                           <div className="mx-200">
                             <select
                               className="select-form"
@@ -276,6 +300,9 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             </button>
                           </div>
                         </div>
+                        {errors.companyName && (
+                          <div className="warning-txt mt5" role="alert">* {errors.companyName}</div>
+                        )}
                       </td>
                     </tr>
 
@@ -286,7 +313,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                       </th>
                       <td>
                         <div className="filed-flx">
-                          <div className="date-picker-wrap">
+                          <div className={`date-picker-wrap${errors.startDate ? ' has-error' : ''}`}>
                             <DatePicker
                               value={career.startDate ? new Date(career.startDate) : null}
                               onChange={(date) => handleCareerChange(index, 'startDate', date ? date.toISOString().split('T')[0] : null)}
@@ -302,6 +329,9 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             />
                           </div>
                         </div>
+                        {errors.startDate && (
+                          <div className="warning-txt mt5" role="alert">* {errors.startDate}</div>
+                        )}
                       </td>
                     </tr>
 
@@ -313,9 +343,10 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                       <td>
                         <div className="mx-300">
                           <select
-                            className="select-form"
+                            className={`select-form${errors.contractClassification ? ' border-red-500' : ''}`}
                             value={career.contractClassification ?? ''}
                             onChange={(e) => handleCareerChange(index, 'contractClassification', e.target.value || null)}
+                            style={errors.contractClassification ? { borderColor: '#dc3545' } : undefined}
                           >
                             <option value="">선택</option>
                             {contractClassificationOptions.map((opt) => (
@@ -323,6 +354,9 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             ))}
                           </select>
                         </div>
+                        {errors.contractClassification && (
+                          <div className="warning-txt mt5" role="alert">* {errors.contractClassification}</div>
+                        )}
                       </td>
                     </tr>
 
@@ -331,24 +365,24 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                       <th>직급 / 직책</th>
                       <td>
                         <div className="filed-flx">
-                          <div className="mx-200">
-                            <input
-                              type="text"
-                              className="input-frame"
-                              value={career.rank ?? ''}
-                              onChange={(e) => handleCareerChange(index, 'rank', e.target.value || null)}
-                              placeholder="직급 입력"
-                            />
-                          </div>
-                          <div className="mx-200">
-                            <input
-                              type="text"
-                              className="input-frame"
-                              value={career.position ?? ''}
-                              onChange={(e) => handleCareerChange(index, 'position', e.target.value || null)}
-                              placeholder="직책 입력"
-                            />
-                          </div>
+                          <Input
+                            id={`career-${career.id ?? career.tempId}-rank`}
+                            value={career.rank ?? ''}
+                            onChange={(e) => handleCareerChange(index, 'rank', e.target.value || null)}
+                            placeholder="직급 입력"
+                            showClear
+                            onClear={() => handleCareerChange(index, 'rank', null)}
+                            containerClassName="mx-200"
+                          />
+                          <Input
+                            id={`career-${career.id ?? career.tempId}-position`}
+                            value={career.position ?? ''}
+                            onChange={(e) => handleCareerChange(index, 'position', e.target.value || null)}
+                            placeholder="직책 입력"
+                            showClear
+                            onClear={() => handleCareerChange(index, 'position', null)}
+                            containerClassName="mx-200"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -357,15 +391,15 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                     <tr>
                       <th>업무 내용</th>
                       <td>
-                        <div className="block">
-                          <input
-                            type="text"
-                            className="input-frame"
-                            value={career.jobDescription ?? ''}
-                            onChange={(e) => handleCareerChange(index, 'jobDescription', e.target.value || null)}
-                            placeholder="업무 내용을 입력하세요"
-                          />
-                        </div>
+                        <Input
+                          id={`career-${career.id ?? career.tempId}-jobDescription`}
+                          value={career.jobDescription ?? ''}
+                          onChange={(e) => handleCareerChange(index, 'jobDescription', e.target.value || null)}
+                          placeholder="업무 내용을 입력하세요"
+                          showClear
+                          onClear={() => handleCareerChange(index, 'jobDescription', null)}
+                          fullWidth
+                        />
                       </td>
                     </tr>
 
@@ -373,15 +407,15 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                     <tr>
                       <th>퇴사 사유</th>
                       <td>
-                        <div className="block">
-                          <input
-                            type="text"
-                            className="input-frame"
-                            value={career.resignationReason ?? ''}
-                            onChange={(e) => handleCareerChange(index, 'resignationReason', e.target.value || null)}
-                            placeholder="퇴사 사유를 입력하세요"
-                          />
-                        </div>
+                        <Input
+                          id={`career-${career.id ?? career.tempId}-resignationReason`}
+                          value={career.resignationReason ?? ''}
+                          onChange={(e) => handleCareerChange(index, 'resignationReason', e.target.value || null)}
+                          placeholder="퇴사 사유를 입력하세요"
+                          showClear
+                          onClear={() => handleCareerChange(index, 'resignationReason', null)}
+                          fullWidth
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -390,7 +424,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                   <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px dashed #ddd' }} />
                 )}
               </div>
-            ))}
+            )})}
           </div>
         </AnimateHeight>
       </div>

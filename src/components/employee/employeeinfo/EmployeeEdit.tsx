@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
@@ -11,17 +11,21 @@ import {
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { getDownloadUrl } from '@/lib/api/file'
+import { Input, AddressSearch, type AddressData } from '@/components/common/ui'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import type { UpdateEmployeeInfoRequest } from '@/types/employee'
 
-// Daum 우편번호 서비스 타입 (useStoreDetailForm.ts와 공유)
-interface DaumPostcodeData {
-  zonecode?: string
+// 에러 상태 타입
+interface FormErrors {
+  employeeName?: string
+  employeeClassification?: string
+  contractClassification?: string
+  hireDate?: string
+  mobilePhone?: string
+  email?: string
   address?: string
-  roadAddress?: string
-  jibunAddress?: string
-  buildingName?: string
-  userSelectedType?: 'R' | 'J'
+  accountNumber?: string
+  accountHolder?: string
 }
 
 interface EmployeeEditProps {
@@ -38,6 +42,16 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   const [employeeNumberChecked, setEmployeeNumberChecked] = useState(false)
   const [employeeNumberValid, setEmployeeNumberValid] = useState(false)
   const [originalEmployeeNumber, setOriginalEmployeeNumber] = useState<string | null>(null) // DB에서 조회한 원래 사번
+
+  // 폼 검증 시도 여부 (저장 버튼 클릭 후)
+  const [isValidationAttempted, setIsValidationAttempted] = useState(false)
+
+  // 주소 상태 (AddressSearch 컴포넌트용)
+  const [addressData, setAddressData] = useState<AddressData>({
+    address: '',
+    addressDetail: '',
+    zonecode: '',
+  })
 
   // TanStack Query 훅들
   const { data: employeeData, isPending: isEmployeeLoading } = useEmployeeDetail(employeeId)
@@ -244,21 +258,75 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       setExistingFileNames(fileNamesTemp)
     }
 
+    // 주소 데이터 초기화
+    setAddressData({
+      address: employee.address || '',
+      addressDetail: employee.addressDetail || '',
+      zonecode: employee.zipCode || '',
+    })
+
     fetchFileNames()
   }, [employeeData])
 
-  // 다음 우편번호 스크립트 로드
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
-    script.async = true
-    document.head.appendChild(script)
+  // 에러 상태 계산 (useMemo로 최적화)
+  const formErrors = useMemo<FormErrors>(() => {
+    if (!isValidationAttempted) return {}
 
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script)
-      }
+    const errors: FormErrors = {}
+
+    if (!formData.employeeName.trim()) {
+      errors.employeeName = '직원명을 입력해주세요.'
     }
+
+    if (!formData.employeeClassification) {
+      errors.employeeClassification = '직원 분류를 선택해주세요.'
+    }
+
+    if (!formData.contractClassification) {
+      errors.contractClassification = '계약 분류를 선택해주세요.'
+    }
+
+    if (!formData.hireDate) {
+      errors.hireDate = '입사일을 선택해주세요.'
+    }
+
+    if (!formData.mobilePhone.trim()) {
+      errors.mobilePhone = '휴대폰 번호를 입력해주세요.'
+    } else if (formData.mobilePhone.trim().length < 10) {
+      errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = '이메일 주소를 입력해주세요.'
+    }
+
+    if (!addressData.address) {
+      errors.address = '주소를 입력해주세요.'
+    }
+
+    if (!formData.accountNumber.trim()) {
+      errors.accountNumber = '급여 계좌번호를 입력해주세요.'
+    }
+
+    if (!formData.accountHolder.trim()) {
+      errors.accountHolder = '예금주를 입력해주세요.'
+    }
+
+    return errors
+  }, [isValidationAttempted, formData, addressData.address])
+
+  // 폼에 에러가 있는지 확인
+  const hasFormErrors = useMemo(() => Object.keys(formErrors).length > 0, [formErrors])
+
+  // 주소 변경 핸들러 (AddressSearch 컴포넌트용)
+  const handleAddressChange = useCallback((data: AddressData) => {
+    setAddressData(data)
+    setFormData(prev => ({
+      ...prev,
+      zipCode: data.zonecode || '',
+      address: data.address,
+      addressDetail: data.addressDetail,
+    }))
   }, [])
 
   // TanStack Query로 Common code 조회
@@ -275,26 +343,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
   const rankOptions: ClassificationItem[] = settingsData?.codeMemoContent?.RANK || []
   const positionOptions: ClassificationItem[] = settingsData?.codeMemoContent?.POSITION || []
-
-  // 주소 찾기 핸들러
-  const handleSearchAddress = () => {
-    if (!window.daum) {
-      alert('우편번호 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
-      return
-    }
-
-    new window.daum.Postcode({
-      oncomplete: (data: DaumPostcodeData) => {
-        // 도로명 주소 우선, 없으면 지번 주소 사용
-        const address = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
-        setFormData(prev => ({
-          ...prev,
-          zipCode: data.zonecode ?? '',
-          address: address ?? ''
-        }))
-      }
-    }).open()
-  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -349,54 +397,52 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
   // 저장
   const handleSave = async () => {
-    // 필수값 검증
+    // 검증 시도 상태 설정 (에러 표시 활성화)
+    setIsValidationAttempted(true)
+
+    // 필수값 검증 - 에러가 있으면 저장하지 않음
+    const errors: FormErrors = {}
+
     if (!formData.employeeName.trim()) {
-      alert('직원명을 입력해주세요.')
-      return
+      errors.employeeName = '직원명을 입력해주세요.'
     }
 
     if (!formData.employeeClassification) {
-      alert('직원 분류를 선택해주세요.')
-      return
+      errors.employeeClassification = '직원 분류를 선택해주세요.'
     }
 
     if (!formData.contractClassification) {
-      alert('계약 분류를 선택해주세요.')
-      return
+      errors.contractClassification = '계약 분류를 선택해주세요.'
     }
 
     if (!formData.hireDate) {
-      alert('입사일을 선택해주세요.')
-      return
+      errors.hireDate = '입사일을 선택해주세요.'
     }
 
     if (!formData.mobilePhone.trim()) {
-      alert('휴대폰 번호를 입력해주세요.')
-      return
-    }
-
-    if (formData.mobilePhone.trim().length < 10) {
-      alert('휴대폰 번호를 정확히 입력해주세요.')
-      return
+      errors.mobilePhone = '휴대폰 번호를 입력해주세요.'
+    } else if (formData.mobilePhone.trim().length < 10) {
+      errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
     }
 
     if (!formData.email.trim()) {
-      alert('이메일 주소를 입력해주세요.')
-      return
+      errors.email = '이메일 주소를 입력해주세요.'
     }
 
-    if (!formData.zipCode || !formData.address) {
-      alert('주소를 입력해주세요.')
-      return
+    if (!addressData.address) {
+      errors.address = '주소를 입력해주세요.'
     }
 
     if (!formData.accountNumber.trim()) {
-      alert('급여 계좌번호를 입력해주세요.')
-      return
+      errors.accountNumber = '급여 계좌번호를 입력해주세요.'
     }
 
     if (!formData.accountHolder.trim()) {
-      alert('예금주를 입력해주세요.')
+      errors.accountHolder = '예금주를 입력해주세요.'
+    }
+
+    // 에러가 있으면 저장하지 않음
+    if (Object.keys(errors).length > 0) {
       return
     }
 
@@ -423,9 +469,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
         emergencyContact: formData.emergencyContact || null,
         email: formData.email || null,
         // 주소 정보
-        zipCode: formData.zipCode || null,
-        address: formData.address || null,
-        addressDetail: formData.addressDetail || null,
+        zipCode: addressData.zonecode || null,
+        address: addressData.address || null,
+        addressDetail: addressData.addressDetail || null,
         // 분류 정보
         employeeClassification: formData.employeeClassification || null,
         contractClassification: formData.contractClassification || null,
@@ -592,31 +638,22 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   </th>
                   <td>
                     <div className="filed-flx">
-                      <div className="mx-300">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.employeeName}
-                          onChange={(e) => handleInputChange('employeeName', e.target.value)}
-                          placeholder="직원명"
-                        />
-                      </div>
-                      <div className="mx-200">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.employeeNumber}
-                          onChange={(e) => handleInputChange('employeeNumber', e.target.value)}
-                          placeholder="사번"
-                          disabled={!!originalEmployeeNumber}
-                          style={{
-                            backgroundColor: originalEmployeeNumber ? '#f5f5f5' : undefined,
-                            borderColor: employeeNumberChecked
-                              ? (employeeNumberValid ? '#28a745' : '#dc3545')
-                              : undefined
-                          }}
-                        />
-                      </div>
+                      <Input
+                        value={formData.employeeName}
+                        onChange={(e) => handleInputChange('employeeName', e.target.value)}
+                        placeholder="직원명"
+                        error={!!formErrors.employeeName}
+                        showClear
+                        onClear={() => handleInputChange('employeeName', '')}
+                        containerClassName="mx-300"
+                      />
+                      <Input
+                        value={formData.employeeNumber}
+                        onChange={(e) => handleInputChange('employeeNumber', e.target.value)}
+                        placeholder="사번"
+                        disabled={!!originalEmployeeNumber}
+                        containerClassName="mx-200"
+                      />
                       {!originalEmployeeNumber && (
                         <button
                           className="btn-form outline s"
@@ -632,6 +669,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                         </span>
                       )}
                     </div>
+                    {formErrors.employeeName && (
+                      <div className="warning-txt mt5" role="alert">* {formErrors.employeeName}</div>
+                    )}
                   </td>
                 </tr>
 
@@ -693,9 +733,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     <div className="filed-flx">
                       <div className="mx-300">
                         <select
-                          className="select-form"
+                          className={`select-form${formErrors.employeeClassification ? ' border-red-500' : ''}`}
                           value={formData.employeeClassification}
                           onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
+                          style={formErrors.employeeClassification ? { borderColor: '#dc3545' } : undefined}
                         >
                           <option value="">선택</option>
                           {employeeClassificationOptions.map((item) => (
@@ -715,6 +756,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                         <div>직원 분류에 대한 설명입니다.</div>
                       </Tooltip>
                     </div>
+                    {formErrors.employeeClassification && (
+                      <div className="warning-txt mt5" role="alert">* {formErrors.employeeClassification}</div>
+                    )}
                   </td>
                 </tr>
 
@@ -726,15 +770,19 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="mx-300">
                       <select
-                        className="select-form"
+                        className={`select-form${formErrors.contractClassification ? ' border-red-500' : ''}`}
                         value={formData.contractClassification}
                         onChange={(e) => handleInputChange('contractClassification', e.target.value)}
+                        style={formErrors.contractClassification ? { borderColor: '#dc3545' } : undefined}
                       >
                         <option value="">정직원</option>
                         <option value="contract">계약직</option>
                         <option value="parttime">파트타이머</option>
                       </select>
                     </div>
+                    {formErrors.contractClassification && (
+                      <div className="warning-txt mt5" role="alert">* {formErrors.contractClassification}</div>
+                    )}
                   </td>
                 </tr>
 
@@ -788,13 +836,16 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     입사일 <span className="red">*</span>
                   </th>
                   <td>
-                    <div className="date-picker-wrap">
+                    <div className={`date-picker-wrap${formErrors.hireDate ? ' has-error' : ''}`}>
                       <DatePicker
                         value={formData.hireDate ? new Date(formData.hireDate) : null}
                         onChange={(date) => handleInputChange('hireDate', date ? date.toISOString().split('T')[0] : '')}
                         placeholder="입사일 선택"
                       />
                     </div>
+                    {formErrors.hireDate && (
+                      <div className="warning-txt mt5" role="alert">* {formErrors.hireDate}</div>
+                    )}
                   </td>
                 </tr>
 
@@ -810,15 +861,14 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                           placeholder="퇴사일 선택"
                         />
                       </div>
-                      <div className="mx-300">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.resignationReason}
-                          onChange={(e) => handleInputChange('resignationReason', e.target.value)}
-                          placeholder="퇴사사유"
-                        />
-                      </div>
+                      <Input
+                        value={formData.resignationReason}
+                        onChange={(e) => handleInputChange('resignationReason', e.target.value)}
+                        placeholder="퇴사사유"
+                        showClear
+                        onClear={() => handleInputChange('resignationReason', '')}
+                        containerClassName="mx-300"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -829,19 +879,18 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     휴대폰 번호 <span className="red">*</span>
                   </th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="mx-300">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.mobilePhone}
-                          onChange={(e) => handleInputChange('mobilePhone', e.target.value.replace(/[^0-9]/g, ''))}
-                          placeholder="01012345678"
-                          maxLength={11}
-                        />
-                      </div>
-                      <span className="explain">※ 숫자만 입력</span>
-                    </div>
+                    <Input
+                      value={formData.mobilePhone}
+                      onChange={(e) => handleInputChange('mobilePhone', e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="01012345678"
+                      maxLength={11}
+                      error={!!formErrors.mobilePhone}
+                      helpText={formErrors.mobilePhone}
+                      showClear
+                      onClear={() => handleInputChange('mobilePhone', '')}
+                      explain="※ 숫자만 입력"
+                      containerClassName="mx-300"
+                    />
                   </td>
                 </tr>
 
@@ -849,19 +898,16 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                 <tr>
                   <th>비상 연락처</th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="mx-300">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.emergencyContact}
-                          onChange={(e) => handleInputChange('emergencyContact', e.target.value.replace(/[^0-9]/g, ''))}
-                          placeholder="01012345678"
-                          maxLength={11}
-                        />
-                      </div>
-                      <span className="explain">※ 숫자만 입력</span>
-                    </div>
+                    <Input
+                      value={formData.emergencyContact}
+                      onChange={(e) => handleInputChange('emergencyContact', e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="01012345678"
+                      maxLength={11}
+                      showClear
+                      onClear={() => handleInputChange('emergencyContact', '')}
+                      explain="※ 숫자만 입력"
+                      containerClassName="mx-300"
+                    />
                   </td>
                 </tr>
 
@@ -871,14 +917,17 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     이메일 주소 <span className="red">*</span>
                   </th>
                   <td>
-                    <div className="mx-400">
-                      <input
-                        type="email"
-                        className="input-frame"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                      />
-                    </div>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="example@email.com"
+                      error={!!formErrors.email}
+                      helpText={formErrors.email}
+                      showClear
+                      onClear={() => handleInputChange('email', '')}
+                      containerClassName="mx-400"
+                    />
                   </td>
                 </tr>
 
@@ -888,38 +937,14 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                     주소 <span className="red">*</span>
                   </th>
                   <td>
-                    <div className="filed-flx">
-                      <button className="btn-form outline s" type="button" onClick={handleSearchAddress}>주소찾기</button>
-                      <div className="mx-100">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.zipCode}
-                          disabled
-                          style={{ backgroundColor: '#f5f5f5' }}
-                          placeholder="우편번호"
-                        />
-                      </div>
-                      <div className="mx-350">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.address}
-                          disabled
-                          style={{ backgroundColor: '#f5f5f5' }}
-                          placeholder="주소"
-                        />
-                      </div>
-                      <div className="mx-200">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.addressDetail}
-                          onChange={(e) => handleInputChange('addressDetail', e.target.value)}
-                          placeholder="상세주소"
-                        />
-                      </div>
-                    </div>
+                    <AddressSearch
+                      value={addressData}
+                      onChange={handleAddressChange}
+                      error={!!formErrors.address}
+                      helpText={formErrors.address}
+                      addressPlaceholder="주소를 선택하세요"
+                      detailPlaceholder="상세 주소를 입력하세요"
+                    />
                   </td>
                 </tr>
 
@@ -942,25 +967,30 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                           <option value="hana">하나은행</option>
                         </select>
                       </div>
-                      <div className="mx-250">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.accountNumber}
-                          onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                          placeholder="계좌번호"
-                        />
-                      </div>
-                      <div className="mx-150">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.accountHolder}
-                          onChange={(e) => handleInputChange('accountHolder', e.target.value)}
-                          placeholder="예금주"
-                        />
-                      </div>
+                      <Input
+                        value={formData.accountNumber}
+                        onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                        placeholder="계좌번호"
+                        error={!!formErrors.accountNumber}
+                        showClear
+                        onClear={() => handleInputChange('accountNumber', '')}
+                        containerClassName="mx-250"
+                      />
+                      <Input
+                        value={formData.accountHolder}
+                        onChange={(e) => handleInputChange('accountHolder', e.target.value)}
+                        placeholder="예금주"
+                        error={!!formErrors.accountHolder}
+                        showClear
+                        onClear={() => handleInputChange('accountHolder', '')}
+                        containerClassName="mx-150"
+                      />
                     </div>
+                    {(formErrors.accountNumber || formErrors.accountHolder) && (
+                      <div className="warning-txt mt5" role="alert">
+                        * {formErrors.accountNumber || formErrors.accountHolder}
+                      </div>
+                    )}
                   </td>
                 </tr>
 
@@ -1150,15 +1180,14 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                 <tr>
                   <th>MEMO</th>
                   <td>
-                    <div className="block">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={formData.memo}
-                        onChange={(e) => handleInputChange('memo', e.target.value)}
-                        placeholder="메모 내용을 입력하세요"
-                      />
-                    </div>
+                    <Input
+                      value={formData.memo}
+                      onChange={(e) => handleInputChange('memo', e.target.value)}
+                      placeholder="메모 내용을 입력하세요"
+                      showClear
+                      onClear={() => handleInputChange('memo', '')}
+                      fullWidth
+                    />
                   </td>
                 </tr>
 
