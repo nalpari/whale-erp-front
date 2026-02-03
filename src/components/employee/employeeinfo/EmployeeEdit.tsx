@@ -146,10 +146,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     memo: ''
   })
 
-  // 직원 정보로 폼 초기화
-  useEffect(() => {
-    if (!employeeData) return
-
+  // 직원 정보로 폼 초기화 (렌더링 중 처리)
+  const [prevEmployeeData, setPrevEmployeeData] = useState(employeeData)
+  if (employeeData && employeeData !== prevEmployeeData) {
+    setPrevEmployeeData(employeeData)
     const employee = employeeData
 
     // workplaceType 설정
@@ -215,7 +215,19 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       resume: employee.resumeFileId ?? null
     })
 
-    // 기존 파일이 있으면 파일 정보 조회
+    // 주소 데이터 초기화
+    setAddressData({
+      address: employee.address || '',
+      addressDetail: employee.addressDetail || '',
+      zonecode: employee.zipCode || '',
+    })
+  }
+
+  // 파일 이름 비동기 조회 (외부 시스템 동기화)
+  useEffect(() => {
+    if (!employeeData) return
+
+    const employee = employeeData
     const fetchFileNames = async () => {
       const filePromises: Promise<void>[] = []
       const fileNamesTemp: typeof existingFileNames = {
@@ -257,13 +269,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       await Promise.all(filePromises)
       setExistingFileNames(fileNamesTemp)
     }
-
-    // 주소 데이터 초기화
-    setAddressData({
-      address: employee.address || '',
-      addressDetail: employee.addressDetail || '',
-      zonecode: employee.zipCode || '',
-    })
 
     fetchFileNames()
   }, [employeeData])
@@ -314,9 +319,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
     return errors
   }, [isValidationAttempted, formData, addressData.address])
-
-  // 폼에 에러가 있는지 확인
-  const hasFormErrors = useMemo(() => Object.keys(formErrors).length > 0, [formErrors])
 
   // 주소 변경 핸들러 (AddressSearch 컴포넌트용)
   const handleAddressChange = useCallback((data: AddressData) => {

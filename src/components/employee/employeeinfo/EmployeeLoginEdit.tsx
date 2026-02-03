@@ -109,14 +109,6 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     }
   }
 
-  const handleBack = () => {
-    if (!employeeId) {
-      router.push('/employee/info')
-      return
-    }
-    router.push(`/employee/info/${employeeId}`)
-  }
-
   if (loading) {
     return (
       <div className="master-detail-data">

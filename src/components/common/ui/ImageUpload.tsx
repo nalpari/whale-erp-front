@@ -200,6 +200,7 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
     const [imageUrls, setImageUrls] = useState<Record<string | number, string>>({})
     const blobUrlsRef = useRef<string[]>([])
 
+    // Blob URL 관리 (외부 시스템 동기화)
     useEffect(() => {
       const urls: Record<string | number, string> = {}
       const newBlobUrls: string[] = []
@@ -214,7 +215,8 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
           newBlobUrls.push(blobUrl)
         }
       })
-      setImageUrls(urls)
+      // Blob URL 생성은 외부 시스템 동기화이므로 useEffect 내 setState가 적절
+      setImageUrls(urls) // eslint-disable-line react-hooks/set-state-in-effect
 
       // cleanup: 이전에 생성한 blob URL 해제
       const prevBlobUrls = blobUrlsRef.current

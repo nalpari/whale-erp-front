@@ -132,7 +132,7 @@ export default function RangeDatePicker({
 }: RangeDatePickerProps) {
   const [uncontrolledStartDate, setUncontrolledStartDate] = useState<Date | null>(null)
   const [uncontrolledEndDate, setUncontrolledEndDate] = useState<Date | null>(null)
-  const [activeInput, setActiveInput] = useState<'start' | 'end' | null>(null)
+  const [, setActiveInput] = useState<'start' | 'end' | null>(null)
   const startPickerRef = useRef<ReactDatePicker>(null)
   const endPickerRef = useRef<ReactDatePicker>(null)
 

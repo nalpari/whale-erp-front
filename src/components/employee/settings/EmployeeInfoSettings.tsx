@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -244,8 +244,10 @@ export default function EmployeeInfoSettings() {
     })
   )
 
-  // 쿼리 데이터로 상태 초기화
-  useEffect(() => {
+  // 쿼리 데이터로 상태 초기화 (렌더링 중 처리)
+  const [prevSettingsData, setPrevSettingsData] = useState(settingsData)
+  if (settingsData !== prevSettingsData) {
+    setPrevSettingsData(settingsData)
     if (settingsData?.codeMemoContent) {
       const { EMPLOYEE, RANK, POSITION } = settingsData.codeMemoContent
       setEmployeeClassifications(apiToUiClassifications(EMPLOYEE || []))
@@ -257,7 +259,7 @@ export default function EmployeeInfoSettings() {
       setRankClassifications([])
       setPositionClassifications([])
     }
-  }, [settingsData, isLoading])
+  }
 
   // 현재 탭에 따른 데이터 가져오기
   const getCurrentClassifications = () => {
