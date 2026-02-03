@@ -266,3 +266,6 @@ Dual styling system:
 - 커밋 전 `pnpm lint` 실행
 - TypeScript strict mode 준수
 - `any` 타입 사용 금지
+
+### Memo
+- 태스크가 끝나면 린트체크, 타입체크, 빌드체크를 수행해줘.
