@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import DatePicker from '../../ui/common/DatePicker'
 import { Input } from '@/components/common/ui'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
@@ -84,7 +83,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [storeId, setStoreId] = useState<number | null>(1) // 점포 ID: 1
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
-  const [hireDate, setHireDate] = useState('')
   const [contractClassification, setContractClassification] = useState<ContractClassificationType>('CNTCFWK_001')
   const [nationalPensionEnrolled, setNationalPensionEnrolled] = useState(false)
   const [healthInsuranceEnrolled, setHealthInsuranceEnrolled] = useState(false)
@@ -171,7 +169,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   }
 
   const formErrors = getFormErrors()
-  const hasErrors = Object.keys(formErrors).length > 0
 
   const handleSubmit = async () => {
     setIsValidationAttempted(true)
@@ -269,7 +266,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setStoreId(1) // 점포 ID: 1
     setEmployeeName('')
     setMobilePhone('')
-    setHireDate('')
     setContractClassification('CNTCFWK_001')
     setNationalPensionEnrolled(false)
     setHealthInsuranceEnrolled(false)

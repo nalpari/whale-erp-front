@@ -6,8 +6,6 @@ import {
   useRef,
   useMemo,
   useState,
-  useEffect,
-  useLayoutEffect,
   forwardRef,
   useImperativeHandle,
 } from 'react'
@@ -137,6 +135,13 @@ interface SlashCommandMenuRef {
 const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
   ({ items, command }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [prevItems, setPrevItems] = useState(items)
+
+    // items 변경 시 selectedIndex 리셋 (렌더링 중 처리)
+    if (items !== prevItems) {
+      setPrevItems(items)
+      setSelectedIndex(0)
+    }
 
     const selectItem = useCallback(
       (index: number) => {
@@ -159,10 +164,6 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
     const enterHandler = useCallback(() => {
       selectItem(selectedIndex)
     }, [selectItem, selectedIndex])
-
-    useEffect(() => {
-      setSelectedIndex(0)
-    }, [items])
 
     useImperativeHandle(ref, () => ({
       onKeyDown: ({ event }: { event: KeyboardEvent }) => {

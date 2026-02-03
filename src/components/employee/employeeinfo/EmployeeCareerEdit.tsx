@@ -135,7 +135,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
   }
 
   // 에러 검증 함수 (React 19: 렌더링 시점에서 계산)
-  const getCareerErrors = (career: CareerFormItem, index: number) => {
+  const getCareerErrors = (career: CareerFormItem, _index: number) => {
     if (!isValidationAttempted) return {}
     const errors: Record<string, string> = {}
     if (!career.companyName.trim()) errors.companyName = '근무처를 입력해주세요.'

@@ -110,7 +110,7 @@ export function useProgram() {
           closeModal()
           return
         }
-        const { menu_kind, ...updateData } = data
+        const { menu_kind: _menu_kind, ...updateData } = data
         await updateMutation.mutateAsync({
           id: modalProgram.id,
           data: updateData,

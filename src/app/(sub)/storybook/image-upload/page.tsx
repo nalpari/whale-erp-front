@@ -69,7 +69,7 @@ export default function ImageUploadStorybookPage() {
   )
 
   // 이미지 클릭 핸들러
-  const handleImageClick = useCallback((image: ImageItem, index: number) => {
+  const handleImageClick = useCallback((image: ImageItem, _index: number) => {
     if (image.file) {
       // 새 이미지인 경우 다운로드
       const url = URL.createObjectURL(image.file)
