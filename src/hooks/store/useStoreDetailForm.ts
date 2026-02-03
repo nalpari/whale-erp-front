@@ -378,6 +378,12 @@ export const validateForm = (formState: StoreFormState) => {
   return { fieldErrors, formErrors }
 }
 
+// 다음 주소 검색 API 응답 일부 타입 - AddressSearch 컴포넌트에서 전역 Window.daum 타입 정의됨
+interface DaumPostcodeDataLocal {
+  zonecode?: string
+  address?: string
+  roadAddress?: string
+}
 // 다음 주소 검색 API 응답 일부 타입
 declare global {
   interface Window {
@@ -486,7 +492,7 @@ export const useStoreDetailForm = ({
 
     const openPostcode = (DaumPostcode: NonNullable<Window['daum']>['Postcode']) => {
       const daumPostcode = new DaumPostcode({
-        oncomplete: (data: DaumPostcodeData) => {
+        oncomplete: (data: DaumPostcodeDataLocal) => {
           const address = data.roadAddress || data.address || ''
           setFormState((prev) => ({
             ...prev,

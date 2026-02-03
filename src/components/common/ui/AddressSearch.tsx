@@ -43,19 +43,27 @@ export interface DaumPostcodeData {
   bcode: string
 }
 
+interface DaumPostcodeInstance {
+  open: (options?: { left?: number; top?: number; popupTitle?: string }) => void
+  embed: (element: HTMLElement) => void
+}
+
+interface DaumPostcodeConstructor {
+  new (options: {
+    oncomplete: (data: DaumPostcodeData) => void
+    onclose?: (state: string) => void
+    width?: string | number
+    height?: string | number
+  }): DaumPostcodeInstance
+}
+
+interface DaumNamespace {
+  Postcode: DaumPostcodeConstructor
+}
+
 declare global {
   interface Window {
-    daum?: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void
-        onclose?: (state: string) => void
-        width?: string | number
-        height?: string | number
-      }) => {
-        open: (options?: { left?: number; top?: number; popupTitle?: string }) => void
-        embed: (element: HTMLElement) => void
-      }
-    }
+    daum?: DaumNamespace
   }
 }
 
@@ -182,10 +190,8 @@ const AddressSearch = forwardRef<HTMLInputElement, AddressSearchProps>(
 
       const width = 500
       const height = 600
-
-      if (!window.daum) return
-
-      new window.daum.Postcode({
+      
+      new window.daum!.Postcode({
         oncomplete: (data: DaumPostcodeData) => {
           // 도로명 주소 조합
           let fullAddress = data.address
