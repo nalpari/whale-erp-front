@@ -267,6 +267,7 @@ export default function WorkSchedulePlan() {
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
+  const [showStoreError, setShowStoreError] = useState(false);
   const [employeeModal, setEmployeeModal] = useState<{
     mode: 'add' | 'replace';
     dayIndex: number;
@@ -354,6 +355,7 @@ export default function WorkSchedulePlan() {
     setPendingDeletes({});
     initialWorkersRef.current = new Map();
     dirtyWorkersRef.current = new Set();
+    setShowStoreError(false);
     setLastQuery(null);
   }, [setLastQuery]);
 
@@ -670,6 +672,8 @@ export default function WorkSchedulePlan() {
       <WorkScheduleSearch
         resultCount={resultCount}
         isLoading={isLoading}
+        showStoreError={showStoreError}
+        onStoreErrorChange={setShowStoreError}
         initialQuery={initialQuery}
         onSearch={handleSearch}
         onReset={handleReset}

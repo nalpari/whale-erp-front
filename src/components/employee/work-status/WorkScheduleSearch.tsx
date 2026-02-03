@@ -5,7 +5,8 @@ import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
-import SearchableSelect from '@/components/common/SearchableSelect';
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
+import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
 import { useEmployeeInfoList } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 
@@ -39,7 +40,7 @@ const getDefaultRange = () => {
   };
 };
 
-const DAY_OPTIONS: { label: string; value: DayType | '' }[] = [
+const DAY_OPTIONS: SelectOption[] = [
   { label: '전체', value: '' },
   { label: '월요일', value: 'MONDAY' },
   { label: '화요일', value: 'TUESDAY' },
@@ -62,7 +63,6 @@ export default function WorkScheduleSearch({
   const [searchOpen, setSearchOpen] = useState(true);
   const [showOfficeError, setShowOfficeError] = useState(false);
   const [showPeriodError, setShowPeriodError] = useState(false);
-  const [showDateError, setShowDateError] = useState(false);
   const defaultRange = useMemo(() => getDefaultRange(), []);
   const autoSearchKey = useMemo(() => {
     if (!initialQuery?.officeId || !initialQuery.from || !initialQuery.to) return '';
@@ -142,6 +142,15 @@ export default function WorkScheduleSearch({
     setForm(initialForm);
   }, [initialForm]);
 
+  // employeeOptions 변경 시 현재 선택된 employeeName이 유효한지 체크
+  useEffect(() => {
+    if (!form.employeeName) return
+    const isValid = employeeOptions.some((opt) => opt.value === form.employeeName)
+    if (!isValid) {
+      setForm((prev) => ({ ...prev, employeeName: '' }))
+    }
+  }, [employeeOptions, form.employeeName]);
+
   useEffect(() => {
     if (!autoSearchKey || autoSearchRef.current === autoSearchKey) return;
     autoSearchRef.current = autoSearchKey;
@@ -160,12 +169,12 @@ export default function WorkScheduleSearch({
 
   const handleSearch = () => {
     const hasOfficeError = !form.officeId;
+    const hasStoreError = !form.storeId;
     const hasPeriodError = !form.from || !form.to;
-    const hasDateError = Boolean(form.from && form.to && form.to < form.from);
     setShowOfficeError(hasOfficeError);
+    onStoreErrorChange?.(hasStoreError);
     setShowPeriodError(hasPeriodError);
-    setShowDateError(hasDateError);
-    if (hasOfficeError || hasPeriodError || hasDateError) {
+    if (hasOfficeError || hasStoreError || hasPeriodError) {
       return;
     }
     const officeId = form.officeId;
@@ -194,7 +203,6 @@ export default function WorkScheduleSearch({
     setForm(initialForm);
     setShowOfficeError(false);
     setShowPeriodError(false);
-    setShowDateError(false);
     onStoreErrorChange?.(false);
     onReset();
   };
@@ -230,6 +238,7 @@ export default function WorkScheduleSearch({
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={true}
                   showHeadOfficeError={showOfficeError}
+                  isStoreRequired={true}
                   showStoreError={showStoreError}
                   officeId={form.officeId ?? null}
                   franchiseId={form.franchiseId ?? null}
@@ -254,15 +263,17 @@ export default function WorkScheduleSearch({
                 <th>직원명</th>
                 <td>
                   <div className="data-filed">
-                    <SearchableSelect
-                      value={form.employeeName ? form.employeeName : null}
+                    <SearchSelect
+                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) || null : null}
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
-                      allLabel="전체"
-                      onChange={(nextValue) =>
+                      isDisabled={isEmployeeLoading || Boolean(employeeError)}
+                      isSearchable={true}
+                      isClearable={true}
+                      onChange={(option) =>
                         setForm((prev) => ({
                           ...prev,
-                          employeeName: nextValue ?? '',
+                          employeeName: option?.value ?? '',
                         }))
                       }
                     />
@@ -271,56 +282,39 @@ export default function WorkScheduleSearch({
                 <th>요일</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={form.dayType}
-                      onChange={(event) =>
+                    <SearchSelect
+                      value={form.dayType ? DAY_OPTIONS.find((opt) => opt.value === form.dayType) || null : null}
+                      options={DAY_OPTIONS}
+                      placeholder="전체"
+                      isSearchable={false}
+                      isClearable={true}
+                      onChange={(option) =>
                         setForm((prev) => ({
                           ...prev,
-                          dayType: event.target.value as DayType | '',
+                          dayType: (option?.value as DayType | '') ?? '',
                         }))
                       }
-                    >
-                      {DAY_OPTIONS.map((option) => (
-                        <option key={option.value || 'all'} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </td>
-                <th>기간 *</th>
+                <th>기간 <span className="red">*</span></th>
                 <td>
-                  <div className="date-picker-wrap">
-                    <input
-                      type="date"
-                      className="input-frame"
-                      value={form.from}
-                      onChange={(event) => {
-                        setShowPeriodError(false);
-                        setShowDateError(false);
-                        setForm((prev) => ({ ...prev, from: event.target.value }));
-                      }}
-                    />
-                    <span>~</span>
-                    <input
-                      type="date"
-                      className="input-frame"
-                      value={form.to}
-                      onChange={(event) => {
-                        setShowPeriodError(false);
-                        setShowDateError(false);
-                        setForm((prev) => ({ ...prev, to: event.target.value }));
-                      }}
-                    />
-                  </div>
+                  <RangeDatePicker
+                    startDate={form.from ? new Date(form.from) : null}
+                    endDate={form.to ? new Date(form.to) : null}
+                    onChange={(range: DateRange) => {
+                      setShowPeriodError(false);
+                      setForm((prev) => ({
+                        ...prev,
+                        from: range.startDate ? buildDateInput(range.startDate) : '',
+                        to: range.endDate ? buildDateInput(range.endDate) : '',
+                      }));
+                    }}
+                    startDatePlaceholder="시작일"
+                    endDatePlaceholder="종료일"
+                  />
                   {showPeriodError && (
-                    <span className="form-helper error">기간을 선택해주세요.</span>
-                  )}
-                  {!showPeriodError && showDateError && (
-                    <span className="form-helper error">
-                      종료일은 시작일보다 과거일자로 설정할 수 없습니다.
-                    </span>
+                    <span className="warning-txt">기간을 선택해주세요.</span>
                   )}
                 </td>
               </tr>
