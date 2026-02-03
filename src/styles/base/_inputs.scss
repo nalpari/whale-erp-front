@@ -32,7 +32,6 @@ input::-webkit-inner-spin-button {
     color: $input-c-placehold;
   }
 
-
   &.blue {
     border-color: #c3ccdc;
     background-color: #e8edf7;
@@ -77,8 +76,8 @@ input::-webkit-inner-spin-button {
       pointer-events: none;
     }
   }
-  &.del {
-    .input-icon-btn {
+  .input-icon-btn {
+    &.del {
       width: 18px;
       height: 18px;
       background-image: url('/assets/images/common/input_delete.svg');
@@ -87,11 +86,6 @@ input::-webkit-inner-spin-button {
   &.err {
     border-color: $input-brd-error;
     color: $input-c-error;
-    .input-icon-btn {
-      width: 16px;
-      height: 16px;
-      background-image: url('/assets/images/common/input_err.svg');
-    }
   }
   .input-icon-btn {
     &.show {
@@ -133,7 +127,7 @@ input::-webkit-inner-spin-button {
 }
 // 모바일 input default
 .input-log-frame {
-  @include input-frame(56px, #A4AEBE, #fff, $input-font, #5E697B);
+  @include input-frame(56px, #a4aebe, #fff, $input-font, #5e697b);
   &:disabled,
   &:read-only {
     background-color: #f5f5f5;
@@ -147,9 +141,9 @@ input::-webkit-inner-spin-button {
   @include input-icon-frame(42px, $input-font, $input-brd-default, $input-back-default);
 }
 .input-icon-log-frame {
-  @include input-icon-frame(56px, $input-font, #A4AEBE, #fff);
+  @include input-icon-frame(56px, $input-font, #a4aebe, #fff);
   .input-icon-btn {
-      &.del {
+    &.del {
       width: 16px;
       height: 16px;
       background-image: url('/assets/images/common/login_del.svg');
@@ -159,7 +153,7 @@ input::-webkit-inner-spin-button {
   &:has(input:read-only),
   &:has(input:disabled) {
     background-color: #f5f5f5;
-    border: 1px solid #A4AEBE;
+    border: 1px solid #a4aebe;
     color: #999;
   }
 }

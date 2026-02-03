@@ -1,6 +1,5 @@
 @use '../abstracts' as *;
 
-
 /******************** btn-color 모음 *****************/
 .basic {
   background-color: $normal-back-color;
@@ -18,15 +17,15 @@
   }
 }
 .navy {
-  background-color: #32455D;
+  background-color: #32455d;
   color: #fff;
   &.hover,
   &:hover {
-    background-color: #26374E;
+    background-color: #26374e;
   }
   &.active,
   &:active {
-    background-color: #26374E;
+    background-color: #26374e;
   }
   &:disabled {
     background-color: $normal-d-back-color;
@@ -34,11 +33,11 @@
 }
 .brd-blue {
   background-color: $out-back-color;
-  color: #5E8CE9;
-  border: 1px solid #5E8CE9;
+  color: #5e8ce9;
+  border: 1px solid #5e8ce9;
   &.hover,
   &:hover {
-    background-color: #5E8CE9;
+    background-color: #5e8ce9;
     color: #fff;
     border-color: $out-h-back-color;
   }
@@ -48,18 +47,18 @@
     border-color: $out-d-border-color;
   }
   &.act {
-    background-color: #5E8CE9;
+    background-color: #5e8ce9;
     color: #fff;
     border-color: $out-h-back-color;
   }
 }
 .brd-red {
   background-color: $out-back-color;
-  color: #FF797B;
-  border: 1px solid #FFD9D9;
+  color: #ff797b;
+  border: 1px solid #ffd9d9;
   &.hover,
   &:hover {
-    background-color: #FF797B;
+    background-color: #ff797b;
     color: #fff;
     border-color: $out-h-back-color;
   }
@@ -69,7 +68,7 @@
     border-color: $out-d-border-color;
   }
   &.act {
-    background-color: #FFD9D9;
+    background-color: #ffd9d9;
     color: #fff;
     border-color: $out-h-back-color;
   }
@@ -150,19 +149,19 @@
   }
 }
 
-.s-btn{
+.s-btn {
   @include btn-frame(35px, 12px, $font-ds-15, 24px);
 }
 
 .btn-log-frame {
   @include btn-frame(56px, 10px, 16px, 24px);
   font-weight: 600;
-  &.basic{
-    background-color: #77828D;
+  &.basic {
+    background-color: #77828d;
   }
-  &.gray{
-    background-color: #EBEDEE;
-    color: #77828D;
+  &.gray {
+    background-color: #ebedee;
+    color: #77828d;
   }
 }
 
@@ -199,4 +198,13 @@
   background-repeat: no-repeat;
   background-size: 10px 2px;
   background-position: center;
+}
+.down {
+  width: 16px;
+  height: 16px;
+  background-image: url(/assets/images/popup/down.svg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  margin-left: 4px;
 }

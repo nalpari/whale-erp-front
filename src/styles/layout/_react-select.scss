@@ -1,0 +1,65 @@
+@use '../abstracts' as *;
+
+.erp-select {
+  .select__control {
+    height: 42px;
+    border: 1px solid #ebebeb;
+    border-radius: 6px;
+    font-family: 'Pretendard', sans-serif;
+    cursor: pointer;
+    &:hover {
+      border-color: #948ea5;
+    }
+    &.select__control--is-focused {
+      box-shadow: none;
+      border: 1px solid #948ea5;
+    }
+  }
+  .select__input-container {
+    height: 100%;
+    color: #222;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  }
+  .select__placeholder {
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #222;
+  }
+  .select__value-container {
+    padding: 0 16px;
+  }
+  .select__indicators {
+    padding-right: 7px;
+    .select__indicator {
+      padding: 0;
+      color: #222;
+      svg {
+        display: none;
+      }
+    }
+    .select__clear-indicator {
+      width: 40px;
+      height: 100%;
+      background-image: url('/assets/images/common/input_delete.svg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      cursor: pointer;
+    }
+    .select__dropdown-indicator {
+      width: 40px;
+      height: 100%;
+      background-image: url('/assets/images/common/select_arr.svg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      cursor: pointer;
+    }
+  }
+  // clear 버튼이 없을 때 separator 숨기기
+  .select__indicator-separator {
+    display: none;
+  }
+
+  // clear 버튼이 있을 때만 separator 표시
+  .select__clear-indicator ~ .select__indicator-separator {
+    display: block;
+  }
+}

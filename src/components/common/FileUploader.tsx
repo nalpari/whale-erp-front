@@ -32,6 +32,8 @@
  *    />
  */
 import { useMemo } from 'react'
+import './custom-css/FormHelper.css'
+import './custom-css/FileUploader.css'
 import type { ChangeEvent, DragEvent } from 'react'
 import type { UploadFile } from '@/types/upload-files'
 import Image from 'next/image'

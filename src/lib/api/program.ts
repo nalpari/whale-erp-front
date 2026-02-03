@@ -13,8 +13,11 @@ export interface ProgramReorderRequest {
 /**
  * 프로그램 목록 조회
  */
-export async function fetchPrograms(signal?: AbortSignal): Promise<Program[]> {
-  const response = await getWithSchema('/api/system/programs', programListResponseSchema, { signal })
+export async function fetchPrograms(menuKind: string, signal?: AbortSignal): Promise<Program[]> {
+  const response = await getWithSchema('/api/system/programs', programListResponseSchema, {
+    params: { menuKind },
+    signal
+  })
   return response.data
 }
 

@@ -51,6 +51,9 @@ src/components/
 ├── masterlist/                    # 마스터리스트
 │   ├── MasterList.tsx
 │   └── MasterSearch.tsx
+├── program/                       # 프로그램 관리
+│   ├── ProgramList.tsx            # 프로그램 목록 및 계층 관리
+│   └── ProgramFormModal.tsx       # 프로그램 등록/수정 모달
 ├── store/manage/                  # 점포 관리
 │   ├── StoreList.tsx
 │   ├── StoreInfo.tsx
@@ -99,6 +102,7 @@ src/types/
   - `env.ts` — Environment variable validation
   - `forms.ts` — Form validation schemas (common fields, patterns)
   - `menu.ts` — Menu type schemas
+  - `program.ts` — Program schemas (hierarchy, form validation, CRUD)
   - `index.ts` — Unified exports
 
 - **`src/lib/zod-utils.ts`**: Utility functions
@@ -132,11 +136,12 @@ import type { LoginRequest } from '@/lib/schemas/auth';
   - `refetchOnWindowFocus: false` (ERP 특성상 비활성화)
 - **`src/providers/query-provider.tsx`**: QueryClientProvider 래퍼 (DevTools 포함)
 - **`src/hooks/queries/`**: 쿼리 훅 모음
-  - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조: storeKeys, fileKeys, bpKeys, commonCodeKeys)
+  - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조: storeKeys, fileKeys, bpKeys, commonCodeKeys, programKeys)
   - `use-store-queries.ts` — 점포 CRUD 훅
   - `use-file-queries.ts` — 파일 다운로드 URL 조회
   - `use-bp-queries.ts` — BP 본사/가맹점/점포 트리 조회
   - `use-common-code-queries.ts` — 공통코드 계층 조회 및 캐시 유틸
+  - `use-program-queries.ts` — 프로그램 CRUD 훅 (menuKind 필터링)
 
 ```typescript
 // 점포 조회
@@ -153,6 +158,13 @@ const { data, isPending } = useBpHeadOfficeTree()
 // 공통코드 조회
 const { data, isPending } = useCommonCodeHierarchy('GENDER')
 
+// 프로그램 조회
+const { data, isPending } = useProgramList('MNKND_001')
+
+// 프로그램 생성/수정/삭제
+const { mutateAsync } = useCreateProgram()
+await mutateAsync({ parent_id, menu_kind, name, path, icon_url, is_active })
+
 // 레거시 호환 래퍼 훅
 import { useBp } from '@/hooks/useBp'
 import { useCommonCode } from '@/hooks/useCommonCode'
@@ -163,6 +175,11 @@ import { useCommonCode } from '@/hooks/useCommonCode'
 - **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
   - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID), `subscriptionPlan`
   - Methods: `setTokens()`, `setAccessToken()`, `setAuthority()`, `setAffiliationId()`, `setSubscriptionPlan()`, `clearAuth()`
+- **`src/stores/program-store.ts`**: Zustand store for program UI state
+  - Stores `selectedMenuKind`, `inputKeyword`, `searchKeyword`, `searchResults`, `openItems`, `isModalOpen`, `modalMode`, `modalProgram`
+  - Search state separation: `inputKeyword` (입력창 값, 초기화 버튼) ≠ `searchKeyword` (실행된 검색어, 검색 버튼)
+  - `setSelectedMenuKind()` auto-clears all search states (입력창 + 검색결과)
+  - Methods: `setInputKeyword()`, `setSearchKeyword()`, `clearSearch()`, `toggleItem()`, `openModal()`, `closeModal()`
 - **`src/stores/bp-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useBpHeadOfficeTree` instead)
 - **`src/stores/common-code-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useCommonCodeHierarchy` instead)
 - Access state outside React: `useAuthStore.getState()`
