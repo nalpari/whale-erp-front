@@ -1,16 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import AttendanceSearch, {
-  type AttendanceSearchFilters,
-  DEFAULT_ATTENDANCE_FILTERS,
-} from '@/components/employee/attendance/AttendanceSearch'
+import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
 import { useAttendanceList, useEmployeeCommonCode } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAttendanceSearchStore } from '@/stores/attendance-search-store'
 import type { AttendanceListParams } from '@/types/attendance'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
@@ -41,13 +39,27 @@ export default function AttendanceRecord() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const accessToken = useAuthStore((s) => s.accessToken)
-  const hydrated = Boolean(accessToken)
 
-  const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const [appliedFilters, setAppliedFilters] =
-    useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const page = normalizePage(searchParams.get('page'))
-  const pageSize = normalizeSize(searchParams.get('size'))
+  // Zustand store에서 상태 가져오기
+  const filters = useAttendanceSearchStore((state) => state.filters)
+  const appliedFilters = useAttendanceSearchStore((state) => state.appliedFilters)
+  const page = useAttendanceSearchStore((state) => state.page)
+  const pageSize = useAttendanceSearchStore((state) => state.pageSize)
+  const hydrated = useAttendanceSearchStore((state) => state.hydrated)
+  const setFilters = useAttendanceSearchStore((state) => state.setFilters)
+  const setAppliedFilters = useAttendanceSearchStore((state) => state.setAppliedFilters)
+  const setPage = useAttendanceSearchStore((state) => state.setPage)
+  const setPageSize = useAttendanceSearchStore((state) => state.setPageSize)
+  const resetFilters = useAttendanceSearchStore((state) => state.resetFilters)
+
+  // URL 파라미터와 store 동기화 (초기 로드 시)
+  useEffect(() => {
+    if (!hydrated) return
+    const urlPage = normalizePage(searchParams.get('page'))
+    const urlSize = normalizeSize(searchParams.get('size'))
+    if (urlPage !== page) setPage(urlPage)
+    if (urlSize !== pageSize) setPageSize(urlSize)
+  }, [hydrated, searchParams, page, pageSize, setPage, setPageSize])
 
   const syncQueryParams = (nextPage: number, nextSize: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -64,6 +76,9 @@ export default function AttendanceRecord() {
     if (nextUrl !== currentUrl) {
       router.replace(nextUrl)
     }
+    // store도 업데이트
+    setPage(nextPage)
+    setPageSize(nextSize)
   }
 
   // 공통코드 조회: 근무여부, 계약분류
@@ -97,7 +112,7 @@ export default function AttendanceRecord() {
     size: pageSize,
   }
 
-  const { data: response, isPending: loading, error } = useAttendanceList(attendanceParams, hydrated)
+  const { data: response, isPending: loading, error } = useAttendanceList(attendanceParams, hydrated && Boolean(accessToken))
 
   const handleSearch = () => {
     setAppliedFilters(filters)
@@ -105,7 +120,7 @@ export default function AttendanceRecord() {
   }
 
   const handleReset = () => {
-    setFilters(DEFAULT_ATTENDANCE_FILTERS)
+    resetFilters()
   }
 
   const listData = response?.content ?? []
