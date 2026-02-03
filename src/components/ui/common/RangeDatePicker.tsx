@@ -194,7 +194,7 @@ export default function RangeDatePicker({
             className={`date-picker-input${error ? ' border-red-500' : ''}`}
             renderCustomHeader={(props) => <CustomHeader {...props} />}
             selected={startDate}
-            onChange={handleStartDateChange}
+            onChange={(date: Date | null) => handleStartDateChange(date)}
             onFocus={handleStartDateFocus}
             placeholderText={startDatePlaceholder}
             dateFormat={dateFormat}
@@ -204,7 +204,7 @@ export default function RangeDatePicker({
             selectsStart
             startDate={startDate}
             endDate={endDate}
-            aria-invalid={error}
+            aria-invalid={error ? 'true' : undefined}
             aria-describedby={helpText ? `${inputId}-help` : undefined}
           />
         </div>
@@ -215,7 +215,7 @@ export default function RangeDatePicker({
             className={`date-picker-input${error ? ' border-red-500' : ''}`}
             renderCustomHeader={(props) => <CustomHeader {...props} />}
             selected={endDate}
-            onChange={handleEndDateChange}
+            onChange={(date: Date | null) => handleEndDateChange(date)}
             onFocus={handleEndDateFocus}
             placeholderText={endDatePlaceholder}
             dateFormat={dateFormat}
@@ -225,7 +225,7 @@ export default function RangeDatePicker({
             selectsEnd
             startDate={startDate}
             endDate={endDate}
-            aria-invalid={error}
+            aria-invalid={error ? 'true' : undefined}
             aria-describedby={helpText ? `${inputId}-help` : undefined}
           />
         </div>

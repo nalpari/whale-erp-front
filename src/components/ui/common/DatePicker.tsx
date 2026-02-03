@@ -109,10 +109,10 @@ export default function DatePicker({ value, onChange, placeholder, error = false
           className={`date-picker-input${error ? ' border-red-500' : ''}`}
           renderCustomHeader={(props) => <CustomHeader {...props} />}
           selected={currentValue}
-          onChange={handleChange}
+          onChange={(date: Date | null) => handleChange(date)}
           placeholderText={placeholder}
           dateFormat="yyyy-MM-dd"
-          aria-invalid={error}
+          aria-invalid={error ? 'true' : undefined}
           aria-describedby={helpText ? `${inputId}-help` : undefined}
         />
       </div>
