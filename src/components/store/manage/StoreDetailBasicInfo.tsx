@@ -7,7 +7,13 @@ import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
 import type { FieldErrors, StoreFormState } from '@/types/store'
 import { UploadFile } from '@/types/upload-files'
-import { Input, FileUpload, type FileItem } from '@/components/common/ui'
+import {
+  Input,
+  FileUpload,
+  RadioButtonGroup,
+  type FileItem,
+  type RadioOption,
+} from '@/components/common/ui'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
@@ -78,6 +84,16 @@ interface StoreDetailBasicInfoProps {
   onToggleDeleteImage: (fileId: number) => void
   onExistingFileDownload: (file: UploadFile) => void
 }
+
+const storeOwnerOptions: RadioOption<StoreFormState['storeOwner']>[] = [
+  { value: 'HEAD_OFFICE', label: '??' },
+  { value: 'FRANCHISE', label: '???' },
+]
+
+const operationStatusOptions: RadioOption<StoreFormState['operationStatus']>[] = [
+  { value: 'STOPR_001', label: '??' },
+  { value: 'STOPR_002', label: '???' },
+]
 
 // 점포 기본 정보(소유/조직/사업자/주소/파일) 입력 섹션
 // 매장 기본 정보(소유/조직/사업자/주소/이미지) 입력 섹션 컴포넌트
@@ -248,28 +264,13 @@ export const StoreDetailBasicInfo = ({
               <tr>
                 <th>점포 소유</th>
                 <td>
-                  <div className="filed-check-flx">
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="owner-office"
-                        name="storeOwner"
-                        checked={formState.storeOwner === 'HEAD_OFFICE'}
-                        onChange={() => onStoreOwnerChange('HEAD_OFFICE')}
-                      />
-                      <label htmlFor="owner-office">본사</label>
-                    </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="owner-franchise"
-                        name="storeOwner"
-                        checked={formState.storeOwner === 'FRANCHISE'}
-                        onChange={() => onStoreOwnerChange('FRANCHISE')}
-                      />
-                      <label htmlFor="owner-franchise">가맹점</label>
-                    </div>
-                  </div>
+                  <RadioButtonGroup
+                    className="filed-check-flx"
+                    name="storeOwner"
+                    options={storeOwnerOptions}
+                    value={formState.storeOwner}
+                    onChange={(nextValue) => onStoreOwnerChange(nextValue)}
+                  />
                 </td>
               </tr>
               <tr>
@@ -350,31 +351,17 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>운영여부</th>
+                <th>????</th>
                 <td>
                   <div className="filed-check-flx">
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="status-operating"
-                        name="operationStatus"
-                        checked={formState.operationStatus === 'STOPR_001'}
-                        onChange={() => onOperationStatusChange('STOPR_001')}
-                      />
-                      <label htmlFor="status-operating">운영</label>
-                    </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="status-stopped"
-                        name="operationStatus"
-                        checked={formState.operationStatus === 'STOPR_002'}
-                        onChange={() => onOperationStatusChange('STOPR_002')}
-                      />
-                      <label htmlFor="status-stopped">미운영</label>
-                    </div>
+                    <RadioButtonGroup
+                      name="operationStatus"
+                      options={operationStatusOptions}
+                      value={formState.operationStatus}
+                      onChange={(nextValue) => onOperationStatusChange(nextValue)}
+                    />
                     {formState.operationStatusEditedDate && (
-                      <span className="form-helper">운영여부 변경일: {formState.operationStatusEditedDate}</span>
+                      <span className="form-helper">???? ???: {formState.operationStatusEditedDate}</span>
                     )}
                   </div>
                 </td>

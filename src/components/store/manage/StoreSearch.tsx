@@ -1,9 +1,10 @@
 ﻿'use client'
 import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import { RadioButtonGroup } from '@/components/common/ui'
 
 
 // 점포 검색 필터 상태
@@ -39,6 +40,10 @@ export default function StoreSearch({
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [showDateError, setShowDateError] = useState(false)
+  const statusRadioOptions = useMemo(
+    () => [{ value: 'ALL', label: '전체' }, ...statusOptions],
+    [statusOptions]
+  )
 
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
@@ -99,30 +104,13 @@ export default function StoreSearch({
               <tr>
                 <th>운영여부</th>
                 <td>
-                  <div className="filed-check-flx">
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        name="status"
-                        id="status-all"
-                        checked={filters.status === 'ALL'}
-                        onChange={() => onChange({ status: 'ALL' })}
-                      />
-                      <label htmlFor="status-all">전체</label>
-                    </div>
-                    {statusOptions.map((option) => (
-                      <div className="radio-form-box" key={option.value}>
-                        <input
-                          type="radio"
-                          name="status"
-                          id={`status-${option.value}`}
-                          checked={filters.status === option.value}
-                          onChange={() => onChange({ status: option.value })}
-                        />
-                        <label htmlFor={`status-${option.value}`}>{option.label}</label>
-                      </div>
-                    ))}
-                  </div>
+                  <RadioButtonGroup
+                    className="filed-check-flx"
+                    name="status"
+                    options={statusRadioOptions}
+                    value={filters.status}
+                    onChange={(nextValue) => onChange({ status: nextValue })}
+                  />
                 </td>
                 <th>등록일</th>
                 <td colSpan={3}>
