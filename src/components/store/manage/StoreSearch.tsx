@@ -2,7 +2,7 @@
 import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
-import DatePicker from '@/components/ui/common/DatePicker'
+import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 
@@ -126,23 +126,16 @@ export default function StoreSearch({
                 </td>
                 <th>등록일</th>
                 <td colSpan={3}>
-                  <div className="date-picker-wrap">
-                    <DatePicker
-                      value={filters.from}
-                      onChange={(date) => {
-                        setShowDateError(false)
-                        onChange({ from: date })
-                      }}
-                    />
-                    <span>~</span>
-                    <DatePicker
-                      value={filters.to}
-                      onChange={(date) => {
-                        setShowDateError(false)
-                        onChange({ to: date })
-                      }}
-                    />
-                  </div>
+                  <RangeDatePicker
+                    startDate={filters.from}
+                    endDate={filters.to}
+                    onChange={(range: DateRange) => {
+                      setShowDateError(false)
+                      onChange({ from: range.startDate, to: range.endDate })
+                    }}
+                    startDatePlaceholder="시작일"
+                    endDatePlaceholder="종료일"
+                  />
                   {showDateError && (
                     <span className="warning-txt">
                       ※ 종료일은 시작일보다 과거일자로 설정할 수 없습니다.

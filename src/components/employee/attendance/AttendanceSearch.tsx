@@ -2,6 +2,7 @@
 
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
+import { Input } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 export interface AttendanceSearchFilters {
@@ -136,18 +137,14 @@ export default function AttendanceSearch({
                 </td>
                 <th>직원명</th>
                 <td>
-                  <div className="data-filed">
-                    <input
-                      type="text"
-                      className="input-frame"
-                      placeholder="직원명을 입력하세요"
-                      value={filters.employeeName}
-                      onChange={(e) => onChange({ employeeName: e.target.value })}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSearch()
-                      }}
-                    />
-                  </div>
+                  <Input
+                    placeholder="직원명을 입력하세요"
+                    value={filters.employeeName}
+                    onChange={(e) => onChange({ employeeName: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSearch()
+                    }}
+                  />
                 </td>
                 <th>근무요일</th>
                 <td>

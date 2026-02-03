@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.26.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "set NODE_OPTIONS=--max-old-space-size=4096 && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

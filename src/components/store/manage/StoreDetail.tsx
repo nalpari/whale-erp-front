@@ -2,6 +2,7 @@
 import '@/components/common/custom-css/FormHelper.css'
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Input } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
 import { useStoreDetail, useCreateStore, useUpdateStore } from '@/hooks/queries'
 import { useBp } from '@/hooks/useBp'
@@ -93,18 +94,13 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
   const {
     existingStoreImages,
     existingBusinessFile,
-    storeImagePreviews,
-    businessFilePreview,
     handleRemoveNewImage,
     toggleDeleteImage,
-    getFileUrl,
     handleBusinessFilesSelect,
     handleStoreImagesSelect,
-    handleRemoveAllStoreImages,
     handleRemoveBusinessFile,
     handleRemoveExistingBusinessFile,
     handleExistingFileDownload,
-    resolveExistingFileUrl,
     handleBusinessFileDownload,
   } = useStoreFiles(formState, setFormState)
 
@@ -171,8 +167,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           addressDetailRef={addressDetailRef}
           existingBusinessFile={existingBusinessFile}
           existingStoreImages={existingStoreImages}
-          businessFilePreview={businessFilePreview}
-          storeImagePreviews={storeImagePreviews}
           onToggleOpen={() => setStoreInfoOpen((prev: boolean) => !prev)}
           onStoreOwnerChange={handleStoreOwnerChange}
           onOfficeChange={handleOfficeChange}
@@ -215,9 +209,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onRemoveNewImage={handleRemoveNewImage}
           onToggleDeleteImage={toggleDeleteImage}
           onExistingFileDownload={handleExistingFileDownload}
-          onRemoveAllStoreImages={handleRemoveAllStoreImages}
-          getFileUrl={getFileUrl}
-          resolveExistingFileUrl={resolveExistingFileUrl}
         />
 
         <StoreDetailOperatingHours
@@ -243,29 +234,33 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
             <tr>
               <th>등록자</th>
               <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" defaultValue={detail?.storeInfo.createdBy} disabled />
-                </div>
+                <Input
+                  defaultValue={detail?.storeInfo.createdBy}
+                  disabled
+                />
               </td>
               <th>등록일시</th>
               <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" defaultValue={formatDateYmd(detail?.storeInfo.createdAt)} disabled />
-                </div>
+                <Input
+                  defaultValue={formatDateYmd(detail?.storeInfo.createdAt)}
+                  disabled
+                />
               </td>
             </tr>
             <tr>
               <th>최종 수정자</th>
               <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" defaultValue={detail?.storeInfo.updatedBy} disabled />
-                </div>
+                <Input
+                  defaultValue={detail?.storeInfo.updatedBy}
+                  disabled
+                />
               </td>
               <th>최종 수정일시</th>
               <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" defaultValue={formatDateYmd(detail?.storeInfo.updatedAt)} disabled />
-                </div>
+                <Input
+                  defaultValue={formatDateYmd(detail?.storeInfo.updatedAt)}
+                  disabled
+                />
               </td>
             </tr>
           </tbody>

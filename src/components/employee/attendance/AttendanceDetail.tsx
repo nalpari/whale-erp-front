@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import DatePicker from '@/components/ui/common/DatePicker'
+import { Input } from '@/components/common/ui'
+import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import Location from '@/components/ui/Location'
 import { useAttendanceRecords } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -127,18 +128,17 @@ export default function AttendanceDetail() {
                   <th>본사/가맹점</th>
                   <td>
                     <div className="filed-flx">
-                      <div className="mx-500">
-                        <input type="text" className="input-frame" value={response?.officeName ?? ''} readOnly />
-                      </div>
+                      <Input
+                        value={response?.officeName ?? ''}
+                        readOnly
+                        containerClassName="mx-500"
+                      />
                       {(response?.franchiseId != null || response?.franchiseName) && (
-                        <div className="mx-500">
-                          <input
-                            type="text"
-                            className="input-frame"
-                            value={response?.franchiseName ?? ''}
-                            readOnly
-                          />
-                        </div>
+                        <Input
+                          value={response?.franchiseName ?? ''}
+                          readOnly
+                          containerClassName="mx-500"
+                        />
                       )}
                     </div>
                   </td>
@@ -146,28 +146,22 @@ export default function AttendanceDetail() {
                 <tr>
                   <th>점포</th>
                   <td>
-                    <div className="mx-500">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={response?.storeName ?? ''}
-                        readOnly
-                      />
-                    </div>
+                    <Input
+                      value={response?.storeName ?? ''}
+                      readOnly
+                      containerClassName="mx-500"
+                    />
                   </td>
                 </tr>
                 <tr>
                   <th>직원명</th>
                   <td>
                     <div className="filed-flx">
-                      <div className="mx-500">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={response?.employeeName ?? ''}
-                          readOnly
-                        />
-                      </div>
+                      <Input
+                        value={response?.employeeName ?? ''}
+                        readOnly
+                        containerClassName="mx-500"
+                      />
                       {response?.employeeNumber && (
                         <span>{response.employeeNumber}</span>
                       )}
@@ -180,23 +174,17 @@ export default function AttendanceDetail() {
                   </th>
                   <td>
                     <div className="filed-flx">
-                      <div className="date-picker-wrap">
-                        <DatePicker
-                          value={from}
-                          onChange={(date) => {
-                            setShowDateError(false)
-                            setFrom(date)
-                          }}
-                        />
-                        <span>~</span>
-                        <DatePicker
-                          value={to}
-                          onChange={(date) => {
-                            setShowDateError(false)
-                            setTo(date)
-                          }}
-                        />
-                      </div>
+                      <RangeDatePicker
+                        startDate={from}
+                        endDate={to}
+                        onChange={(range: DateRange) => {
+                          setShowDateError(false)
+                          setFrom(range.startDate)
+                          setTo(range.endDate)
+                        }}
+                        startDatePlaceholder="시작일"
+                        endDatePlaceholder="종료일"
+                      />
                       <button className="btn-form outline s" type="button" onClick={handleSearch}>
                         검색
                       </button>

@@ -1,12 +1,13 @@
 import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import type { RefObject } from 'react'
+import { useMemo } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
 import type { FieldErrors, StoreFormState } from '@/types/store'
 import { UploadFile } from '@/types/upload-files'
-import { FileUploader } from '@/components/common/FileUploader'
+import { Input, FileUpload, type FileItem } from '@/components/common/ui'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
@@ -56,8 +57,6 @@ interface StoreDetailBasicInfoProps {
   onAddressChange: (data: AddressData) => void
   existingBusinessFile?: UploadFile
   existingStoreImages: UploadFile[]
-  businessFilePreview: string | null
-  storeImagePreviews: { file: File; url: string }[]
   // UI 토글/입력 변경 핸들러들
   onToggleOpen: () => void
   onStoreOwnerChange: (owner: StoreFormState['storeOwner']) => void
@@ -78,9 +77,6 @@ interface StoreDetailBasicInfoProps {
   onRemoveNewImage: (index: number) => void
   onToggleDeleteImage: (fileId: number) => void
   onExistingFileDownload: (file: UploadFile) => void
-  onRemoveAllStoreImages: () => void
-  getFileUrl: (file: UploadFile) => string
-  resolveExistingFileUrl: (file: UploadFile) => Promise<string | null>
 }
 
 // 점포 기본 정보(소유/조직/사업자/주소/파일) 입력 섹션
@@ -97,8 +93,6 @@ export const StoreDetailBasicInfo = ({
   onAddressChange,
   existingBusinessFile,
   existingStoreImages,
-  businessFilePreview,
-  storeImagePreviews,
   onToggleOpen,
   onStoreOwnerChange,
   onOfficeChange,
@@ -118,16 +112,120 @@ export const StoreDetailBasicInfo = ({
   onRemoveNewImage,
   onToggleDeleteImage,
   onExistingFileDownload,
-  onRemoveAllStoreImages,
-  getFileUrl,
-  resolveExistingFileUrl,
 }: StoreDetailBasicInfoProps) => {
-  // 단일 파일 업로더에 맞게 미리보기/기존파일을 배열 형태로 구성
-  const businessPreviews =
-    businessFilePreview && formState.businessFile
-      ? [{ file: formState.businessFile, url: businessFilePreview }]
-      : []
-  const businessExistingFiles = existingBusinessFile ? [existingBusinessFile] : []
+  // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
+  const businessFiles = useMemo<FileItem[]>(() => {
+    const files: FileItem[] = []
+    // 기존 파일
+    if (existingBusinessFile) {
+      files.push({
+        id: existingBusinessFile.id,
+        name: existingBusinessFile.originalFileName,
+      })
+    }
+    // 새 파일
+    if (formState.businessFile) {
+      files.push({
+        name: formState.businessFile.name,
+        file: formState.businessFile,
+      })
+    }
+    return files
+  }, [existingBusinessFile, formState.businessFile])
+
+  // 점포 이미지 파일 목록 (기존 파일들 + 새 파일들)
+  const storeImageFiles = useMemo<FileItem[]>(() => {
+    const files: FileItem[] = []
+    // 기존 파일들
+    existingStoreImages.forEach((file) => {
+      files.push({
+        id: file.id,
+        name: file.originalFileName,
+      })
+    })
+    // 새 파일들
+    formState.storeImages.forEach((file: File) => {
+      files.push({
+        name: file.name,
+        file,
+      })
+    })
+    return files
+  }, [existingStoreImages, formState.storeImages])
+
+  // 사업자등록증 파일 추가 핸들러
+  const handleBusinessFileAdd = (files: File[]) => {
+    if (files.length > 0) {
+      onBusinessFilesSelect(files)
+    }
+  }
+
+  // 사업자등록증 파일 삭제 핸들러
+  const handleBusinessFileRemove = (index: number) => {
+    const file = businessFiles[index]
+    if (file.id !== undefined) {
+      // 기존 파일
+      onRemoveExistingBusinessFile(file.id as number)
+    } else {
+      // 새 파일
+      onRemoveBusinessFile()
+    }
+  }
+
+  // 사업자등록증 파일 클릭 핸들러 (다운로드)
+  const handleBusinessFileClick = async (file: FileItem) => {
+    if (file.file) {
+      // 새 파일: 브라우저에서 다운로드
+      const url = URL.createObjectURL(file.file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    } else if (file.id !== undefined && existingBusinessFile) {
+      // 기존 파일: 서버에서 다운로드
+      onBusinessFileDownload(existingBusinessFile)
+    }
+  }
+
+  // 점포 이미지 파일 추가 핸들러
+  const handleStoreImageAdd = (files: File[]) => {
+    if (files.length > 0) {
+      onStoreImagesSelect(files)
+    }
+  }
+
+  // 점포 이미지 파일 삭제 핸들러
+  const handleStoreImageRemove = (index: number) => {
+    const existingCount = existingStoreImages.length
+    if (index < existingCount) {
+      // 기존 파일
+      const file = existingStoreImages[index]
+      onToggleDeleteImage(file.id)
+    } else {
+      // 새 파일
+      const newFileIndex = index - existingCount
+      onRemoveNewImage(newFileIndex)
+    }
+  }
+
+  // 점포 이미지 파일 클릭 핸들러 (다운로드)
+  const handleStoreImageClick = async (file: FileItem, index: number) => {
+    const existingCount = existingStoreImages.length
+    if (file.file) {
+      // 새 파일: 브라우저에서 다운로드
+      const url = URL.createObjectURL(file.file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    } else if (index < existingCount) {
+      // 기존 파일: 서버에서 다운로드
+      const existingFile = existingStoreImages[index]
+      onExistingFileDownload(existingFile)
+    }
+  }
 
   return (
     <div className={`slidebox-wrap ${isOpen ? '' : 'close'}`}>
@@ -217,17 +315,22 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>점포명 *</th>
+                <th>점포명 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx">
-                    <input
-                      type="text"
-                      className="input-frame input-grow store-name-input"
+                    <Input
+                      className="input-grow store-name-input"
                       value={formState.storeName}
                       onChange={(event) => onStoreNameChange(event.target.value)}
                       readOnly={!formState.organizationId}
                     />
-                    {isEditMode && <input type="text" className="input-frame input-grow store-name-input" value={formState.storeCode} readOnly />}
+                    {isEditMode && (
+                      <Input
+                        className="input-grow store-name-input"
+                        value={formState.storeCode}
+                        readOnly
+                      />
+                    )}
                     {!isEditMode && (
                       <div className="toggle-wrap">
                         <label className="toggle-btn" htmlFor="same-as-owner">
@@ -284,29 +387,20 @@ export const StoreDetailBasicInfo = ({
                       ※ 사업자등록증 등록 시 대표자, 사업자등록번호, 점포주소가 자동 입력됩니다.
                     </span>
                   </div>
-                  <FileUploader
-                    mode="single"
-                    value={formState.businessFile}
-                    previews={businessPreviews}
-                    existingFiles={businessExistingFiles}
-                    onChange={onBusinessFilesSelect}
-                    onRemoveNew={() => onRemoveBusinessFile()}
-                    onRemoveExisting={onRemoveExistingBusinessFile}
-                    onDownloadExisting={onBusinessFileDownload}
-                    getExistingFileUrl={getFileUrl}
-                    resolveExistingFileUrl={resolveExistingFileUrl}
+                  <FileUpload
+                    files={businessFiles}
+                    onAdd={handleBusinessFileAdd}
+                    onRemove={handleBusinessFileRemove}
+                    onFileClick={handleBusinessFileClick}
+                    error={!!fieldErrors.businessFile}
+                    helpText={fieldErrors.businessFile}
                   />
-                  {fieldErrors.businessFile && (
-                    <div className="warning-txt">{fieldErrors.businessFile}</div>
-                  )}
                 </td>
               </tr>
               <tr>
-                <th>대표자 *</th>
+                <th>대표자 <span className="red">*</span></th>
                 <td>
-                  <input
-                    type="text"
-                    className="input-frame"
+                  <Input
                     value={formState.ceoName}
                     onChange={(event) => onCeoNameChange(event.target.value)}
                   />
@@ -314,12 +408,10 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>사업자등록번호 *</th>
+                <th>사업자등록번호 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <Input
                       value={formatBusinessNumberInput(formState.businessNumber)}
                       onChange={(event) => onBusinessNumberChange(event.target.value)}
                       inputMode="numeric"
@@ -331,7 +423,7 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>점포 주소 *</th>
+                <th>점포 주소 <span className="red">*</span></th>
                 <td>
                   <AddressSearch
                     value={{
@@ -349,12 +441,10 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>대표자 핸드폰 번호 *</th>
+                <th>대표자 핸드폰 번호 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <Input
                       value={formatPhoneNumberInput(formState.ceoPhone)}
                       onChange={(event) => onCeoPhoneChange(event.target.value)}
                       inputMode="numeric"
@@ -369,9 +459,8 @@ export const StoreDetailBasicInfo = ({
                 <th>점포 전화번호</th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame input-grow"
+                    <Input
+                      className="input-grow"
                       value={formatPhoneNumberInput(formState.storePhone)}
                       onChange={(event) => onStorePhoneChange(event.target.value)}
                       inputMode="numeric"
@@ -385,22 +474,15 @@ export const StoreDetailBasicInfo = ({
               <tr>
                 <th>점포 이미지</th>
                 <td>
-                  <FileUploader
-                    mode="multiple"
-                    value={formState.storeImages}
-                    previews={storeImagePreviews}
-                    existingFiles={existingStoreImages}
-                    onChange={onStoreImagesSelect}
-                    onRemoveNew={onRemoveNewImage}
-                    onRemoveExisting={onToggleDeleteImage}
-                    onDownloadExisting={onExistingFileDownload}
-                    onRemoveAll={onRemoveAllStoreImages}
-                    getExistingFileUrl={getFileUrl}
-                    resolveExistingFileUrl={resolveExistingFileUrl}
+                  <FileUpload
+                    files={storeImageFiles}
+                    onAdd={handleStoreImageAdd}
+                    onRemove={handleStoreImageRemove}
+                    onFileClick={handleStoreImageClick}
+                    multiple
+                    error={!!fieldErrors.storeImages}
+                    helpText={fieldErrors.storeImages}
                   />
-                  {fieldErrors.storeImages && (
-                    <div className="warning-txt">{fieldErrors.storeImages}</div>
-                  )}
                 </td>
               </tr>
             </tbody>

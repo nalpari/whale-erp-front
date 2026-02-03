@@ -280,6 +280,7 @@ Available at `/editor`:
 
 ### Code Quality
 - Run `pnpm lint` before committing
+- Run `npx tsc --noEmit` before committing
 - Follow TypeScript strict mode
 - Avoid `any` types
 - Keep components focused and single-purpose
