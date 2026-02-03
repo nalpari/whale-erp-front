@@ -3,7 +3,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
-import { getEmployeeCareers, saveEmployeeCareers, deleteAllEmployeeCareers } from '@/lib/api/employee'
+import {
+  useEmployeeCareers,
+  useSaveEmployeeCareers,
+  useDeleteAllEmployeeCareers
+} from '@/hooks/queries/use-employee-queries'
 import type { EmployeeCareerItem } from '@/types/employee'
 
 interface ClassificationItem {
@@ -23,8 +27,14 @@ interface CareerFormItem extends EmployeeCareerItem {
 export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditProps) {
   const router = useRouter()
   const [sectionOpen, setSectionOpen] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
   const [careers, setCareers] = useState<CareerFormItem[]>([])
+
+  // TanStack Query 훅들
+  const { data: careersData, isPending: isCareersLoading } = useEmployeeCareers(employeeId)
+  const saveCareersMutation = useSaveEmployeeCareers()
+  const deleteAllCareersMutation = useDeleteAllEmployeeCareers()
+
+  const isLoading = isCareersLoading || saveCareersMutation.isPending || deleteAllCareersMutation.isPending
 
   // 근무처 유형 옵션
   const workplaceTypeOptions: ClassificationItem[] = [
@@ -41,42 +51,26 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
     { code: 'CNTCF_004', name: '파트타임 직원', sortOrder: 4 }
   ]
 
-  // 경력 데이터 조회
+  // 경력 데이터 초기화
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-
-        // 경력 정보 조회
-        const careerData = await getEmployeeCareers(employeeId)
-
-        if (careerData.length > 0) {
-          setCareers(careerData.map(career => ({
-            id: career.id,
-            companyName: career.companyName,
-            workplaceType: career.workplaceType ?? null,
-            startDate: career.startDate,
-            endDate: career.endDate ?? null,
-            contractClassification: career.contractClassification ?? null,
-            rank: career.rank ?? null,
-            position: career.position ?? null,
-            jobDescription: career.jobDescription ?? null,
-            resignationReason: career.resignationReason ?? null
-          })))
-        } else {
-          // 데이터가 없으면 빈 항목 하나 추가
-          setCareers([createEmptyCareer()])
-        }
-      } catch (error) {
-        console.error('데이터 조회 실패:', error)
-        setCareers([createEmptyCareer()])
-      } finally {
-        setIsLoading(false)
-      }
+    if (careersData && careersData.length > 0) {
+      setCareers(careersData.map(career => ({
+        id: career.id,
+        companyName: career.companyName,
+        workplaceType: career.workplaceType ?? null,
+        startDate: career.startDate,
+        endDate: career.endDate ?? null,
+        contractClassification: career.contractClassification ?? null,
+        rank: career.rank ?? null,
+        position: career.position ?? null,
+        jobDescription: career.jobDescription ?? null,
+        resignationReason: career.resignationReason ?? null
+      })))
+    } else if (careersData) {
+      // 데이터가 없으면 빈 항목 하나 추가
+      setCareers([createEmptyCareer()])
     }
-
-    fetchData()
-  }, [employeeId])
+  }, [careersData])
 
   // 빈 경력 항목 생성
   const createEmptyCareer = (): CareerFormItem => ({
@@ -121,15 +115,12 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
     }
 
     try {
-      setIsLoading(true)
-      await deleteAllEmployeeCareers(employeeId)
+      await deleteAllCareersMutation.mutateAsync(employeeId)
       setCareers([createEmptyCareer()])
       alert('모든 경력 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
       alert('삭제 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -157,8 +148,6 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
     }
 
     try {
-      setIsLoading(true)
-
       const careersToSave: EmployeeCareerItem[] = validCareers.map(career => ({
         id: career.id ?? undefined,  // 새 항목은 id가 없음
         companyName: career.companyName,
@@ -172,14 +161,15 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         resignationReason: career.resignationReason
       }))
 
-      await saveEmployeeCareers(employeeId, { careers: careersToSave })
+      await saveCareersMutation.mutateAsync({
+        employeeInfoId: employeeId,
+        data: { careers: careersToSave }
+      })
       alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (error) {
       console.error('저장 실패:', error)
       alert('저장 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
     }
   }
 

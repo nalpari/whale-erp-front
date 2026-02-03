@@ -1,12 +1,13 @@
 'use client'
 import AnimateHeight from 'react-animate-height'
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import DatePicker from '../../ui/common/DatePicker'
 import StaffInvitationPop from './StaffInvitationPop'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { EmployeeSearchParams } from '@/types/employee'
 import { format, parseISO } from 'date-fns'
-import { getEmployeeInfoCommonCode, type ClassificationItem } from '@/lib/api/employeeInfoSettings'
+import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
+import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 
 interface EmployeeSearchProps {
   onSearch: (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => void
@@ -18,10 +19,6 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
   const [searchOpen, setSearchOpen] = useState(true)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-
-  // 직원 분류 옵션
-  const [employeeClassificationOptions, setEmployeeClassificationOptions] = useState<ClassificationItem[]>([])
-  const [isEmployeeClassificationLoading, setIsEmployeeClassificationLoading] = useState(false)
 
   // 검색 폼 상태
   // TODO: 테스트용 기본값 - 나중에 제거
@@ -41,37 +38,23 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     healthCheckExpiryTo: ''
   })
 
-  // 본사/가맹점 변경 시 직원 분류 API 호출
-  const fetchEmployeeClassifications = useCallback(async (headOfficeId: number, franchiseId?: number | null) => {
-    setIsEmployeeClassificationLoading(true)
-    try {
-      const response = await getEmployeeInfoCommonCode({
-        headOfficeId,
-        franchiseId: franchiseId ?? undefined
-      })
-      if (response?.codeMemoContent?.EMPLOYEE) {
-        setEmployeeClassificationOptions(response.codeMemoContent.EMPLOYEE)
-      } else {
-        setEmployeeClassificationOptions([])
-      }
-    } catch (error) {
-      console.error('직원 분류 조회 실패:', error)
-      setEmployeeClassificationOptions([])
-    } finally {
-      setIsEmployeeClassificationLoading(false)
-    }
-  }, [])
+  // TanStack Query로 직원 분류 조회
+  const { data: settingsData, isPending: isEmployeeClassificationLoading } = useEmployeeInfoSettings(
+    formData.headOfficeOrganizationId
+      ? {
+          headOfficeId: formData.headOfficeOrganizationId,
+          franchiseId: formData.franchiseOrganizationId ?? undefined
+        }
+      : undefined,
+    !!formData.headOfficeOrganizationId
+  )
 
-  // 본사/가맹점 변경 시 직원 분류 로드
-  useEffect(() => {
-    if (formData.headOfficeOrganizationId) {
-      fetchEmployeeClassifications(formData.headOfficeOrganizationId, formData.franchiseOrganizationId)
-    } else {
-      setEmployeeClassificationOptions([])
-      // 본사 선택 해제 시 직원 분류도 초기화
-      setFormData(prev => ({ ...prev, employeeClassification: '' }))
-    }
-  }, [formData.headOfficeOrganizationId, formData.franchiseOrganizationId, fetchEmployeeClassifications])
+  const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE ?? []
+
+  // 직원 분류 선택 가능 여부 - 본사 미선택 시 직원분류 자동 초기화됨 (derived state)
+  const isEmployeeClassificationEnabled = !!formData.headOfficeOrganizationId
+  // 본사 미선택 시 직원분류 값을 빈 문자열로 처리 (렌더 시점에서 파생)
+  const effectiveEmployeeClassification = isEmployeeClassificationEnabled ? formData.employeeClassification : ''
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -92,7 +75,7 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     if (formData.storeId) params.storeId = formData.storeId
     if (formData.workStatus) params.workStatus = formData.workStatus as 'EMPWK_001' | 'EMPWK_002' | 'EMPWK_003'
     if (formData.employeeName) params.employeeName = formData.employeeName
-    if (formData.employeeClassification) params.employeeClassification = formData.employeeClassification
+    if (effectiveEmployeeClassification) params.employeeClassification = effectiveEmployeeClassification
     if (formData.contractClassification) params.contractClassification = formData.contractClassification
     if (formData.adminAuthority) params.adminAuthority = formData.adminAuthority
     if (formData.memberStatus) params.memberStatus = formData.memberStatus
@@ -120,7 +103,6 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
       healthCheckExpiryFrom: '',
       healthCheckExpiryTo: ''
     })
-    setEmployeeClassificationOptions([])
     setShowOfficeError(false)
     onReset()
   }
@@ -128,9 +110,6 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
   const handleClose = () => {
     setSearchOpen(false)
   }
-
-  // 직원 분류 선택 가능 여부
-  const isEmployeeClassificationEnabled = !!formData.headOfficeOrganizationId
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
@@ -210,7 +189,7 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
                     <select
                       name="employeeClassification"
                       className="select-form"
-                      value={formData.employeeClassification}
+                      value={effectiveEmployeeClassification}
                       onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
                       disabled={!isEmployeeClassificationEnabled}
                     >

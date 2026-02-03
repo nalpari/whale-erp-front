@@ -1,12 +1,17 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
 import { Tooltip } from 'react-tooltip'
-import { checkEmployeeNumber, updateEmployeeWithFiles, getEmployee } from '@/lib/api/employee'
+import {
+  useEmployeeDetail,
+  useCheckEmployeeNumber,
+  useUpdateEmployeeWithFiles
+} from '@/hooks/queries/use-employee-queries'
+import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { getDownloadUrl } from '@/lib/api/file'
-import { getEmployeeInfoCommonCode, type ClassificationItem } from '@/lib/api/employeeInfoSettings'
+import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import type { UpdateEmployeeInfoRequest } from '@/types/employee'
 
 // Daum 우편번호 서비스 타입 (useStoreDetailForm.ts와 공유)
@@ -30,15 +35,16 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   const [workStatus, setWorkStatus] = useState<'working' | 'leave' | 'retired'>('working')
   const [tempSaveEnabled, setTempSaveEnabled] = useState(true)
   const [selectedIcon, setSelectedIcon] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
   const [employeeNumberChecked, setEmployeeNumberChecked] = useState(false)
   const [employeeNumberValid, setEmployeeNumberValid] = useState(false)
   const [originalEmployeeNumber, setOriginalEmployeeNumber] = useState<string | null>(null) // DB에서 조회한 원래 사번
 
-  // Common code 옵션 상태
-  const [employeeClassificationOptions, setEmployeeClassificationOptions] = useState<ClassificationItem[]>([])
-  const [rankOptions, setRankOptions] = useState<ClassificationItem[]>([])
-  const [positionOptions, setPositionOptions] = useState<ClassificationItem[]>([])
+  // TanStack Query 훅들
+  const { data: employeeData, isPending: isEmployeeLoading } = useEmployeeDetail(employeeId)
+  const checkEmployeeNumberMutation = useCheckEmployeeNumber()
+  const updateEmployeeMutation = useUpdateEmployeeWithFiles()
+
+  const isLoading = isEmployeeLoading || checkEmployeeNumberMutation.isPending || updateEmployeeMutation.isPending
 
   // 파일 상태
   const [files, setFiles] = useState<{
@@ -126,127 +132,120 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     memo: ''
   })
 
-  // 직원 정보 조회
+  // 직원 정보로 폼 초기화
   useEffect(() => {
-    const fetchEmployeeInfo = async () => {
-      if (!employeeId) return
+    if (!employeeData) return
 
-      try {
-        setIsLoading(true)
-        const employee = await getEmployee(employeeId)
+    const employee = employeeData
 
-        // workplaceType 설정
-        if (employee.workplaceType === 'HEAD_OFFICE') {
-          setWorkplaceType('headquarters')
-        } else {
-          setWorkplaceType('franchise')
-        }
-
-        // workStatus 설정
-        if (employee.workStatus === 'WORKING' || employee.workStatusName === '근무') {
-          setWorkStatus('working')
-        } else if (employee.workStatus === 'LEAVE' || employee.workStatusName === '휴직') {
-          setWorkStatus('leave')
-        } else if (employee.workStatus === 'RETIRED' || employee.workStatusName === '퇴사') {
-          setWorkStatus('retired')
-        }
-
-        // formData 설정
-        setFormData(prev => ({
-          ...prev,
-          headOfficeOrganizationId: employee.headOfficeOrganizationId?.toString() || '1',
-          franchiseOrganizationId: employee.franchiseOrganizationId?.toString() || '2',
-          storeId: employee.storeId?.toString() || '1',
-          employeeName: employee.employeeName || '',
-          employeeNumber: employee.employeeNumber || '',
-          birthDate: employee.birthDate || '',
-          mobilePhone: employee.mobilePhone || '',
-          emergencyContact: employee.emergencyContact || '',
-          email: employee.email || '',
-          zipCode: employee.zipCode || '',
-          address: employee.address || '',
-          addressDetail: employee.addressDetail || '',
-          employeeClassification: employee.employeeClassification || '',
-          contractClassification: employee.contractClassification || '',
-          rank: employee.rank || '',
-          position: employee.position || '',
-          hireDate: employee.hireDate || '',
-          resignationDate: employee.resignationDate || '',
-          resignationReason: employee.resignationReason || '',
-          bankCode: employee.salaryBank || '',
-          accountNumber: employee.salaryAccountNumber || '',
-          accountHolder: employee.salaryAccountHolder || '',
-          healthCheckExpiryDate: employee.healthCheckExpiryDate || '',
-          memo: employee.memo || ''
-        }))
-
-        // 아이콘 타입 설정
-        if (employee.iconType !== null && employee.iconType !== undefined) {
-          setSelectedIcon(employee.iconType)
-        }
-
-        // DB에서 조회한 원래 사번 저장 (수정 불가 판단용)
-        if (employee.employeeNumber) {
-          setOriginalEmployeeNumber(employee.employeeNumber)
-        }
-
-        // 기존 파일 ID 설정
-        setExistingFileIds({
-          resident: employee.residentRegistrationFileId ?? null,
-          family: employee.familyRelationFileId ?? null,
-          health: employee.healthCheckFileId ?? null,
-          resume: employee.resumeFileId ?? null
-        })
-
-        // 기존 파일이 있으면 파일 정보 조회
-        const filePromises: Promise<void>[] = []
-        const fileNamesTemp: typeof existingFileNames = {
-          resident: null,
-          family: null,
-          health: null,
-          resume: null
-        }
-
-        if (employee.residentRegistrationFileId) {
-          filePromises.push(
-            getDownloadUrl(employee.residentRegistrationFileId)
-              .then(res => { fileNamesTemp.resident = res.originalFileName })
-              .catch(() => {})
-          )
-        }
-        if (employee.familyRelationFileId) {
-          filePromises.push(
-            getDownloadUrl(employee.familyRelationFileId)
-              .then(res => { fileNamesTemp.family = res.originalFileName })
-              .catch(() => {})
-          )
-        }
-        if (employee.healthCheckFileId) {
-          filePromises.push(
-            getDownloadUrl(employee.healthCheckFileId)
-              .then(res => { fileNamesTemp.health = res.originalFileName })
-              .catch(() => {})
-          )
-        }
-        if (employee.resumeFileId) {
-          filePromises.push(
-            getDownloadUrl(employee.resumeFileId)
-              .then(res => { fileNamesTemp.resume = res.originalFileName })
-              .catch(() => {})
-          )
-        }
-
-        await Promise.all(filePromises)
-        setExistingFileNames(fileNamesTemp)
-      } catch (error) {
-        console.error('직원 정보 조회 실패:', error)
-      } finally {
-        setIsLoading(false)
-      }
+    // workplaceType 설정
+    if (employee.workplaceType === 'HEAD_OFFICE') {
+      setWorkplaceType('headquarters')
+    } else {
+      setWorkplaceType('franchise')
     }
 
-    fetchEmployeeInfo()
-  }, [employeeId])
+    // workStatus 설정
+    if (employee.workStatus === 'WORKING' || employee.workStatusName === '근무') {
+      setWorkStatus('working')
+    } else if (employee.workStatus === 'LEAVE' || employee.workStatusName === '휴직') {
+      setWorkStatus('leave')
+    } else if (employee.workStatus === 'RETIRED' || employee.workStatusName === '퇴사') {
+      setWorkStatus('retired')
+    }
+
+    // formData 설정
+    setFormData(prev => ({
+      ...prev,
+      headOfficeOrganizationId: employee.headOfficeOrganizationId?.toString() || '1',
+      franchiseOrganizationId: employee.franchiseOrganizationId?.toString() || '2',
+      storeId: employee.storeId?.toString() || '1',
+      employeeName: employee.employeeName || '',
+      employeeNumber: employee.employeeNumber || '',
+      birthDate: employee.birthDate || '',
+      mobilePhone: employee.mobilePhone || '',
+      emergencyContact: employee.emergencyContact || '',
+      email: employee.email || '',
+      zipCode: employee.zipCode || '',
+      address: employee.address || '',
+      addressDetail: employee.addressDetail || '',
+      employeeClassification: employee.employeeClassification || '',
+      contractClassification: employee.contractClassification || '',
+      rank: employee.rank || '',
+      position: employee.position || '',
+      hireDate: employee.hireDate || '',
+      resignationDate: employee.resignationDate || '',
+      resignationReason: employee.resignationReason || '',
+      bankCode: employee.salaryBank || '',
+      accountNumber: employee.salaryAccountNumber || '',
+      accountHolder: employee.salaryAccountHolder || '',
+      healthCheckExpiryDate: employee.healthCheckExpiryDate || '',
+      memo: employee.memo || ''
+    }))
+
+    // 아이콘 타입 설정
+    if (employee.iconType !== null && employee.iconType !== undefined) {
+      setSelectedIcon(employee.iconType)
+    }
+
+    // DB에서 조회한 원래 사번 저장 (수정 불가 판단용)
+    if (employee.employeeNumber) {
+      setOriginalEmployeeNumber(employee.employeeNumber)
+    }
+
+    // 기존 파일 ID 설정
+    setExistingFileIds({
+      resident: employee.residentRegistrationFileId ?? null,
+      family: employee.familyRelationFileId ?? null,
+      health: employee.healthCheckFileId ?? null,
+      resume: employee.resumeFileId ?? null
+    })
+
+    // 기존 파일이 있으면 파일 정보 조회
+    const fetchFileNames = async () => {
+      const filePromises: Promise<void>[] = []
+      const fileNamesTemp: typeof existingFileNames = {
+        resident: null,
+        family: null,
+        health: null,
+        resume: null
+      }
+
+      if (employee.residentRegistrationFileId) {
+        filePromises.push(
+          getDownloadUrl(employee.residentRegistrationFileId)
+            .then(res => { fileNamesTemp.resident = res.originalFileName })
+            .catch(() => {})
+        )
+      }
+      if (employee.familyRelationFileId) {
+        filePromises.push(
+          getDownloadUrl(employee.familyRelationFileId)
+            .then(res => { fileNamesTemp.family = res.originalFileName })
+            .catch(() => {})
+        )
+      }
+      if (employee.healthCheckFileId) {
+        filePromises.push(
+          getDownloadUrl(employee.healthCheckFileId)
+            .then(res => { fileNamesTemp.health = res.originalFileName })
+            .catch(() => {})
+        )
+      }
+      if (employee.resumeFileId) {
+        filePromises.push(
+          getDownloadUrl(employee.resumeFileId)
+            .then(res => { fileNamesTemp.resume = res.originalFileName })
+            .catch(() => {})
+        )
+      }
+
+      await Promise.all(filePromises)
+      setExistingFileNames(fileNamesTemp)
+    }
+
+    fetchFileNames()
+  }, [employeeData])
 
   // 다음 우편번호 스크립트 로드
   useEffect(() => {
@@ -262,43 +261,20 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }
   }, [])
 
-  // Common code 조회
-  const fetchCommonCode = useCallback(async () => {
-    const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : 1
-    const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : 2
-    const storeId = formData.storeId ? parseInt(formData.storeId) : 1
+  // TanStack Query로 Common code 조회
+  const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : 1
+  const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : 2
 
-    if (!headOfficeId || !franchiseId || !storeId) {
-      return
-    }
+  const { data: settingsData } = useEmployeeInfoSettings(
+    headOfficeId && franchiseId
+      ? { headOfficeId, franchiseId }
+      : undefined,
+    !!(headOfficeId && franchiseId)
+  )
 
-    try {
-      const commonCode = await getEmployeeInfoCommonCode({
-        headOfficeId,
-        franchiseId
-      })
-
-      if (commonCode?.codeMemoContent) {
-        setEmployeeClassificationOptions(commonCode.codeMemoContent.EMPLOYEE || [])
-        setRankOptions(commonCode.codeMemoContent.RANK || [])
-        setPositionOptions(commonCode.codeMemoContent.POSITION || [])
-      } else {
-        setEmployeeClassificationOptions([])
-        setRankOptions([])
-        setPositionOptions([])
-      }
-    } catch (error) {
-      console.error('공통코드 조회 실패:', error)
-      setEmployeeClassificationOptions([])
-      setRankOptions([])
-      setPositionOptions([])
-    }
-  }, [formData.headOfficeOrganizationId, formData.franchiseOrganizationId, formData.storeId])
-
-  // 조직 ID가 변경되면 common code 다시 조회
-  useEffect(() => {
-    fetchCommonCode()
-  }, [fetchCommonCode])
+  const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
+  const rankOptions: ClassificationItem[] = settingsData?.codeMemoContent?.RANK || []
+  const positionOptions: ClassificationItem[] = settingsData?.codeMemoContent?.POSITION || []
 
   // 주소 찾기 핸들러
   const handleSearchAddress = () => {
@@ -350,13 +326,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }
 
     try {
-      setIsLoading(true)
-      const result = await checkEmployeeNumber(
-        formData.employeeNumber,
-        Number(formData.headOfficeOrganizationId),
-        formData.franchiseOrganizationId ? Number(formData.franchiseOrganizationId) : undefined,
-        formData.storeId ? Number(formData.storeId) : undefined
-      )
+      const result = await checkEmployeeNumberMutation.mutateAsync({
+        employeeNumber: formData.employeeNumber,
+        headOfficeOrganizationId: Number(formData.headOfficeOrganizationId),
+        franchiseOrganizationId: formData.franchiseOrganizationId ? Number(formData.franchiseOrganizationId) : undefined,
+        storeId: formData.storeId ? Number(formData.storeId) : undefined
+      })
       setEmployeeNumberChecked(true)
 
       if (result.isDuplicate) {
@@ -369,8 +344,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     } catch (error) {
       console.error('사번 중복 확인 실패:', error)
       alert('사번 중복 확인 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -433,8 +406,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }
 
     try {
-      setIsLoading(true)
-
       const workStatusMap: Record<string, string> = {
         working: 'EMPWK_001',  // 근무
         leave: 'EMPWK_002',    // 휴직
@@ -480,11 +451,15 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       }
 
       // 파일과 함께 저장 (트랜잭션으로 처리됨)
-      await updateEmployeeWithFiles(employeeId, updateData, {
-        residentRegistrationFile: files.resident,
-        familyRelationFile: files.family,
-        healthCheckFile: files.health,
-        resumeFile: files.resume
+      await updateEmployeeMutation.mutateAsync({
+        id: employeeId,
+        data: updateData,
+        files: {
+          residentRegistrationFile: files.resident,
+          familyRelationFile: files.family,
+          healthCheckFile: files.health,
+          resumeFile: files.resume
+        }
       })
 
       alert('저장되었습니다.')
@@ -492,8 +467,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     } catch (error) {
       console.error('저장 실패:', error)
       alert('저장 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
     }
   }
 

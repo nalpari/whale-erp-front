@@ -1,10 +1,15 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
-import { getEmployee, sendEmployeeRegistrationEmail, getEmployeeCareers, getEmployeeCertificates, deleteEmployee } from '@/lib/api/employee'
+import {
+  useEmployeeDetail,
+  useEmployeeCareers,
+  useEmployeeCertificates,
+  useDeleteEmployee,
+  useSendEmployeeRegistrationEmail
+} from '@/hooks/queries/use-employee-queries'
 import { getDownloadUrl, getFile } from '@/lib/api/file'
-import type { EmployeeInfoDetailResponse, EmployeeCareerResponse, EmployeeCertificateResponse } from '@/types/employee'
 
 // 파일 정보 인터페이스
 interface FileInfo {
@@ -22,11 +27,6 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const [loginInfoOpen, setLoginInfoOpen] = useState(true)
   const [careerInfoOpen, setCareerInfoOpen] = useState(true)
   const [certInfoOpen, setCertInfoOpen] = useState(true)
-  const [employee, setEmployee] = useState<EmployeeInfoDetailResponse | null>(null)
-  const [careers, setCareers] = useState<EmployeeCareerResponse[]>([])
-  const [certificates, setCertificates] = useState<EmployeeCertificateResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [sendingEmail, setSendingEmail] = useState(false)
   // 파일 정보 상태 (파일명 표시용)
   const [fileInfos, setFileInfos] = useState<{
@@ -36,80 +36,66 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
     resume?: FileInfo
   }>({})
 
+  // TanStack Query 훅들
+  const {
+    data: employee,
+    isPending: isEmployeeLoading,
+    error: employeeError
+  } = useEmployeeDetail(employeeId)
+
+  const { data: careersData } = useEmployeeCareers(employeeId ?? 0, !!employeeId)
+  const { data: certificatesData } = useEmployeeCertificates(employeeId ?? 0, !!employeeId)
+  const deleteEmployeeMutation = useDeleteEmployee()
+  const sendEmailMutation = useSendEmployeeRegistrationEmail()
+
+  const careers = careersData ?? []
+  const certificates = certificatesData ?? []
+  const loading = isEmployeeLoading
+  const error = employeeError ? '직원 정보를 불러오는데 실패했습니다.' : null
+
+  // 파일 정보 조회
   useEffect(() => {
-    const fetchEmployee = async () => {
-      if (!employeeId) {
-        setLoading(false)
-        return
+    const fetchFileInfos = async () => {
+      if (!employee) return
+
+      const filePromises: Promise<void>[] = []
+      const newFileInfos: typeof fileInfos = {}
+
+      if (employee.residentRegistrationFileId) {
+        filePromises.push(
+          getFile(employee.residentRegistrationFileId)
+            .then(file => { newFileInfos.residentRegistration = { id: file.id, originalFileName: file.originalFileName } })
+            .catch(() => {})
+        )
+      }
+      if (employee.familyRelationFileId) {
+        filePromises.push(
+          getFile(employee.familyRelationFileId)
+            .then(file => { newFileInfos.familyRelation = { id: file.id, originalFileName: file.originalFileName } })
+            .catch(() => {})
+        )
+      }
+      if (employee.healthCheckFileId) {
+        filePromises.push(
+          getFile(employee.healthCheckFileId)
+            .then(file => { newFileInfos.healthCheck = { id: file.id, originalFileName: file.originalFileName } })
+            .catch(() => {})
+        )
+      }
+      if (employee.resumeFileId) {
+        filePromises.push(
+          getFile(employee.resumeFileId)
+            .then(file => { newFileInfos.resume = { id: file.id, originalFileName: file.originalFileName } })
+            .catch(() => {})
+        )
       }
 
-      try {
-        setLoading(true)
-        const data = await getEmployee(employeeId)
-        setEmployee(data)
-        setError(null)
-
-        // 파일 정보 조회 (병렬)
-        const filePromises: Promise<void>[] = []
-        const newFileInfos: typeof fileInfos = {}
-
-        if (data.residentRegistrationFileId) {
-          filePromises.push(
-            getFile(data.residentRegistrationFileId)
-              .then(file => { newFileInfos.residentRegistration = { id: file.id, originalFileName: file.originalFileName } })
-              .catch(() => {})
-          )
-        }
-        if (data.familyRelationFileId) {
-          filePromises.push(
-            getFile(data.familyRelationFileId)
-              .then(file => { newFileInfos.familyRelation = { id: file.id, originalFileName: file.originalFileName } })
-              .catch(() => {})
-          )
-        }
-        if (data.healthCheckFileId) {
-          filePromises.push(
-            getFile(data.healthCheckFileId)
-              .then(file => { newFileInfos.healthCheck = { id: file.id, originalFileName: file.originalFileName } })
-              .catch(() => {})
-          )
-        }
-        if (data.resumeFileId) {
-          filePromises.push(
-            getFile(data.resumeFileId)
-              .then(file => { newFileInfos.resume = { id: file.id, originalFileName: file.originalFileName } })
-              .catch(() => {})
-          )
-        }
-
-        await Promise.all(filePromises)
-        setFileInfos(newFileInfos)
-
-        // 경력 정보 조회
-        try {
-          const careerData = await getEmployeeCareers(employeeId)
-          setCareers(careerData)
-        } catch {
-          console.error('경력 정보 조회 실패')
-        }
-
-        // 자격증 정보 조회
-        try {
-          const certificateData = await getEmployeeCertificates(employeeId)
-          setCertificates(certificateData)
-        } catch {
-          console.error('자격증 정보 조회 실패')
-        }
-      } catch (err) {
-        console.error('직원 정보 조회 실패:', err)
-        setError('직원 정보를 불러오는데 실패했습니다.')
-      } finally {
-        setLoading(false)
-      }
+      await Promise.all(filePromises)
+      setFileInfos(newFileInfos)
     }
 
-    fetchEmployee()
-  }, [employeeId])
+    fetchFileInfos()
+  }, [employee])
 
   // 날짜 포맷 함수
   const formatDate = (dateString?: string | null) => {
@@ -122,7 +108,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
 
     if (confirm('정말 삭제하시겠습니까?')) {
       try {
-        await deleteEmployee(employeeId)
+        await deleteEmployeeMutation.mutateAsync(employeeId)
         alert('직원 정보가 삭제되었습니다.')
         router.push('/employee/info')
       } catch (err) {
@@ -166,7 +152,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
 
     try {
       setSendingEmail(true)
-      await sendEmployeeRegistrationEmail(employeeId)
+      await sendEmailMutation.mutateAsync(employeeId)
       alert('직원 회원 가입 요청 메일이 전송되었습니다.')
     } catch (err: unknown) {
       console.error('이메일 전송 실패:', err)

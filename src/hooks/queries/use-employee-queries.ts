@@ -1,14 +1,14 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
-import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
 import { employeeKeys } from '@/hooks/queries/query-keys'
 import type {
-  EmployeeInfoListResponse, PostEmployeeInfoRequest,
+  PostEmployeeInfoRequest,
   SaveEmployeeCareersRequest,
-  SaveEmployeeCertificatesRequest, UpdateEmployeeInfoRequest,
+  SaveEmployeeCertificatesRequest,
+  UpdateEmployeeInfoRequest,
 } from '@/types/employee'
 import {
   getEmployee,
+  getEmployeeList,
   createEmployee,
   updateEmployee,
   updateEmployeeWithFiles,
@@ -51,76 +51,28 @@ export type EmployeeListParams = {
 }
 
 /**
- * 직원 목록 응답을 PageResponse 형태로 정규화.
- * - 서버 응답이 배열/객체(content|list|items)로 바뀌어도 안전하게 처리한다.
- */
-const toEmployeePage = (payload: unknown): PageResponse<EmployeeInfoListResponse> => {
-  if (Array.isArray(payload)) {
-    return {
-      content: payload as EmployeeInfoListResponse[],
-      totalElements: payload.length,
-      totalPages: payload.length === 0 ? 0 : 1,
-      size: payload.length,
-      number: 0,
-      first: true,
-      last: true,
-      empty: payload.length === 0,
-    }
-  }
-
-  if (payload && typeof payload === 'object') {
-    const record = payload as Record<string, unknown>
-    const content =
-      (Array.isArray(record.content) && record.content) ||
-      (Array.isArray(record.list) && record.list) ||
-      (Array.isArray(record.items) && record.items)
-
-    if (content) {
-      const totalElements =
-        typeof record.totalElements === 'number' ? record.totalElements : content.length
-      const size =
-        typeof record.size === 'number' && record.size > 0 ? record.size : content.length || 1
-      const totalPages =
-        typeof record.totalPages === 'number' ? record.totalPages : Math.ceil(totalElements / size)
-      const number = typeof record.number === 'number' ? record.number : 0
-      const first = typeof record.first === 'boolean' ? record.first : true
-      const last = typeof record.last === 'boolean' ? record.last : true
-      const empty = typeof record.empty === 'boolean' ? record.empty : content.length === 0
-      return {
-        content: content as EmployeeInfoListResponse[],
-        totalElements,
-        totalPages,
-        size,
-        number,
-        first,
-        last,
-        empty,
-      }
-    }
-  }
-
-  return {
-    content: [],
-    totalElements: 0,
-    totalPages: 0,
-    size: 0,
-    number: 0,
-    first: true,
-    last: true,
-    empty: true,
-  }
-}
-
-/**
  * 직원 목록 조회 훅.
- * - 페이지네이션 응답을 정규화하여 UI에서 일관되게 사용한다.
+ * - getEmployeeList를 사용하여 변환된 데이터를 반환한다.
  */
 export const useEmployeeInfoList = (params: EmployeeListParams, enabled = true) => {
   return useQuery({
     queryKey: employeeKeys.list(params),
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<unknown>>('/api/employee/info', { params })
-      return toEmployeePage(response.data.data)
+    queryFn: () => {
+      // null을 undefined로 변환하여 EmployeeSearchParams와 호환
+      const searchParams = {
+        headOfficeOrganizationId: params.officeId ?? undefined,
+        franchiseOrganizationId: params.franchiseId ?? undefined,
+        storeId: params.storeId ?? undefined,
+        workStatus: params.workStatus as 'EMPWK_001' | 'EMPWK_002' | 'EMPWK_003' | undefined,
+        employeeName: params.employeeName,
+        employeeClassification: params.employeeClassification,
+        contractClassification: params.contractClassification,
+        hireDateFrom: params.hireDateFrom,
+        hireDateTo: params.hireDateTo,
+        page: params.page,
+        size: params.size,
+      }
+      return getEmployeeList(searchParams)
     },
     enabled,
   })

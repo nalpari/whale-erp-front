@@ -3,7 +3,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
-import { getEmployeeCertificates, saveEmployeeCertificatesWithFiles, deleteAllEmployeeCertificates } from '@/lib/api/employee'
+import {
+  useEmployeeCertificates,
+  useSaveEmployeeCertificatesWithFiles,
+  useDeleteAllEmployeeCertificates
+} from '@/hooks/queries/use-employee-queries'
 import type { EmployeeCertificateItem } from '@/types/employee'
 
 interface EmployeeCertificateEditProps {
@@ -19,43 +23,33 @@ interface CertificateFormItem extends EmployeeCertificateItem {
 export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertificateEditProps) {
   const router = useRouter()
   const [sectionOpen, setSectionOpen] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
   const [certificates, setCertificates] = useState<CertificateFormItem[]>([])
 
-  // 자격증 데이터 조회
+  // TanStack Query 훅들
+  const { data: certificatesData, isPending: isCertificatesLoading } = useEmployeeCertificates(employeeId)
+  const saveCertificatesMutation = useSaveEmployeeCertificatesWithFiles()
+  const deleteAllCertificatesMutation = useDeleteAllEmployeeCertificates()
+
+  const isLoading = isCertificatesLoading || saveCertificatesMutation.isPending || deleteAllCertificatesMutation.isPending
+
+  // 자격증 데이터 초기화
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-
-        // 자격증 정보 조회
-        const certificateData = await getEmployeeCertificates(employeeId)
-
-        if (certificateData.length > 0) {
-          setCertificates(certificateData.map(cert => ({
-            id: cert.id,
-            certificateName: cert.certificateName,
-            validityStartDate: cert.validityStartDate ?? null,
-            validityEndDate: cert.validityEndDate ?? null,
-            acquisitionDate: cert.acquisitionDate,
-            issuingOrganization: cert.issuingOrganization ?? null,
-            certificateFileId: cert.certificateFileId ?? null,
-            existingFileName: cert.certificateFileName ?? null
-          })))
-        } else {
-          // 데이터가 없으면 빈 항목 하나 추가
-          setCertificates([createEmptyCertificate()])
-        }
-      } catch (error) {
-        console.error('데이터 조회 실패:', error)
-        setCertificates([createEmptyCertificate()])
-      } finally {
-        setIsLoading(false)
-      }
+    if (certificatesData && certificatesData.length > 0) {
+      setCertificates(certificatesData.map(cert => ({
+        id: cert.id,
+        certificateName: cert.certificateName,
+        validityStartDate: cert.validityStartDate ?? null,
+        validityEndDate: cert.validityEndDate ?? null,
+        acquisitionDate: cert.acquisitionDate,
+        issuingOrganization: cert.issuingOrganization ?? null,
+        certificateFileId: cert.certificateFileId ?? null,
+        existingFileName: cert.certificateFileName ?? null
+      })))
+    } else if (certificatesData) {
+      // 데이터가 없으면 빈 항목 하나 추가
+      setCertificates([createEmptyCertificate()])
     }
-
-    fetchData()
-  }, [employeeId])
+  }, [certificatesData])
 
   // 빈 자격증 항목 생성
   const createEmptyCertificate = (): CertificateFormItem => ({
@@ -117,15 +111,12 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
     }
 
     try {
-      setIsLoading(true)
-      await deleteAllEmployeeCertificates(employeeId)
+      await deleteAllCertificatesMutation.mutateAsync(employeeId)
       setCertificates([createEmptyCertificate()])
       alert('모든 자격증 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
       alert('삭제 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -149,8 +140,6 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
     }
 
     try {
-      setIsLoading(true)
-
       // 파일 목록 수집 및 fileIndex 할당
       const files: File[] = []
       const certificatesToSave = validCertificates.map(cert => {
@@ -174,7 +163,11 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
         }
       })
 
-      await saveEmployeeCertificatesWithFiles(employeeId, { certificates: certificatesToSave }, files)
+      await saveCertificatesMutation.mutateAsync({
+        employeeInfoId: employeeId,
+        data: { certificates: certificatesToSave },
+        files
+      })
       alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (error) {
@@ -184,8 +177,6 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
       } else {
         alert('저장 중 오류가 발생했습니다.')
       }
-    } finally {
-      setIsLoading(false)
     }
   }
 

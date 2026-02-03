@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -20,10 +20,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  getEmployeeInfoCommonCode,
-  saveEmployeeInfoCommonCode,
-  type ClassificationItem as ApiClassificationItem,
-} from '@/lib/api/employeeInfoSettings'
+  useEmployeeInfoSettings,
+  useSaveEmployeeInfoSettings
+} from '@/hooks/queries/use-employee-settings-queries'
+import type { ClassificationItem as ApiClassificationItem } from '@/lib/api/employeeInfoSettings'
 
 const DEFAULT_HEAD_OFFICE_ID = 1
 const DEFAULT_FRANCHISE_ID = 2
@@ -216,9 +216,16 @@ export default function EmployeeInfoSettings() {
   const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
 
-  // 로딩 상태
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  // TanStack Query 훅
+  const { data: settingsData, isPending: isLoading, refetch } = useEmployeeInfoSettings(
+    {
+      headOfficeId: selectedHeadOfficeId,
+      franchiseId: selectedFranchiseId
+    },
+    true
+  )
+  const saveSettingsMutation = useSaveEmployeeInfoSettings()
+  const isSaving = saveSettingsMutation.isPending
 
   // 직원 분류 데이터
   const [employeeClassifications, setEmployeeClassifications] = useState<ClassificationItem[]>([])
@@ -237,41 +244,20 @@ export default function EmployeeInfoSettings() {
     })
   )
 
-  // 데이터 조회
-  const fetchData = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const response = await getEmployeeInfoCommonCode({
-        headOfficeId: selectedHeadOfficeId,
-        franchiseId: selectedFranchiseId
-      })
-
-      if (response?.codeMemoContent) {
-        const { EMPLOYEE, RANK, POSITION } = response.codeMemoContent
-        setEmployeeClassifications(apiToUiClassifications(EMPLOYEE || []))
-        setRankClassifications(apiToUiClassifications(RANK || []))
-        setPositionClassifications(apiToUiClassifications(POSITION || []))
-      } else {
-        // 데이터가 없으면 빈 배열로 초기화
-        setEmployeeClassifications([])
-        setRankClassifications([])
-        setPositionClassifications([])
-      }
-    } catch (error) {
-      console.error('데이터 조회 실패:', error)
-      // 에러 시에도 빈 배열로 초기화
+  // 쿼리 데이터로 상태 초기화
+  useEffect(() => {
+    if (settingsData?.codeMemoContent) {
+      const { EMPLOYEE, RANK, POSITION } = settingsData.codeMemoContent
+      setEmployeeClassifications(apiToUiClassifications(EMPLOYEE || []))
+      setRankClassifications(apiToUiClassifications(RANK || []))
+      setPositionClassifications(apiToUiClassifications(POSITION || []))
+    } else if (!isLoading) {
+      // 데이터가 없으면 빈 배열로 초기화
       setEmployeeClassifications([])
       setRankClassifications([])
       setPositionClassifications([])
-    } finally {
-      setIsLoading(false)
     }
-  }, [selectedHeadOfficeId, selectedFranchiseId])
-
-  // 초기 로딩
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  }, [settingsData, isLoading])
 
   // 현재 탭에 따른 데이터 가져오기
   const getCurrentClassifications = () => {
@@ -393,14 +379,13 @@ export default function EmployeeInfoSettings() {
 
   // 검색
   const handleSearch = () => {
-    fetchData()
+    refetch()
   }
 
   // 저장
   const handleSave = async () => {
-    setIsSaving(true)
     try {
-      await saveEmployeeInfoCommonCode({
+      await saveSettingsMutation.mutateAsync({
         headOfficeId: selectedHeadOfficeId,
         franchiseId: selectedFranchiseId,
         codeMemoContent: {
@@ -413,8 +398,6 @@ export default function EmployeeInfoSettings() {
     } catch (error) {
       console.error('저장 실패:', error)
       alert('저장에 실패했습니다.')
-    } finally {
-      setIsSaving(false)
     }
   }
 

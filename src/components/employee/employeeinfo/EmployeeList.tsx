@@ -1,6 +1,6 @@
 'use client'
 import '@/components/common/custom-css/FormHelper.css'
-import { useState, useMemo, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
@@ -66,12 +66,9 @@ const MemberStatusCellRenderer = (params: ICellRendererParams<EmployeeRowData>) 
 const EmployeeNameCellRenderer = (params: ICellRendererParams<EmployeeRowData>) => {
   const [showMemo, setShowMemo] = useState(false)
   const [memoPosition, setMemoPosition] = useState({ x: 0, y: 0 })
-  const [mounted, setMounted] = useState(false)
   const hasMemo = params.data?.memo && params.data.memo.trim() !== ''
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // typeof window 체크로 SSR 안전하게 처리 (useEffect 대체)
+  const isBrowser = typeof window !== 'undefined'
 
   // 건강진단 만료일이 없거나 지났는지 확인
   const isHealthCheckExpiredOrMissing = () => {
@@ -165,7 +162,7 @@ const EmployeeNameCellRenderer = (params: ICellRendererParams<EmployeeRowData>) 
           <span style={{ color: '#ffc107', fontSize: '14px', lineHeight: '1' }} title="건강진단 만료 또는 미등록">⚠️</span>
         )}
       </div>
-      {mounted && showMemo && hasMemo && createPortal(memoTooltipContent, document.body)}
+      {isBrowser && showMemo && hasMemo && createPortal(memoTooltipContent, document.body)}
     </>
   )
 }
@@ -174,11 +171,8 @@ const EmployeeNameCellRenderer = (params: ICellRendererParams<EmployeeRowData>) 
 const ActionCellRenderer = (params: ICellRendererParams<EmployeeRowData>) => {
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // typeof window 체크로 SSR 안전하게 처리 (useEffect 대체)
+  const isBrowser = typeof window !== 'undefined'
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -241,7 +235,7 @@ const ActionCellRenderer = (params: ICellRendererParams<EmployeeRowData>) => {
       >
         <span style={{ fontSize: '16px' }}>⋮</span>
       </div>
-      {mounted && showTooltip && createPortal(tooltipContent, document.body)}
+      {isBrowser && showTooltip && createPortal(tooltipContent, document.body)}
     </>
   )
 }
@@ -270,24 +264,22 @@ export default function EmployeeList({
   const router = useRouter()
   const [isPopupOpen, setIsPopupOpen] = useState(false)
 
-  // API 응답을 AG Grid 데이터로 변환
-  const rowData = useMemo<EmployeeRowData[]>(() => {
-    return employees.map((emp, index) => ({
-      id: emp.employeeInfoId,
-      rowNumber: index + 1 + currentPage * pageSize,
-      workStatus: emp.workStatusName || emp.workStatus || '',
-      memberStatus: emp.memberStatus || '',
-      headOffice: emp.headOfficeName,
-      franchise: emp.franchiseName || '',
-      store: emp.storeName || '',
-      employeeName: emp.employeeName,
-      employeeClassification: emp.employeeClassificationName || emp.employeeClassification || '',
-      contractClassification: emp.contractClassificationName || emp.contractClassification || '',
-      hireDate: emp.hireDate,
-      healthCheckExpiry: emp.healthCheckExpiryDate || '',
-      memo: emp.memo || ''
-    }))
-  }, [employees, currentPage, pageSize])
+  // API 응답을 AG Grid 데이터로 변환 (React Compiler가 자동 메모이제이션)
+  const rowData: EmployeeRowData[] = employees.map((emp, index) => ({
+    id: emp.employeeInfoId,
+    rowNumber: index + 1 + currentPage * pageSize,
+    workStatus: emp.workStatusName || emp.workStatus || '',
+    memberStatus: emp.memberStatus || '',
+    headOffice: emp.headOfficeName,
+    franchise: emp.franchiseName || '',
+    store: emp.storeName || '',
+    employeeName: emp.employeeName,
+    employeeClassification: emp.employeeClassificationName || emp.employeeClassification || '',
+    contractClassification: emp.contractClassificationName || emp.contractClassification || '',
+    hireDate: emp.hireDate,
+    healthCheckExpiry: emp.healthCheckExpiryDate || '',
+    memo: emp.memo || ''
+  }))
 
   // 직원 상세 페이지로 이동
   const handleNavigateToDetail = (id: number) => {

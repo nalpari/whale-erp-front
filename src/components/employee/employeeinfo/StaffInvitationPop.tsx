@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import DatePicker from '../../ui/common/DatePicker'
-import { createEmployee } from '@/lib/api/employee'
+import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
   WorkplaceType,
@@ -58,8 +58,11 @@ const createInitialWorkHours = (): EmploymentContractWorkHourDto[] => {
 }
 
 export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: StaffInvitationPopProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // TanStack Query mutation
+  const createEmployeeMutation = useCreateEmployee()
+  const isSubmitting = createEmployeeMutation.isPending
 
   // Form 상태
   const [workplaceType, setWorkplaceType] = useState<WorkplaceType>('FRANCHISE')
@@ -121,7 +124,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
 
   const handleSubmit = async () => {
     setError(null)
-    setIsSubmitting(true)
 
     try {
       // 필수 필드 검증
@@ -222,7 +224,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         workHours: updatedWorkHours,
       }
 
-      await createEmployee(requestData)
+      await createEmployeeMutation.mutateAsync(requestData)
 
       // 성공 시 폼 초기화 및 콜백
       resetForm()
@@ -230,8 +232,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
-    } finally {
-      setIsSubmitting(false)
     }
   }
 

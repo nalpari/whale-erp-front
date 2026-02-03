@@ -2,8 +2,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
-import { getEmployee, sendEmployeeRegistrationEmail, getAuthoritiesByOrganization, updateEmployeeLoginInfo, withdrawEmployeeMember, AuthorityItem } from '@/lib/api/employee'
-import type { EmployeeInfoDetailResponse } from '@/types/employee'
+import {
+  useEmployeeDetail,
+  useSendEmployeeRegistrationEmail,
+  useUpdateEmployeeLoginInfo,
+  useWithdrawEmployeeMember
+} from '@/hooks/queries/use-employee-queries'
+import { getAuthoritiesByOrganization, type AuthorityItem } from '@/lib/api/employee'
 
 interface EmployeeLoginEditProps {
   employeeId?: number
@@ -12,48 +17,40 @@ interface EmployeeLoginEditProps {
 export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps) {
   const router = useRouter()
   const [loginInfoOpen, setLoginInfoOpen] = useState(true)
-  const [employee, setEmployee] = useState<EmployeeInfoDetailResponse | null>(null)
   const [authorities, setAuthorities] = useState<AuthorityItem[]>([])
   const [selectedAuthorityId, setSelectedAuthorityId] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [sendingEmail, setSendingEmail] = useState(false)
-  const [withdrawing, setWithdrawing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
+  // TanStack Query 훅들
+  const {
+    data: employee,
+    isPending: isEmployeeLoading,
+    error: employeeError
+  } = useEmployeeDetail(employeeId)
+
+  const sendEmailMutation = useSendEmployeeRegistrationEmail()
+  const updateLoginInfoMutation = useUpdateEmployeeLoginInfo()
+  const withdrawMutation = useWithdrawEmployeeMember()
+
+  const loading = isEmployeeLoading
+  const saving = updateLoginInfoMutation.isPending
+  const sendingEmail = sendEmailMutation.isPending
+  const withdrawing = withdrawMutation.isPending
+  const error = employeeError ? '데이터를 불러오는데 실패했습니다.' : null
+
+  // 권한 목록 조회
   useEffect(() => {
-    const fetchData = async () => {
-      if (!employeeId) {
-        setLoading(false)
-        return
-      }
+    const fetchAuthorities = async () => {
+      if (!employeeId) return
 
       try {
-        setLoading(true)
-
-        // 직원 정보 조회
-        const employeeData = await getEmployee(employeeId)
-        setEmployee(employeeData)
-
-        // 권한 목록 조회 (BP 권한: PRGRP_002)
-        try {
-          const authList = await getAuthoritiesByOrganization('PRGRP_002')
-          setAuthorities(authList)
-        } catch {
-          // 권한 조회 실패해도 페이지 표시
-          console.error('권한 목록 조회 실패')
-        }
-
-        setError(null)
-      } catch (err) {
-        console.error('데이터 조회 실패:', err)
-        setError('데이터를 불러오는데 실패했습니다.')
-      } finally {
-        setLoading(false)
+        const authList = await getAuthoritiesByOrganization('PRGRP_002')
+        setAuthorities(authList)
+      } catch {
+        console.error('권한 목록 조회 실패')
       }
     }
 
-    fetchData()
+    fetchAuthorities()
   }, [employeeId])
 
   const formatDate = (dateString?: string | null) => {
@@ -79,14 +76,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     if (!confirm('직원 회원 가입 요청 메일을 발송하시겠습니까?')) return
 
     try {
-      setSendingEmail(true)
-      await sendEmployeeRegistrationEmail(employeeId)
+      await sendEmailMutation.mutateAsync(employeeId)
       alert('회원 가입 요청 메일이 발송되었습니다.')
     } catch (err) {
       console.error('메일 발송 실패:', err)
       alert('메일 발송에 실패했습니다.')
-    } finally {
-      setSendingEmail(false)
     }
   }
 
@@ -96,16 +90,13 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     if (!confirm('정말 탈퇴 처리하시겠습니까?\n탈퇴 처리 후에는 해당 회원의 로그인이 불가능합니다.')) return
 
     try {
-      setWithdrawing(true)
-      await withdrawEmployeeMember(employeeId)
+      await withdrawMutation.mutateAsync(employeeId)
       alert('탈퇴 처리가 완료되었습니다.')
       // 페이지 새로고침
       window.location.reload()
     } catch (err) {
       console.error('탈퇴 처리 실패:', err)
       alert('탈퇴 처리에 실패했습니다.')
-    } finally {
-      setWithdrawing(false)
     }
   }
 
@@ -113,17 +104,15 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     if (!employeeId) return
 
     try {
-      setSaving(true)
-      await updateEmployeeLoginInfo(employeeId, {
-        partnerOfficeAuthorityId: selectedAuthorityId
+      await updateLoginInfoMutation.mutateAsync({
+        employeeInfoId: employeeId,
+        request: { partnerOfficeAuthorityId: selectedAuthorityId }
       })
       alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (err) {
       console.error('저장 실패:', err)
       alert('저장에 실패했습니다.')
-    } finally {
-      setSaving(false)
     }
   }
 
