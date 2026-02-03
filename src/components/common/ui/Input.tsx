@@ -1,13 +1,18 @@
 'use client'
 
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from 'react'
+import { forwardRef, useId, useMemo, type InputHTMLAttributes, type ReactNode, type ChangeEvent } from 'react'
+
+/** Input 타입 유형 */
+export type InputType = 'text' | 'number' | 'currency' | 'percent' | 'email' | 'password' | 'tel' | 'url'
 
 /**
  * Input 컴포넌트 Props 타입
  * - HTML input의 기본 속성을 상속받아 확장
  * - required, error, helpText, onClear 등 ERP에서 자주 쓰는 기능 포함
  */
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onChange'> {
+  /** 입력 타입 (text: 일반, number: 숫자만, currency: 금액, percent: 퍼센트) */
+  type?: InputType
   /** 라벨 텍스트 (폼 필드 위에 표시) */
   label?: string
   /** 필수 입력 여부 - true면 라벨에 * 표시 */
@@ -30,17 +35,40 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   fullWidth?: boolean
   /** 컨테이너 추가 클래스 */
   containerClassName?: string
+  /** 값 변경 핸들러 - type에 따라 변환된 값 또는 원본 이벤트 전달 */
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void
+  /** 숫자 타입에서 실제 숫자 값 변경 핸들러 (currency, percent, number 타입용) */
+  onValueChange?: (value: number | null) => void
+}
+
+/**
+ * 숫자를 3자리마다 콤마가 찍힌 문자열로 변환
+ */
+const formatCurrency = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return ''
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value
+  if (isNaN(numValue)) return ''
+  return numValue.toLocaleString('ko-KR')
+}
+
+/**
+ * 퍼센트 값 유효성 검사 (0 <= value <= 100)
+ */
+const isValidPercent = (value: number): boolean => {
+  return value >= 0 && value <= 100
 }
 
 /**
  * 재사용 가능한 Input 컴포넌트
  * - 필수 입력 표시 (*), 에러 상태, 에러/도움말 메시지, 설명 텍스트
  * - 값 초기화 버튼, 좌/우측 adornment 지원
+ * - 숫자, 금액, 퍼센트 입력 타입 지원
  * - pub 프로젝트의 MasterEdit 스타일 패턴을 참고하여 제작
  */
 const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
+      type = 'text',
       label,
       required = false,
       error = false,
@@ -56,20 +84,124 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       disabled,
       readOnly,
       value,
+      onChange,
+      onValueChange,
       ...rest
     },
     ref
   ) => {
     const inputId = useId()
 
+    // currency 타입일 때 표시용 값 (콤마가 찍힌 형태) - useMemo로 계산
+    const displayValue = useMemo(() => {
+      if (type === 'currency') {
+        return formatCurrency(value as number | string)
+      }
+      return ''
+    }, [type, value])
+
     // 값이 있는지 확인 (clear 버튼 표시 여부 결정)
-    const hasValue = value !== undefined && value !== null && value !== ''
+    const hasValue = type === 'currency'
+      ? displayValue !== ''
+      : value !== undefined && value !== null && value !== ''
 
     // 에러 상태일 때 테두리 스타일
     const inputWrapperClass = `input-icon-frame${error ? ' err' : ''}`
 
     // fullWidth일 때 block 클래스 적용
     const containerWidthClass = fullWidth ? 'block' : 'mx-500'
+
+    // 타입에 따른 입력 처리
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value
+
+      switch (type) {
+        case 'number': {
+          // 숫자만 허용 (빈 문자열도 허용)
+          if (inputValue === '' || /^-?\d*$/.test(inputValue)) {
+            onChange?.(e)
+            const numValue = inputValue === '' ? null : parseInt(inputValue, 10)
+            onValueChange?.(numValue)
+          }
+          break
+        }
+        case 'currency': {
+          // 숫자만 허용, 콤마 제거 후 숫자로 변환
+          const cleanValue = inputValue.replace(/[^\d]/g, '')
+          if (cleanValue === '') {
+            onValueChange?.(null)
+            // 원본 이벤트의 값을 수정하여 전달
+            const syntheticEvent = { ...e, target: { ...e.target, value: '' } } as ChangeEvent<HTMLInputElement>
+            onChange?.(syntheticEvent)
+          } else {
+            const numValue = parseInt(cleanValue, 10)
+            onValueChange?.(numValue)
+            // 원본 숫자 값을 이벤트에 담아 전달
+            const syntheticEvent = { ...e, target: { ...e.target, value: cleanValue } } as ChangeEvent<HTMLInputElement>
+            onChange?.(syntheticEvent)
+          }
+          break
+        }
+        case 'percent': {
+          // 숫자와 소수점만 허용
+          if (inputValue === '' || /^(\d*\.?\d*)$/.test(inputValue)) {
+            // 빈 값은 허용
+            if (inputValue === '' || inputValue === '.') {
+              onChange?.(e)
+              onValueChange?.(null)
+              break
+            }
+            const numValue = parseFloat(inputValue)
+            // 0보다 크고 100보다 작은 값만 허용
+            if (isNaN(numValue) || isValidPercent(numValue)) {
+              onChange?.(e)
+              onValueChange?.(isNaN(numValue) ? null : numValue)
+            }
+          }
+          break
+        }
+        default:
+          onChange?.(e)
+      }
+    }
+
+    // 표시할 값 결정
+    const getDisplayValue = () => {
+      if (type === 'currency') {
+        return displayValue
+      }
+      return value
+    }
+
+    // 실제 input에 전달할 type 속성
+    const getNativeInputType = () => {
+      switch (type) {
+        case 'number':
+        case 'currency':
+        case 'percent':
+          return 'text' // 커스텀 검증을 위해 text 사용
+        case 'email':
+        case 'password':
+        case 'tel':
+        case 'url':
+          return type // 네이티브 타입 그대로 사용
+        default:
+          return 'text'
+      }
+    }
+
+    // 입력 모드 설정 (모바일 키패드 최적화)
+    const getInputMode = () => {
+      switch (type) {
+        case 'number':
+        case 'currency':
+          return 'numeric'
+        case 'percent':
+          return 'decimal'
+        default:
+          return undefined
+      }
+    }
 
     return (
       <div className={`${containerClassName}`}>
@@ -97,10 +229,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 <input
                   ref={ref}
                   id={inputId}
+                  type={getNativeInputType()}
+                  inputMode={getInputMode()}
                   className={`${className}`}
                   disabled={disabled}
                   readOnly={readOnly}
-                  value={value}
+                  value={getDisplayValue()}
+                  onChange={handleChange}
                   aria-invalid={error}
                   aria-describedby={helpText ? `${inputId}-help` : undefined}
                   {...rest}
@@ -119,10 +254,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               <input
                 ref={ref}
                 id={inputId}
+                type={getNativeInputType()}
+                inputMode={getInputMode()}
                 className={`input-frame${error ? ' border-red-500' : ''} ${className}`}
                 disabled={disabled}
                 readOnly={readOnly}
-                value={value}
+                value={getDisplayValue()}
+                onChange={handleChange}
                 aria-invalid={error}
                 aria-describedby={helpText ? `${inputId}-help` : undefined}
                 {...rest}

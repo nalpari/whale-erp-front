@@ -39,10 +39,14 @@ whale-erp-front 프로젝트의 공통 컴포넌트 예제 페이지 목록입�
 - 도움말 텍스트 (`helpText`)
 - 전체 너비 (`fullWidth`)
 - 좌측/우측 버튼 조합 (`startAdornment`, `endAdornment`)
+- 숫자만 입력 (`type="number"`)
+- 금액 입력 (`type="currency"`)
+- 퍼센트 입력 (`type="percent"`)
 
 **주요 Props**:
 | Prop | 타입 | 설명 |
 |------|------|------|
+| `type` | 'text' \| 'number' \| 'currency' \| 'percent' | 입력 타입 (기본: 'text') |
 | `label` | string | 라벨 텍스트 |
 | `required` | boolean | 필수 입력 여부 |
 | `error` | boolean | 에러 상태 |
@@ -53,6 +57,15 @@ whale-erp-front 프로젝트의 공통 컴포넌트 예제 페이지 목록입�
 | `startAdornment` | ReactNode | 입력 필드 좌측 요소 |
 | `endAdornment` | ReactNode | 입력 필드 우측 요소 |
 | `fullWidth` | boolean | 전체 너비 사용 |
+| `onValueChange` | (value: number \| null) => void | 숫자 타입에서 실제 값 변경 핸들러 |
+
+**입력 타입 설명**:
+| 타입 | 설명 |
+|------|------|
+| `text` | 일반 텍스트 입력 (기본값) |
+| `number` | 숫자만 입력 가능 (정수, 음수 허용) |
+| `currency` | 금액 입력. 3자리마다 콤마 표시, 실제 값은 숫자 |
+| `percent` | 퍼센트 입력. 0 < 값 < 100 범위 제한, 소수점 허용 |
 
 ---
 
