@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
         hostname: S3_HOSTNAME,
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+        pathname: "/**",
+      },
     ],
   },
 };
