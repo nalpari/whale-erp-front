@@ -56,19 +56,43 @@ src/
 │       ├── layout.tsx            # 공용 레이아웃 (LNB, Header)
 │       ├── masterlist/
 │       │   └── page.tsx          # 마스터리스트 페이지
-│       └── store/(manage)/
-│           └── info/
-│               ├── page.tsx      # 점포 목록
-│               ├── detail/page.tsx  # 점포 상세
-│               └── header/page.tsx  # 점포 헤더
+│       ├── store/(manage)/
+│       │   └── info/
+│       │       ├── page.tsx      # 점포 목록
+│       │       ├── detail/page.tsx  # 점포 상세
+│       │       └── header/page.tsx  # 점포 헤더
+│       ├── employee/             # 직원 관리
+│       │   ├── manage/           # 직원 정보 관리 (목록, 상세)
+│       │   ├── work-status/      # 근무 일정 관리
+│       │   └── settings/         # 직원 설정
+│       └── storybook/            # 공통 컴포넌트 데모
+│           ├── datepicker/       # 날짜 선택 컴포넌트
+│           ├── search-select/    # 검색 셀렉트 컴포넌트
+│           ├── upload/           # 파일 업로드 컴포넌트
+│           ├── editor/           # 에디터 컴포넌트
+│           └── radio/            # 라디오 버튼 컴포넌트
 ├── components/
 │   ├── common/                   # 공통 컴포넌트
-│   │   ├── FileUploader.tsx
-│   │   └── HeadOfficeFranchiseStoreSelect.tsx
+│   │   ├── FileUploader.tsx      # 파일 업로드
+│   │   ├── HeadOfficeFranchiseStoreSelect.tsx  # 본사-가맹점-점포 계층 선택
+│   │   ├── DraggableTree.tsx     # 드래그 가능 트리
+│   │   └── SearchableSelect.tsx  # 검색 가능 셀렉트
 │   ├── editor/                   # 리치 텍스트 에디터
 │   │   ├── Editor.tsx
 │   │   ├── SlashCommand.tsx
 │   │   └── slash-commands.ts
+│   ├── employee/                 # 직원 관리 컴포넌트
+│   │   ├── employeeinfo/         # 직원 정보 CRUD
+│   │   │   ├── EmployeeList.tsx
+│   │   │   ├── EmployeeSearch.tsx
+│   │   │   ├── EmployeeEdit.tsx
+│   │   │   └── EmployeeDetailData.tsx
+│   │   ├── work-status/          # 근무 일정 관리
+│   │   │   ├── WorkScheduleTable.tsx
+│   │   │   ├── WorkSchedulePlan.tsx
+│   │   │   └── WorkScheduleSearch.tsx
+│   │   ├── settings/             # 직원 설정
+│   │   └── popup/                # 직원 검색 팝업
 │   ├── login/                    # 로그인 컴포넌트
 │   │   ├── FindIdPw.tsx
 │   │   └── find/
@@ -89,7 +113,9 @@ src/
 │       ├── Location.tsx          # 현재 위치 표시
 │       ├── Pagination.tsx        # 페이지네이션
 │       └── common/               # 공통 컴포넌트
-│           ├── DatePicker.tsx    # 날짜 선택기
+│           ├── DatePicker.tsx    # 단일 날짜 선택기
+│           ├── RangeDatePicker.tsx  # 날짜 범위 선택기
+│           ├── SearchSelect.tsx  # 검색 셀렉트
 │           ├── FullDownMenu.tsx  # 풀다운 메뉴
 │           ├── Lnb.tsx           # 좌측 네비게이션 바
 │           ├── MyData.tsx        # 사용자 데이터
@@ -101,6 +127,9 @@ src/
 │   │   ├── index.ts              # 통합 export
 │   │   ├── query-keys.ts         # 쿼리 키 팩토리
 │   │   ├── use-store-queries.ts  # 점포 쿼리/뮤테이션
+│   │   ├── use-store-schedule-queries.ts  # 점포 스케줄 쿼리
+│   │   ├── use-employee-queries.ts  # 직원 쿼리/뮤테이션
+│   │   ├── use-employee-settings-queries.ts  # 직원 설정 쿼리
 │   │   ├── use-file-queries.ts   # 파일 쿼리
 │   │   ├── use-bp-queries.ts     # BP 쿼리
 │   │   ├── use-common-code-queries.ts  # 공통코드 쿼리
@@ -127,8 +156,9 @@ src/
 ├── stores/
 │   ├── auth-store.ts             # Zustand 인증 스토어
 │   ├── program-store.ts          # 프로그램 UI 상태 스토어
-│   ├── bp-store.ts               # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
-│   └── common-code-store.ts      # ⚠️ @deprecated (TanStack Query로 마이그레이션 완료)
+│   ├── store-search-store.ts     # 점포 검색 UI 상태
+│   ├── store-schedule-store.ts   # 점포 스케줄 UI 상태
+│   └── mypage-store.ts           # 마이페이지 UI 상태
 ├── styles/                       # Sass 스타일 (7-1 패턴)
 │   ├── style.scss                # 메인 진입점
 │   ├── abstracts/                # 변수, 믹스인
@@ -138,6 +168,8 @@ src/
 └── types/                        # TypeScript 타입 정의
     ├── bp.ts                     # BP 관련 타입
     ├── store.ts                  # 점포 관련 타입
+    ├── employee.ts               # 직원 관련 타입
+    ├── work-schedule.ts          # 근무 일정 타입
     └── upload-files.ts           # 파일 업로드 타입
 ```
 
@@ -225,7 +257,7 @@ const { accessToken, affiliationId } = useAuthStore.getState();
 **상태 관리 전략:**
 - 서버에서 오는 데이터 → **TanStack Query** (점포, BP, 공통코드 등)
 - 클라이언트 전용 데이터 → **Zustand** (인증 토큰, UI 상태)
-- `bp-store.ts`, `common-code-store.ts`는 deprecated (사용 금지)
+- 서버 데이터용으로 Zustand 사용 금지 (TanStack Query 사용)
 
 ### TanStack Query 사용법
 
@@ -255,14 +287,17 @@ const { mutateAsync: update } = useUpdateStore();
 await update({ storeId, payload, files });
 ```
 
-**레거시 호환 래퍼 훅:**
+**직원 쿼리:**
 
 ```typescript
-import { useBp } from '@/hooks/useBp';
-import { useCommonCode } from '@/hooks/useCommonCode';
+import { useEmployeeList, useCreateEmployee } from '@/hooks/queries';
 
-const { data, loading, error, refresh } = useBp();
-const { children, loading, error } = useCommonCode('STATUS');
+// 직원 목록 조회
+const { data, isPending } = useEmployeeList(params);
+
+// 직원 생성
+const { mutateAsync } = useCreateEmployee();
+await mutateAsync({ payload, files });
 ```
 
 ### 스키마 유효성 검사 (Zod)
@@ -375,6 +410,23 @@ ModuleRegistry.registerModules([AllCommunityModule])
   },
 }
 ```
+
+### Storybook (컴포넌트 데모)
+
+`/storybook/*` 경로에서 공통 컴포넌트의 동작을 확인할 수 있습니다:
+
+| 경로 | 컴포넌트 |
+|------|----------|
+| `/storybook/datepicker` | DatePicker, RangeDatePicker |
+| `/storybook/search-select` | SearchSelect |
+| `/storybook/upload` | FileUploader |
+| `/storybook/image-upload` | ImageUploader |
+| `/storybook/editor` | Tiptap Editor |
+| `/storybook/radio` | RadioButtonGroup |
+| `/storybook/input` | Input 컴포넌트 |
+| `/storybook/postcode` | 주소 검색 |
+
+새로운 공통 컴포넌트를 추가할 때는 해당 데모 페이지도 함께 만들어 주세요.
 
 ## 스타일링
 
