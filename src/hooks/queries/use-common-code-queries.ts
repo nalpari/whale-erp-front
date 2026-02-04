@@ -1,6 +1,7 @@
 ﻿import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { commonCodeKeys } from './query-keys'
+import { commonCodeKeys, payrollKeys } from './query-keys'
+import { getBonusTypes, type BonusTypeInfo } from '@/lib/api/commonCode'
 
 /**
  * 공통코드 노드 타입.
@@ -93,4 +94,20 @@ export const useCommonCodeCache = () => {
     getChildren,
     getHierarchyChildren,
   }
+}
+
+/**
+ * 상여금 종류 조회 훅.
+ * - 급여명세서 공통코드에서 bonusInfo를 조회한다.
+ */
+export const useBonusTypes = (
+  params?: { headOfficeId?: number; franchiseId?: number },
+  enabled = true
+) => {
+  return useQuery<BonusTypeInfo[]>({
+    queryKey: payrollKeys.bonusTypes(params),
+    queryFn: () => getBonusTypes(params?.headOfficeId, params?.franchiseId),
+    enabled,
+    staleTime: 10 * 60 * 1000,
+  })
 }

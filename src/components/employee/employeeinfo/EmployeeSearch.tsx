@@ -1,12 +1,12 @@
 'use client'
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
-import DatePicker from '../../ui/common/DatePicker'
+import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
 import { Input } from '@/components/common/ui'
 import StaffInvitationPop from './StaffInvitationPop'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { EmployeeSearchParams } from '@/types/employee'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 
@@ -265,35 +265,29 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
               <tr>
                 <th>입사일</th>
                 <td>
-                  <div className="date-picker-wrap">
-                    <DatePicker
-                      value={formData.hireDateFrom ? parseISO(formData.hireDateFrom) : null}
-                      onChange={(date) => handleInputChange('hireDateFrom', date ? format(date, 'yyyy-MM-dd') : '')}
-                      placeholder="시작일"
-                    />
-                    <span>~</span>
-                    <DatePicker
-                      value={formData.hireDateTo ? parseISO(formData.hireDateTo) : null}
-                      onChange={(date) => handleInputChange('hireDateTo', date ? format(date, 'yyyy-MM-dd') : '')}
-                      placeholder="종료일"
-                    />
-                  </div>
+                  <RangeDatePicker
+                    startDate={formData.hireDateFrom ? new Date(formData.hireDateFrom) : null}
+                    endDate={formData.hireDateTo ? new Date(formData.hireDateTo) : null}
+                    onChange={(range: DateRange) => {
+                      handleInputChange('hireDateFrom', range.startDate ? format(range.startDate, 'yyyy-MM-dd') : '')
+                      handleInputChange('hireDateTo', range.endDate ? format(range.endDate, 'yyyy-MM-dd') : '')
+                    }}
+                    startDatePlaceholder="시작일"
+                    endDatePlaceholder="종료일"
+                  />
                 </td>
                 <th>건강진단 만료일</th>
                 <td colSpan={3}>
-                  <div className="date-picker-wrap">
-                    <DatePicker
-                      value={formData.healthCheckExpiryFrom ? parseISO(formData.healthCheckExpiryFrom) : null}
-                      onChange={(date) => handleInputChange('healthCheckExpiryFrom', date ? format(date, 'yyyy-MM-dd') : '')}
-                      placeholder="시작일"
-                    />
-                    <span>~</span>
-                    <DatePicker
-                      value={formData.healthCheckExpiryTo ? parseISO(formData.healthCheckExpiryTo) : null}
-                      onChange={(date) => handleInputChange('healthCheckExpiryTo', date ? format(date, 'yyyy-MM-dd') : '')}
-                      placeholder="종료일"
-                    />
-                  </div>
+                  <RangeDatePicker
+                    startDate={formData.healthCheckExpiryFrom ? new Date(formData.healthCheckExpiryFrom) : null}
+                    endDate={formData.healthCheckExpiryTo ? new Date(formData.healthCheckExpiryTo) : null}
+                    onChange={(range: DateRange) => {
+                      handleInputChange('healthCheckExpiryFrom', range.startDate ? format(range.startDate, 'yyyy-MM-dd') : '')
+                      handleInputChange('healthCheckExpiryTo', range.endDate ? format(range.endDate, 'yyyy-MM-dd') : '')
+                    }}
+                    startDatePlaceholder="시작일"
+                    endDatePlaceholder="종료일"
+                  />
                 </td>
               </tr>
             </tbody>
