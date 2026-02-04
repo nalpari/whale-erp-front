@@ -92,7 +92,7 @@ export default function StoreHeader() {
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />
       {loading && <div className="data-loading">상세 정보를 불러오는 중...</div>}
-      {error && <div className="form-helper error">{error.message}</div>}
+      {error && <div className="warning-txt">{error.message}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
