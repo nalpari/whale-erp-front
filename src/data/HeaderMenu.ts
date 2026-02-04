@@ -342,7 +342,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 'system-05',
         name: '휴일 관리',
-        link: '/',
+        link: '/system/holiday',
+      },
+      {
+        id: 'system-06',
+        name: '법정공휴일 관리',
+        link: '/system/holiday/legal',
       },
     ],
   },

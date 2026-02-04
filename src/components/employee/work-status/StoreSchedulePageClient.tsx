@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
 import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
 import WorkScheduleTable from '@/components/employee/work-status/WorkScheduleTable';
@@ -29,6 +30,13 @@ export default function StoreSchedulePageClient() {
   const setUploadOpen = useStoreScheduleViewStore((state) => state.setUploadOpen);
   const resetFilters = useStoreScheduleViewStore((state) => state.resetFilters);
   const [showStoreError, setShowStoreError] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{
+    success: boolean;
+    totalRows: number;
+    successRows: number;
+    failedRows: number;
+    errors: Array<{ rowNumber: number; message: string }>;
+  } | null>(null);
   const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
   const uploadMutation = useStoreScheduleUploadExcel();
   const downloadMutation = useStoreScheduleDownloadExcel();
@@ -90,20 +98,67 @@ export default function StoreSchedulePageClient() {
     }
   };
 
+  const handleDownloadSample = async () => {
+    try {
+      const response = await api.get('/api/v1/store-schedule/template', {
+        responseType: 'blob',
+        headers: {
+          'Content-Type': undefined, // GET 요청에서 Content-Type 헤더 제거
+        },
+      });
+
+      const blob = response.data;
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = '근무계획_업로드_샘플.xlsx';
+
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''));
+        }
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '샘플 파일 다운로드에 실패했습니다.';
+      alert(message);
+    }
+  }
+
   const handleOpenUploadExcel = () => {
     if (!lastQuery?.storeId) {
       setShowStoreError(true);
       return;
     }
+    setUploadResult(null); // 팝업 열 때 이전 결과 초기화
     setUploadOpen(true);
   }
 
   const handleUploadExcel = async (file: File) => {
     try {
-      await uploadMutation.mutateAsync({ storeId: lastQuery?.storeId ?? 0, file });
+      const result = await uploadMutation.mutateAsync({ storeId: lastQuery?.storeId ?? 0, file });
+      setUploadResult(result);
+
+      if (result.success) {
+        // 성공 시 데이터 새로고침
+        await queryClient.invalidateQueries({ queryKey: storeScheduleKeys.list(lastQuery!) });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : '엑셀 업로드에 실패했습니다.';
-      alert(message);
+      setUploadResult({
+        success: false,
+        totalRows: 0,
+        successRows: 0,
+        failedRows: 0,
+        errors: [{ rowNumber: 0, message }],
+      });
     }
   };
 
@@ -149,9 +204,13 @@ export default function StoreSchedulePageClient() {
       {isUploadOpen && (
         <UploadExcel
           isUploading={isLoading}
-          result={null}
-          onClose={() => setUploadOpen(false)}
+          result={uploadResult}
+          onClose={() => {
+            setUploadOpen(false);
+            setUploadResult(null);
+          }}
           onUpload={handleUploadExcel}
+          onDownloadSample={handleDownloadSample}
         />
       )}
     </div>

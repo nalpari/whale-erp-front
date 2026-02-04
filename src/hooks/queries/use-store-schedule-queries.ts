@@ -5,6 +5,7 @@ import type { ApiResponse } from '@/lib/schemas/api'
 import { storeScheduleKeys } from './query-keys'
 import type {
   ExcelDownloadResult,
+  ExcelUploadResult,
   ScheduleRequest,
   ScheduleResponse,
   ScheduleSummary,
@@ -157,12 +158,24 @@ export const useStoreScheduleUploadExcel = () => {
       const formData = new FormData()
       formData.append('excel', file)
       try {
-        const response = await api.post<ApiResponse<ScheduleSummary[]>>(
+        const response = await api.post<ApiResponse<ExcelUploadResult>>(
           `${STORE_SCHEDULE_BASE}/excel/${storeId}`,
-          formData
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
         )
-        return response.data.data ?? []
-      } catch (error) {
+        if (!response.data.data) {
+          throw new Error('업로드 결과가 없습니다.')
+        }
+        return response.data.data
+      } catch (error: any) {
+        // 백엔드에서 validation 실패 시 에러 응답에 ExcelUploadResult가 포함됨
+        if (error.response?.data?.data) {
+          return error.response.data.data as ExcelUploadResult
+        }
         throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))
       }
     },

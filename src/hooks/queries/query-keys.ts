@@ -120,3 +120,28 @@ export const attendanceKeys = {
   list: (params?: unknown) => [...attendanceKeys.lists(), params ?? null] as const,
   records: (params?: unknown) => [...attendanceKeys.all, 'records', params ?? null] as const,
 }
+
+export interface HolidayListParams {
+  year: number
+  office?: number
+  franchise?: number
+  store?: number
+  page?: number
+  size?: number
+}
+
+export interface HolidayOwnerParams {
+  year: number
+  orgId?: number
+  storeId?: number
+}
+
+export const holidayKeys = {
+  all: ['holidays'] as const,
+  lists: () => [...holidayKeys.all, 'list'] as const,
+  list: (params: HolidayListParams) => [...holidayKeys.lists(), params] as const,
+  owners: () => [...holidayKeys.all, 'owner'] as const,
+  owner: (params: HolidayOwnerParams) => [...holidayKeys.owners(), params] as const,
+  legal: () => [...holidayKeys.all, 'legal'] as const,
+  legalByYear: (year: number) => [...holidayKeys.legal(), year] as const,
+}
