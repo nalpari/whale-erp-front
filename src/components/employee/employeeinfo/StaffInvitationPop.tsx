@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { Input } from '@/components/common/ui'
+import DatePicker from '@/components/ui/common/DatePicker'
+import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -512,22 +514,31 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     </th>
                     <td>
                       <div className="filed-flx">
-                        <div className="date-picker-wrap">
-                          <input
-                            type="date"
-                            className="input-frame"
-                            value={contractStartDate}
-                            onChange={(e) => setContractStartDate(e.target.value)}
-                          />
-                          <span>~</span>
-                          <input
-                            type="date"
-                            className="input-frame"
-                            value={contractEndDate}
-                            onChange={(e) => setContractEndDate(e.target.value)}
-                            disabled={noEndDate}
-                          />
-                        </div>
+                        <RangeDatePicker
+                          startDate={contractStartDate ? new Date(contractStartDate) : null}
+                          endDate={contractEndDate ? new Date(contractEndDate) : null}
+                          onChange={(range: DateRange) => {
+                            if (range.startDate) {
+                              const y = range.startDate.getFullYear()
+                              const m = String(range.startDate.getMonth() + 1).padStart(2, '0')
+                              const d = String(range.startDate.getDate()).padStart(2, '0')
+                              setContractStartDate(`${y}-${m}-${d}`)
+                            } else {
+                              setContractStartDate('')
+                            }
+                            if (range.endDate && !noEndDate) {
+                              const y = range.endDate.getFullYear()
+                              const m = String(range.endDate.getMonth() + 1).padStart(2, '0')
+                              const d = String(range.endDate.getDate()).padStart(2, '0')
+                              setContractEndDate(`${y}-${m}-${d}`)
+                            } else if (!range.endDate) {
+                              setContractEndDate('')
+                            }
+                          }}
+                          startDatePlaceholder="시작일"
+                          endDatePlaceholder="종료일"
+                          disabled={false}
+                        />
                         <div className="toggle-wrap">
                           <span className="toggle-txt">종료일 없음</span>
                           <div className="toggle-btn">
@@ -688,12 +699,19 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               {saturdayWorkType === 'biweekly' && (
                                 <div className="filed-flx g8" style={{ marginTop: '8px' }}>
                                   <span className="explain">격주 시작일:</span>
-                                  <input
-                                    type="date"
-                                    className="input-frame"
-                                    value={saturdayBiweeklyStartDate}
-                                    onChange={(e) => setSaturdayBiweeklyStartDate(e.target.value)}
-                                    style={{ width: '150px' }}
+                                  <DatePicker
+                                    value={saturdayBiweeklyStartDate ? new Date(saturdayBiweeklyStartDate) : null}
+                                    onChange={(date) => {
+                                      if (date) {
+                                        const y = date.getFullYear()
+                                        const m = String(date.getMonth() + 1).padStart(2, '0')
+                                        const d = String(date.getDate()).padStart(2, '0')
+                                        setSaturdayBiweeklyStartDate(`${y}-${m}-${d}`)
+                                      } else {
+                                        setSaturdayBiweeklyStartDate('')
+                                      }
+                                    }}
+                                    placeholder="시작일 선택"
                                   />
                                 </div>
                               )}
@@ -800,12 +818,19 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               {sundayWorkType === 'biweekly' && (
                                 <div className="filed-flx g8" style={{ marginTop: '8px' }}>
                                   <span className="explain">격주 시작일:</span>
-                                  <input
-                                    type="date"
-                                    className="input-frame"
-                                    value={sundayBiweeklyStartDate}
-                                    onChange={(e) => setSundayBiweeklyStartDate(e.target.value)}
-                                    style={{ width: '150px' }}
+                                  <DatePicker
+                                    value={sundayBiweeklyStartDate ? new Date(sundayBiweeklyStartDate) : null}
+                                    onChange={(date) => {
+                                      if (date) {
+                                        const y = date.getFullYear()
+                                        const m = String(date.getMonth() + 1).padStart(2, '0')
+                                        const d = String(date.getDate()).padStart(2, '0')
+                                        setSundayBiweeklyStartDate(`${y}-${m}-${d}`)
+                                      } else {
+                                        setSundayBiweeklyStartDate('')
+                                      }
+                                    }}
+                                    placeholder="시작일 선택"
                                   />
                                 </div>
                               )}

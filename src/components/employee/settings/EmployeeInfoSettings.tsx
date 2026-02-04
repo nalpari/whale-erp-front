@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -227,14 +227,34 @@ export default function EmployeeInfoSettings() {
   const saveSettingsMutation = useSaveEmployeeInfoSettings()
   const isSaving = saveSettingsMutation.isPending
 
-  // 직원 분류 데이터
-  const [employeeClassifications, setEmployeeClassifications] = useState<ClassificationItem[]>([])
+  // 분류 데이터 통합 상태
+  interface ClassificationsState {
+    employee: ClassificationItem[]
+    rank: ClassificationItem[]
+    position: ClassificationItem[]
+  }
 
-  // 직급 분류 데이터
-  const [rankClassifications, setRankClassifications] = useState<ClassificationItem[]>([])
+  const [classifications, setClassifications] = useState<ClassificationsState>({
+    employee: [],
+    rank: [],
+    position: [],
+  })
 
-  // 직책 분류 데이터
-  const [positionClassifications, setPositionClassifications] = useState<ClassificationItem[]>([])
+  // 개별 setter 함수들 (기존 코드 호환성)
+  const setEmployeeClassifications = (items: ClassificationItem[]) => {
+    setClassifications(prev => ({ ...prev, employee: items }))
+  }
+  const setRankClassifications = (items: ClassificationItem[]) => {
+    setClassifications(prev => ({ ...prev, rank: items }))
+  }
+  const setPositionClassifications = (items: ClassificationItem[]) => {
+    setClassifications(prev => ({ ...prev, position: items }))
+  }
+
+  // 개별 getter (기존 코드 호환성)
+  const employeeClassifications = classifications.employee
+  const rankClassifications = classifications.rank
+  const positionClassifications = classifications.position
 
   // DnD 센서 설정
   const sensors = useSensors(
@@ -244,22 +264,21 @@ export default function EmployeeInfoSettings() {
     })
   )
 
-  // 쿼리 데이터로 상태 초기화 (렌더링 중 처리)
-  const [prevSettingsData, setPrevSettingsData] = useState(settingsData)
-  if (settingsData !== prevSettingsData) {
-    setPrevSettingsData(settingsData)
+  // 쿼리 데이터로 상태 초기화 - settingsData 변경 시 로컬 상태 동기화
+  useEffect(() => {
     if (settingsData?.codeMemoContent) {
       const { EMPLOYEE, RANK, POSITION } = settingsData.codeMemoContent
-      setEmployeeClassifications(apiToUiClassifications(EMPLOYEE || []))
-      setRankClassifications(apiToUiClassifications(RANK || []))
-      setPositionClassifications(apiToUiClassifications(POSITION || []))
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 쿼리 데이터 로드 시 상태 동기화
+      setClassifications({
+        employee: apiToUiClassifications(EMPLOYEE || []),
+        rank: apiToUiClassifications(RANK || []),
+        position: apiToUiClassifications(POSITION || []),
+      })
     } else if (!isLoading) {
       // 데이터가 없으면 빈 배열로 초기화
-      setEmployeeClassifications([])
-      setRankClassifications([])
-      setPositionClassifications([])
+      setClassifications({ employee: [], rank: [], position: [] })
     }
-  }
+  }, [settingsData, isLoading])
 
   // 현재 탭에 따른 데이터 가져오기
   const getCurrentClassifications = () => {
@@ -403,7 +422,7 @@ export default function EmployeeInfoSettings() {
     }
   }
 
-  const classifications = getCurrentClassifications()
+  const currentClassifications = getCurrentClassifications()
 
   return (
     <div className="contents-wrap">
@@ -500,10 +519,10 @@ export default function EmployeeInfoSettings() {
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={classifications.map(item => item.id)}
+                    items={currentClassifications.map(item => item.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    {classifications.map((item) => (
+                    {currentClassifications.map((item) => (
                       <SortableItem
                         key={item.id}
                         item={item}
@@ -519,7 +538,7 @@ export default function EmployeeInfoSettings() {
               )}
 
               {/* 항목이 없을 때 추가 버튼 표시 */}
-              {!isLoading && classifications.length === 0 && (
+              {!isLoading && currentClassifications.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
                   <p style={{ marginBottom: '16px' }}>등록된 분류가 없습니다.</p>
                   <button className="btn-form basic" onClick={handleAddItem}>

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
-import DatePicker from '../../ui/common/DatePicker'
+import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
 import { Input } from '@/components/common/ui'
 import {
   useEmployeeCareers,
@@ -312,22 +312,17 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                         근무기간 <span className="red">*</span>
                       </th>
                       <td>
-                        <div className="filed-flx">
-                          <div className={`date-picker-wrap${errors.startDate ? ' has-error' : ''}`}>
-                            <DatePicker
-                              value={career.startDate ? new Date(career.startDate) : null}
-                              onChange={(date) => handleCareerChange(index, 'startDate', date ? date.toISOString().split('T')[0] : null)}
-                              placeholder="시작일"
-                            />
-                          </div>
-                          <span style={{ margin: '0 8px' }}>~</span>
-                          <div className="date-picker-wrap">
-                            <DatePicker
-                              value={career.endDate ? new Date(career.endDate) : null}
-                              onChange={(date) => handleCareerChange(index, 'endDate', date ? date.toISOString().split('T')[0] : null)}
-                              placeholder="종료일"
-                            />
-                          </div>
+                        <div className={errors.startDate ? 'has-error' : ''}>
+                          <RangeDatePicker
+                            startDate={career.startDate ? new Date(career.startDate) : null}
+                            endDate={career.endDate ? new Date(career.endDate) : null}
+                            onChange={(range: DateRange) => {
+                              handleCareerChange(index, 'startDate', range.startDate ? range.startDate.toISOString().split('T')[0] : null)
+                              handleCareerChange(index, 'endDate', range.endDate ? range.endDate.toISOString().split('T')[0] : null)
+                            }}
+                            startDatePlaceholder="시작일"
+                            endDatePlaceholder="종료일"
+                          />
                         </div>
                         {errors.startDate && (
                           <div className="warning-txt mt5" role="alert">* {errors.startDate}</div>

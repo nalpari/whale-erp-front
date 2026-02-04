@@ -70,11 +70,48 @@ export interface SettingsParams {
   franchiseId?: number
 }
 
+export interface ContractSearchParams {
+  page?: number
+  size?: number
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
+  workStatus?: string
+  memberName?: string
+  workDays?: string[]
+  memberClassification?: string
+  contractClassification?: string
+  contractStatus?: string
+  electronicContract?: string[]
+  salaryStartDt?: string
+  salaryEndDt?: string
+  contractStartDt?: string
+  contractEndDt?: string
+  isDeleted?: boolean
+}
+
+export const contractKeys = {
+  all: ['contracts'] as const,
+  lists: () => [...contractKeys.all, 'list'] as const,
+  list: (params?: ContractSearchParams) => [...contractKeys.lists(), params ?? null] as const,
+  details: () => [...contractKeys.all, 'detail'] as const,
+  detail: (id: number) => [...contractKeys.details(), id] as const,
+  byEmployee: (employeeId: number) => [...contractKeys.all, 'by-employee', employeeId] as const,
+}
+
 export const settingsKeys = {
   all: ['settings'] as const,
   employeeInfo: (params?: SettingsParams) => [...settingsKeys.all, 'employee-info', params ?? null] as const,
   laborContract: (params?: SettingsParams) => [...settingsKeys.all, 'labor-contract', params ?? null] as const,
   payrollStatement: (params?: SettingsParams) => [...settingsKeys.all, 'payroll-statement', params ?? null] as const,
+}
+
+export const payrollKeys = {
+  all: ['payroll'] as const,
+  commonCode: (params?: { headOfficeId?: number; franchiseId?: number }) =>
+    [...payrollKeys.all, 'common-code', params ?? null] as const,
+  bonusTypes: (params?: { headOfficeId?: number; franchiseId?: number }) =>
+    [...payrollKeys.all, 'bonus-types', params ?? null] as const,
 }
 
 export const attendanceKeys = {
