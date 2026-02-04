@@ -420,7 +420,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const renderTableRow = (item: DailyWorkHoursItem, index: number) => {
     switch (item.type) {
-      case 'DAILY':
+      case 'DAILY': {
         if (!item.dailyRecord) return null
         const record = item.dailyRecord
         return (
@@ -433,7 +433,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(record.totalAmount)}</td>
           </tr>
         )
-      case 'WEEKLY_SUBTOTAL':
+      }
+      case 'WEEKLY_SUBTOTAL': {
         if (!item.weeklySubtotal) return null
         const subtotal = item.weeklySubtotal
         return (
@@ -446,7 +447,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(subtotal.totalAmount)}</td>
           </tr>
         )
-      case 'WEEKLY_HOLIDAY_ALLOWANCE':
+      }
+      case 'WEEKLY_HOLIDAY_ALLOWANCE': {
         if (!item.weeklyHolidayAllowance) return null
         const allowance = item.weeklyHolidayAllowance
         return (
@@ -459,7 +461,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(allowance.totalAmount)}</td>
           </tr>
         )
-      case 'WEEKLY_TOTAL':
+      }
+      case 'WEEKLY_TOTAL': {
         if (!item.weeklyTotal) return null
         const total = item.weeklyTotal
         return (
@@ -472,6 +475,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(total.totalAmount)}</td>
           </tr>
         )
+      }
       default:
         return null
     }

@@ -133,7 +133,7 @@ export default function PayrollStatementSettings() {
   // React 19: derived state - settings 우선순위: localSettings > fetchedSettings > defaults
   const settings = localSettings ?? fetchedSettings ?? DEFAULT_PAYROLL_STATEMENT_SETTINGS
 
-  // 데이터가 로드되면 localSettings로 복사
+  // React 19 패턴: 렌더 단계에서 데이터 로드
   if (fetchedSettings && !localSettings) {
     setLocalSettings(fetchedSettings)
   }

@@ -114,10 +114,6 @@ export const useSavePayrollStatementSettings = () => {
 
 // ==================== Employee Info Common Code ====================
 
-import {
-  getEmployeeInfoCommonCode as getEmployeeInfoCommonCodeApi,
-} from '@/lib/api/employeeInfoSettings'
-
 export const useEmployeeInfoCommonCode = (
   headOfficeId?: number,
   franchiseId?: number,
@@ -125,7 +121,7 @@ export const useEmployeeInfoCommonCode = (
 ) => {
   return useQuery({
     queryKey: settingsKeys.employeeInfo({ headOfficeId, franchiseId }),
-    queryFn: () => getEmployeeInfoCommonCodeApi({ headOfficeId, franchiseId }),
+    queryFn: () => getEmployeeInfoCommonCode({ headOfficeId, franchiseId }),
     staleTime: SETTINGS_STALE_TIME,
     enabled: enabled && !!headOfficeId,
   })

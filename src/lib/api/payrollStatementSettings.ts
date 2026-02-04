@@ -25,6 +25,18 @@ export interface PayrollStatementSettingsContent {
   bonusCategories: BonusCategory[]
 }
 
+// 기본 설정값 (데이터가 없을 때 사용) - 함수에서 참조하기 전에 선언
+export const DEFAULT_PAYROLL_STATEMENT_SETTINGS: PayrollStatementSettingsContent = {
+  fulltimePaydayMonth: 'CURRENT',
+  fulltimePaydayDay: 5,
+  parttimePaydayMonth: 'CURRENT',
+  parttimePaydayDay: 5,
+  parttimeIncomeTaxRate: 3,
+  parttimeLocalTaxRate: 0.3,
+  overtimeWorkRate: 17,
+  bonusCategories: []
+}
+
 // API 응답 타입 (서버에서 오는 형태)
 interface ApiPayrollCodeMemoContent {
   bonusInfo?: Array<{
@@ -169,16 +181,4 @@ export async function savePayrollStatementSettingsCode(
     console.error('급여명세서 설정 공통코드 저장 실패:', error)
     throw error
   }
-}
-
-// 기본 설정값 (데이터가 없을 때 사용)
-export const DEFAULT_PAYROLL_STATEMENT_SETTINGS: PayrollStatementSettingsContent = {
-  fulltimePaydayMonth: 'CURRENT',
-  fulltimePaydayDay: 5,
-  parttimePaydayMonth: 'CURRENT',
-  parttimePaydayDay: 5,
-  parttimeIncomeTaxRate: 3,
-  parttimeLocalTaxRate: 0.3,
-  overtimeWorkRate: 17,
-  bonusCategories: []
 }

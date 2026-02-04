@@ -96,7 +96,7 @@ export default function AttendanceSearch({
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과<span>{resultCount}건</span>
         </div>

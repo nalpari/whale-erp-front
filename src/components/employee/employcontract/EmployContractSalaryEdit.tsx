@@ -146,7 +146,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
 
       // type 변경 시 해당 상여금 종류의 기본 금액과 메모도 함께 적용
       if (field === 'type') {
-        const selectedType = bonusTypes.find(t => t.name === value)
+        const selectedType = bonusTypes.find(t => t.code === value)
         const defaultAmount = selectedType?.amount ?? 0
         const defaultMemo = selectedType?.remark ?? ''
         return { ...bonus, type: value as string, amount: defaultAmount, memo: defaultMemo }
@@ -162,7 +162,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
     const defaultType = bonusTypes.length > 0 ? bonusTypes[0] : null
     updateBonuses(prev => [...prev, {
       id: newId,
-      type: defaultType?.name ?? '',
+      type: defaultType?.code ?? '',
       amount: defaultType?.amount ?? 0,
       memo: defaultType?.remark ?? ''
     }])
@@ -214,12 +214,18 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
           holidayAllowanceTimeAmount: formData.holidayDayAllowance || undefined,
           bonuses: bonuses
             .filter(b => b.type && b.amount > 0)
-            .map(b => ({
-              id: b.id > 1000 ? undefined : b.id,
-              bonusType: b.type,
-              amount: b.amount,
-              memo: b.memo || undefined
-            }))
+            .map(b => {
+              // b.type이 code일 수도 있고, 기존 데이터에서 name일 수도 있음
+              // bonusTypes에서 code 또는 name으로 찾아서 bonusCode와 bonusType 분리
+              const matchedType = bonusTypes.find(t => t.code === b.type || t.name === b.type)
+              return {
+                id: b.id > 1000 ? undefined : b.id,
+                bonusCode: matchedType?.code || b.type,  // 코드
+                bonusType: matchedType?.name || b.type,  // 명칭
+                amount: b.amount,
+                memo: b.memo || undefined
+              }
+            })
         }
 
         await updateSalaryMutation.mutateAsync({ salaryInfoId, data: requestData })
@@ -251,11 +257,17 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
           holidayAllowanceTimeAmount: formData.holidayDayAllowance || undefined,
           bonuses: bonuses
             .filter(b => b.type && b.amount > 0)
-            .map(b => ({
-              bonusType: b.type,
-              amount: b.amount,
-              memo: b.memo || undefined
-            }))
+            .map(b => {
+              // b.type이 code일 수도 있고, 기존 데이터에서 name일 수도 있음
+              // bonusTypes에서 code 또는 name으로 찾아서 bonusCode와 bonusType 분리
+              const matchedType = bonusTypes.find(t => t.code === b.type || t.name === b.type)
+              return {
+                bonusCode: matchedType?.code || b.type,  // 코드
+                bonusType: matchedType?.name || b.type,  // 명칭
+                amount: b.amount,
+                memo: b.memo || undefined
+              }
+            })
         }
 
         await createSalaryMutation.mutateAsync(requestData)
@@ -910,7 +922,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
                                 aria-label="상여금 종류 선택"
                               >
                                 {bonusTypes.map((type, index) => (
-                                  <option key={type.id || `bonus-type-${index}`} value={type.name}>{type.name}</option>
+                                  <option key={type.id || `bonus-type-${index}`} value={type.code}>{type.name}</option>
                                 ))}
                               </select>
                               <button

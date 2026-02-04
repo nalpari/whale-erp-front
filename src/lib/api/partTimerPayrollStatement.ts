@@ -130,6 +130,11 @@ export async function getPartTimerPayrollStatement(id: number): Promise<PartTime
   const response = await api.get<{ data: PartTimerPayrollStatementResponse }>(
     `/api/employee/payroll/parttime/${id}`
   )
+
+  if (!response.data?.data) {
+    throw new Error(`Part-timer payroll statement not found for id: ${id}`)
+  }
+
   return response.data.data
 }
 

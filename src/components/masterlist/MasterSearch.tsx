@@ -10,7 +10,7 @@ export default function MasterSearch() {
       <div className="invite-btn al-r mb10">
         <button className="btn-form basic">가맹점 초대</button>
       </div>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>128건</span>
         </div>

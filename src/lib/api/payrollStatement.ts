@@ -51,7 +51,9 @@ export interface PayrollStatementResponse {
   storeName?: string
   workStatus?: string
   contractClassification?: string
+  contractClassificationName?: string
   employeeClassification?: string
+  employeeClassificationName?: string
   // 등록/수정 이력
   createdAt?: string
   updatedAt?: string
@@ -125,6 +127,11 @@ export async function getPayrollStatement(id: number): Promise<PayrollStatementR
   const response = await api.get<{ data: PayrollStatementResponse }>(
     `/api/employee/payroll/regular/${id}`
   )
+
+  if (!response.data?.data) {
+    throw new Error(`Payroll statement not found for id: ${id}`)
+  }
+
   return response.data.data
 }
 
@@ -174,6 +181,7 @@ export interface UpdatePayrollStatementRequest {
   remarks?: string
   paymentItems: PaymentItemDto[]
   deductionItems: DeductionItemDto[]
+  bonuses?: PayrollBonusDto[]
 }
 
 // 급여 명세서 수정
@@ -196,6 +204,7 @@ export interface CreatePayrollStatementRequest {
   remarks?: string
   paymentItems: PaymentItemDto[]
   deductionItems: DeductionItemDto[]
+  bonuses?: PayrollBonusDto[]
 }
 
 // 급여 명세서 생성
@@ -215,7 +224,7 @@ export async function createPayrollStatement(
     formData.append('remarks', request.remarks)
   }
 
-  // attachmentFile이 있으면 파일만 전송, 없으면 지급/공제 항목 전송
+  // attachmentFile이 있으면 파일 전송, 없으면 지급/공제 항목 전송
   if (attachmentFile) {
     formData.append('attachmentFile', attachmentFile)
   } else {
@@ -235,6 +244,17 @@ export async function createPayrollStatement(
       formData.append(`deductionItems[${index}].amount`, String(item.amount))
       if (item.remarks) {
         formData.append(`deductionItems[${index}].remarks`, item.remarks)
+      }
+    })
+  }
+
+  // 상여금 항목은 첨부파일 유무와 관계없이 항상 전송
+  if (request.bonuses && request.bonuses.length > 0) {
+    request.bonuses.forEach((bonus, index) => {
+      formData.append(`bonuses[${index}].bonusType`, bonus.bonusType)
+      formData.append(`bonuses[${index}].amount`, String(bonus.amount))
+      if (bonus.memo) {
+        formData.append(`bonuses[${index}].memo`, bonus.memo)
       }
     })
   }

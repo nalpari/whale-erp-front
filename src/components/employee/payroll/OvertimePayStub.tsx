@@ -126,6 +126,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
           }
            
           setIsSearched(true)
+
+          // 로드 후 localStorage에서 제거하여 stale reads 방지
+          localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
         }
@@ -361,6 +364,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       }
 
       await createOvertimeAllowanceStatement(request)
+
+      // 저장 성공 시 localStorage cleanup
+      localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+
       alert('연장근무 수당명세서가 생성되었습니다.')
       router.push('/employee/payroll/overtime')
     } catch (error) {
@@ -386,7 +393,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const renderTableRow = (item: DailyOvertimeHoursItem, index: number) => {
     switch (item.type) {
-      case 'DAILY':
+      case 'DAILY': {
         if (!item.dailyRecord) return null
         const record = item.dailyRecord
         return (
@@ -399,7 +406,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(record.totalAmount)}</td>
           </tr>
         )
-      case 'WEEKLY_SUBTOTAL':
+      }
+      case 'WEEKLY_SUBTOTAL': {
         if (!item.weeklySubtotal) return null
         const subtotal = item.weeklySubtotal
         return (
@@ -412,6 +420,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <td className="al-r">{formatNumber(subtotal.totalAmount)}</td>
           </tr>
         )
+      }
       default:
         return null
     }

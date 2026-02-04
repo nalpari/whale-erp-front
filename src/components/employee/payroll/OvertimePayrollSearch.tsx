@@ -28,11 +28,10 @@ export default function OvertimePayrollSearch({ onSearch, onReset, totalCount }:
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  // TODO: 테스트용 기본값 - 나중에 제거
   const [formData, setFormData] = useState({
-    headOfficeId: 1 as number | null,
-    franchiseId: 2 as number | null,
-    storeId: 1 as number | null,
+    headOfficeId: null as number | null,
+    franchiseId: null as number | null,
+    storeId: null as number | null,
     workStatus: '',
     employeeName: '',
     employeeClassification: ''
@@ -121,7 +120,7 @@ export default function OvertimePayrollSearch({ onSearch, onReset, totalCount }:
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>{totalCount.toLocaleString()}건</span>
         </div>

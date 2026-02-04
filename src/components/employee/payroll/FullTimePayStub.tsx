@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCommonCodeCache } from '@/hooks/queries'
 import {
@@ -16,6 +16,7 @@ import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import { useContractsByEmployee } from '@/hooks/queries/use-contract-queries'
 import { useFileInfo, useFileDownloadUrl } from '@/hooks/queries/use-file-queries'
 import { getOvertimeAllowanceStatements, getOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
+import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
 import type {
   PayrollStatementResponse,
   PaymentItemDto,
@@ -100,24 +101,33 @@ interface CommonCodeNode {
   isActive: boolean
 }
 
-// 월 옵션 생성
+// 월 옵션 생성 (최근 12개월)
 const getPayrollMonthOptions = (): { value: string; label: string }[] => {
   const now = new Date()
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth() + 1
-
-  const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1
-  const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear
 
   const formatMonth = (year: number, month: number) => ({
     value: `${year}${month.toString().padStart(2, '0')}`,
     label: `${year}년 ${month}월`
   })
 
-  return [
-    formatMonth(currentYear, currentMonth),
-    formatMonth(lastMonthYear, lastMonth)
-  ]
+  const options: { value: string; label: string }[] = []
+
+  // 최근 12개월 생성 (현재 월부터 11개월 전까지)
+  for (let i = 0; i < 12; i++) {
+    let targetMonth = currentMonth - i
+    let targetYear = currentYear
+
+    while (targetMonth <= 0) {
+      targetMonth += 12
+      targetYear -= 1
+    }
+
+    options.push(formatMonth(targetYear, targetMonth))
+  }
+
+  return options
 }
 
 // 정산 기간 계산
@@ -154,11 +164,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
+  // Local state - 조직 선택 (hooks보다 먼저 선언)
+  // TODO: 나중에 로그인한 사용자가 선택한 조직으로 대체
+  const [selectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
+  const [selectedFranchiseStoreId] = useState<number>(DEFAULT_FRANCHISE_ID)
+
   // TanStack Query hooks
   const { data: existingPayrollData, isPending: isDetailLoading } = useFullTimePayrollDetail(statementId)
-  const { data: payrollSettings } = usePayrollStatementSettings({ headOfficeId: 1, franchiseId: 2 })
+  const { data: payrollSettings } = usePayrollStatementSettings({ headOfficeId: selectedHeadOfficeId, franchiseId: selectedFranchiseStoreId })
   const { data: employeeList = [] } = useEmployeeListByType(
-    { headOfficeId: 1, franchiseId: 2, employeeType: 'FULL_TIME' },
+    { headOfficeId: selectedHeadOfficeId, franchiseId: selectedFranchiseStoreId, employeeType: 'FULL_TIME' },
     isNewMode
   )
 
@@ -185,6 +200,9 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // 직원 계약 정보 조회
   const { data: employeeContracts = [] } = useContractsByEmployee(selectedEmployeeId ?? 0, !!selectedEmployeeId)
   const employeeContract = employeeContracts[0] ?? null
+
+  // 이전 employeeContract ID 추적 (salaryInfo 맵핑 중복 실행 방지)
+  const prevEmployeeContractIdRef = useRef<number | null | undefined>(null)
 
   // 첨부파일 정보 조회
   const attachmentFileId = payrollData?.attachmentFileId ?? existingPayrollData?.attachmentFileId
@@ -358,12 +376,274 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     }
   }, [isNewMode, payrollData, paymentCommonCodes, deductionCommonCodes, employeeContract, formData.payrollYearMonth, formData.paymentDate])
 
+  // 직원 계약 정보가 변경되면 정산 기간 및 급여 정보 업데이트 (신규 모드에서만)
+  useEffect(() => {
+    if (!isNewMode || !employeeContract || !selectedEmployeeId || !payrollData) return
+
+    // 이미 처리한 계약이면 스킵 (무한 루프 방지)
+    const currentContractId = employeeContract.employmentContractHeader?.id
+    if (prevEmployeeContractIdRef.current === currentContractId) return
+    prevEmployeeContractIdRef.current = currentContractId
+
+    const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
+    const { startDate, endDate } = calculateSettlementPeriod(formData.payrollYearMonth, salaryMonth)
+    const salaryInfo = employeeContract?.salaryInfo
+    const contractHeader = employeeContract?.employmentContractHeader
+
+    // 근로 계약의 salaryInfo를 지급 항목에 맵핑
+    if (salaryInfo) {
+      const basePaymentItems = payrollData.paymentItems.map(item => {
+        let amount = item.amount
+        switch (item.itemCode) {
+          case 'DPTBS_001':  // 기본급
+          case 'BASIC':
+            amount = salaryInfo.monthlyBaseSalary || 0
+            break
+          case 'DPTBS_002':  // 식대
+          case 'MEAL':
+            amount = salaryInfo.mealAllowance || 0
+            break
+          case 'DPTBS_003':  // 자가운전보조금
+          case 'VEHICLE':
+            amount = salaryInfo.vehicleAllowance || 0
+            break
+          case 'DPTBS_004':  // 육아수당
+          case 'CHILD_CARE':
+            amount = salaryInfo.childcareAllowance || 0
+            break
+          case 'DPTBS_005':  // 연장수당
+          case 'OVERTIME':
+            amount = salaryInfo.monthlyOvertimeAllowance || 0
+            break
+          case 'DPTBS_006':  // 야간수당
+          case 'NIGHT':
+            amount = salaryInfo.monthlyNightAllowance || 0
+            break
+          case 'DPTBS_007':  // 월간 휴일근무 수당
+          case 'MONTHLY_HOLIDAY':
+            amount = salaryInfo.monthlyHolidayAllowance || 0
+            break
+          case 'DPTBS_008':  // 추가근무수당
+          case 'ADD':
+            amount = salaryInfo.monthlyAddHolidayAllowance || 0
+            break
+        }
+        return { ...item, amount }
+      })
+
+      // salaryInfo에 값이 있는데 paymentItems에 없는 수당 항목 자동 추가
+      const existingCodes = basePaymentItems.map(item => item.itemCode)
+      const additionalAllowanceItems: PaymentItemDto[] = []
+
+      // 연장수당
+      if (salaryInfo.monthlyOvertimeAllowance && salaryInfo.monthlyOvertimeAllowance > 0) {
+        if (!existingCodes.includes('DPTBS_005') && !existingCodes.includes('OVERTIME')) {
+          additionalAllowanceItems.push({
+            itemCode: 'DPTBS_005',
+            itemOrder: basePaymentItems.length + additionalAllowanceItems.length + 1,
+            amount: salaryInfo.monthlyOvertimeAllowance,
+            remarks: '연장수당'
+          })
+        }
+      }
+
+      // 야간수당
+      if (salaryInfo.monthlyNightAllowance && salaryInfo.monthlyNightAllowance > 0) {
+        if (!existingCodes.includes('DPTBS_006') && !existingCodes.includes('NIGHT')) {
+          additionalAllowanceItems.push({
+            itemCode: 'DPTBS_006',
+            itemOrder: basePaymentItems.length + additionalAllowanceItems.length + 1,
+            amount: salaryInfo.monthlyNightAllowance,
+            remarks: '야간수당'
+          })
+        }
+      }
+
+      // 휴일근무수당
+      if (salaryInfo.monthlyHolidayAllowance && salaryInfo.monthlyHolidayAllowance > 0) {
+        if (!existingCodes.includes('DPTBS_007') && !existingCodes.includes('MONTHLY_HOLIDAY')) {
+          additionalAllowanceItems.push({
+            itemCode: 'DPTBS_007',
+            itemOrder: basePaymentItems.length + additionalAllowanceItems.length + 1,
+            amount: salaryInfo.monthlyHolidayAllowance,
+            remarks: '휴일근무수당'
+          })
+        }
+      }
+
+      // 추가근무수당
+      if (salaryInfo.monthlyAddHolidayAllowance && salaryInfo.monthlyAddHolidayAllowance > 0) {
+        if (!existingCodes.includes('DPTBS_008') && !existingCodes.includes('ADD')) {
+          additionalAllowanceItems.push({
+            itemCode: 'DPTBS_008',
+            itemOrder: basePaymentItems.length + additionalAllowanceItems.length + 1,
+            amount: salaryInfo.monthlyAddHolidayAllowance,
+            remarks: '추가근무수당'
+          })
+        }
+      }
+
+      const updatedPaymentItems = [...basePaymentItems, ...additionalAllowanceItems]
+
+      // 상여금 매핑 (salaryInfo.bonuses -> payrollData.bonuses)
+      // bonusCode가 코드, bonusType은 이름 - handleAddBonusItem과 동일하게 매핑
+      const mappedBonuses = salaryInfo.bonuses?.map(bonus => ({
+        bonusType: bonus.bonusCode || bonus.bonusType,  // 코드가 없으면 이름을 fallback으로 사용
+        amount: bonus.amount,
+        memo: bonus.bonusType  // 화면 표시용으로 bonusType(이름)을 저장
+      })) || []
+
+      // 지급액 합계 (지급항목 + 상여금)
+      const paymentTotal = updatedPaymentItems.reduce((sum, item) => sum + item.amount, 0)
+      const bonusTotal = mappedBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
+      const totalPaymentAmount = paymentTotal + bonusTotal
+
+      // 공제 항목 자동 계산 (4대보험 가입 여부에 따라)
+      // 비과세 항목 제외한 과세 급여 계산
+      const nonTaxableAmount = (salaryInfo.mealAllowance || 0) + (salaryInfo.vehicleAllowance || 0) + (salaryInfo.childcareAllowance || 0)
+      const taxableAmount = totalPaymentAmount - nonTaxableAmount
+
+      // 4대보험료율 (2024년 기준)
+      const NATIONAL_PENSION_RATE = 0.045        // 국민연금 4.5%
+      const HEALTH_INSURANCE_RATE = 0.03545      // 건강보험 3.545%
+      const LONG_TERM_CARE_RATE = 0.1281         // 장기요양보험 (건강보험의 12.81%)
+      const EMPLOYMENT_INSURANCE_RATE = 0.009    // 고용보험 0.9%
+
+      // 공제 항목 계산
+      const nationalPension = contractHeader?.nationalPensionEnrolled
+        ? Math.round(taxableAmount * NATIONAL_PENSION_RATE)
+        : 0
+      const healthInsurance = contractHeader?.healthInsuranceEnrolled
+        ? Math.round(taxableAmount * HEALTH_INSURANCE_RATE)
+        : 0
+      const longTermCare = contractHeader?.healthInsuranceEnrolled
+        ? Math.round(healthInsurance * LONG_TERM_CARE_RATE)
+        : 0
+      const employmentInsurance = contractHeader?.employmentInsuranceEnrolled
+        ? Math.round(taxableAmount * EMPLOYMENT_INSURANCE_RATE)
+        : 0
+
+      // 소득세 간이세액표 적용 (간략화된 버전)
+      const calculateIncomeTax = (monthly: number): number => {
+        // 간이세액표 기반 대략적 계산 (부양가족 1인 기준)
+        if (monthly <= 1060000) return 0
+        if (monthly <= 1500000) return Math.round((monthly - 1060000) * 0.06)
+        if (monthly <= 3000000) return Math.round(26400 + (monthly - 1500000) * 0.15)
+        if (monthly <= 4500000) return Math.round(251400 + (monthly - 3000000) * 0.24)
+        if (monthly <= 8700000) return Math.round(611400 + (monthly - 4500000) * 0.35)
+        return Math.round(2081400 + (monthly - 8700000) * 0.38)
+      }
+
+      const incomeTax = calculateIncomeTax(taxableAmount)
+      const localIncomeTax = Math.round(incomeTax * 0.1)  // 지방소득세 = 소득세의 10%
+
+      // 공제 항목 업데이트
+      const updatedDeductionItems = payrollData.deductionItems.map(item => {
+        let amount = item.amount
+        switch (item.itemCode) {
+          case 'DDTBS_001':  // 국민연금
+          case 'NATIONAL_PENSION':
+            amount = nationalPension
+            break
+          case 'DDTBS_002':  // 건강보험
+          case 'HEALTH_INSURANCE':
+            amount = healthInsurance
+            break
+          case 'DDTBS_003':  // 고용보험
+          case 'EMPLOYMENT_INSURANCE':
+            amount = employmentInsurance
+            break
+          case 'DDTBS_004':  // 장기요양보험
+          case 'LONG_TERM_CARE_INSURANCE':
+            amount = longTermCare
+            break
+          case 'DDTBS_005':  // 소득세
+          case 'INCOME_TAX':
+            amount = incomeTax
+            break
+          case 'DDTBS_006':  // 지방소득세
+          case 'LOCAL_INCOME_TAX':
+            amount = localIncomeTax
+            break
+        }
+        return { ...item, amount }
+      })
+
+      const totalDeductionAmount = updatedDeductionItems.reduce((sum, item) => sum + item.amount, 0)
+
+      setPayrollData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          settlementStartDate: startDate,
+          settlementEndDate: endDate,
+          paymentItems: updatedPaymentItems,
+          deductionItems: updatedDeductionItems,
+          bonuses: mappedBonuses,
+          totalPaymentAmount,
+          totalDeductionAmount,
+          actualPaymentAmount: totalPaymentAmount - totalDeductionAmount
+        }
+      })
+
+      // formData도 업데이트
+      setFormData(prev => ({
+        ...prev,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate,
+        baseSalary: salaryInfo.monthlyBaseSalary || 0,
+        mealAllowance: salaryInfo.mealAllowance || 0,
+        vehicleAllowance: salaryInfo.vehicleAllowance || 0,
+        childcareAllowance: salaryInfo.childcareAllowance || 0,
+        overtimeAllowance: salaryInfo.monthlyOvertimeAllowance || 0,
+        nightAllowance: salaryInfo.monthlyNightAllowance || 0,
+        holidayAllowance: salaryInfo.monthlyHolidayAllowance || 0,
+        extraWorkAllowance: salaryInfo.monthlyAddHolidayAllowance || 0,
+        nationalPension,
+        healthInsurance,
+        employmentInsurance,
+        longTermCare,
+        incomeTax,
+        localIncomeTax,
+        totalPaymentAmount,
+        totalDeductionAmount,
+        actualPaymentAmount: totalPaymentAmount - totalDeductionAmount
+      }))
+    } else {
+      // salaryInfo가 없으면 정산 기간만 업데이트
+      setPayrollData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          settlementStartDate: startDate,
+          settlementEndDate: endDate
+        }
+      })
+
+      setFormData(prev => ({
+        ...prev,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate
+      }))
+    }
+  }, [isNewMode, employeeContract, selectedEmployeeId, payrollData, formData.payrollYearMonth])
+
   // 지급/공제 항목 행 생성 (derived state)
   const payrollItemRows: PayrollItemRow[] = (() => {
     const paymentItems = payrollData?.paymentItems || []
     const deductionItems = payrollData?.deductionItems || []
+    const bonuses = payrollData?.bonuses || []
 
-    const sortedPayments = [...paymentItems].sort((a, b) => a.itemOrder - b.itemOrder)
+    // bonuses를 PaymentItemDto 형태로 변환하여 지급 항목에 포함
+    const bonusAsPaymentItems: PaymentItemDto[] = bonuses.map((bonus, index) => ({
+      itemCode: `BONUS_${bonus.bonusType}`,  // BONUS_ 접두사로 상여금 항목 구분
+      itemOrder: paymentItems.length + index + 1,
+      amount: bonus.amount,
+      remarks: bonus.memo  // memo에 bonusType(이름)이 저장됨
+    }))
+
+    const allPaymentItems = [...paymentItems, ...bonusAsPaymentItems]
+    const sortedPayments = allPaymentItems.sort((a, b) => a.itemOrder - b.itemOrder)
     const sortedDeductions = [...deductionItems].sort((a, b) => a.itemOrder - b.itemOrder)
 
     const maxLength = Math.max(sortedPayments.length, sortedDeductions.length)
@@ -380,7 +660,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   })()
 
   // 직원 선택 핸들러 - React 19 Compiler가 자동 최적화
-  const handleEmployeeSelect = async (employeeInfoId: number | null) => {
+  const handleEmployeeSelect = (employeeInfoId: number | null) => {
     setSelectedEmployeeId(employeeInfoId)
 
     if (!employeeInfoId) {
@@ -397,6 +677,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         store: selected.storeName || ''
       }))
     }
+    // 근로 계약 정보(salaryInfo)는 useEffect에서 자동 맵핑됨
   }
 
   // 이전 급여 정보 불러오기 - React 19 Compiler가 자동 최적화
@@ -467,16 +748,36 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     const amount = parseNumber(value)
     setPayrollData(prev => {
       if (!prev) return prev
+
+      // BONUS_ 접두사가 있으면 상여금 항목 수정
+      if (itemCode.startsWith('BONUS_')) {
+        const bonusType = itemCode.replace('BONUS_', '')
+        const updatedBonuses = (prev.bonuses || []).map(bonus =>
+          bonus.bonusType === bonusType ? { ...bonus, amount } : bonus
+        )
+        const totalPayment = prev.paymentItems.reduce((sum, item) => sum + item.amount, 0)
+        const bonusTotal = updatedBonuses.reduce((sum, b) => sum + b.amount, 0)
+        const totalDeduction = prev.deductionItems.reduce((sum, item) => sum + item.amount, 0)
+        return {
+          ...prev,
+          bonuses: updatedBonuses,
+          totalPaymentAmount: totalPayment + bonusTotal,
+          actualPaymentAmount: (totalPayment + bonusTotal) - totalDeduction
+        }
+      }
+
+      // 일반 지급 항목 수정
       const updatedItems = prev.paymentItems.map(item =>
         item.itemCode === itemCode ? { ...item, amount } : item
       )
       const totalPayment = updatedItems.reduce((sum, item) => sum + item.amount, 0)
+      const bonusTotal = (prev.bonuses || []).reduce((sum, b) => sum + b.amount, 0)
       const totalDeduction = prev.deductionItems.reduce((sum, item) => sum + item.amount, 0)
       return {
         ...prev,
         paymentItems: updatedItems,
-        totalPaymentAmount: totalPayment,
-        actualPaymentAmount: totalPayment - totalDeduction
+        totalPaymentAmount: totalPayment + bonusTotal,
+        actualPaymentAmount: (totalPayment + bonusTotal) - totalDeduction
       }
     })
   }
@@ -504,26 +805,26 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleAddBonusItem = (bonus: BonusCategory) => {
     if (!payrollData) return
 
-    const exists = payrollData.paymentItems.some(item => item.itemCode === bonus.code)
+    const exists = payrollData.bonuses?.some(item => item.bonusType === bonus.code)
     if (exists) {
       alert('이미 추가된 항목입니다.')
       return
     }
 
-    const newPaymentItem: PaymentItemDto = {
-      itemCode: bonus.code,
-      itemOrder: payrollData.paymentItems.length + 1,
+    const newBonus = {
+      bonusType: bonus.code,
       amount: bonus.amount || 0,
-      remarks: bonus.name
+      memo: bonus.name
     }
 
     setPayrollData(prev => {
       if (!prev) return prev
-      const updatedItems = [...prev.paymentItems, newPaymentItem]
-      const totalPayment = updatedItems.reduce((sum, item) => sum + item.amount, 0)
+      const updatedBonuses = [...(prev.bonuses || []), newBonus]
+      const bonusTotal = updatedBonuses.reduce((sum, b) => sum + b.amount, 0)
+      const totalPayment = prev.paymentItems.reduce((sum, item) => sum + item.amount, 0) + bonusTotal
       return {
         ...prev,
-        paymentItems: updatedItems,
+        bonuses: updatedBonuses,
         totalPaymentAmount: totalPayment,
         actualPaymentAmount: totalPayment - prev.totalDeductionAmount
       }
@@ -582,8 +883,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       const overtimeData = await getOvertimeAllowanceStatements({
         allowanceYearMonth: yearMonth,
-        headOfficeId: 1,
-        franchiseStoreId: 2,
+        headOfficeId: selectedHeadOfficeId,
+        franchiseStoreId: selectedFranchiseStoreId,
       })
 
       const targetMemberId = payrollData?.memberId || employeeList.find(emp => emp.employeeInfoId === selectedEmployeeId)?.memberId
@@ -662,6 +963,11 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
             itemOrder: item.itemOrder,
             amount: item.amount,
             remarks: item.remarks
+          })),
+          bonuses: payrollData.bonuses?.map(bonus => ({
+            bonusType: bonus.bonusType,
+            amount: bonus.amount,
+            memo: bonus.memo
           }))
         }
 
@@ -701,6 +1007,11 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
           itemOrder: item.itemOrder,
           amount: item.amount,
           remarks: item.remarks
+        })),
+        bonuses: payrollData.bonuses?.map(bonus => ({
+          bonusType: bonus.bonusType,
+          amount: bonus.amount,
+          memo: bonus.memo
         }))
       }
 
@@ -904,22 +1215,30 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
               </tr>
               <tr>
                 <th>
-                  급여 지급월 <span className="red">*</span>
+                  급여 지급월 {isEditMode && <span className="red">*</span>}
                 </th>
                 <td>
                   <div className="block">
-                    <select
-                      className="select-form"
-                      value={formData.payrollYearMonth}
-                      onChange={handlePayrollYearMonthChange}
-                    >
-                      <option value="">선택</option>
-                      {payrollMonthOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    {isEditMode ? (
+                      <select
+                        className="select-form"
+                        value={formData.payrollYearMonth}
+                        onChange={handlePayrollYearMonthChange}
+                      >
+                        <option value="">선택</option>
+                        {payrollMonthOptions.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span>
+                        {formData.payrollYearMonth
+                          ? `${formData.payrollYearMonth.substring(0, 4)}년 ${parseInt(formData.payrollYearMonth.substring(4, 6))}월`
+                          : '-'}
+                      </span>
+                    )}
                   </div>
                 </td>
                 <th>지급일</th>

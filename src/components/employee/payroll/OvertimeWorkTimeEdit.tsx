@@ -89,10 +89,12 @@ export default function OvertimeWorkTimeEdit({
     !!startDate && !!endDate && !!employeeInfoId
   )
 
-  // 데이터 로드 처리
-  if (overtimeData && !isDataLoaded) {
+  // React 19 패턴: 렌더 단계에서 데이터 로드 처리
+  if (overtimeData && !isDataLoaded && startDate && endDate && employeeInfoId) {
     // 1. localStorage에 저장된 수정 데이터가 있는지 확인
     const savedData = localStorage.getItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+    let loadedFromStorage = false
+
     if (savedData) {
       try {
         const parsed: OvertimeWorkTimeEditData = JSON.parse(savedData)
@@ -102,56 +104,58 @@ export default function OvertimeWorkTimeEdit({
           setDailyRecords(parsed.editedRecords)
           setWeeklySubtotals(parsed.weeklySubtotals)
           setApplyTimelyAmount(parsed.applyTimelyAmount)
-          setIsDataLoaded(true)
-          return
+          loadedFromStorage = true
         }
       } catch (e) {
         console.error('localStorage 데이터 파싱 실패:', e)
       }
     }
 
-    // 2. 저장된 데이터가 없으면 API 데이터 사용
-    setApplyTimelyAmount(overtimeData.applyTimelyAmount || 0)
+    if (!loadedFromStorage) {
+      // 2. 저장된 데이터가 없으면 API 데이터 사용
+      setApplyTimelyAmount(overtimeData.applyTimelyAmount || 0)
 
-    const editableRecords: EditableOvertimeRecord[] = overtimeData.items
-      .filter(item => item.type === 'DAILY' && item.dailyRecord)
-      .map(item => {
-        const record = item.dailyRecord!
-        return {
-          date: record.date,
-          dayOfWeek: record.dayOfWeek,
-          dayOfWeekKorean: record.dayOfWeekKorean,
-          originalOvertimeHours: record.overtimeHours,
-          overtimeHours: record.overtimeHours,
-          overtimeStartTime: record.overtimeStartTime,
-          overtimeEndTime: record.overtimeEndTime,
-          originalApplyTimelyAmount: record.applyTimelyAmount,
-          applyTimelyAmount: record.applyTimelyAmount,
-          paymentAmount: record.paymentAmount,
-          deductionAmount: record.deductionAmount,
-          totalAmount: record.totalAmount,
-          contractHourlyWage: Math.round(record.applyTimelyAmount / 1.5),
-          weekNumber: getISOWeekNumber(record.date)
-        }
-      })
+      const editableRecords: EditableOvertimeRecord[] = overtimeData.items
+        .filter(item => item.type === 'DAILY' && item.dailyRecord)
+        .map(item => {
+          const record = item.dailyRecord!
+          return {
+            date: record.date,
+            dayOfWeek: record.dayOfWeek,
+            dayOfWeekKorean: record.dayOfWeekKorean,
+            originalOvertimeHours: record.overtimeHours,
+            overtimeHours: record.overtimeHours,
+            overtimeStartTime: record.overtimeStartTime,
+            overtimeEndTime: record.overtimeEndTime,
+            originalApplyTimelyAmount: record.applyTimelyAmount,
+            applyTimelyAmount: record.applyTimelyAmount,
+            paymentAmount: record.paymentAmount,
+            deductionAmount: record.deductionAmount,
+            totalAmount: record.totalAmount,
+            contractHourlyWage: record.contractTimelyAmount,
+            weekNumber: getISOWeekNumber(record.date)
+          }
+        })
 
-    const subtotals: EditableWeeklySubtotal[] = overtimeData.items
-      .filter(item => item.type === 'WEEKLY_SUBTOTAL' && item.weeklySubtotal)
-      .map(item => {
-        const subtotal = item.weeklySubtotal!
-        return {
-          weekStartDate: subtotal.weekStartDate,
-          weekEndDate: subtotal.weekEndDate,
-          weekNumber: subtotal.weekNumber,
-          totalOvertimeHours: subtotal.totalOvertimeHours,
-          totalPaymentAmount: subtotal.totalPaymentAmount,
-          totalDeductionAmount: subtotal.totalDeductionAmount,
-          totalAmount: subtotal.totalAmount
-        }
-      })
+      const subtotals: EditableWeeklySubtotal[] = overtimeData.items
+        .filter(item => item.type === 'WEEKLY_SUBTOTAL' && item.weeklySubtotal)
+        .map(item => {
+          const subtotal = item.weeklySubtotal!
+          return {
+            weekStartDate: subtotal.weekStartDate,
+            weekEndDate: subtotal.weekEndDate,
+            weekNumber: subtotal.weekNumber,
+            totalOvertimeHours: subtotal.totalOvertimeHours,
+            totalPaymentAmount: subtotal.totalPaymentAmount,
+            totalDeductionAmount: subtotal.totalDeductionAmount,
+            totalAmount: subtotal.totalAmount
+          }
+        })
 
-    setDailyRecords(editableRecords)
-    setWeeklySubtotals(subtotals)
+      setDailyRecords(editableRecords)
+      setWeeklySubtotals(subtotals)
+    }
+
     setIsDataLoaded(true)
   }
 

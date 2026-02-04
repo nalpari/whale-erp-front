@@ -209,7 +209,7 @@ export default function WorkScheduleSearch({
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           조회 결과
           <span>{isLoading ? '조회 중' : `${resultCount}건`}</span>

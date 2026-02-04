@@ -4,7 +4,6 @@ import Location from '@/components/ui/Location'
 import FullTimePayrollSearch from '@/components/employee/payroll/FullTimePayrollSearch'
 import FullTimePayrollList from '@/components/employee/payroll/FullTimePayrollList'
 import { useFullTimePayrollList } from '@/hooks/queries/use-payroll-queries'
-import { useEmployeeInfoCommonCode } from '@/hooks/queries/use-employee-settings-queries'
 
 interface SearchParams {
   headOfficeId?: number
@@ -18,11 +17,7 @@ interface SearchParams {
 }
 
 export default function FullTimePayrollPage() {
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    headOfficeId: 1,
-    franchiseId: 2,
-    storeId: 1
-  })
+  const [searchParams, setSearchParams] = useState<SearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -40,37 +35,21 @@ export default function FullTimePayrollPage() {
     paymentEndDate: searchParams.endDate
   })
 
-  // 직원 분류 공통코드 조회
-  const { data: commonCodeData } = useEmployeeInfoCommonCode(
-    searchParams.headOfficeId,
-    searchParams.franchiseId,
-    !!searchParams.headOfficeId
-  )
-
-  // React 19: derived state
-  const classificationMap = new Map<string, string>(
-    (commonCodeData?.codeMemoContent?.EMPLOYEE || []).map(item => [item.code, item.name])
-  )
-
-  const payrolls = (payrollData?.content || []).map((payroll) => {
-    const classificationName = payroll.employeeClassification
-      ? classificationMap.get(payroll.employeeClassification) || payroll.employeeClassification
-      : ''
-
-    return {
-      id: payroll.id,
-      rowNumber: 0,
-      workStatus: payroll.workStatus || '',
-      headOffice: payroll.headOfficeName || '',
-      franchise: payroll.franchiseName || '',
-      store: payroll.storeName || '',
-      employeeName: payroll.memberName,
-      employeeClassification: classificationName,
-      payrollDate: payroll.paymentDate,
-      registrationDate: payroll.createdAt?.split('T')[0] || '',
-      emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
-    }
-  })
+  // React 19: derived state - API 응답의 employeeClassificationName 사용
+  const payrolls = (payrollData?.content || []).map((payroll) => ({
+    id: payroll.id,
+    rowNumber: 0,
+    workStatus: payroll.workStatus || '',
+    headOffice: payroll.headOfficeName || '',
+    franchise: payroll.franchiseName || '',
+    store: payroll.storeName || '',
+    employeeName: payroll.memberName,
+    // API에서 직원분류명을 직접 제공, 없으면 코드 표시
+    employeeClassification: payroll.employeeClassificationName || payroll.employeeClassification || '',
+    payrollDate: payroll.paymentDate,
+    registrationDate: payroll.createdAt?.split('T')[0] || '',
+    emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
+  }))
 
   const totalCount = payrollData?.totalElements || 0
   const totalPages = payrollData?.totalPages || 0

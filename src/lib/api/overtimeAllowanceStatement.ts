@@ -127,18 +127,6 @@ export async function getOvertimeAllowanceStatement(id: number): Promise<Overtim
   return response.data.data
 }
 
-// 일별 연장근무 시간 응답 타입
-export interface DailyOvertimeHourResponse {
-  date: string
-  dayOfWeek: string
-  overtimeHours: number | null
-  hourlyWage: number | null
-  paymentAmount: number | null
-  deductionAmount: number | null
-  netAmount: number | null
-  rowType?: 'normal' | 'gray' | 'yellow' | 'blue'
-}
-
 // 일별 연장근무 시간 조회 파라미터
 export interface GetDailyOvertimeHoursParams {
   headOfficeId?: number
@@ -149,27 +137,8 @@ export interface GetDailyOvertimeHoursParams {
   endDate: string
 }
 
-// 일별 연장근무 시간 조회
-export async function getDailyOvertimeHours(params: GetDailyOvertimeHoursParams): Promise<DailyOvertimeHourResponse[]> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
-  const response = await api.get<{ data: DailyOvertimeHourResponse[] }>(
-    '/api/employee/payroll/overtime/daily-overtime-hours',
-    { params: defaultParams }
-  )
-
-  if (!response.data?.data) {
-    return []
-  }
-
-  return response.data.data
-}
-
 // 일별 연장근무 시간 Summary 응답 타입
+// Note: getDailyOvertimeHoursSummary를 사용하세요 (동일 엔드포인트, 올바른 응답 타입)
 export interface DailyOvertimeRecord {
   date: string
   dayOfWeek: string
@@ -177,6 +146,7 @@ export interface DailyOvertimeRecord {
   overtimeHours: number
   overtimeStartTime?: string
   overtimeEndTime?: string
+  contractTimelyAmount: number
   applyTimelyAmount: number
   paymentAmount: number
   deductionAmount: number
