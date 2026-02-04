@@ -1,5 +1,5 @@
 export interface SupportMenuItem {
-  id: string
+  id: number
   name: string
   icon?: string
   link: string
@@ -8,25 +8,25 @@ export interface SupportMenuItem {
 
 export const SupportMenu: SupportMenuItem[] = [
   {
-    id: 'support-01',
+    id: 1,
     name: '요금안내/변경',
     icon: 'lnb_menu_icon00.svg',
     link: '#',
   },
   {
-    id: 'support-02',
+    id: 2,
     name: '부가서비스 신청',
     icon: 'lnb_menu_icon00.svg',
     link: '#',
   },
   {
-    id: 'support-03',
+    id: 3,
     name: '공지사항',
     icon: 'lnb_menu_icon00.svg',
     link: '#',
   },
   {
-    id: 'support-04',
+    id: 4,
     name: '문의하기',
     icon: 'lnb_menu_icon00.svg',
     link: '#',
