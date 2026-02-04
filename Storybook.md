@@ -17,6 +17,7 @@ whale-erp-front 프로젝트의 공통 컴포넌트 예제 페이지 목록입�
 | `/storybook/datepicker` | DatePicker, RangeDatePicker | 날짜 선택 컴포넌트 |
 | `/storybook/editor` | Editor | 리치 텍스트 에디터 컴포넌트 |
 | `/storybook/radio` | RadioButtonGroup | 버튼형 라디오 그룹 컴포넌트 |
+| `/storybook/alert` | Alert, useAlert | Alert/Confirm 모달 컴포넌트 |
 
 ---
 
@@ -388,6 +389,92 @@ function MyComponent() {
 
 ---
 
+### 8. Alert / Confirm (`/storybook/alert`)
+
+**경로**: `src/app/(sub)/storybook/alert/page.tsx`
+
+**Import**: `import { AlertProvider, useAlert } from '@/components/common/ui'`
+
+JavaScript의 `window.alert()`과 `window.confirm()`을 대체하는 모달 컴포넌트입니다.
+Promise 기반으로 동작하며, async/await 문법으로 직관적으로 사용할 수 있습니다.
+
+**샘플 목록**:
+- 기본 Alert
+- 제목 포함 Alert (`title`)
+- 버튼 텍스트 변경 (`confirmText`)
+- 기본 Confirm
+- 제목 포함 Confirm (`title`)
+- 버튼 텍스트 변경 (`confirmText`, `cancelText`)
+- 다중 단계 Confirm
+
+**설정 방법**:
+```typescript
+// src/app/(sub)/layout.tsx
+import { AlertProvider } from '@/components/common/ui'
+
+export default function Layout({ children }) {
+  return (
+    <AlertProvider>
+      {children}
+    </AlertProvider>
+  )
+}
+```
+
+**사용 예제**:
+```typescript
+'use client'
+
+import { useAlert } from '@/components/common/ui'
+
+export default function MyComponent() {
+  const { alert, confirm } = useAlert()
+
+  const handleDelete = async () => {
+    const result = await confirm('정말 삭제하시겠습니까?', {
+      title: '삭제 확인',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+
+    if (result) {
+      // 삭제 로직 실행
+      await deleteItem()
+      await alert('삭제되었습니다.')
+    }
+  }
+
+  return (
+    <button onClick={handleDelete}>삭제</button>
+  )
+}
+```
+
+**alert(message, options?) → Promise\<void\>**:
+| 옵션 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `message` | string | 필수 | 알림 메시지 |
+| `title` | string | - | 모달 제목 |
+| `confirmText` | string | '확인' | 확인 버튼 텍스트 |
+
+**confirm(message, options?) → Promise\<boolean\>**:
+| 옵션 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `message` | string | 필수 | 확인 메시지 |
+| `title` | string | - | 모달 제목 |
+| `confirmText` | string | '확인' | 확인 버튼 텍스트 |
+| `cancelText` | string | '취소' | 취소 버튼 텍스트 |
+
+**특징**:
+- Promise 기반으로 async/await 문법 지원
+- window.alert(), window.confirm() 대체 가능
+- 커스터마이즈 가능한 제목, 버튼 텍스트
+- pub 프로젝트의 모달 스타일 적용
+- React Context API를 활용한 전역 상태 관리
+- TypeScript 완벽 지원
+
+---
+
 ## 파일 구조
 
 ```
@@ -404,6 +491,8 @@ src/app/(sub)/storybook/
 │   └── page.tsx          # DatePicker, RangeDatePicker 예제
 ├── editor/
 │   └── page.tsx          # Editor 컴포넌트 예제
-└── radio/
-    └── page.tsx          # RadioButtonGroup 컴포넌트 예제
+├── radio/
+│   └── page.tsx          # RadioButtonGroup 컴포넌트 예제
+└── alert/
+    └── page.tsx          # Alert/Confirm 컴포넌트 예제
 ```

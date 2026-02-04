@@ -26,3 +26,11 @@ export {
   type RadioOption,
 } from './RadioButtonGroup'
 
+export {
+  default as AlertModal,
+  AlertProvider,
+  useAlert,
+  type AlertType,
+  type AlertOptions,
+} from './Alert'
+
