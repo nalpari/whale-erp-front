@@ -18,6 +18,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
     const accessToken = useAuthStore((state) => state.accessToken)
+    const [menuType, setMenuType] = useState<'header' | 'support'>('header')
+
+    const handleToggleMenuType = () => {
+        setMenuType((prev) => (prev === 'header' ? 'support' : 'header'))
+    }
 
     useEffect(() => {
         // 클라이언트에서만 실행
@@ -67,12 +72,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <AlertProvider>
             <div className={`wrap ${isOpen ? 'sm' : ''}`}>
-                <Lnb isOpen={isOpen} setIsOpen={setIsOpen} />
+                <Lnb isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
                 <div className="container">
                     <div className="frame">
                         <div className="header-wrap">
                             <FullDownMenu />
-                            <Header />
+                            <Header onToggleMenuType={handleToggleMenuType} />
                         </div>
 
                         {children}
