@@ -22,6 +22,7 @@ export default function InputStorybookPage() {
   const [currencyActual, setCurrencyActual] = useState<number | null>(null)
   const [percentValue, setPercentValue] = useState('')
   const [percentActual, setPercentActual] = useState<number | null>(null)
+  const [cellphoneValue, setCellphoneValue] = useState('')
 
   return (
     <div className="data-wrap">
@@ -295,6 +296,25 @@ export default function InputStorybookPage() {
                       실제 값: {currencyActual !== null ? currencyActual.toLocaleString() : '(없음)'}
                     </td>
                   </tr>
+
+                  {/* 15. 휴대폰 번호 입력 */}
+                  <tr>
+                    <th>휴대폰 번호 (cellphone)</th>
+                    <td>
+                      <Input
+                        type="cellphone"
+                        label="연락처"
+                        placeholder="010-0000-0000"
+                        value={cellphoneValue}
+                        onChange={(e) => setCellphoneValue(e.target.value)}
+                        showClear
+                        onClear={() => setCellphoneValue('')}
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {cellphoneValue || '(없음)'}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -386,9 +406,9 @@ export default function InputStorybookPage() {
                   </tr>
                   <tr>
                     <td><code className="bg-gray-100 px-1 rounded">type</code></td>
-                    <td>&apos;text&apos; | &apos;number&apos; | &apos;currency&apos; | &apos;percent&apos;</td>
+                    <td>&apos;text&apos; | &apos;number&apos; | &apos;currency&apos; | &apos;percent&apos; | &apos;cellphone&apos;</td>
                     <td>&apos;text&apos;</td>
-                    <td>입력 타입 (text: 일반, number: 숫자만, currency: 금액, percent: 퍼센트)</td>
+                    <td>입력 타입 (text: 일반, number: 숫자만, currency: 금액, percent: 퍼센트, cellphone: 휴대폰)</td>
                   </tr>
                   <tr>
                     <td><code className="bg-gray-100 px-1 rounded">onValueChange</code></td>
@@ -436,6 +456,10 @@ export default function InputStorybookPage() {
                   <tr>
                     <td><code className="bg-gray-100 px-1 rounded">percent</code></td>
                     <td>퍼센트 입력. 숫자와 소수점만 허용. 0 &lt; 값 &lt; 100 범위 제한.</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">cellphone</code></td>
+                    <td>휴대폰 번호 입력. 숫자만 허용 (최대 11자리). 010-1234-1234 패턴으로 자동 포맷팅.</td>
                   </tr>
                 </tbody>
               </table>

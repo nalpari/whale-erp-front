@@ -3,7 +3,7 @@
 import { forwardRef, useId, useMemo, type InputHTMLAttributes, type ReactNode, type ChangeEvent } from 'react'
 
 /** Input 타입 유형 */
-export type InputType = 'text' | 'number' | 'currency' | 'percent' | 'email' | 'password' | 'tel' | 'url'
+export type InputType = 'text' | 'number' | 'currency' | 'percent' | 'email' | 'password' | 'tel' | 'url' | 'cellphone'
 
 /**
  * Input 컴포넌트 Props 타입
@@ -59,6 +59,21 @@ const isValidPercent = (value: number): boolean => {
 }
 
 /**
+ * 휴대폰 번호 포맷팅 (010-1234-1234 패턴)
+ */
+const formatCellphone = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return ''
+  const numericValue = String(value).replace(/\D/g, '')
+  if (numericValue.length <= 3) {
+    return numericValue
+  } else if (numericValue.length <= 7) {
+    return `${numericValue.slice(0, 3)}-${numericValue.slice(3)}`
+  } else {
+    return `${numericValue.slice(0, 3)}-${numericValue.slice(3, 7)}-${numericValue.slice(7, 11)}`
+  }
+}
+
+/**
  * 재사용 가능한 Input 컴포넌트
  * - 필수 입력 표시 (*), 에러 상태, 에러/도움말 메시지, 설명 텍스트
  * - 값 초기화 버튼, 좌/우측 adornment 지원
@@ -92,16 +107,19 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
   ) => {
     const inputId = useId()
 
-    // currency 타입일 때 표시용 값 (콤마가 찍힌 형태) - useMemo로 계산
+    // currency, cellphone 타입일 때 표시용 값 - useMemo로 계산
     const displayValue = useMemo(() => {
       if (type === 'currency') {
         return formatCurrency(value as number | string)
+      }
+      if (type === 'cellphone') {
+        return formatCellphone(value as string)
       }
       return ''
     }, [type, value])
 
     // 값이 있는지 확인 (clear 버튼 표시 여부 결정)
-    const hasValue = type === 'currency'
+    const hasValue = type === 'currency' || type === 'cellphone'
       ? displayValue !== ''
       : value !== undefined && value !== null && value !== ''
 
@@ -160,6 +178,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           }
           break
         }
+        case 'cellphone': {
+          // 숫자만 허용, 최대 11자리
+          const cleanValue = inputValue.replace(/\D/g, '')
+          if (cleanValue.length <= 11) {
+            const syntheticEvent = { ...e, target: { ...e.target, value: cleanValue } } as ChangeEvent<HTMLInputElement>
+            onChange?.(syntheticEvent)
+          }
+          break
+        }
         default:
           onChange?.(e)
       }
@@ -167,7 +194,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     // 표시할 값 결정
     const getDisplayValue = () => {
-      if (type === 'currency') {
+      if (type === 'currency' || type === 'cellphone') {
         return displayValue
       }
       return value
@@ -179,6 +206,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         case 'number':
         case 'currency':
         case 'percent':
+        case 'cellphone':
           return 'text' // 커스텀 검증을 위해 text 사용
         case 'email':
         case 'password':
@@ -195,6 +223,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       switch (type) {
         case 'number':
         case 'currency':
+        case 'cellphone':
           return 'numeric'
         case 'percent':
           return 'decimal'
