@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const headerMenuItemSchema: z.ZodType<HeaderMenuItem> = z.lazy(() =>
   z.object({
-    id: z.string(),
+    id: z.number(),
     name: z.string(),
     icon: z.string().optional(),
     link: z.string(),
@@ -22,7 +22,7 @@ export const headerMenuSchema = z.array(headerMenuItemSchema);
  * 헤더 메뉴 아이템 타입
  */
 export interface HeaderMenuItem {
-  id: string;
+  id: number;
   name: string;
   icon?: string;
   link: string;

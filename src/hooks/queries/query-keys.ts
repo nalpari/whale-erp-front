@@ -106,12 +106,91 @@ export const settingsKeys = {
   payrollStatement: (params?: SettingsParams) => [...settingsKeys.all, 'payroll-statement', params ?? null] as const,
 }
 
+// Payroll list params types
+export interface FullTimePayrollListParams {
+  page?: number
+  size?: number
+  headOfficeId?: number
+  franchiseStoreId?: number
+  storeId?: number
+  workStatus?: string
+  memberName?: string
+  contractClassification?: string
+  memberId?: number
+  payrollYearMonth?: string
+  paymentStartDate?: string
+  paymentEndDate?: string
+  isEmailSend?: boolean
+  isDelete?: boolean
+}
+
+export interface PartTimePayrollListParams {
+  page?: number
+  size?: number
+  headOfficeId?: number
+  franchiseStoreId?: number
+  storeId?: number
+  workStatus?: string
+  memberName?: string
+  workDays?: string[]
+  memberId?: number
+  payrollYearMonth?: string
+  startDate?: string
+  endDate?: string
+}
+
+export interface OvertimePayrollListParams {
+  page?: number
+  size?: number
+  headOfficeId?: number
+  franchiseStoreId?: number
+  storeId?: number
+  workStatus?: string
+  memberName?: string
+  workDays?: string[]
+  contractClassification?: string
+  allowanceYearMonth?: string
+  calculationStartDate?: string
+  calculationEndDate?: string
+  paymentStartDate?: string
+  paymentEndDate?: string
+}
+
 export const payrollKeys = {
   all: ['payroll'] as const,
   commonCode: (params?: { headOfficeId?: number; franchiseId?: number }) =>
     [...payrollKeys.all, 'common-code', params ?? null] as const,
   bonusTypes: (params?: { headOfficeId?: number; franchiseId?: number }) =>
     [...payrollKeys.all, 'bonus-types', params ?? null] as const,
+
+  fullTime: {
+    all: () => [...payrollKeys.all, 'fullTime'] as const,
+    lists: () => [...payrollKeys.fullTime.all(), 'list'] as const,
+    list: (params: FullTimePayrollListParams) => [...payrollKeys.fullTime.lists(), params] as const,
+    details: () => [...payrollKeys.fullTime.all(), 'detail'] as const,
+    detail: (id: number) => [...payrollKeys.fullTime.details(), id] as const,
+    latest: (employeeInfoId: number) => [...payrollKeys.fullTime.all(), 'latest', employeeInfoId] as const,
+  },
+
+  partTime: {
+    all: () => [...payrollKeys.all, 'partTime'] as const,
+    lists: () => [...payrollKeys.partTime.all(), 'list'] as const,
+    list: (params: PartTimePayrollListParams) => [...payrollKeys.partTime.lists(), params] as const,
+    details: () => [...payrollKeys.partTime.all(), 'detail'] as const,
+    detail: (id: number) => [...payrollKeys.partTime.details(), id] as const,
+    dailyWorkHours: (params: { employeeInfoId: number; startDate: string; endDate: string }) =>
+      [...payrollKeys.partTime.all(), 'daily-work-hours', params] as const,
+  },
+
+  overtime: {
+    all: () => [...payrollKeys.all, 'overtime'] as const,
+    lists: () => [...payrollKeys.overtime.all(), 'list'] as const,
+    list: (params: OvertimePayrollListParams) => [...payrollKeys.overtime.lists(), params] as const,
+    details: () => [...payrollKeys.overtime.all(), 'detail'] as const,
+    detail: (id: number) => [...payrollKeys.overtime.details(), id] as const,
+    dailyOvertimeHours: (params: { employeeInfoId: number; startDate: string; endDate: string }) =>
+      [...payrollKeys.overtime.all(), 'daily-overtime-hours', params] as const,
+  },
 }
 
 export const attendanceKeys = {

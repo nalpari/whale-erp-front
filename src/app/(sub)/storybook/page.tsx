@@ -11,6 +11,7 @@ const routes = [
   { path: '/storybook/postcode', name: 'Postcode', description: '우편번호/주소 검색', icon: '📍' },
   { path: '/storybook/radio', name: 'Radio', description: '버튼형 라디오 그룹', icon: '🔘' },
   { path: '/storybook/search-select', name: 'Search Select', description: '검색 셀렉트 컴포넌트', icon: '🔍' },
+  { path: '/storybook/alert', name: 'Alert', description: 'Alert/Confirm 모달', icon: '🔔' },
 ]
 
 export default function StorybookIndexPage() {

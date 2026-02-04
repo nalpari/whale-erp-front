@@ -3,14 +3,18 @@ import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import Image from 'next/image'
 
-export default function ServiceTab() {
+export default function ServiceTab({
+  onToggleMenuType,
+}: {
+  onToggleMenuType?: () => void
+}) {
   const [tabOpen, setTabOpen] = useState(false)
   return (
     <div className={`service-tab ${tabOpen ? 'act' : ''}`}>
       <div className="service-menu">
         <div className="service-guide">서비스 바로가기</div>
         <div className="service-menu-list">
-          <button className="service-item icon01">
+          <button className="service-item icon01" onClick={onToggleMenuType}>
             <Image src="/assets/images/common/service_icon01.svg" alt="service-icon01" fill />
           </button>
           <button className="service-item icon02">

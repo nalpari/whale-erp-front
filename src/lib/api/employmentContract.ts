@@ -96,7 +96,8 @@ export interface EmploymentContractResponse {
     holidayAllowanceTime?: number  // 휴일근무 시급
     bonuses?: {
       id: number
-      bonusType: string
+      bonusCode?: string  // 상여금 코드 (CommonCode 코드)
+      bonusType: string   // 상여금 명칭
       amount: number
       memo?: string
     }[]
@@ -239,7 +240,8 @@ export interface UpdateEmploymentContractSalaryInfoRequest {
   holidayAllowanceTimeAmount?: number  // 휴일근무 시급
   bonuses?: {
     id?: number
-    bonusType: string
+    bonusCode?: string  // 상여금 코드 (CommonCode 코드)
+    bonusType: string   // 상여금 명칭
     amount: number
     memo?: string
   }[]
@@ -270,7 +272,8 @@ export interface CreateEmploymentContractSalaryInfoRequest {
   nightDayAllowanceAmount?: number  // 야간근무 시급
   holidayAllowanceTimeAmount?: number  // 휴일근무 시급
   bonuses?: {
-    bonusType: string
+    bonusCode?: string  // 상여금 코드 (CommonCode 코드)
+    bonusType: string   // 상여금 명칭
     amount: number
     memo?: string
   }[]
