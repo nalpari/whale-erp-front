@@ -6,6 +6,7 @@ import type {
   SaveEmployeeCertificatesRequest,
   UpdateEmployeeInfoRequest,
 } from '@/types/employee'
+import type { ApiResponse } from '@/lib/schemas/api'
 import {
   getEmployee,
   getEmployeeList,
@@ -31,6 +32,7 @@ import {
   type GetEmployeeListByTypeParams,
   type UpdateEmployeeLoginInfoRequest,
 } from '@/lib/api/employee'
+import api from '@/lib/api'
 
 
 /**
@@ -56,6 +58,37 @@ export type EmployeeListParams = {
   healthCheckExpiryTo?: string
   page?: number
   size?: number
+}
+
+
+/**
+ * 직원 분류 공통코드 항목 타입.
+ */
+export type EmployeeCommonCodeItem = {
+  code: string
+  name: string
+}
+
+/**
+ * 직원 분류 공통코드 조회 훅.
+ * - headOfficeId 필수: 값이 없으면 쿼리를 실행하지 않는다.
+ */
+export const useEmployeeCommonCode = (
+  headOfficeId?: number | null,
+  franchiseId?: number | null,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: employeeKeys.commonCode(headOfficeId, franchiseId),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<EmployeeCommonCodeItem[]>>(
+        '/api/employee/info/common-code',
+        { params: { headOfficeId, franchiseId } }
+      )
+      return response.data.data ?? []
+    },
+    enabled: enabled && !!headOfficeId,
+  })
 }
 
 /**

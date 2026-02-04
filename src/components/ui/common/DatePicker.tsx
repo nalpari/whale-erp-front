@@ -1,12 +1,12 @@
 ﻿'use client'
 
-import { useState, useId } from 'react'
+import { useState, useId, useCallback } from 'react'
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker'
 import * as DateFNS from 'date-fns'
 
 import 'react-datepicker/dist/react-datepicker.css'
 
-const { getYear, getMonth } = DateFNS
+const { getYear, getMonth, isSameDay } = DateFNS
 
 const MONTHS = [
   'January',
@@ -102,6 +102,16 @@ export default function DatePicker({ value, onChange, placeholder, error = false
     onChange?.(date)
   }
 
+  const getDayClassName = useCallback(
+    (date: Date) => {
+      if (currentValue && isSameDay(date, currentValue)) {
+        return 'react-datepicker__day--keyboard-selected'
+      }
+      return ''
+    },
+    [currentValue]
+  )
+
   return (
     <div>
       <div className={`date-picker-custom${error ? ' err' : ''}`}>
@@ -114,6 +124,7 @@ export default function DatePicker({ value, onChange, placeholder, error = false
           dateFormat="yyyy-MM-dd"
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={helpText ? `${inputId}-help` : undefined}
+          dayClassName={getDayClassName}
         />
       </div>
       {helpText && (

@@ -61,6 +61,8 @@ export const employeeKeys = {
   byType: (params: { headOfficeId: number; franchiseId?: number; employeeType: string }) =>
     [...employeeKeys.all, 'by-type', params] as const,
   minimumWage: (year: number) => [...employeeKeys.all, 'minimum-wage', year] as const,
+  commonCode: (headOfficeId?: number | null, franchiseId?: number | null) =>
+    [...employeeKeys.all, 'common-code', { headOfficeId, franchiseId }] as const,
 }
 
 export interface SettingsParams {
@@ -110,4 +112,11 @@ export const payrollKeys = {
     [...payrollKeys.all, 'common-code', params ?? null] as const,
   bonusTypes: (params?: { headOfficeId?: number; franchiseId?: number }) =>
     [...payrollKeys.all, 'bonus-types', params ?? null] as const,
+}
+
+export const attendanceKeys = {
+  all: ['attendances'] as const,
+  lists: () => [...attendanceKeys.all, 'list'] as const,
+  list: (params?: unknown) => [...attendanceKeys.lists(), params ?? null] as const,
+  records: (params?: unknown) => [...attendanceKeys.all, 'records', params ?? null] as const,
 }
