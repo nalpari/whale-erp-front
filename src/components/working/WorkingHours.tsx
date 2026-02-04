@@ -377,11 +377,6 @@ export default function WorkingHours({ contractId }: WorkingHoursProps) {
         breakEndTime: sundaySchedule !== 'none' && sunIsBreak ? formatTime(sunBreakEndPeriod, sunBreakEndHour, sunBreakEndMinute) : undefined
       })
 
-      // 파라미터 확인용 콘솔 로그
-      console.log('=== 근무 시간 저장 파라미터 ===')
-      console.log('contractId:', contractId)
-      console.log('workHoursPayload:', JSON.stringify(workHoursPayload, null, 2))
-
       await createWorkHoursMutation.mutateAsync({ contractId, workHours: workHoursPayload })
       alert('저장되었습니다.')
     } catch (error) {

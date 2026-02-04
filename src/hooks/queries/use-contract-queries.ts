@@ -11,6 +11,8 @@ import {
   createEmploymentContractSalaryInfo,
   updateEmploymentContractSalaryInfo,
   createEmploymentContractWorkHours,
+  deleteEmploymentContract,
+  sendContractEmail,
   type CreateEmploymentContractHeaderWithFilesRequest,
   type UpdateEmploymentContractHeaderWithFilesRequest,
   type CreateEmploymentContractSalaryInfoRequest,
@@ -108,5 +110,25 @@ export const useCreateContractWorkHours = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: contractKeys.details() })
     },
+  })
+}
+
+// 근로 계약 삭제
+export const useDeleteContract = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => deleteEmploymentContract(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contractKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: contractKeys.details() })
+    },
+  })
+}
+
+// 계약서 이메일 전송
+export const useSendContractEmail = () => {
+  return useMutation({
+    mutationFn: (contractId: number) => sendContractEmail(contractId),
   })
 }

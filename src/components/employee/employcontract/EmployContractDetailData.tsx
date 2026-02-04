@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
-import { useContractDetail } from '@/hooks/queries/use-contract-queries'
+import { useContractDetail, useDeleteContract, useSendContractEmail } from '@/hooks/queries/use-contract-queries'
 
 interface EmployContractDetailDataProps {
   contractId?: number
@@ -40,9 +40,22 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     !!contractId
   )
 
-  const handleDelete = () => {
+  // 삭제 및 이메일 전송 mutation
+  const { mutateAsync: deleteContract, isPending: isDeleting } = useDeleteContract()
+  const { mutateAsync: sendEmail, isPending: isSendingEmail } = useSendContractEmail()
+
+  const handleDelete = async () => {
+    if (!contractId) return
+
     if (confirm('정말 삭제하시겠습니까?')) {
-      router.push('/employee/contract')
+      try {
+        await deleteContract(contractId)
+        alert('계약서가 삭제되었습니다.')
+        router.push('/employee/contract')
+      } catch (err) {
+        console.error('계약서 삭제 실패:', err)
+        alert('계약서 삭제에 실패했습니다.')
+      }
     }
   }
 
@@ -50,12 +63,28 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     router.push('/employee/contract')
   }
 
-  const handleSendContract = () => {
+  const handleSendContract = async () => {
+    if (!contractId) return
+
     if (!contractData?.member) {
       alert('계약서를 전송할 수 없습니다. 직원(member)이 연결되어 있지 않습니다.')
       return
     }
-    alert('직원에게 계약서를 전송합니다.')
+
+    if (!contractData.member.email) {
+      alert('직원의 이메일 정보가 없습니다.')
+      return
+    }
+
+    if (confirm(`${contractData.member.name}(${contractData.member.email})에게 계약서를 전송하시겠습니까?`)) {
+      try {
+        await sendEmail(contractId)
+        alert('계약서가 전송되었습니다.')
+      } catch (err) {
+        console.error('계약서 전송 실패:', err)
+        alert('계약서 전송에 실패했습니다.')
+      }
+    }
   }
 
   const handleDownloadContract = () => {
@@ -202,9 +231,13 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     <div className="master-detail-data">
       {/* 상단 버튼 */}
       <div className="detail-top-btn" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
-        <button className="btn-form gray" onClick={handleSendContract}>직원에게 계약서 전송</button>
+        <button className="btn-form gray" onClick={handleSendContract} disabled={isSendingEmail}>
+          {isSendingEmail ? '전송 중...' : '직원에게 계약서 전송'}
+        </button>
         <button className="btn-form gray" onClick={handleDownloadContract}>계약서(미날인원본) 다운로드</button>
-        <button className="btn-form gray" onClick={handleDelete}>삭제</button>
+        <button className="btn-form gray" onClick={handleDelete} disabled={isDeleting}>
+          {isDeleting ? '삭제 중...' : '삭제'}
+        </button>
         <button className="btn-form basic" onClick={handleList}>목록</button>
       </div>
 

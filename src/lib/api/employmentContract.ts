@@ -1,7 +1,9 @@
 import api from '../api'
-const DEFAULT_HEAD_OFFICE_ID = 1
-const DEFAULT_FRANCHISE_ID = 2
-const DEFAULT_STORE_ID = 1
+import {
+  DEFAULT_HEAD_OFFICE_ID,
+  DEFAULT_FRANCHISE_ID,
+  DEFAULT_STORE_ID
+} from '../constants/organization'
 
 // 계약서 파일 정보 타입
 export interface ContractFileInfo {
@@ -468,4 +470,18 @@ export async function createEmploymentContractWorkHours(
   data: CreateEmploymentContractWorkHoursRequest
 ): Promise<void> {
   await api.post('/api/employee/contract/work-hours', data)
+}
+
+// ==================== 삭제 API ====================
+
+// 근로 계약 삭제
+export async function deleteEmploymentContract(id: number): Promise<void> {
+  await api.delete(`/api/employee/contract/${id}`)
+}
+
+// ==================== 이메일 전송 API ====================
+
+// 계약서 이메일 전송
+export async function sendContractEmail(contractId: number): Promise<void> {
+  await api.post(`/api/employee/contract/${contractId}/send-email`)
 }

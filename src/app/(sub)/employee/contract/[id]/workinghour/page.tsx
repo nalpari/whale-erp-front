@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import WorkingHours from '@/components/working/WorkingHours'
 
@@ -8,6 +9,10 @@ interface EmployContractWorkHourPageProps {
 export default async function EmployContractWorkHourPage({ params }: EmployContractWorkHourPageProps) {
   const { id } = await params
   const contractId = parseInt(id, 10)
+
+  if (Number.isNaN(contractId)) {
+    notFound()
+  }
 
   return (
     <div className="data-wrap">

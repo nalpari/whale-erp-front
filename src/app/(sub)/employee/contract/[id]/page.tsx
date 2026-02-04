@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import EmployContractDetailData from '@/components/employee/employcontract/EmployContractDetailData'
 
@@ -8,6 +9,10 @@ interface EmployContractDetailPageProps {
 export default async function EmployContractDetailPage({ params }: EmployContractDetailPageProps) {
   const { id } = await params
   const contractId = parseInt(id, 10)
+
+  if (Number.isNaN(contractId)) {
+    notFound()
+  }
 
   return (
     <div className="data-wrap">

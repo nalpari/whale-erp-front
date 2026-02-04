@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
@@ -106,51 +106,54 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const isSaving = createContractMutation.isPending || updateContractMutation.isPending
 
   // 계약 상세 데이터 로드 시 폼 업데이트
-  if (contractDetail && !isCreateMode && headerId === null) {
-    const header = contractDetail.employmentContractHeader
-    const member = contractDetail.member
+  useEffect(() => {
+    if (contractDetail && !isCreateMode && headerId === null) {
+      const header = contractDetail.employmentContractHeader
+      const member = contractDetail.member
 
-    const electronicContractStatusMap: Record<string, string> = {
-      'WRITING': '작성중',
-      'PROGRESS': '진행중',
-      'COMPLETE': '계약완료',
-      'REFUSAL': '거절'
+      const electronicContractStatusMap: Record<string, string> = {
+        'WRITING': '작성중',
+        'PROGRESS': '진행중',
+        'COMPLETE': '계약완료',
+        'REFUSAL': '거절'
+      }
+
+      if (header?.id) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 데이터(contractDetail) 로드 시 폼 상태 동기화
+        setHeaderId(header.id)
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        employeeId: String(member?.id ?? ''),
+        employeeName: member?.name || '',
+        employeeNumber: member?.employeeNumber || '',
+        contractClassification: header?.contractClassification || 'CNTCFWK_001',
+        isElectronicContract: header?.contractType === 'ECNT_001',
+        electronicContractStatus: header?.electronicContractStatus
+          ? electronicContractStatusMap[header.electronicContractStatus] || header.electronicContractStatus
+          : '작성중',
+        healthInsurance: header?.healthInsuranceEnrolled || false,
+        nationalPension: header?.nationalPensionEnrolled || false,
+        employmentInsurance: header?.employmentInsuranceEnrolled || false,
+        workersCompensation: header?.workersCompensationEnrolled || false,
+        salaryCycle: header?.salaryCycle || 'SLRCC_002',
+        salaryMonth: header?.salaryMonth || 'SLRCF_002',
+        salaryDay: header?.salaryDay || 1,
+        contractStartDate: parseStringToDate(header?.contractStartDate),
+        contractEndDate: header?.contractEndDate === '2999-12-31' ? null : parseStringToDate(header?.contractEndDate),
+        noEndDate: !header?.contractEndDate || header?.contractEndDate === '2999-12-31',
+        contractDate: parseStringToDate(header?.contractDate),
+        jobDescription: header?.jobDescription || '',
+        laborContractFile: header?.workContractFile?.fileName || '',
+        laborContractFileId: header?.workContractFile?.fileId || null,
+        laborContractFileUrl: header?.workContractFile?.downloadUrl || '',
+        wageContractFile: header?.wageContractFile?.fileName || '',
+        wageContractFileId: header?.wageContractFile?.fileId || null,
+        wageContractFileUrl: header?.wageContractFile?.downloadUrl || ''
+      }))
     }
-
-    if (header?.id) {
-      setHeaderId(header.id)
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      employeeId: String(member?.id ?? ''),
-      employeeName: member?.name || '',
-      employeeNumber: member?.employeeNumber || '',
-      contractClassification: header?.contractClassification || 'CNTCFWK_001',
-      isElectronicContract: header?.contractType === 'ECNT_001',
-      electronicContractStatus: header?.electronicContractStatus
-        ? electronicContractStatusMap[header.electronicContractStatus] || header.electronicContractStatus
-        : '작성중',
-      healthInsurance: header?.healthInsuranceEnrolled || false,
-      nationalPension: header?.nationalPensionEnrolled || false,
-      employmentInsurance: header?.employmentInsuranceEnrolled || false,
-      workersCompensation: header?.workersCompensationEnrolled || false,
-      salaryCycle: header?.salaryCycle || 'SLRCC_002',
-      salaryMonth: header?.salaryMonth || 'SLRCF_002',
-      salaryDay: header?.salaryDay || 1,
-      contractStartDate: parseStringToDate(header?.contractStartDate),
-      contractEndDate: header?.contractEndDate === '2999-12-31' ? null : parseStringToDate(header?.contractEndDate),
-      noEndDate: !header?.contractEndDate || header?.contractEndDate === '2999-12-31',
-      contractDate: parseStringToDate(header?.contractDate),
-      jobDescription: header?.jobDescription || '',
-      laborContractFile: header?.workContractFile?.fileName || '',
-      laborContractFileId: header?.workContractFile?.fileId || null,
-      laborContractFileUrl: header?.workContractFile?.downloadUrl || '',
-      wageContractFile: header?.wageContractFile?.fileName || '',
-      wageContractFileId: header?.wageContractFile?.fileId || null,
-      wageContractFileUrl: header?.wageContractFile?.downloadUrl || ''
-    }))
-  }
+  }, [contractDetail, isCreateMode, headerId])
 
   const handleInputChange = (field: string, value: string | number | boolean | string[] | Date | null) => {
     if (field === 'employeeAffiliation' && value === 'HEAD_OFFICE') {

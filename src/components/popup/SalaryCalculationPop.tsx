@@ -333,6 +333,11 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
     setMonthlyHolidayHours(0)
     // 선택된 연도의 최저시급으로 시급 설정
     setHourlyWage(formatNumber(minimumWage))
+    // 비포괄연봉제/파트타임 추가근무시급 초기화 (평일시급은 최저시급, 나머지는 1.5배)
+    setWeekdayHourlyWage(formatNumber(minimumWage))
+    setOvertimeHourlyWage(formatNumber(Math.round(minimumWage * 1.5)))
+    setNightHourlyWage(formatNumber(Math.round(minimumWage * 1.5)))
+    setHolidayHourlyWage(formatNumber(Math.round(minimumWage * 1.5)))
     // 비과세 항목 기본값: 식대 20만, 자가운전보조금 20만, 육아수당 10만
     setFoodAllowance('200,000')
     setFoodAllowanceIncluded(true)
