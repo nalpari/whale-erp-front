@@ -224,7 +224,7 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
               </div>
             </div>
 
-            <div className="searh-result-wrap" style={{ marginTop: 12 }}>
+            <div className="search-result-wrap" style={{ marginTop: 12 }}>
               <div className="search-result">
                 {isPending
                   ? '검색결과 조회 중'

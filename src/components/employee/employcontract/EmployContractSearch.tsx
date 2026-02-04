@@ -172,7 +172,7 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>{totalCount.toLocaleString()}건</span>
         </div>
