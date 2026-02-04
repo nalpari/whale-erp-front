@@ -23,6 +23,15 @@
   letter-spacing: -0.375px;
   border-bottom: 1px solid #ebebeb;
 }
+.alert-txt {
+  @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  color: #222;
+  text-align: center;
+  padding: 10px 0;
+  span {
+    display: block;
+  }
+}
 .pop-table {
   width: 100%;
   table-layout: fixed;
