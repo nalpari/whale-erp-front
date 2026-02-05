@@ -73,21 +73,24 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
   const { data: employeePage, isPending, error } = useEmployeeInfoList(queryParams, true)
 
   // 행 데이터 변환 (React Compiler 자동 메모이제이션)
-  const rowData: EmployeeRow[] = (employeePage?.content ?? []).map((employee, index) => {
-    const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
-    const workerId = employee.memberId ?? employee.employeeInfoId ?? null
-    return {
-      id,
-      workerId,
-      status: employee.workStatusName ?? employee.workStatus ?? '',
-      office: employee.headOfficeName ?? '',
-      franchise: employee.franchiseName ?? '',
-      store: employee.storeName ?? '',
-      name: employee.employeeName,
-      contractType: getContractTypeLabel(employee.contractClassification),
-      isSelected: selectedId === id,
-    }
-  })
+  // memberId가 있는 직원만 선택 가능하도록 필터링 - 가입 요청 상태이고 가입되지 않은 직원들은 보이지 않음
+  const rowData: EmployeeRow[] = (employeePage?.content ?? [])
+    .filter((employee) => employee.memberId != null)
+    .map((employee, index) => {
+      const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
+      const workerId = employee.memberId ?? null
+      return {
+        id,
+        workerId,
+        status: employee.workStatusName ?? employee.workStatus ?? '',
+        office: employee.headOfficeName ?? '',
+        franchise: employee.franchiseName ?? '',
+        store: employee.storeName ?? '',
+        name: employee.employeeName,
+        contractType: getContractTypeLabel(employee.contractClassification),
+        isSelected: selectedId === id,
+      }
+    })
 
   // 필터링된 행 (React Compiler 자동 메모이제이션)
   const filteredRows = rowData.filter((row) => {
