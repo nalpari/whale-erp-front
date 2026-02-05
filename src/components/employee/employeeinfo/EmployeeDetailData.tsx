@@ -10,6 +10,7 @@ import {
   useSendEmployeeRegistrationEmail
 } from '@/hooks/queries/use-employee-queries'
 import { getDownloadUrl, getFile } from '@/lib/api/file'
+import { useAlert } from '@/components/common/ui'
 
 // 파일 정보 인터페이스
 interface FileInfo {
@@ -23,6 +24,7 @@ interface EmployeeDetailDataProps {
 
 export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [loginInfoOpen, setLoginInfoOpen] = useState(true)
   const [careerInfoOpen, setCareerInfoOpen] = useState(true)
@@ -106,14 +108,14 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const handleDelete = async () => {
     if (!employeeId) return
 
-    if (confirm('정말 삭제하시겠습니까?')) {
+    if (await confirm('정말 삭제하시겠습니까?')) {
       try {
         await deleteEmployeeMutation.mutateAsync(employeeId)
-        alert('직원 정보가 삭제되었습니다.')
+        await alert('직원 정보가 삭제되었습니다.')
         router.push('/employee/info')
       } catch (err) {
         console.error('직원 삭제 실패:', err)
-        alert('직원 삭제에 실패했습니다.')
+        await alert('직원 삭제에 실패했습니다.')
       }
     }
   }
@@ -142,24 +144,24 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
     if (!employeeId) return
 
     if (!employee?.email) {
-      alert('직원의 이메일 주소가 없습니다.')
+      await alert('직원의 이메일 주소가 없습니다.')
       return
     }
 
-    if (!confirm('직원 회원 가입 요청 메일을 전송하시겠습니까?')) {
+    if (!(await confirm('직원 회원 가입 요청 메일을 전송하시겠습니까?'))) {
       return
     }
 
     try {
       setSendingEmail(true)
       await sendEmailMutation.mutateAsync(employeeId)
-      alert('직원 회원 가입 요청 메일이 전송되었습니다.')
+      await alert('직원 회원 가입 요청 메일이 전송되었습니다.')
     } catch (err: unknown) {
       console.error('이메일 전송 실패:', err)
       const errorMessage = err instanceof Error && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || '이메일 전송에 실패했습니다.'
         : '이메일 전송에 실패했습니다.'
-      alert(errorMessage)
+      await alert(errorMessage)
     } finally {
       setSendingEmail(false)
     }
@@ -175,7 +177,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
       window.open(response.downloadUrl, '_blank')
     } catch (err) {
       console.error('파일 다운로드 URL 조회 실패:', err)
-      alert(`${fileName} 다운로드에 실패했습니다.`)
+      await alert(`${fileName} 다운로드에 실패했습니다.`)
     }
   }
 

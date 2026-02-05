@@ -11,7 +11,8 @@ import {
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { getDownloadUrl } from '@/lib/api/file'
-import { Input, AddressSearch, type AddressData } from '@/components/common/ui'
+import { Input, AddressSearch, type AddressData, useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import type { UpdateEmployeeInfoRequest } from '@/types/employee'
 
@@ -34,6 +35,7 @@ interface EmployeeEditProps {
 
 export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   const router = useRouter()
+  const { alert } = useAlert()
   const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [workplaceType, setWorkplaceType] = useState<'headquarters' | 'franchise'>('headquarters')
   const [workStatus, setWorkStatus] = useState<'working' | 'leave' | 'retired'>('working')
@@ -331,7 +333,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }))
   }, [])
 
-  // TanStack Query로 Common code 조회
+  // TanStack Query로 직원분류/직급/직책 설정 조회
   const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : 1
   const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : 2
 
@@ -342,9 +344,66 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     !!(headOfficeId && franchiseId)
   )
 
-  const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
-  const rankOptions: ClassificationItem[] = settingsData?.codeMemoContent?.RANK || []
-  const positionOptions: ClassificationItem[] = settingsData?.codeMemoContent?.POSITION || []
+  // Select 옵션 생성
+  const headOfficeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '본사 선택' },
+    { value: '1', label: '따름인' }
+  ], [])
+
+  const franchiseSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '가맹점 선택' },
+    { value: '1', label: '을지로3가점' }
+  ], [])
+
+  const storeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '#힘이나는커피생활 을지로3가점' }
+  ], [])
+
+  const employeeClassSelectOptions: SelectOption[] = useMemo(() => {
+    const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
+    return [
+      { value: '', label: '선택' },
+      ...employeeClassificationOptions.map(item => ({
+        value: item.code,
+        label: item.name
+      }))
+    ]
+  }, [settingsData?.codeMemoContent?.EMPLOYEE])
+
+  const contractClassSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '정직원' },
+    { value: 'contract', label: '계약직' },
+    { value: 'parttime', label: '파트타이머' }
+  ], [])
+
+  const rankSelectOptions: SelectOption[] = useMemo(() => {
+    const rankOptions: ClassificationItem[] = settingsData?.codeMemoContent?.RANK || []
+    return [
+      { value: '', label: '선택' },
+      ...rankOptions.map(item => ({
+        value: item.code,
+        label: item.name
+      }))
+    ]
+  }, [settingsData?.codeMemoContent?.RANK])
+
+  const positionSelectOptions: SelectOption[] = useMemo(() => {
+    const positionOptions: ClassificationItem[] = settingsData?.codeMemoContent?.POSITION || []
+    return [
+      { value: '', label: '선택' },
+      ...positionOptions.map(item => ({
+        value: item.code,
+        label: item.name
+      }))
+    ]
+  }, [settingsData?.codeMemoContent?.POSITION])
+
+  const bankSelectOptions: SelectOption[] = useMemo(() => [
+    { value: 'woori', label: '우리은행' },
+    { value: 'kb', label: '국민은행' },
+    { value: 'shinhan', label: '신한은행' },
+    { value: 'hana', label: '하나은행' }
+  ], [])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -359,19 +418,19 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   const handleCheckEmployeeNumber = async () => {
     // 1. 사번 입력 검증
     if (!formData.employeeNumber.trim()) {
-      alert('사번을 입력해주세요.')
+      await alert('사번을 입력해주세요.')
       return
     }
 
     // 2. 본사 선택 검증 (필수)
     if (!formData.headOfficeOrganizationId) {
-      alert('본사를 선택해주세요.')
+      await alert('본사를 선택해주세요.')
       return
     }
 
     // 3. 가맹점 근무자인 경우 가맹점 선택 검증
     if (workplaceType === 'franchise' && !formData.franchiseOrganizationId) {
-      alert('가맹점을 선택해주세요.')
+      await alert('가맹점을 선택해주세요.')
       return
     }
 
@@ -386,14 +445,14 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
       if (result.isDuplicate) {
         setEmployeeNumberValid(false)
-        alert('이미 사용 중인 사번입니다.')
+        await alert('이미 사용 중인 사번입니다.')
       } else {
         setEmployeeNumberValid(true)
-        alert('사용 가능한 사번입니다.')
+        await alert('사용 가능한 사번입니다.')
       }
     } catch (error) {
       console.error('사번 중복 확인 실패:', error)
-      alert('사번 중복 확인 중 오류가 발생했습니다.')
+      await alert('사번 중복 확인 중 오류가 발생했습니다.')
     }
   }
 
@@ -449,7 +508,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }
 
     if (!employeeId) {
-      alert('직원 ID가 없습니다.')
+      await alert('직원 ID가 없습니다.')
       return
     }
 
@@ -510,11 +569,11 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
         }
       })
 
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장 중 오류가 발생했습니다.')
+      await alert('저장 중 오류가 발생했습니다.')
     }
   }
 
@@ -594,24 +653,20 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="filed-flx">
                       <div className="mx-300">
-                        <select
-                          className="select-form"
-                          value={formData.headOfficeOrganizationId}
-                          onChange={(e) => handleInputChange('headOfficeOrganizationId', e.target.value)}
-                        >
-                          <option value="">본사 선택</option>
-                          <option value="1">따름인</option>
-                        </select>
+                        <SearchSelect
+                          options={headOfficeSelectOptions}
+                          value={headOfficeSelectOptions.find(opt => opt.value === formData.headOfficeOrganizationId) || null}
+                          onChange={(opt) => handleInputChange('headOfficeOrganizationId', opt?.value || '')}
+                          placeholder="본사 선택"
+                        />
                       </div>
                       <div className="mx-300">
-                        <select
-                          className="select-form"
-                          value={formData.franchiseOrganizationId}
-                          onChange={(e) => handleInputChange('franchiseOrganizationId', e.target.value)}
-                        >
-                          <option value="">가맹점 선택</option>
-                          <option value="1">을지로3가점</option>
-                        </select>
+                        <SearchSelect
+                          options={franchiseSelectOptions}
+                          value={franchiseSelectOptions.find(opt => opt.value === formData.franchiseOrganizationId) || null}
+                          onChange={(opt) => handleInputChange('franchiseOrganizationId', opt?.value || '')}
+                          placeholder="가맹점 선택"
+                        />
                       </div>
                     </div>
                   </td>
@@ -622,13 +677,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <th>점포 선택</th>
                   <td>
                     <div className="mx-500">
-                      <select
-                        className="select-form"
-                        value={formData.storeId}
-                        onChange={(e) => handleInputChange('storeId', e.target.value)}
-                      >
-                        <option value="">#힘이나는커피생활 을지로3가점</option>
-                      </select>
+                      <SearchSelect
+                        options={storeSelectOptions}
+                        value={storeSelectOptions.find(opt => opt.value === formData.storeId) || null}
+                        onChange={(opt) => handleInputChange('storeId', opt?.value || '')}
+                        placeholder="#힘이나는커피생활 을지로3가점"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -734,17 +788,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="filed-flx">
                       <div className="mx-300">
-                        <select
-                          className={`select-form${formErrors.employeeClassification ? ' border-red-500' : ''}`}
-                          value={formData.employeeClassification}
-                          onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
-                          style={formErrors.employeeClassification ? { borderColor: '#dc3545' } : undefined}
-                        >
-                          <option value="">선택</option>
-                          {employeeClassificationOptions.map((item) => (
-                            <option key={item.code} value={item.code}>{item.name}</option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={employeeClassSelectOptions}
+                          value={employeeClassSelectOptions.find(opt => opt.value === formData.employeeClassification) || null}
+                          onChange={(opt) => handleInputChange('employeeClassification', opt?.value || '')}
+                          placeholder="선택"
+                        />
                       </div>
                       <button
                         className="btn-form outline s"
@@ -771,16 +820,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   </th>
                   <td>
                     <div className="mx-300">
-                      <select
-                        className={`select-form${formErrors.contractClassification ? ' border-red-500' : ''}`}
-                        value={formData.contractClassification}
-                        onChange={(e) => handleInputChange('contractClassification', e.target.value)}
-                        style={formErrors.contractClassification ? { borderColor: '#dc3545' } : undefined}
-                      >
-                        <option value="">정직원</option>
-                        <option value="contract">계약직</option>
-                        <option value="parttime">파트타이머</option>
-                      </select>
+                      <SearchSelect
+                        options={contractClassSelectOptions}
+                        value={contractClassSelectOptions.find(opt => opt.value === formData.contractClassification) || null}
+                        onChange={(opt) => handleInputChange('contractClassification', opt?.value || '')}
+                        placeholder="정직원"
+                      />
                     </div>
                     {formErrors.contractClassification && (
                       <div className="warning-txt mt5" role="alert">* {formErrors.contractClassification}</div>
@@ -794,28 +839,20 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="filed-flx">
                       <div className="mx-200">
-                        <select
-                          className="select-form"
-                          value={formData.rank}
-                          onChange={(e) => handleInputChange('rank', e.target.value)}
-                        >
-                          <option value="">선택</option>
-                          {rankOptions.map((item) => (
-                            <option key={item.code} value={item.code}>{item.name}</option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={rankSelectOptions}
+                          value={rankSelectOptions.find(opt => opt.value === formData.rank) || null}
+                          onChange={(opt) => handleInputChange('rank', opt?.value || '')}
+                          placeholder="선택"
+                        />
                       </div>
                       <div className="mx-200">
-                        <select
-                          className="select-form"
-                          value={formData.position}
-                          onChange={(e) => handleInputChange('position', e.target.value)}
-                        >
-                          <option value="">선택</option>
-                          {positionOptions.map((item) => (
-                            <option key={item.code} value={item.code}>{item.name}</option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={positionSelectOptions}
+                          value={positionSelectOptions.find(opt => opt.value === formData.position) || null}
+                          onChange={(opt) => handleInputChange('position', opt?.value || '')}
+                          placeholder="선택"
+                        />
                       </div>
                       <button
                         className="btn-form outline s"
@@ -958,16 +995,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   <td>
                     <div className="filed-flx">
                       <div className="mx-300">
-                        <select
-                          className="select-form"
-                          value={formData.bankCode}
-                          onChange={(e) => handleInputChange('bankCode', e.target.value)}
-                        >
-                          <option value="woori">우리은행</option>
-                          <option value="kb">국민은행</option>
-                          <option value="shinhan">신한은행</option>
-                          <option value="hana">하나은행</option>
-                        </select>
+                        <SearchSelect
+                          options={bankSelectOptions}
+                          value={bankSelectOptions.find(opt => opt.value === formData.bankCode) || null}
+                          onChange={(opt) => handleInputChange('bankCode', opt?.value || '')}
+                          placeholder="은행 선택"
+                        />
                       </div>
                       <Input
                         value={formData.accountNumber}

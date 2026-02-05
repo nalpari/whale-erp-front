@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Tooltip } from 'react-tooltip'
 import {
   useLaborContractSettings,
@@ -13,6 +13,8 @@ import {
   type OtherItem,
 } from '@/lib/api/laborContractSettings'
 import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 // 탭 타입 정의
 type TabType = 'fulltime' | 'parttime'
@@ -180,12 +182,29 @@ function ParttimeOtherItemRow({
 }
 
 export default function LaborContractSettings() {
+  // Alert hook
+  const { alert } = useAlert()
+
   // 탭 상태
   const [activeTab, setActiveTab] = useState<TabType>('fulltime')
 
   // 본사/가맹점 선택
   const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
+
+  // Select options
+  const headOfficeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '따름인' },
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '2', label: '을지로3가점' },
+  ], [])
+
+  const storeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    { value: '을지로3가점', label: '을지로3가점' },
+  ], [])
 
   // TanStack Query - 설정 조회
   const { data: settingsData, isPending: isLoading, refetch } = useLaborContractSettings({
@@ -251,10 +270,10 @@ export default function LaborContractSettings() {
       setFulltimeSettings(prev => ({ ...prev, otherItems: filteredFulltimeOtherItems }))
       setParttimeSettings(prev => ({ ...prev, otherItems: filteredParttimeOtherItems }))
 
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다.')
+      await alert('저장에 실패했습니다.')
     }
   }
 
@@ -391,15 +410,13 @@ export default function LaborContractSettings() {
                   </button>
                 </div>
                 <div className="block" style={{ maxWidth: '200px' }}>
-                  <select
-                    className="select-form"
-                    value={fulltimeSettings.workPlaceStore}
-                    onChange={(e) => handleFulltimeChange('workPlaceStore', e.target.value)}
-                    disabled={fulltimeSettings.workPlace === 'company'}
-                  >
-                    <option value="">선택</option>
-                    <option value="을지로3가점">을지로3가점</option>
-                  </select>
+                  <SearchSelect
+                    options={storeOptions}
+                    value={storeOptions.find(o => o.value === fulltimeSettings.workPlaceStore) || null}
+                    onChange={(opt) => handleFulltimeChange('workPlaceStore', opt?.value || '')}
+                    placeholder="선택"
+                    isDisabled={fulltimeSettings.workPlace === 'company'}
+                  />
                 </div>
               </div>
             </td>
@@ -619,22 +636,20 @@ export default function LaborContractSettings() {
                 <td>
                   <div className="filed-flx">
                     <div className="block" style={{ maxWidth: '250px' }}>
-                      <select
-                        className="select-form"
-                        value={selectedHeadOfficeId}
-                        onChange={(e) => setSelectedHeadOfficeId(Number(e.target.value))}
-                      >
-                        <option value={1}>따름인</option>
-                      </select>
+                      <SearchSelect
+                        options={headOfficeOptions}
+                        value={headOfficeOptions.find(o => o.value === String(selectedHeadOfficeId)) || null}
+                        onChange={(opt) => setSelectedHeadOfficeId(Number(opt?.value || DEFAULT_HEAD_OFFICE_ID))}
+                        placeholder="본사 선택"
+                      />
                     </div>
                     <div className="block" style={{ maxWidth: '250px' }}>
-                      <select
-                        className="select-form"
-                        value={selectedFranchiseId}
-                        onChange={(e) => setSelectedFranchiseId(Number(e.target.value))}
-                      >
-                        <option value={2}>을지로3가점</option>
-                      </select>
+                      <SearchSelect
+                        options={franchiseOptions}
+                        value={franchiseOptions.find(o => o.value === String(selectedFranchiseId)) || null}
+                        onChange={(opt) => setSelectedFranchiseId(Number(opt?.value || DEFAULT_FRANCHISE_ID))}
+                        placeholder="가맹점 선택"
+                      />
                     </div>
                     <button className="btn-form basic" onClick={handleSearch} disabled={isLoading}>
                       {isLoading ? '조회중...' : '검색'}

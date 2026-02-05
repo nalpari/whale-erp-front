@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -24,6 +24,8 @@ import {
   useSaveEmployeeInfoSettings
 } from '@/hooks/queries/use-employee-settings-queries'
 import type { ClassificationItem as ApiClassificationItem } from '@/lib/api/employeeInfoSettings'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 const DEFAULT_HEAD_OFFICE_ID = 1
 const DEFAULT_FRANCHISE_ID = 2
@@ -200,6 +202,7 @@ function getCodePrefix(tabType: TabType): string {
 
 export default function EmployeeInfoSettings() {
   const searchParams = useSearchParams()
+  const { alert } = useAlert()
 
   // 탭 상태 - URL 쿼리 파라미터에서 초기값 설정
   const getInitialTab = (): TabType => {
@@ -215,6 +218,15 @@ export default function EmployeeInfoSettings() {
   // 본사/가맹점 선택
   const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
+
+  // SearchSelect options
+  const headOfficeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '따름인' },
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '2', label: '을지로3가점' },
+  ], [])
 
   // TanStack Query 훅
   const { data: settingsData, isPending: isLoading, refetch } = useEmployeeInfoSettings(
@@ -415,10 +427,10 @@ export default function EmployeeInfoSettings() {
           POSITION: uiToApiClassifications(positionClassifications)
         }
       })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다.')
+      await alert('저장에 실패했습니다.')
     }
   }
 
@@ -440,22 +452,20 @@ export default function EmployeeInfoSettings() {
                 <td>
                   <div className="filed-flx">
                     <div className="block" style={{ maxWidth: '250px' }}>
-                      <select
-                        className="select-form"
-                        value={selectedHeadOfficeId}
-                        onChange={(e) => setSelectedHeadOfficeId(Number(e.target.value))}
-                      >
-                        <option value={1}>따름인</option>
-                      </select>
+                      <SearchSelect
+                        options={headOfficeOptions}
+                        value={headOfficeOptions.find(o => o.value === String(selectedHeadOfficeId)) || null}
+                        onChange={(opt) => setSelectedHeadOfficeId(opt ? Number(opt.value) : DEFAULT_HEAD_OFFICE_ID)}
+                        placeholder="본사 선택"
+                      />
                     </div>
                     <div className="block" style={{ maxWidth: '250px' }}>
-                      <select
-                        className="select-form"
-                        value={selectedFranchiseId}
-                        onChange={(e) => setSelectedFranchiseId(Number(e.target.value))}
-                      >
-                        <option value={2}>을지로3가점</option>
-                      </select>
+                      <SearchSelect
+                        options={franchiseOptions}
+                        value={franchiseOptions.find(o => o.value === String(selectedFranchiseId)) || null}
+                        onChange={(opt) => setSelectedFranchiseId(opt ? Number(opt.value) : DEFAULT_FRANCHISE_ID)}
+                        placeholder="가맹점 선택"
+                      />
                     </div>
                     <button className="btn-form basic" onClick={handleSearch} disabled={isLoading}>
                       {isLoading ? '조회중...' : '검색'}

@@ -1,8 +1,10 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import { useDailyOvertimeHours } from '@/hooks/queries/use-payroll-queries'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 interface OvertimeWorkTimeEditProps {
   id: string
@@ -78,6 +80,7 @@ export default function OvertimeWorkTimeEdit({
   payrollMonth = ''
 }: OvertimeWorkTimeEditProps) {
   const router = useRouter()
+  const { alert } = useAlert()
   const [dailyRecords, setDailyRecords] = useState<EditableOvertimeRecord[]>([])
   const [_weeklySubtotals, setWeeklySubtotals] = useState<EditableWeeklySubtotal[]>([])
   const [applyTimelyAmount, setApplyTimelyAmount] = useState(0)
@@ -221,7 +224,7 @@ export default function OvertimeWorkTimeEdit({
     })).sort((a, b) => a.weekNumber - b.weekNumber)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const grandTotalOvertimeHours = dailyRecords.reduce((sum, r) => sum + r.overtimeHours, 0)
     const grandTotalPaymentAmount = dailyRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
     const grandTotalDeductionAmount = dailyRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
@@ -245,12 +248,12 @@ export default function OvertimeWorkTimeEdit({
 
     localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
-    alert('저장되었습니다.')
+    await alert('저장되었습니다.')
     const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
 
-  const handleApplyContractTime = () => {
+  const handleApplyContractTime = async () => {
     const updatedRecords = dailyRecords.map(record => {
       const updated = {
         ...record,
@@ -284,7 +287,7 @@ export default function OvertimeWorkTimeEdit({
 
     localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
-    alert('계약 시급이 적용되었습니다.')
+    await alert('계약 시급이 적용되었습니다.')
     const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
@@ -328,8 +331,17 @@ export default function OvertimeWorkTimeEdit({
     return num.toLocaleString()
   }
 
-  const hourOptions = Array.from({ length: 24 }, (_, i) => i)
-  const minuteOptions = [0, 30]
+  const hourOptions: SelectOption[] = useMemo(() =>
+    Array.from({ length: 24 }, (_, i) => ({
+      value: String(i),
+      label: String(i).padStart(2, '0')
+    })), []
+  )
+
+  const minuteOptions: SelectOption[] = useMemo(() => [
+    { value: '0', label: '00' },
+    { value: '30', label: '30' }
+  ], [])
 
   if (isLoading) {
     return (
@@ -421,27 +433,21 @@ export default function OvertimeWorkTimeEdit({
                         <div className="filed-flx">
                           <div className="filed-flx g8">
                             <div className="mx-100">
-                              <select
-                                className="select-form"
-                                value={hours}
-                                onChange={(e) => handleOvertimeHoursChange(index, parseInt(e.target.value))}
-                              >
-                                {hourOptions.map(h => (
-                                  <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
-                                ))}
-                              </select>
+                              <SearchSelect
+                                options={hourOptions}
+                                value={hourOptions.find(opt => opt.value === String(hours)) || null}
+                                onChange={(opt) => handleOvertimeHoursChange(index, parseInt(opt?.value || '0'))}
+                                placeholder="시간"
+                              />
                             </div>
                             <span className="won">시간</span>
                             <div className="mx-100">
-                              <select
-                                className="select-form"
-                                value={minutes}
-                                onChange={(e) => handleOvertimeMinutesChange(index, parseInt(e.target.value))}
-                              >
-                                {minuteOptions.map(m => (
-                                  <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                                ))}
-                              </select>
+                              <SearchSelect
+                                options={minuteOptions}
+                                value={minuteOptions.find(opt => opt.value === String(minutes)) || null}
+                                onChange={(opt) => handleOvertimeMinutesChange(index, parseInt(opt?.value || '0'))}
+                                placeholder="분"
+                              />
                             </div>
                             <span className="won">분</span>
                           </div>

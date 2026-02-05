@@ -1,11 +1,12 @@
 'use client'
 import '@/components/common/custom-css/FormHelper.css'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import StaffInvitationPop from './StaffInvitationPop'
 import type { EmployeeListItem } from '@/types/employee'
 
@@ -264,6 +265,13 @@ export default function EmployeeList({
   const router = useRouter()
   const [isPopupOpen, setIsPopupOpen] = useState(false)
 
+  // 페이지 사이즈 옵션
+  const pageSizeOptions: SelectOption[] = useMemo(() => [
+    { value: '50', label: '50' },
+    { value: '100', label: '100' },
+    { value: '200', label: '200' }
+  ], [])
+
   // API 응답을 AG Grid 데이터로 변환 (React Compiler가 자동 메모이제이션)
   const rowData: EmployeeRowData[] = employees.map((emp, index) => ({
     id: emp.employeeInfoId,
@@ -334,17 +342,14 @@ export default function EmployeeList({
             등록
           </button>
           <div className="data-count-select">
-            <select
-              className="select-form"
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            >
-              {[50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              options={pageSizeOptions}
+              value={pageSizeOptions.find(opt => opt.value === String(pageSize)) || null}
+              onChange={(opt) => onPageSizeChange(opt?.value ? Number(opt.value) : 50)}
+              placeholder="50"
+              isClearable={false}
+              isSearchable={false}
+            />
           </div>
         </div>
       </div>

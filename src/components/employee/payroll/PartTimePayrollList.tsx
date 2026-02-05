@@ -2,8 +2,11 @@
 import '@/components/common/custom-css/FormHelper.css'
 import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
+import { useMemo } from 'react'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useAlert } from '@/components/common/ui'
 import { useSendPartTimePayrollEmail } from '@/hooks/queries/use-payroll-queries'
 
 // 급여명세서 데이터 타입
@@ -79,6 +82,7 @@ export default function PartTimePayrollList({
 }: PartTimePayrollListProps) {
   const router = useRouter()
   const sendEmailMutation = useSendPartTimePayrollEmail()
+  const { alert, confirm } = useAlert()
 
   // React 19: derived state
   const rowData = payrolls.map((payroll, index) => ({
@@ -98,15 +102,15 @@ export default function PartTimePayrollList({
 
   // 이메일 전송 핸들러
   const handleSendEmail = async (id: number, employeeName: string) => {
-    if (!confirm(`${employeeName}님에게 급여명세서를 이메일로 전송하시겠습니까?`)) return
+    if (!(await confirm(`${employeeName}님에게 급여명세서를 이메일로 전송하시겠습니까?`))) return
 
     try {
       await sendEmailMutation.mutateAsync(id)
-      alert('이메일 전송이 완료되었습니다.')
+      await alert('이메일 전송이 완료되었습니다.')
       onRefresh?.()
     } catch (error) {
       console.error('이메일 전송 실패:', error)
-      alert('이메일 전송에 실패했습니다.')
+      await alert('이메일 전송에 실패했습니다.')
     }
   }
 
@@ -150,6 +154,13 @@ export default function PartTimePayrollList({
     )
   }
 
+  // 페이지 사이즈 옵션
+  const pageSizeOptions: SelectOption[] = useMemo(() => [
+    { value: '50', label: '50' },
+    { value: '100', label: '100' },
+    { value: '200', label: '200' },
+  ], [])
+
   // 컬럼 정의
   const columnDefs: ColDef<PayrollRowData>[] = [
     {
@@ -192,17 +203,12 @@ export default function PartTimePayrollList({
         <div className="data-header-right">
           <button className="btn-form basic" onClick={handleNavigateToNew} type="button">등록</button>
           <div className="data-count-select">
-            <select
-              className="select-form"
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            >
-              {[50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              options={pageSizeOptions}
+              value={pageSizeOptions.find(o => o.value === String(pageSize)) || null}
+              onChange={(opt) => onPageSizeChange(Number(opt?.value || '50'))}
+              placeholder="페이지 사이즈"
+            />
           </div>
         </div>
       </div>
@@ -218,6 +224,9 @@ export default function PartTimePayrollList({
             rowData={rowData}
             columnDefs={columnDefs}
             onRowClicked={(event) => {
+              // 이메일 전송 버튼 클릭 시 상세 페이지로 이동하지 않음
+              const target = event.event?.target as HTMLElement
+              if (target?.closest('button')) return
               if (event.data) handleNavigateToDetail(event.data.id)
             }}
           />

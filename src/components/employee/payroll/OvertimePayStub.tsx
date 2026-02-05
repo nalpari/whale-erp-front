@@ -1,7 +1,9 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import DatePicker from '../../ui/common/DatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useAlert } from '@/components/common/ui'
 import {
   useOvertimePayrollDetail,
   useDailyOvertimeHours,
@@ -45,6 +47,7 @@ interface OvertimePayStubProps {
 
 export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: OvertimePayStubProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
@@ -142,15 +145,15 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const handleDelete = async () => {
     if (!existingStatement?.id) return
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    if (!(await confirm('정말 삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(existingStatement.id)
-      alert('삭제되었습니다.')
+      await alert('삭제되었습니다.')
       router.push('/employee/payroll/overtime')
     } catch (error) {
       console.error('삭제 실패:', error)
-      alert('삭제 중 오류가 발생했습니다.')
+      await alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -159,10 +162,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
-      alert('이메일 전송이 요청되었습니다.')
+      await alert('이메일 전송이 요청되었습니다.')
     } catch (error) {
       console.error('이메일 전송 실패:', error)
-      alert('이메일 전송 중 오류가 발생했습니다.')
+      await alert('이메일 전송 중 오류가 발생했습니다.')
     }
   }
 
@@ -181,13 +184,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       document.body.removeChild(a)
     } catch (error) {
       console.error('엑셀 다운로드 실패:', error)
-      alert('엑셀 다운로드 중 오류가 발생했습니다.')
+      await alert('엑셀 다운로드 중 오류가 발생했습니다.')
     }
   }
 
   // 직원 선택 핸들러
-  const handleEmployeeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = parseInt(e.target.value)
+  const handleEmployeeChange = (selectedValue: string) => {
+    const selectedId = parseInt(selectedValue)
     if (isNaN(selectedId)) {
       setEmployeeInfoId(null)
       setPayrollMonth('')
@@ -230,13 +233,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
   }
 
-  const handleGoToWorkTimeEdit = () => {
+  const handleGoToWorkTimeEdit = async () => {
     if (!employeeInfoId) {
-      alert('직원을 선택해주세요.')
+      await alert('직원을 선택해주세요.')
       return
     }
     if (!startDate || !endDate) {
-      alert('지급 월을 선택하고 기간을 설정해주세요.')
+      await alert('지급 월을 선택하고 기간을 설정해주세요.')
       return
     }
     const params = new URLSearchParams({
@@ -248,10 +251,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     router.push(`/employee/payroll/overtime/${id}/worktime?${params.toString()}`)
   }
 
-  const handlePayrollMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handlePayrollMonthChange = (month: string) => {
     if (!isEditMode) return
 
-    const month = e.target.value
     setPayrollMonth(month)
 
     if (month) {
@@ -275,12 +277,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     if (!isEditMode) return
 
     if (!employeeInfoId) {
-      alert('직원을 선택해주세요.')
+      await alert('직원을 선택해주세요.')
       return
     }
 
     if (!payrollMonth || !startDate || !endDate) {
-      alert('지급 월과 기간을 설정해주세요.')
+      await alert('지급 월과 기간을 설정해주세요.')
       return
     }
 
@@ -298,17 +300,17 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   // 저장
   const handleSave = async () => {
     if (!employeeInfoId || !selectedEmployee) {
-      alert('직원을 선택해주세요.')
+      await alert('직원을 선택해주세요.')
       return
     }
 
     if (!payrollMonth || !startDate || !endDate) {
-      alert('지급 월과 기간을 설정해주세요.')
+      await alert('지급 월과 기간을 설정해주세요.')
       return
     }
 
     if (!overtimeData && !existingStatement && !editedWorkTimeData) {
-      alert('먼저 연장근무 시간을 조회해주세요.')
+      await alert('먼저 연장근무 시간을 조회해주세요.')
       return
     }
 
@@ -368,11 +370,11 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       // 저장 성공 시 localStorage cleanup
       localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
 
-      alert('연장근무 수당명세서가 생성되었습니다.')
+      await alert('연장근무 수당명세서가 생성되었습니다.')
       router.push('/employee/payroll/overtime')
     } catch (error) {
       console.error('연장근무 수당명세서 저장 실패:', error)
-      alert('저장 중 오류가 발생했습니다.')
+      await alert('저장 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }
@@ -492,8 +494,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return rows
   }
 
-  const generateMonthOptions = () => {
-    const options = []
+  // SearchSelect용 옵션 생성
+  const _monthOptions: SelectOption[] = useMemo(() => {
+    const options: SelectOption[] = [{ value: '', label: '선택' }]
     const now = new Date()
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -501,7 +504,30 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       options.push({ value, label: value })
     }
     return options
-  }
+  }, [])
+
+  const _employeeOptions: SelectOption[] = useMemo(() => {
+    const options: SelectOption[] = [{ value: '', label: '직원을 선택하세요' }]
+    employeeList.forEach(emp => {
+      options.push({
+        value: String(emp.employeeInfoId),
+        label: `${emp.employeeName} (${emp.contractClassificationName || '정직원'})`
+      })
+    })
+    return options
+  }, [employeeList])
+
+  const headquarterOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '따름인' }
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '을지로3가점' }
+  ], [])
+
+  const _storeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '힘이나는커피생활 을지로3가점' }
+  ], [])
 
   return (
     <div className="contents-wrap">
@@ -556,14 +582,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <td>
                   <div className="filed-flx">
                     <div className="block">
-                      <select className="select-form" disabled={!isEditMode}>
-                        <option value="">따름인</option>
-                      </select>
+                      <SearchSelect
+                        options={headquarterOptions}
+                        value={headquarterOptions[0]}
+                        onChange={() => {}}
+                        placeholder="본사 선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
                     <div className="block">
-                      <select className="select-form" disabled={!isEditMode}>
-                        <option value="">을지로3가점</option>
-                      </select>
+                      <SearchSelect
+                        options={franchiseOptions}
+                        value={franchiseOptions[0]}
+                        onChange={() => {}}
+                        placeholder="가맹점 선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
                   </div>
                 </td>
@@ -572,9 +606,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <th>점포 선택</th>
                 <td>
                   <div className="block">
-                    <select className="select-form" disabled={!isEditMode}>
-                      <option value="">힘이나는커피생활 을지로3가점</option>
-                    </select>
+                    <SearchSelect
+                      options={_storeOptions}
+                      value={_storeOptions[0]}
+                      onChange={() => {}}
+                      placeholder="점포 선택"
+                      isDisabled={!isEditMode}
+                    />
                   </div>
                 </td>
               </tr>
@@ -586,23 +624,21 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   <div className="filed-flx">
                     <div className="block" style={{ maxWidth: '250px' }}>
                       {id === 'new' ? (
-                        <select
-                          className="select-form"
-                          value={employeeInfoId || ''}
-                          onChange={handleEmployeeChange}
-                          disabled={!isEditMode}
-                        >
-                          <option value="">직원을 선택하세요</option>
-                          {employeeList.map(emp => (
-                            <option key={emp.employeeInfoId} value={emp.employeeInfoId}>
-                              {emp.employeeName} ({emp.contractClassificationName || '정직원'})
-                            </option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={_employeeOptions}
+                          value={_employeeOptions.find(opt => opt.value === String(employeeInfoId || '')) || null}
+                          onChange={(opt) => handleEmployeeChange(opt?.value || '')}
+                          placeholder="직원을 선택하세요"
+                          isDisabled={!isEditMode}
+                        />
                       ) : (
-                        <select className="select-form" disabled>
-                          <option value="">{existingStatement?.memberName || '-'}</option>
-                        </select>
+                        <SearchSelect
+                          options={[{ value: '', label: existingStatement?.memberName || '-' }]}
+                          value={{ value: '', label: existingStatement?.memberName || '-' }}
+                          onChange={() => {}}
+                          placeholder=""
+                          isDisabled
+                        />
                       )}
                     </div>
                     <span className="info-text">{selectedEmployee?.employeeNumber || existingStatement?.memberId || '-'}</span>
@@ -616,17 +652,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <td>
                   <div className="filed-flx">
                     <div className="block" style={{ maxWidth: '150px' }}>
-                      <select
-                        className="select-form"
-                        value={payrollMonth}
-                        onChange={handlePayrollMonthChange}
-                        disabled={!isEditMode}
-                      >
-                        <option value="">선택</option>
-                        {generateMonthOptions().map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                      <SearchSelect
+                        options={_monthOptions}
+                        value={_monthOptions.find(opt => opt.value === payrollMonth) || null}
+                        onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
+                        placeholder="선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
                     {paymentDate && <span className="info-text">지급일 : {paymentDate}</span>}
                   </div>

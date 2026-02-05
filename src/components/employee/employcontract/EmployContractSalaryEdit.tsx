@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import SalaryCalculationPop, { SalaryCalculationData, SalaryCalculationInitialData, ContractClassificationType } from '@/components/popup/SalaryCalculationPop'
@@ -10,6 +10,8 @@ import {
   useUpdateContractSalary
 } from '@/hooks/queries/use-contract-queries'
 import type { CreateEmploymentContractSalaryInfoRequest, UpdateEmploymentContractSalaryInfoRequest } from '@/lib/api/employmentContract'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 interface EmployContractSalaryEditProps {
   contractId?: number
@@ -30,6 +32,7 @@ const formatNumber = (value: number): string => {
 
 export default function EmployContractSalaryEdit({ contractId }: EmployContractSalaryEditProps) {
   const router = useRouter()
+  const { alert } = useAlert()
   const [salaryInfoOpen, _setSalaryInfoOpen] = useState(true)
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
 
@@ -112,11 +115,11 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
   const currentVersion = salaryInfo?.id ?? 0
   const formData = (localFormData && dataVersion === currentVersion) ? localFormData : initialFormData
 
-  // 상여금 초기화
+  // 상여금 초기화 (bonusCode 우선 사용, fallback으로 bonusType)
   const initialBonuses: BonusItem[] = salaryInfo?.bonuses && salaryInfo.bonuses.length > 0
     ? salaryInfo.bonuses.map(bonus => ({
         id: bonus.id,
-        type: bonus.bonusType,
+        type: bonus.bonusCode || bonus.bonusType,
         amount: bonus.amount,
         memo: bonus.memo || ''
       }))
@@ -125,6 +128,14 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
   const [localBonuses, setLocalBonuses] = useState<BonusItem[] | null>(null)
   const [bonusVersion, setBonusVersion] = useState<number | null>(null)
   const bonuses = (localBonuses && bonusVersion === currentVersion) ? localBonuses : initialBonuses
+
+  // 상여금 타입 옵션
+  const bonusTypeOptions: SelectOption[] = useMemo(() =>
+    bonusTypes.map(type => ({
+      value: type.code,
+      label: type.name
+    }))
+  , [bonusTypes])
 
   const updateFormData = (updater: (prev: typeof formData) => typeof formData) => {
     setLocalFormData(updater(formData))
@@ -174,14 +185,14 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
 
   const handleSave = async () => {
     if (!contractId) {
-      alert('계약 정보를 찾을 수 없습니다.')
+      await alert('계약 정보를 찾을 수 없습니다.')
       return
     }
 
     // 상여금 유효성 검사: 0원인 상여금이 있으면 저장 불가
     const invalidBonus = bonuses.find(b => b.amount === 0 || b.amount <= 0)
     if (invalidBonus) {
-      alert('상여금 금액은 0원보다 커야 합니다. 상여금을 삭제하거나 금액을 입력해주세요.')
+      await alert('상여금 금액은 0원보다 커야 합니다. 상여금을 삭제하거나 금액을 입력해주세요.')
       return
     }
 
@@ -273,7 +284,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
         await createSalaryMutation.mutateAsync(requestData)
       }
 
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
 
       // 저장 후 데이터 새로고침 (로컬 상태 초기화)
       setLocalFormData(null)
@@ -283,7 +294,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
       await refetchContract()
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다. 다시 시도해주세요.')
+      await alert('저장에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
@@ -914,17 +925,12 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
                         ) : (
                           bonuses.map((bonus) => (
                             <div key={bonus.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                              <select
-                                className="select-form"
-                                style={{ width: '150px' }}
-                                value={bonus.type}
-                                onChange={(e) => handleBonusChange(bonus.id, 'type', e.target.value)}
-                                aria-label="상여금 종류 선택"
-                              >
-                                {bonusTypes.map((type, index) => (
-                                  <option key={type.id || `bonus-type-${index}`} value={type.code}>{type.name}</option>
-                                ))}
-                              </select>
+                              <SearchSelect
+                                options={bonusTypeOptions}
+                                value={bonusTypeOptions.find(opt => opt.value === bonus.type) || null}
+                                onChange={(opt) => handleBonusChange(bonus.id, 'type', opt?.value || '')}
+                                placeholder="선택"
+                              />
                               <button
                                 className="btn-form outline"
                                 style={{ padding: '4px 8px', minWidth: 'auto' }}

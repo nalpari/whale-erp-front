@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import AnimateHeight from 'react-animate-height'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import Input from '@/components/common/ui/Input'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoCommonCode } from '@/hooks/queries/use-employee-settings-queries'
 
 interface FullTimePayrollSearchProps {
@@ -47,8 +48,31 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
     !!formData.headOfficeId
   )
 
-  // React 19: derived state
-  const employeeClassificationOptions = commonCodeResponse?.codeMemoContent?.EMPLOYEE || []
+  // 직원 분류 선택 가능 여부
+  const isEmployeeClassificationEnabled = !!formData.headOfficeId
+
+  // 근무여부 옵션
+  const workStatusOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '전체' },
+    { value: 'EMPWK_001', label: '근무' },
+    { value: 'EMPWK_002', label: '휴직' },
+    { value: 'EMPWK_003', label: '퇴사' }
+  ], [])
+
+  // 직원 분류 옵션
+  const employeeClassificationSelectOptions: SelectOption[] = useMemo(() => {
+    if (!isEmployeeClassificationEnabled) {
+      return []
+    }
+    const employeeClassificationOptions = commonCodeResponse?.codeMemoContent?.EMPLOYEE || []
+    return [
+      { value: '', label: isEmployeeClassificationLoading ? '로딩중...' : '전체' },
+      ...employeeClassificationOptions.map((item) => ({
+        value: item.code,
+        label: item.name
+      }))
+    ]
+  }, [isEmployeeClassificationEnabled, isEmployeeClassificationLoading, commonCodeResponse])
 
   // React 19: 함수형 setState로 종속성이 없으므로 useCallback 불필요
   const handleInputChange = (field: string, value: string) => {
@@ -105,9 +129,6 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
     setSearchOpen(false)
   }
 
-  // 직원 분류 선택 가능 여부
-  const isEmployeeClassificationEnabled = !!formData.headOfficeId
-
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
@@ -155,16 +176,12 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
                 <th>근무여부</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={formData.workStatus}
-                      onChange={(e) => handleInputChange('workStatus', e.target.value)}
-                    >
-                      <option value="">전체</option>
-                      <option value="EMPWK_001">근무</option>
-                      <option value="EMPWK_002">휴직</option>
-                      <option value="EMPWK_003">퇴사</option>
-                    </select>
+                    <SearchSelect
+                      options={workStatusOptions}
+                      value={workStatusOptions.find(o => o.value === formData.workStatus) || null}
+                      onChange={(opt) => handleInputChange('workStatus', opt?.value || '')}
+                      placeholder="선택"
+                    />
                   </div>
                 </td>
                 <th>직원명</th>
@@ -181,25 +198,13 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
                 <th>직원 분류</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={formData.employeeClassification}
-                      onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
-                      disabled={!isEmployeeClassificationEnabled}
-                    >
-                      <option value="">
-                        {!isEmployeeClassificationEnabled
-                          ? '선택'
-                          : isEmployeeClassificationLoading
-                            ? '로딩중...'
-                            : '전체'}
-                      </option>
-                      {employeeClassificationOptions.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      options={employeeClassificationSelectOptions}
+                      value={employeeClassificationSelectOptions.find(o => o.value === formData.employeeClassification) || null}
+                      onChange={(opt) => handleInputChange('employeeClassification', opt?.value || '')}
+                      placeholder="선택"
+                      isDisabled={!isEmployeeClassificationEnabled}
+                    />
                   </div>
                 </td>
               </tr>

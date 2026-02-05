@@ -1,10 +1,12 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import Input from '@/components/common/ui/Input'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
   useContractDetail,
   useContractsByEmployee,
@@ -38,6 +40,7 @@ const formatDateToString = (date: Date | null): string => {
 export default function EmployContractEdit({ contractId, id }: EmployContractEditProps) {
   const isCreateMode = id === 'new'
   const router = useRouter()
+  const { alert } = useAlert()
   const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [headerId, setHeaderId] = useState<number | null>(null)
   const [selectedEmployeeInfoId, setSelectedEmployeeInfoId] = useState<number | null>(null)
@@ -104,6 +107,46 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const updateContractMutation = useUpdateContractHeader()
 
   const isSaving = createContractMutation.isPending || updateContractMutation.isPending
+
+  // SearchSelect 옵션들
+  const headOfficeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '본사 선택' },
+    { value: '1', label: '주식회사 따름인' }
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '가맹점 선택' },
+    { value: '1', label: '종로젊음의거리점' }
+  ], [])
+
+  const storeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '점포 선택' },
+    { value: '1', label: '삼힘이나는커피생활 종로젊음의거리점' }
+  ], [])
+
+  const employeeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '직원 선택' },
+    ...employeeList.map(emp => ({
+      value: String(emp.employeeInfoId),
+      label: `${emp.employeeName} (${emp.employeeNumber})`
+    }))
+  ], [employeeList])
+
+  const contractClassOptions: SelectOption[] = useMemo(() => [
+    { value: 'CNTCFWK_001', label: '포괄연봉제' },
+    { value: 'CNTCFWK_002', label: '비포괄연봉제' },
+    { value: 'CNTCFWK_003', label: '파트타임' }
+  ], [])
+
+  const salaryCycleOptions: SelectOption[] = useMemo(() => [
+    { value: 'SLRCC_001', label: '시급' },
+    { value: 'SLRCC_002', label: '월급' }
+  ], [])
+
+  const salaryMonthOptions: SelectOption[] = useMemo(() => [
+    { value: 'SLRCF_001', label: '당월' },
+    { value: 'SLRCF_002', label: '익월' }
+  ], [])
 
   // 계약 상세 데이터 로드 시 폼 업데이트
   useEffect(() => {
@@ -183,24 +226,24 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     // 필수값 검증
     if (isCreateMode) {
       if (!selectedEmployeeInfoId) {
-        alert('직원을 선택해주세요.')
+        await alert('직원을 선택해주세요.')
         return
       }
       if (!formData.headOfficeId) {
-        alert('본사를 선택해주세요.')
+        await alert('본사를 선택해주세요.')
         return
       }
       if (!formData.contractStartDate) {
-        alert('계약 시작일을 입력해주세요.')
+        await alert('계약 시작일을 입력해주세요.')
         return
       }
       if (!formData.jobDescription) {
-        alert('업무 내용을 입력해주세요.')
+        await alert('업무 내용을 입력해주세요.')
         return
       }
     } else {
       if (!headerId) {
-        alert('헤더 정보를 찾을 수 없습니다.')
+        await alert('헤더 정보를 찾을 수 없습니다.')
         return
       }
     }
@@ -241,7 +284,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
           wageContractFile: wageContractFileObj
         })
 
-        alert('등록되었습니다.')
+        await alert('등록되었습니다.')
         router.push(`/employee/contract/${response.id}`)
       } else {
         const requestData: UpdateEmploymentContractHeaderRequest = {
@@ -272,12 +315,12 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
           }
         })
 
-        alert('저장되었습니다.')
+        await alert('저장되었습니다.')
         router.push(`/employee/contract/${contractId}`)
       }
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다. 다시 시도해주세요.')
+      await alert('저장에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
@@ -308,7 +351,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
       const contracts = result.data
 
       if (!contracts || contracts.length === 0) {
-        alert('이전 계약 정보가 없습니다.')
+        await alert('이전 계약 정보가 없습니다.')
         return
       }
 
@@ -323,7 +366,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
       const header = latestContract.employmentContractHeader
 
       if (!header) {
-        alert('이전 계약의 Header 정보가 없습니다.')
+        await alert('이전 계약의 Header 정보가 없습니다.')
         return
       }
 
@@ -359,10 +402,10 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
         // 계약 기간, 계약일, 파일 정보는 이전 값을 가져오지 않음 (새로 입력해야 함)
       }))
 
-      alert('이전 계약 정보를 불러왔습니다. (계약 기간, 계약일, 파일은 새로 입력해주세요)')
+      await alert('이전 계약 정보를 불러왔습니다. (계약 기간, 계약일, 파일은 새로 입력해주세요)')
     } catch (error) {
       console.error('이전 계약 정보 조회 실패:', error)
-      alert('이전 계약 정보를 불러오는데 실패했습니다.')
+      await alert('이전 계약 정보를 불러오는데 실패했습니다.')
     }
   }
 
@@ -492,25 +535,18 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>{formData.employeeAffiliation === 'HEAD_OFFICE' ? '본사 선택' : '본사/가맹점 선택'} <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', gap: '8px' }}>
-                        <select
-                          className={`select-form ${isHeadOfficeRequired ? 'border-red-500' : ''}`}
-                          value={formData.headOfficeId}
-                          onChange={(e) => handleInputChange('headOfficeId', e.target.value)}
-                          aria-label="본사 선택"
-                        >
-                          <option value="">본사 선택</option>
-                          <option value="1">주식회사 따름인</option>
-                        </select>
+                        <SearchSelect
+                          options={headOfficeOptions}
+                          value={headOfficeOptions.find(opt => opt.value === formData.headOfficeId) || null}
+                          onChange={(option) => handleInputChange('headOfficeId', option?.value || '')}
+                          className={isHeadOfficeRequired ? 'border-red-500' : ''}
+                        />
                         {formData.employeeAffiliation === 'FRANCHISE' && (
-                          <select
-                            className="select-form"
-                            value={formData.franchiseId}
-                            onChange={(e) => handleInputChange('franchiseId', e.target.value)}
-                            aria-label="가맹점 선택"
-                          >
-                            <option value="">가맹점 선택</option>
-                            <option value="1">종로젊음의거리점</option>
-                          </select>
+                          <SearchSelect
+                            options={franchiseOptions}
+                            value={franchiseOptions.find(opt => opt.value === formData.franchiseId) || null}
+                            onChange={(option) => handleInputChange('franchiseId', option?.value || '')}
+                          />
                         )}
                         {isHeadOfficeRequired && (
                           <span className="warning-txt">* 필수 입력 항목입니다.</span>
@@ -523,15 +559,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>점포 선택</th>
                     <td>
                       <div className="data-filed">
-                        <select
-                          className="select-form"
-                          value={formData.storeId}
-                          onChange={(e) => handleInputChange('storeId', e.target.value)}
-                          aria-label="점포 선택"
-                        >
-                          <option value="">점포 선택</option>
-                          <option value="1">삼힘이나는커피생활 종로젊음의거리점</option>
-                        </select>
+                        <SearchSelect
+                          options={storeOptions}
+                          value={storeOptions.find(opt => opt.value === formData.storeId) || null}
+                          onChange={(option) => handleInputChange('storeId', option?.value || '')}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -562,44 +594,38 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>직원명/사번 <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <select
-                          className={`select-form ${isEmployeeRequired ? 'border-red-500' : ''}`}
-                          style={{ width: '200px' }}
-                          value={formData.employeeId}
-                          aria-label="직원 선택"
-                          onChange={(e) => {
-                            const selectedId = e.target.value
-                            const selectedEmployee = employeeList.find(emp => String(emp.employeeInfoId) === selectedId)
-                            if (selectedEmployee) {
-                              setFormData(prev => ({
-                                ...prev,
-                                employeeId: selectedId,
-                                employeeName: selectedEmployee.employeeName,
-                                employeeNumber: selectedEmployee.employeeNumber
-                              }))
-                              if (isCreateMode) {
-                                setSelectedEmployeeInfoId(selectedEmployee.employeeInfoId)
+                        <div style={{ width: '200px' }}>
+                          <SearchSelect
+                            options={employeeOptions}
+                            value={employeeOptions.find(opt => opt.value === formData.employeeId) || null}
+                            onChange={(option) => {
+                              const selectedId = option?.value || ''
+                              const selectedEmployee = employeeList.find(emp => String(emp.employeeInfoId) === selectedId)
+                              if (selectedEmployee) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  employeeId: selectedId,
+                                  employeeName: selectedEmployee.employeeName,
+                                  employeeNumber: selectedEmployee.employeeNumber
+                                }))
+                                if (isCreateMode) {
+                                  setSelectedEmployeeInfoId(selectedEmployee.employeeInfoId)
+                                }
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  employeeId: '',
+                                  employeeName: '',
+                                  employeeNumber: ''
+                                }))
+                                if (isCreateMode) {
+                                  setSelectedEmployeeInfoId(null)
+                                }
                               }
-                            } else {
-                              setFormData(prev => ({
-                                ...prev,
-                                employeeId: '',
-                                employeeName: '',
-                                employeeNumber: ''
-                              }))
-                              if (isCreateMode) {
-                                setSelectedEmployeeInfoId(null)
-                              }
-                            }
-                          }}
-                        >
-                          <option value="">직원 선택</option>
-                          {employeeList.map((emp) => (
-                            <option key={emp.employeeInfoId} value={emp.employeeInfoId}>
-                              {emp.employeeName} ({emp.employeeNumber})
-                            </option>
-                          ))}
-                        </select>
+                            }}
+                            className={isEmployeeRequired ? 'border-red-500' : ''}
+                          />
+                        </div>
                         <span style={{ padding: '4px 12px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
                           {formData.employeeNumber || '-'}
                         </span>
@@ -617,17 +643,13 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>계약 분류 <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <select
-                          className="select-form"
-                          style={{ width: '200px' }}
-                          value={formData.contractClassification}
-                          onChange={(e) => handleInputChange('contractClassification', e.target.value)}
-                          aria-label="계약 분류 선택"
-                        >
-                          <option value="CNTCFWK_001">포괄연봉제</option>
-                          <option value="CNTCFWK_002">비포괄연봉제</option>
-                          <option value="CNTCFWK_003">파트타임</option>
-                        </select>
+                        <div style={{ width: '200px' }}>
+                          <SearchSelect
+                            options={contractClassOptions}
+                            value={contractClassOptions.find(opt => opt.value === formData.contractClassification) || null}
+                            onChange={(option) => handleInputChange('contractClassification', option?.value || '')}
+                          />
+                        </div>
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -695,26 +717,20 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>급여계산 주기/급여일 <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <select
-                          className="select-form"
-                          style={{ width: '150px' }}
-                          value={formData.salaryCycle}
-                          onChange={(e) => handleInputChange('salaryCycle', e.target.value)}
-                          aria-label="급여 주기 선택"
-                        >
-                          <option value="SLRCC_001">시급</option>
-                          <option value="SLRCC_002">월급</option>
-                        </select>
-                        <select
-                          className="select-form"
-                          style={{ width: '100px' }}
-                          value={formData.salaryMonth}
-                          onChange={(e) => handleInputChange('salaryMonth', e.target.value)}
-                          aria-label="급여일 기준 월 선택"
-                        >
-                          <option value="SLRCF_001">당월</option>
-                          <option value="SLRCF_002">익월</option>
-                        </select>
+                        <div style={{ width: '150px' }}>
+                          <SearchSelect
+                            options={salaryCycleOptions}
+                            value={salaryCycleOptions.find(opt => opt.value === formData.salaryCycle) || null}
+                            onChange={(option) => handleInputChange('salaryCycle', option?.value || '')}
+                          />
+                        </div>
+                        <div style={{ width: '100px' }}>
+                          <SearchSelect
+                            options={salaryMonthOptions}
+                            value={salaryMonthOptions.find(opt => opt.value === formData.salaryMonth) || null}
+                            onChange={(option) => handleInputChange('salaryMonth', option?.value || '')}
+                          />
+                        </div>
                         <Input
                           type="number"
                           style={{ width: '80px' }}

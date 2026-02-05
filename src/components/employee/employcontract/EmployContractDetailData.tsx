@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import { useContractDetail, useDeleteContract, useSendContractEmail } from '@/hooks/queries/use-contract-queries'
+import { useAlert } from '@/components/common/ui'
 
 interface EmployContractDetailDataProps {
   contractId?: number
@@ -30,6 +31,7 @@ const dayTypeMap: Record<string, string> = {
 
 export default function EmployContractDetailData({ contractId }: EmployContractDetailDataProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [salaryInfoOpen, setSalaryInfoOpen] = useState(true)
   const [workHoursOpen, setWorkHoursOpen] = useState(true)
@@ -47,14 +49,14 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
   const handleDelete = async () => {
     if (!contractId) return
 
-    if (confirm('정말 삭제하시겠습니까?')) {
+    if (await confirm('정말 삭제하시겠습니까?')) {
       try {
         await deleteContract(contractId)
-        alert('계약서가 삭제되었습니다.')
+        await alert('계약서가 삭제되었습니다.')
         router.push('/employee/contract')
       } catch (err) {
         console.error('계약서 삭제 실패:', err)
-        alert('계약서 삭제에 실패했습니다.')
+        await alert('계약서 삭제에 실패했습니다.')
       }
     }
   }
@@ -67,28 +69,28 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     if (!contractId) return
 
     if (!contractData?.member) {
-      alert('계약서를 전송할 수 없습니다. 직원(member)이 연결되어 있지 않습니다.')
+      await alert('계약서를 전송할 수 없습니다. 직원(member)이 연결되어 있지 않습니다.')
       return
     }
 
     if (!contractData.member.email) {
-      alert('직원의 이메일 정보가 없습니다.')
+      await alert('직원의 이메일 정보가 없습니다.')
       return
     }
 
-    if (confirm(`${contractData.member.name}(${contractData.member.email})에게 계약서를 전송하시겠습니까?`)) {
+    if (await confirm(`${contractData.member.name}(${contractData.member.email})에게 계약서를 전송하시겠습니까?`)) {
       try {
         await sendEmail(contractId)
-        alert('계약서가 전송되었습니다.')
+        await alert('계약서가 전송되었습니다.')
       } catch (err) {
         console.error('계약서 전송 실패:', err)
-        alert('계약서 전송에 실패했습니다.')
+        await alert('계약서 전송에 실패했습니다.')
       }
     }
   }
 
-  const handleDownloadContract = () => {
-    alert('계약서(미날인원본)를 다운로드합니다.')
+  const handleDownloadContract = async () => {
+    await alert('계약서(미날인원본)를 다운로드합니다.')
   }
 
   const handleEditHeader = () => {
