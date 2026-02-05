@@ -80,9 +80,12 @@ function infoToRow(info: HolidayResponseInfo, ownerType: HolidayOwnType): Editab
 }
 
 function buildInitialParentSettings(data: HolidayResponse): ParentHolidayOperatingSetting[] {
-  if (data.holidayOwnType !== 'STORE') return []
+  // 상속받은 휴일(자신의 ownerType과 다른 holidayType)에 대한 설정 추출
+  // STORE: LEGAL, HEAD_OFFICE, FRANCHISE 상속
+  // HEAD_OFFICE: LEGAL 상속
+  // FRANCHISE: LEGAL, HEAD_OFFICE 상속
   return data.infos
-    .filter((info) => info.holidayType !== 'STORE')
+    .filter((info) => info.holidayType !== data.holidayOwnType)
     .map((info) => ({
       holidaySourceType: info.holidayType === 'LEGAL' ? 'LEGAL' as const : 'BRANCH' as const,
       holidaySourceId: info.id,
@@ -282,7 +285,11 @@ function HolidayDetailForm({
     const ownerId = storeId ?? orgId
     if (!ownerId) return
 
-    const holidayInfos: HolidayInfoRequest[] = ownRows.map((r) => ({
+    // 기존 휴일(id 있음)과 새 휴일(id 없음) 분리
+    const existingRows = ownRows.filter((r) => r.holidayId != null)
+    const newRows = ownRows.filter((r) => r.holidayId == null)
+
+    const toHolidayInfo = (r: EditableHolidayRow): HolidayInfoRequest => ({
       holidayId: r.holidayId,
       holidayName: r.holidayName,
       isOperating: r.isOperating,
@@ -290,21 +297,38 @@ function HolidayDetailForm({
       startDate: r.startDate,
       endDate: r.hasPeriod ? r.endDate || undefined : undefined,
       applyChildTypes: !isStore && r.applyChildTypes.length > 0 ? r.applyChildTypes : undefined,
-    }))
+    })
 
-    const payload = {
-      ownerType,
-      ownerId,
-      holidayInfos,
-      parentHolidaySettings: isStore && parentSettings.length > 0 ? parentSettings : undefined,
+    // 기존 휴일 수정 요청 (상속 휴일 영업 설정도 함께 전송)
+    if (existingRows.length > 0) {
+      const updatePayload = {
+        ownerType,
+        ownerId,
+        holidayInfos: existingRows.map(toHolidayInfo),
+        parentHolidaySettings: parentSettings.length > 0 ? parentSettings : undefined,
+      }
+      await updateHoliday(updatePayload)
     }
 
-    const isUpdate = ownRows.some((r) => r.holidayId)
+    // 새 휴일 생성 요청
+    if (newRows.length > 0) {
+      const createPayload = {
+        ownerType,
+        ownerId,
+        holidayInfos: newRows.map(toHolidayInfo),
+      }
+      await createHoliday({ year, payload: createPayload })
+    }
 
-    if (isUpdate) {
-      await updateHoliday(payload)
-    } else {
-      await createHoliday({ year, payload })
+    // 기존 휴일 없이 상속 휴일 영업 설정만 변경하는 경우 (점포/본사/가맹점 모두 해당)
+    if (existingRows.length === 0 && parentSettings.length > 0) {
+      const settingsPayload = {
+        ownerType,
+        ownerId,
+        holidayInfos: [],
+        parentHolidaySettings: parentSettings,
+      }
+      await updateHoliday(settingsPayload)
     }
 
     await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
