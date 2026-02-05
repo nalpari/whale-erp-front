@@ -176,14 +176,19 @@ function LegalHolidayForm({
       endDate: r.hasPeriod ? r.endDate || undefined : undefined,
     }))
 
-    if (hasExisting) {
-      await upsertLegal(payload)
-    } else {
-      await createLegal({ year, payload, skipDuplicate: true })
-    }
+    try {
+      if (hasExisting) {
+        await upsertLegal(payload)
+      } else {
+        await createLegal({ year, payload, skipDuplicate: true })
+      }
 
-    await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
-    router.push('/system/holiday')
+      await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
+      router.push('/system/holiday')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '저장에 실패했습니다.'
+      await alert(message)
+    }
   }
 
   const handleDelete = async (row: EditableLegalRow) => {

@@ -17,7 +17,7 @@ import {
 import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
-import type { StoreScheduleQuery } from '@/types/work-schedule';
+import type { ExcelUploadResult, StoreScheduleQuery } from '@/types/work-schedule';
 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
@@ -32,13 +32,7 @@ export default function StoreSchedulePageClient() {
   const setUploadOpen = useStoreScheduleViewStore((state) => state.setUploadOpen);
   const resetFilters = useStoreScheduleViewStore((state) => state.resetFilters);
   const [showStoreError, setShowStoreError] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{
-    success: boolean;
-    totalRows: number;
-    successRows: number;
-    failedRows: number;
-    errors: Array<{ rowNumber: number; message: string }>;
-  } | null>(null);
+  const [uploadResult, setUploadResult] = useState<ExcelUploadResult | null>(null);
   const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
   const uploadMutation = useStoreScheduleUploadExcel();
   const downloadMutation = useStoreScheduleDownloadExcel();
@@ -163,6 +157,7 @@ export default function StoreSchedulePageClient() {
         successRows: 0,
         failedRows: 0,
         errors: [{ rowNumber: 0, message }],
+        savedSchedules: [],
       });
     }
   };

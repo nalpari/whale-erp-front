@@ -135,7 +135,7 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
       }
       onAfterSave()
     } catch {
-      await alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
+      await alert('점포 저장에 실패했습니다. 잠시 후 다시 시도해주세요')
       return
     }
   }

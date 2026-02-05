@@ -646,7 +646,7 @@ function StoreSelect({
 
   // 가맹점 소속 점포가 1개인 경우 자동 선택
   useEffect(() => {
-    if (isSingleStore && storeId == null) {
+    if (isSingleStore && storeId == null && storeOptions[0]?.id != null) {
       onStoreChange(storeOptions[0].id)
     }
   }, [isSingleStore, storeId, storeOptions, onStoreChange])
@@ -654,7 +654,7 @@ function StoreSelect({
   return (
     <select
       className="select-form"
-      value={storeId != null ? String(storeId) : (isSingleStore ? String(storeOptions[0].id) : '')}
+      value={storeId != null ? String(storeId) : (isSingleStore && storeOptions[0]?.id != null ? String(storeOptions[0].id) : '')}
       disabled={isSingleStore}
       onChange={(e) => {
         const val = e.target.value

@@ -5,7 +5,7 @@ import type { HolidaySearchFilters } from '@/components/system/holiday/HolidaySe
 const currentYear = new Date().getFullYear()
 
 export const defaultHolidaySearchFilters: HolidaySearchFilters = {
-  year: currentYear as number | null,
+  year: currentYear,
   officeId: null,
   franchiseId: null,
   storeId: null,

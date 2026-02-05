@@ -4,7 +4,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import { ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
-import type { HolidayListItem } from '@/types/holiday'
+import type { HolidayListItem, HolidayListType } from '@/types/holiday'
 
 interface HolidayListProps {
   rows: HolidayListItem[]
@@ -18,7 +18,7 @@ interface HolidayListProps {
   onOpenDetail: (row: HolidayListItem) => void
 }
 
-const HOLIDAY_TYPE_MAP: Record<string, string> = {
+const HOLIDAY_TYPE_MAP: Record<HolidayListType, string> = {
   LEGAL: '법정 공휴일',
   PARTNER: 'Partner 휴일',
 }
@@ -54,7 +54,8 @@ export default function HolidayList({
       field: 'holidayType',
       headerName: '분류',
       width: 140,
-      valueGetter: (params) => HOLIDAY_TYPE_MAP[params.data?.holidayType ?? ''] ?? '-',
+      valueGetter: (params) =>
+        params.data?.holidayType ? HOLIDAY_TYPE_MAP[params.data.holidayType] : '-',
     },
     { field: 'headOfficeName', headerName: '본사명', flex: 1 },
     { field: 'franchiseName', headerName: '가맹점명', flex: 1 },
