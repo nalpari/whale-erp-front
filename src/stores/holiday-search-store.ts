@@ -9,6 +9,7 @@ export const defaultHolidaySearchFilters: HolidaySearchFilters = {
   officeId: null,
   franchiseId: null,
   storeId: null,
+  holidayType: null,
 }
 
 export type HolidaySearchState = {

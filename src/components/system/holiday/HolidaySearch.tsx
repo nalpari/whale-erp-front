@@ -10,6 +10,7 @@ export interface HolidaySearchFilters {
   officeId?: number | null
   franchiseId?: number | null
   storeId?: number | null
+  holidayType?: 'LEGAL' | 'PARTNER' | null
 }
 
 interface HolidaySearchProps {
@@ -69,6 +70,21 @@ export default function HolidaySearch({
             </colgroup>
             <tbody>
               <tr>
+                <HeadOfficeFranchiseStoreSelect
+                  isHeadOfficeRequired={false}
+                  officeId={filters.officeId ?? null}
+                  franchiseId={filters.franchiseId ?? null}
+                  storeId={filters.storeId ?? null}
+                  onChange={(next) => {
+                    onChange({
+                      officeId: next.head_office,
+                      franchiseId: next.franchise,
+                      storeId: next.store,
+                    })
+                  }}
+                />
+              </tr>
+              <tr>
                 <th>연도 <span className="red">*</span></th>
                 <td>
                   <div className="data-filed">
@@ -93,22 +109,6 @@ export default function HolidaySearch({
                     )}
                   </div>
                 </td>
-                <td colSpan={4} />
-              </tr>
-              <tr>
-                <HeadOfficeFranchiseStoreSelect
-                  isHeadOfficeRequired={false}
-                  officeId={filters.officeId ?? null}
-                  franchiseId={filters.franchiseId ?? null}
-                  storeId={filters.storeId ?? null}
-                  onChange={(next) => {
-                    onChange({
-                      officeId: next.head_office,
-                      franchiseId: next.franchise,
-                      storeId: next.store,
-                    })
-                  }}
-                />
               </tr>
             </tbody>
           </table>

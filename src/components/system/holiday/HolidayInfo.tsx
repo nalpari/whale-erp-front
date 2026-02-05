@@ -32,6 +32,7 @@ export default function HolidayInfo() {
       office: appliedFilters.officeId ?? undefined,
       franchise: appliedFilters.franchiseId ?? undefined,
       store: appliedFilters.storeId ?? undefined,
+      holidayType: appliedFilters.holidayType ?? undefined,
       page,
       size: pageSize,
     }),
@@ -66,12 +67,14 @@ export default function HolidayInfo() {
       const searchParams = new URLSearchParams()
       searchParams.set('year', String(row.year))
 
+      if (row.headOfficeId) {
+        searchParams.set('headOfficeId', String(row.headOfficeId))
+      }
+      if (row.franchiseId) {
+        searchParams.set('franchiseId', String(row.franchiseId))
+      }
       if (row.storeId) {
         searchParams.set('storeId', String(row.storeId))
-      } else if (row.franchiseId) {
-        searchParams.set('orgId', String(row.franchiseId))
-      } else if (row.headOfficeId) {
-        searchParams.set('orgId', String(row.headOfficeId))
       }
 
       router.push(`/system/holiday/detail?${searchParams.toString()}`)

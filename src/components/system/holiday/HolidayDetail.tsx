@@ -1,11 +1,12 @@
 'use client'
 
 import '@/components/common/custom-css/FormHelper.css'
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import DatePicker from '@/components/ui/common/DatePicker'
-import { useHolidayOwner, useCreateHoliday, useUpdateHoliday, useDeleteHoliday, useStoreOptions } from '@/hooks/queries'
+import { useHolidayOwner, useCreateHoliday, useUpdateHoliday, useDeleteHoliday, useStoreOptions, holidayKeys } from '@/hooks/queries'
+import { useQueryClient } from '@tanstack/react-query'
 import type {
   HolidayResponse,
   HolidayResponseInfo,
@@ -38,7 +39,7 @@ interface EditableHolidayRow {
   hasPeriod: boolean
   startDate: string
   endDate: string
-  applyChildType?: ApplyChildType
+  applyChildTypes: ApplyChildType[]
   holidayType?: HolidayOwnType
   isInherited: boolean
 }
@@ -71,7 +72,7 @@ function infoToRow(info: HolidayResponseInfo, ownerType: HolidayOwnType): Editab
     hasPeriod: info.hasPeriod,
     startDate: info.startDate,
     endDate: info.endDate ?? '',
-    applyChildType: info.applyChildType,
+    applyChildTypes: info.applyChildTypes ?? [],
     holidayType: info.holidayType,
     isInherited: info.holidayType !== ownerType,
   }
@@ -94,8 +95,10 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 export default function HolidayDetail() {
   const searchParams = useSearchParams()
   const year = Number(searchParams.get('year')) || currentYear
-  const orgId = searchParams.get('orgId') ? Number(searchParams.get('orgId')) : undefined
+  const headOfficeId = searchParams.get('headOfficeId') ? Number(searchParams.get('headOfficeId')) : undefined
+  const franchiseId = searchParams.get('franchiseId') ? Number(searchParams.get('franchiseId')) : undefined
   const storeId = searchParams.get('storeId') ? Number(searchParams.get('storeId')) : undefined
+  const orgId = franchiseId ?? headOfficeId
   const hasOwner = !!orgId || !!storeId
 
   const { data: holidayData, isPending: loading } = useHolidayOwner(
@@ -110,8 +113,10 @@ export default function HolidayDetail() {
         <div className="p-4">데이터를 불러오는 중...</div>
       ) : (
         <HolidayDetailForm
+          key={`${year}-${orgId}-${storeId}`}
           year={year}
-          orgId={orgId}
+          headOfficeId={headOfficeId}
+          franchiseId={franchiseId}
           storeId={storeId}
           holidayData={holidayData ?? null}
         />
@@ -121,18 +126,22 @@ export default function HolidayDetail() {
 }
 
 function HolidayDetailForm({
-  year: initialYear,
-  orgId,
+  year,
+  headOfficeId,
+  franchiseId,
   storeId,
   holidayData,
 }: {
   year: number
-  orgId?: number
+  headOfficeId?: number
+  franchiseId?: number
   storeId?: number
   holidayData: HolidayResponse | null
 }) {
+  const orgId = franchiseId ?? headOfficeId
   const router = useRouter()
   const baseId = useId()
+  const queryClient = useQueryClient()
 
   const { mutateAsync: createHoliday, isPending: creating } = useCreateHoliday()
   const { mutateAsync: updateHoliday, isPending: updating } = useUpdateHoliday()
@@ -142,7 +151,14 @@ function HolidayDetailForm({
   const ownerName = holidayData?.ownerName ?? ''
   const isStore = ownerType === 'STORE'
 
-  const [year, setYear] = useState(initialYear)
+  const handleYearChange = useCallback((newYear: number) => {
+    const params = new URLSearchParams()
+    params.set('year', String(newYear))
+    if (headOfficeId) params.set('headOfficeId', String(headOfficeId))
+    if (franchiseId) params.set('franchiseId', String(franchiseId))
+    if (storeId) params.set('storeId', String(storeId))
+    router.replace(`/system/holiday/detail?${params.toString()}`)
+  }, [headOfficeId, franchiseId, storeId, router])
   const [rows, setRows] = useState<EditableHolidayRow[]>(() =>
     holidayData ? holidayData.infos.map((info) => infoToRow(info, holidayData.holidayOwnType)) : []
   )
@@ -155,7 +171,10 @@ function HolidayDetailForm({
 
   // 토글 ON → ownerType만 표시, OFF → 전체(상속 포함) 표시
   const sectionRows = useMemo(
-    () => (holidayEnabled ? ownRows : rows),
+    () => {
+      const filtered = holidayEnabled ? ownRows : rows
+      return [...filtered].sort((a, b) => a.startDate.localeCompare(b.startDate))
+    },
     [holidayEnabled, ownRows, rows]
   )
 
@@ -169,6 +188,7 @@ function HolidayDetailForm({
         hasPeriod: false,
         startDate: '',
         endDate: '',
+        applyChildTypes: [],
         isInherited: false,
       },
     ])
@@ -225,7 +245,29 @@ function HolidayDetailForm({
     []
   )
 
+  const validateRows = (): string | null => {
+    for (let i = 0; i < ownRows.length; i++) {
+      const row = ownRows[i]
+      if (!row.holidayName.trim()) {
+        return `${i + 1}번째 행의 휴일명을 입력해주세요.`
+      }
+      if (!row.startDate) {
+        return `${i + 1}번째 행의 날짜를 입력해주세요.`
+      }
+      if (row.hasPeriod && !row.endDate) {
+        return `${i + 1}번째 행의 종료일을 입력해주세요.`
+      }
+    }
+    return null
+  }
+
   const handleSave = async () => {
+    const validationError = validateRows()
+    if (validationError) {
+      alert(validationError)
+      return
+    }
+
     const ownerId = storeId ?? orgId
     if (!ownerId) return
 
@@ -236,7 +278,7 @@ function HolidayDetailForm({
       hasPeriod: r.hasPeriod,
       startDate: r.startDate,
       endDate: r.hasPeriod ? r.endDate || undefined : undefined,
-      applyChildType: !isStore ? r.applyChildType : undefined,
+      applyChildTypes: !isStore && r.applyChildTypes.length > 0 ? r.applyChildTypes : undefined,
     }))
 
     const payload = {
@@ -254,6 +296,7 @@ function HolidayDetailForm({
       await createHoliday({ year, payload })
     }
 
+    await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
     alert('저장되었습니다.')
     router.push('/system/holiday')
   }
@@ -264,7 +307,7 @@ function HolidayDetailForm({
       return
     }
 
-    if (!confirm(`"${row.holidayName}" 휴일을 삭제하시겠습니까?`)) return
+    if (!confirm('삭제하시겠습니까?')) return
 
     await deleteHoliday({ type: row.holidayType ?? ownerType, id: row.holidayId })
     handleRemoveRow(row.tempId)
@@ -295,7 +338,7 @@ function HolidayDetailForm({
               <select
                 className="select-form"
                 value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
+                onChange={(e) => handleYearChange(Number(e.target.value))}
               >
                 {yearOptions.map((y) => (
                   <option key={y} value={y}>
@@ -327,36 +370,57 @@ function HolidayDetailForm({
             <colgroup>
               <col width="140px" />
               <col />
-              <col width="140px" />
-              <col />
+              {holidayData?.franchiseName && (
+                <>
+                  <col width="140px" />
+                  <col />
+                </>
+              )}
             </colgroup>
             <tbody>
               <tr>
-                <th>본사/가맹점</th>
+                <th>본사</th>
                 <td>
                   <div className="block">
                     <input
                       type="text"
                       className="input-frame"
                       readOnly
-                      value={ownerType === 'STORE' ? holidayData?.branchName ?? '' : ownerName}
+                      value={holidayData?.headOfficeName ?? ownerName}
                     />
                   </div>
                 </td>
-                <th>점포선택</th>
+                {holidayData?.franchiseName && (
+                  <>
+                    <th>가맹점</th>
+                    <td>
+                      <div className="block">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          readOnly
+                          value={holidayData.franchiseName}
+                        />
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+              <tr>
+                <th>점포 선택</th>
                 <td>
                   <div className="block">
                     <StoreSelect
-                      orgId={orgId}
+                      headOfficeId={headOfficeId}
+                      franchiseId={franchiseId}
                       storeId={storeId}
                       onStoreChange={(selectedStoreId) => {
                         const params = new URLSearchParams()
                         params.set('year', String(year))
-                        if (orgId) params.set('orgId', String(orgId))
+                        if (headOfficeId) params.set('headOfficeId', String(headOfficeId))
+                        if (franchiseId) params.set('franchiseId', String(franchiseId))
                         if (selectedStoreId) {
                           params.set('storeId', String(selectedStoreId))
-                        } else {
-                          params.delete('storeId')
                         }
                         router.replace(`/system/holiday/detail?${params.toString()}`)
                       }}
@@ -506,22 +570,24 @@ function HolidayDetailForm({
                         ) : !isStore ? (
                           <td colSpan={2}>
                             <div className="filed-flx g8">
-                              {APPLY_CHILD_OPTIONS.map((opt) => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  className={`btn-form outline s${row.applyChildType === opt.value ? ' act' : ''}`}
-                                  onClick={() =>
-                                    handleRowChange(
-                                      row.tempId,
-                                      'applyChildType',
-                                      row.applyChildType === opt.value ? undefined : opt.value
-                                    )
-                                  }
-                                >
-                                  {opt.label}
-                                </button>
-                              ))}
+                              {APPLY_CHILD_OPTIONS.map((opt) => {
+                                const isChecked = row.applyChildTypes.includes(opt.value)
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`btn-form outline s${isChecked ? ' act' : ''}`}
+                                    onClick={() => {
+                                      const next = isChecked
+                                        ? row.applyChildTypes.filter((v) => v !== opt.value)
+                                        : [...row.applyChildTypes, opt.value]
+                                      handleRowChange(row.tempId, 'applyChildTypes', next)
+                                    }}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                )
+                              })}
                             </div>
                           </td>
                         ) : (
@@ -561,20 +627,31 @@ function HolidayDetailForm({
 }
 
 function StoreSelect({
-  orgId,
+  headOfficeId,
+  franchiseId,
   storeId,
   onStoreChange,
 }: {
-  orgId?: number
+  headOfficeId?: number
+  franchiseId?: number
   storeId?: number
   onStoreChange: (storeId: number | null) => void
 }) {
-  const { data: storeOptions = [] } = useStoreOptions(orgId, undefined, !!orgId)
+  const { data: storeOptions = [] } = useStoreOptions(headOfficeId, franchiseId, true)
+  const isSingleStore = !!franchiseId && storeOptions.length === 1
+
+  // 가맹점 소속 점포가 1개인 경우 자동 선택
+  useEffect(() => {
+    if (isSingleStore && storeId == null) {
+      onStoreChange(storeOptions[0].id)
+    }
+  }, [isSingleStore, storeId, storeOptions, onStoreChange])
 
   return (
     <select
       className="select-form"
-      value={storeId != null ? String(storeId) : ''}
+      value={storeId != null ? String(storeId) : (isSingleStore ? String(storeOptions[0].id) : '')}
+      disabled={isSingleStore}
       onChange={(e) => {
         const val = e.target.value
         onStoreChange(val ? Number(val) : null)
