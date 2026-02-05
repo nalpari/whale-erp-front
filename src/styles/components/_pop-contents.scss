@@ -766,3 +766,64 @@
   color: #222;
   margin-bottom: 24px;
 }
+
+// 공지사항 팝업
+.notice-header {
+  padding-bottom: 14px;
+  border-bottom: 2px solid #222;
+  .notice-date {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #505050;
+  }
+  .notice-tit {
+    @include fontDefinition($font-ds-20, $font-w-600, $line-h-140);
+    color: #222;
+    margin-top: 4px;
+  }
+}
+.notice-content {
+  padding-top: 34px;
+  padding-bottom: 42px;
+  p {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #222;
+    white-space: pre-wrap;
+  }
+}
+.notice-file {
+  padding-top: 22px;
+  border-top: 1px solid #222;
+  .notice-file-tit {
+    @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
+    color: #222;
+  }
+  .notice-file-list {
+    @include flex(4px);
+    flex-direction: column;
+    margin-top: 10px;
+    .notice-file-item {
+      .notice-file-btn {
+        @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+        color: #366fe3;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// 문의하기 성공 팝업
+.contact-success-wrap {
+  text-align: center;
+  .contact-name {
+    @include fontDefinition($font-ds-28, $font-w-600, $line-h-140);
+    color: #222;
+  }
+  .contact-txt {
+    margin-top: 12px;
+    span {
+      display: block;
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+      color: #222;
+    }
+  }
+}
