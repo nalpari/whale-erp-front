@@ -137,7 +137,7 @@ export const useCreateLegalHoliday = () => {
       return response.data.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: holidayKeys.legal() })
+      queryClient.invalidateQueries({ queryKey: holidayKeys.all })
     },
   })
 }
@@ -154,7 +154,7 @@ export const useUpsertLegalHoliday = () => {
       return response.data.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: holidayKeys.legal() })
+      queryClient.invalidateQueries({ queryKey: holidayKeys.all })
     },
   })
 }
@@ -170,7 +170,7 @@ export const useDeleteLegalHoliday = () => {
       await api.delete(`/api/v1/holidays/legal/${id}`)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: holidayKeys.legal() })
+      queryClient.invalidateQueries({ queryKey: holidayKeys.all })
     },
   })
 }

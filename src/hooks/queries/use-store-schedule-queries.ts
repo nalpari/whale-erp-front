@@ -1,5 +1,5 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse } from '@/lib/schemas/api'
 import { storeScheduleKeys } from './query-keys'
@@ -171,9 +171,9 @@ export const useStoreScheduleUploadExcel = () => {
           throw new Error('업로드 결과가 없습니다.')
         }
         return response.data.data
-      } catch (error: any) {
+      } catch (error) {
         // 백엔드에서 validation 실패 시 에러 응답에 ExcelUploadResult가 포함됨
-        if (error.response?.data?.data) {
+        if (error instanceof AxiosError && error.response?.data?.data) {
           return error.response.data.data as ExcelUploadResult
         }
         throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))

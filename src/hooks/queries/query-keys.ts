@@ -205,6 +205,7 @@ export interface HolidayListParams {
   office?: number
   franchise?: number
   store?: number
+  holidayType?: 'LEGAL' | 'PARTNER'
   page?: number
   size?: number
 }

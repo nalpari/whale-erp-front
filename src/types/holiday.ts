@@ -9,6 +9,7 @@ export interface HolidayListParams {
     office?: number
     franchise?: number
     store?: number
+    holidayType?: HolidayListType
     page?: number
     size?: number
 }
@@ -39,7 +40,8 @@ export interface HolidayResponse {
     holidayOwnType: HolidayOwnType
     ownerId: number
     ownerName?: string
-    branchName?: string
+    headOfficeName?: string
+    franchiseName?: string
     infos: HolidayResponseInfo[]
 }
 
@@ -51,7 +53,7 @@ export interface HolidayResponseInfo {
     endDate?: string
     holidayType: HolidayOwnType
     isOperating: boolean
-    applyChildType?: ApplyChildType
+    applyChildTypes?: ApplyChildType[]
 }
 
 // 휴일 생성/수정 요청
@@ -69,7 +71,7 @@ export interface HolidayInfoRequest {
     hasPeriod: boolean
     startDate: string
     endDate?: string
-    applyChildType?: ApplyChildType
+    applyChildTypes?: ApplyChildType[]
 }
 
 export interface ParentHolidayOperatingSetting {
