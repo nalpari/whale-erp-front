@@ -1,10 +1,11 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse } from '@/lib/schemas/api'
-import { storeScheduleKeys } from './query-keys'
+import { storeScheduleKeys } from '@/hooks/queries/query-keys'
 import type {
   ExcelDownloadResult,
+  ExcelUploadResult,
   ScheduleRequest,
   ScheduleResponse,
   ScheduleSummary,
@@ -146,6 +147,42 @@ export const useStoreScheduleDownloadExcel = () => {
 }
 
 /**
+ * 점포별 근무 계획표 업로드 샘플 다운로드 훅.
+ */
+export const useStoreScheduleDownloadTemplate = () => {
+  return useMutation({
+    mutationFn: async (): Promise<ExcelDownloadResult> => {
+      try {
+        const response = await api.get(`${STORE_SCHEDULE_BASE}/template`, {
+          responseType: 'blob',
+        })
+        const contentDisposition = response.headers['content-disposition']
+        const fileName =
+          getFileNameFromDisposition(contentDisposition) ?? '근무계획_업로드_샘플.xlsx'
+        return { blob: response.data, fileName }
+      } catch (error) {
+        throw new Error(getErrorMessage(error, '샘플 파일 다운로드에 실패했습니다.'))
+      }
+    },
+  })
+}
+
+/**
+ * ExcelUploadResult 타입 가드
+ */
+const isExcelUploadResult = (data: unknown): data is ExcelUploadResult => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'success' in data &&
+    'totalRows' in data &&
+    'successRows' in data &&
+    'failedRows' in data &&
+    'errors' in data
+  )
+}
+
+/**
  * 점포별 근무 계획표 엑셀 업로드 훅.
  * - 성공 시 목록 캐시 무효화
  */
@@ -157,17 +194,35 @@ export const useStoreScheduleUploadExcel = () => {
       const formData = new FormData()
       formData.append('excel', file)
       try {
-        const response = await api.post<ApiResponse<ScheduleSummary[]>>(
+        const response = await api.post<ApiResponse<ExcelUploadResult>>(
           `${STORE_SCHEDULE_BASE}/excel/${storeId}`,
-          formData
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
         )
-        return response.data.data ?? []
+        if (!response.data.data) {
+          throw new Error('업로드 결과가 없습니다.')
+        }
+        return response.data.data
       } catch (error) {
+        // 백엔드에서 validation 실패 시 에러 응답에 ExcelUploadResult가 포함됨
+        if (error instanceof AxiosError && error.response?.data?.data) {
+          const errorData = error.response.data.data
+          if (isExcelUploadResult(errorData)) {
+            return errorData
+          }
+        }
         throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
+    onSuccess: (data) => {
+      // 업로드 성공 시에만 캐시 무효화
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
+      }
     },
   })
 }

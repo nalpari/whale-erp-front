@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import { useContractDetail, useCreateContractWorkHours } from '@/hooks/queries/use-contract-queries'
 import type { WorkHourDto } from '@/lib/api/employmentContract'
+import { useAlert } from '@/components/common/ui'
 
 interface WorkingHoursProps {
   contractId?: number
@@ -50,6 +51,7 @@ const parseTime = (timeStr?: string): { period: 'AM' | 'PM', hour: number, minut
 
 export default function WorkingHours({ contractId }: WorkingHoursProps) {
   const router = useRouter()
+  const { alert } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [employeeName, setEmployeeName] = useState('')
@@ -321,7 +323,7 @@ export default function WorkingHours({ contractId }: WorkingHoursProps) {
 
   const handleSave = async () => {
     if (!contractId) {
-      alert('계약 정보를 찾을 수 없습니다.')
+      await alert('계약 정보를 찾을 수 없습니다.')
       return
     }
 
@@ -378,10 +380,10 @@ export default function WorkingHours({ contractId }: WorkingHoursProps) {
       })
 
       await createWorkHoursMutation.mutateAsync({ contractId, workHours: workHoursPayload })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다. 다시 시도해주세요.')
+      await alert('저장에 실패했습니다. 다시 시도해주세요.')
     } finally {
       setIsSaving(false)
     }

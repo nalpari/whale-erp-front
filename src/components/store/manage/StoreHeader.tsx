@@ -3,6 +3,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
+import { useAlert } from '@/components/common/ui'
 import { useStoreDetail, useDeleteStore } from '@/hooks/queries'
 import { OperatingHourInfo } from '@/types/store'
 import AnimateHeight from 'react-animate-height'
@@ -48,6 +49,7 @@ export default function StoreHeader() {
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const { data: detail, isPending: loading, error } = useStoreDetail(storeId)
   const { mutateAsync: deleteStore } = useDeleteStore()
+  const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
   // 요일별 운영시간을 Map으로 정리(평일은 대표 1개만 유지)
@@ -71,7 +73,8 @@ export default function StoreHeader() {
   // 점포 삭제 처리
   const handleDelete = async () => {
     if (!storeId) return
-    if (!window.confirm('점포 정보를 삭제하시겠습니까?')) return
+    const confirmed = await confirm('점포 정보를 삭제하시겠습니까?')
+    if (!confirmed) return
 
     try {
       await deleteStore(storeId)
@@ -80,7 +83,7 @@ export default function StoreHeader() {
       }
       router.push('/store/info')
     } catch {
-      window.alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
+      await alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
       return
     }
   }

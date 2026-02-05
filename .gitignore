@@ -62,3 +62,6 @@ AGENTS.md
 
 # Interllij
 .idea
+
+# Playwright
+/.playwright-mcp
