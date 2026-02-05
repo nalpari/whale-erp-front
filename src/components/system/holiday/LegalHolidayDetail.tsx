@@ -4,6 +4,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import { useCallback, useId, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
+import { useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import {
   useLegalHolidayList,
@@ -94,6 +95,7 @@ function LegalHolidayForm({
   const router = useRouter()
   const baseId = useId()
   const queryClient = useQueryClient()
+  const { alert, confirm } = useAlert()
 
   const { mutateAsync: createLegal, isPending: creating } = useCreateLegalHoliday()
   const { mutateAsync: upsertLegal, isPending: upserting } = useUpsertLegalHoliday()
@@ -158,11 +160,12 @@ function LegalHolidayForm({
   const handleSave = async () => {
     const validationError = validateRows()
     if (validationError) {
-      alert(validationError)
+      await alert(validationError)
       return
     }
 
-    if (!confirm('저장하시겠습니까?')) return
+    const saveConfirmed = await confirm('저장하시겠습니까?')
+    if (!saveConfirmed) return
 
     const hasExisting = rows.some((r) => r.id)
     const payload: LegalHolidayRequest[] = rows.map((r) => ({
@@ -180,7 +183,7 @@ function LegalHolidayForm({
     }
 
     await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
-    alert('저장되었습니다.')
+    await alert('저장되었습니다.')
     router.push('/system/holiday')
   }
 
@@ -190,7 +193,8 @@ function LegalHolidayForm({
       return
     }
 
-    if (!confirm('삭제하시겠습니까?')) return
+    const confirmed = await confirm('삭제하시겠습니까?')
+    if (!confirmed) return
 
     await deleteLegal(row.id)
     handleRemoveRow(row.tempId)
@@ -203,8 +207,9 @@ function LegalHolidayForm({
 
   const isSaving = creating || upserting || deleting
 
-  const handleListClick = () => {
-    if (!confirm('변경 사항이 저장되지 않았습니다. 목록으로 이동하시겠습니까?')) return
+  const handleListClick = async () => {
+    const confirmed = await confirm('변경 사항이 저장되지 않았습니다. 목록으로 이동하시겠습니까?')
+    if (!confirmed) return
 
     const params = new URLSearchParams()
     params.set('year', String(year))

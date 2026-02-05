@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
 import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
 import WorkScheduleTable from '@/components/employee/work-status/WorkScheduleTable';
@@ -20,6 +21,7 @@ import type { StoreScheduleQuery } from '@/types/work-schedule';
 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
+  const { alert } = useAlert();
   const queryClient = useQueryClient();
   const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
   const filters = useStoreScheduleViewStore((state) => state.filters);
@@ -50,8 +52,11 @@ export default function StoreSchedulePageClient() {
   );
   useEffect(() => {
     if (!scheduleQuery.error) return;
-    alert(scheduleQuery.error.message);
-  }, [scheduleQuery.error]);
+    const showError = async () => {
+      await alert(scheduleQuery.error.message);
+    };
+    showError();
+  }, [scheduleQuery.error, alert]);
 
   const handleSearch = async (query: StoreScheduleQuery) => {
     setLastQuery(query);
@@ -94,7 +99,7 @@ export default function StoreSchedulePageClient() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
-      alert(message);
+      await alert(message);
     }
   };
 
@@ -128,7 +133,7 @@ export default function StoreSchedulePageClient() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       const message = error instanceof Error ? error.message : '샘플 파일 다운로드에 실패했습니다.';
-      alert(message);
+      await alert(message);
     }
   }
 

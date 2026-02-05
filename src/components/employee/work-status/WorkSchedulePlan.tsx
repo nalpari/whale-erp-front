@@ -3,6 +3,7 @@
 import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAlert } from '@/components/common/ui';
 import WorkScheduleSearch from './WorkScheduleSearch';
 import type { DayType, ScheduleResponse, StoreScheduleQuery } from '@/types/work-schedule';
 import {
@@ -259,6 +260,7 @@ const buildWorkerSnapshot = (worker: WorkerPlan) => ({
 
 export default function WorkSchedulePlan() {
   const router = useRouter();
+  const { alert, confirm } = useAlert();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
@@ -342,12 +344,12 @@ export default function WorkSchedulePlan() {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : '근무 계획 조회에 실패했습니다.';
-        alert(message);
+        await alert(message);
       } finally {
         setIsFetching(false);
       }
     },
-    [queryClient, setLastQuery]
+    [alert, queryClient, setLastQuery]
   );
 
   const handleReset = useCallback(() => {
@@ -453,11 +455,11 @@ export default function WorkSchedulePlan() {
     setEmployeeModal(null);
   };
 
-  const handleApplyTempWorker = () => {
+  const handleApplyTempWorker = async () => {
     if (!tempWorkerModal) return;
     const trimmed = tempWorkerName.trim();
     if (!trimmed) {
-      alert('임시 근무자 이름을 입력해주세요.');
+      await alert('임시 근무자 이름을 입력해주세요.');
       return;
     }
     setPlans((prev) =>
@@ -487,8 +489,9 @@ export default function WorkSchedulePlan() {
     setTempWorkerModal(null);
   };
 
-  const handleDeleteWorker = (dayIndex: number, workerId: string) => {
-    if (!confirm('선택한 근무자를 삭제하시겠습니까?')) return;
+  const handleDeleteWorker = async (dayIndex: number, workerId: string) => {
+    const confirmed = await confirm('선택한 근무자를 삭제하시겠습니까?');
+    if (!confirmed) return;
     setPlans((prev) => {
       const targetDay = prev[dayIndex];
       if (!targetDay) return prev;
@@ -511,12 +514,12 @@ export default function WorkSchedulePlan() {
   const handleSave = useCallback(async () => {
     if (isLoading) return;
     if (!lastQuery?.storeId) {
-      alert('점포를 선택해주세요.');
+      await alert('점포를 선택해주세요.');
       return;
     }
     const validationError = validatePlans(plans);
     if (validationError) {
-      alert(validationError);
+      await alert(validationError);
       return;
     }
     const payload = plans
@@ -534,7 +537,7 @@ export default function WorkSchedulePlan() {
       .filter((item): item is { date: string; workerRequests: ReturnType<typeof buildWorkerRequest>[] } => Boolean(item));
 
     if (payload.length === 0) {
-      alert('변경된 데이터가 없습니다.');
+      await alert('변경된 데이터가 없습니다.');
       return;
     }
     try {
@@ -542,14 +545,14 @@ export default function WorkSchedulePlan() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : '근무 계획 저장에 실패했습니다.';
-      alert(message);
+      await alert(message);
       return;
     }
     const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
       lastQuery ?? initialQuery ?? null;
     const params = buildStoreScheduleParams(source);
     router.push(`/employee/schedule/view${toQueryString(params)}`);
-  }, [initialQuery, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
+  }, [alert, initialQuery, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
 
   const renderedPlans = useMemo(() => plans, [plans]);
   const resultCount = useMemo(
@@ -683,8 +686,9 @@ export default function WorkSchedulePlan() {
           <div className="store-work-btn">
             <button
               className="btn-form gray"
-              onClick={() => {
-                if (!confirm('입력한 내용을 저장하지 않았습니다. 점포별 근무 계획표로 이동하시겠습니까?')) {
+              onClick={async () => {
+                const confirmed = await confirm('입력한 내용을 저장하지 않았습니다. 점포별 근무 계획표로 이동하시겠습니까?');
+                if (!confirmed) {
                   return;
                 }
                 const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =

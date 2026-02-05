@@ -4,6 +4,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
+import { useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import { useHolidayOwner, useCreateHoliday, useUpdateHoliday, useDeleteHoliday, useStoreOptions, holidayKeys } from '@/hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -142,6 +143,7 @@ function HolidayDetailForm({
   const router = useRouter()
   const baseId = useId()
   const queryClient = useQueryClient()
+  const { alert, confirm } = useAlert()
 
   const { mutateAsync: createHoliday, isPending: creating } = useCreateHoliday()
   const { mutateAsync: updateHoliday, isPending: updating } = useUpdateHoliday()
@@ -264,7 +266,7 @@ function HolidayDetailForm({
   const handleSave = async () => {
     const validationError = validateRows()
     if (validationError) {
-      alert(validationError)
+      await alert(validationError)
       return
     }
 
@@ -297,7 +299,7 @@ function HolidayDetailForm({
     }
 
     await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
-    alert('저장되었습니다.')
+    await alert('저장되었습니다.')
     router.push('/system/holiday')
   }
 
@@ -307,14 +309,16 @@ function HolidayDetailForm({
       return
     }
 
-    if (!confirm('삭제하시겠습니까?')) return
+    const confirmed = await confirm('삭제하시겠습니까?')
+    if (!confirmed) return
 
     await deleteHoliday({ type: row.holidayType ?? ownerType, id: row.holidayId })
     handleRemoveRow(row.tempId)
   }
 
-  const handleListClick = () => {
-    if (!confirm('변경 사항이 저장되지 않았습니다. 목록으로 이동하시겠습니까?')) return
+  const handleListClick = async () => {
+    const confirmed = await confirm('변경 사항이 저장되지 않았습니다. 목록으로 이동하시겠습니까?')
+    if (!confirmed) return
 
     const params = new URLSearchParams()
     params.set('year', String(year))

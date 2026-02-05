@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
+import { useAlert } from '@/components/common/ui'
 import { useEmployeeInfoList } from '@/hooks/queries'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
@@ -43,6 +44,7 @@ const getContractTypeLabel = (code?: string | null) => {
 }
 
 export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps) {
+  const { alert } = useAlert()
   const [form, setForm] = useState<SearchForm>({
     officeId: null,
     franchiseId: null,
@@ -265,14 +267,14 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
               <button className="btn-form gray" onClick={onClose}>닫기</button>
               <button
                 className="btn-form basic"
-                onClick={() => {
+                onClick={async () => {
                   const selected = rowData.find((row) => row.id === selectedId)
                   if (!selected) {
-                    alert('직원을 선택해주세요.')
+                    await alert('직원을 선택해주세요.')
                     return
                   }
                   if (!selected.workerId) {
-                    alert('직원 정보가 올바르지 않습니다.')
+                    await alert('직원 정보가 올바르지 않습니다.')
                     return
                   }
                   onApply({

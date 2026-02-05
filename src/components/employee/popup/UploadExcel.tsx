@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useAlert } from '@/components/common/ui'
 
 type UploadErrorRow = {
   rowNumber: number
@@ -30,6 +31,7 @@ export default function UploadExcel({
   onUpload,
   onDownloadSample,
 }: UploadExcelProps) {
+  const { alert } = useAlert()
   const uploadRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
 
@@ -42,9 +44,9 @@ export default function UploadExcel({
     event.target.value = ''
   }
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) {
-      alert('엑셀 파일을 선택해주세요.')
+      await alert('엑셀 파일을 선택해주세요.')
       return
     }
     onUpload(file)
