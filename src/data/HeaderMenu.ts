@@ -1,5 +1,26 @@
 // HeaderMenu 타입 정의
 
+import { SupportMenu } from '@/data/SupportMenu'
+
+const supportChildren = SupportMenu.map((item, index) => ({
+  id: index,
+  name: item.name,
+  link: (() => {
+    switch (item.name) {
+      case '요금안내/변경':
+        return '/customer/rate-plan'
+      case '부가서비스 신청':
+        return '/customer/after-service'
+      case '공지사항':
+        return '/customer/notice'
+      case '문의하기':
+        return '/customer/contact'
+      default:
+        return '#'
+    }
+  })(),
+}))
+
 export interface HeaderMenuItem {
   id: number
   name: string
@@ -306,5 +327,13 @@ export const HeaderMenu: HeaderMenuItem[] = [
         link: '/',
       },
     ],
+  },
+  {
+    id: 10,
+    name: '고객지원',
+    //icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon09.svg',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon03.svg',
+    link: '#',
+    children: supportChildren,
   },
 ]
