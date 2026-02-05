@@ -147,6 +147,27 @@ export const useStoreScheduleDownloadExcel = () => {
 }
 
 /**
+ * 점포별 근무 계획표 업로드 샘플 다운로드 훅.
+ */
+export const useStoreScheduleDownloadTemplate = () => {
+  return useMutation({
+    mutationFn: async (): Promise<ExcelDownloadResult> => {
+      try {
+        const response = await api.get(`${STORE_SCHEDULE_BASE}/template`, {
+          responseType: 'blob',
+        })
+        const contentDisposition = response.headers['content-disposition']
+        const fileName =
+          getFileNameFromDisposition(contentDisposition) ?? '근무계획_업로드_샘플.xlsx'
+        return { blob: response.data, fileName }
+      } catch (error) {
+        throw new Error(getErrorMessage(error, '샘플 파일 다운로드에 실패했습니다.'))
+      }
+    },
+  })
+}
+
+/**
  * ExcelUploadResult 타입 가드
  */
 const isExcelUploadResult = (data: unknown): data is ExcelUploadResult => {

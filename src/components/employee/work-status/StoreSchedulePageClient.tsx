@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
 import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
 import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
@@ -11,6 +10,7 @@ import Location from '@/components/ui/Location';
 import {
   storeScheduleKeys,
   useStoreScheduleDownloadExcel,
+  useStoreScheduleDownloadTemplate,
   useStoreScheduleList,
   useStoreScheduleUploadExcel,
 } from '@/hooks/queries';
@@ -36,9 +36,10 @@ export default function StoreSchedulePageClient() {
   const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
   const uploadMutation = useStoreScheduleUploadExcel();
   const downloadMutation = useStoreScheduleDownloadExcel();
+  const templateMutation = useStoreScheduleDownloadTemplate();
   const schedules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
   const isLoading =
-    scheduleQuery.isFetching || uploadMutation.isPending || downloadMutation.isPending;
+    scheduleQuery.isFetching || uploadMutation.isPending || downloadMutation.isPending || templateMutation.isPending;
 
   const resultCount = useMemo(
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),
@@ -99,24 +100,7 @@ export default function StoreSchedulePageClient() {
 
   const handleDownloadSample = async () => {
     try {
-      const response = await api.get('/api/v1/store-schedule/template', {
-        responseType: 'blob',
-        headers: {
-          'Content-Type': undefined, // GET 요청에서 Content-Type 헤더 제거
-        },
-      });
-
-      const blob = response.data;
-      const contentDisposition = response.headers['content-disposition'];
-      let fileName = '근무계획_업로드_샘플.xlsx';
-
-      if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (fileNameMatch && fileNameMatch[1]) {
-          fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''));
-        }
-      }
-
+      const { blob, fileName } = await templateMutation.mutateAsync();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
