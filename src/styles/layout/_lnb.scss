@@ -59,27 +59,27 @@
   .lnb-menu-icon {
     width: 60px;
     height: 60px;
-    background-color: #1A2129;
+    background-color: #1a2129;
     padding: 17px;
     border-radius: 50%;
   }
   .lnb_menu_name {
     @include fontDefinition($font-ds-20, $font-w-700, $line-h-140);
-    color: #D4D5D7;
+    color: #d4d5d7;
     white-space: nowrap;
   }
-  .lnb-meu-grade{
+  .lnb-meu-grade {
     padding: 0 8px;
     @include fontDefinition($font-ds-13, $font-w-500, $line-h-140);
-    background-color: #323B55;
-    color: #71BCF4;
+    background-color: #323b55;
+    color: #71bcf4;
     border-radius: 3px;
   }
 }
 .lnb-body {
   padding: 36px 0;
 }
-.lnb-list{
+.lnb-list {
   height: calc(100vh - 350px);
   overflow-y: auto;
   overflow-x: hidden;
@@ -91,7 +91,7 @@
   &::-webkit-scrollbar-track {
     background-color: transparent;
   }
-  &::-webkit-scrollbar-thumb { 
+  &::-webkit-scrollbar-thumb {
     background-color: #a3a7ac;
     border-radius: 50px;
   }
@@ -176,8 +176,8 @@
         opacity: 1;
       }
     }
-    .home{
-      background: none;
+    .home {
+      background-image: none;
     }
   }
 }
@@ -201,7 +201,7 @@
     .lnb-toggle-btn {
       transform: rotate(180deg);
     }
-    .lnb-list{
+    .lnb-list {
       overflow: unset;
       height: auto;
     }
