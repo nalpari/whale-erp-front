@@ -299,41 +299,46 @@ function HolidayDetailForm({
       applyChildTypes: !isStore && r.applyChildTypes.length > 0 ? r.applyChildTypes : undefined,
     })
 
-    // 기존 휴일 수정 요청 (상속 휴일 영업 설정도 함께 전송)
-    if (existingRows.length > 0) {
-      const updatePayload = {
-        ownerType,
-        ownerId,
-        holidayInfos: existingRows.map(toHolidayInfo),
-        parentHolidaySettings: parentSettings.length > 0 ? parentSettings : undefined,
+    try {
+      // 기존 휴일 수정 요청 (상속 휴일 영업 설정도 함께 전송)
+      if (existingRows.length > 0) {
+        const updatePayload = {
+          ownerType,
+          ownerId,
+          holidayInfos: existingRows.map(toHolidayInfo),
+          parentHolidaySettings: parentSettings.length > 0 ? parentSettings : undefined,
+        }
+        await updateHoliday(updatePayload)
       }
-      await updateHoliday(updatePayload)
-    }
 
-    // 새 휴일 생성 요청
-    if (newRows.length > 0) {
-      const createPayload = {
-        ownerType,
-        ownerId,
-        holidayInfos: newRows.map(toHolidayInfo),
+      // 새 휴일 생성 요청
+      if (newRows.length > 0) {
+        const createPayload = {
+          ownerType,
+          ownerId,
+          holidayInfos: newRows.map(toHolidayInfo),
+        }
+        await createHoliday({ year, payload: createPayload })
       }
-      await createHoliday({ year, payload: createPayload })
-    }
 
-    // 기존 휴일 없이 상속 휴일 영업 설정만 변경하는 경우 (점포/본사/가맹점 모두 해당)
-    if (existingRows.length === 0 && parentSettings.length > 0) {
-      const settingsPayload = {
-        ownerType,
-        ownerId,
-        holidayInfos: [],
-        parentHolidaySettings: parentSettings,
+      // 기존 휴일 없이 상속 휴일 영업 설정만 변경하는 경우 (점포/본사/가맹점 모두 해당)
+      if (existingRows.length === 0 && parentSettings.length > 0) {
+        const settingsPayload = {
+          ownerType,
+          ownerId,
+          holidayInfos: [],
+          parentHolidaySettings: parentSettings,
+        }
+        await updateHoliday(settingsPayload)
       }
-      await updateHoliday(settingsPayload)
-    }
 
-    await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
-    await alert('저장되었습니다.')
-    router.push('/system/holiday')
+      await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
+      await alert('저장되었습니다.')
+      router.push('/system/holiday')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '저장에 실패했습니다.'
+      await alert(message)
+    }
   }
 
   const handleDelete = async (row: EditableHolidayRow) => {

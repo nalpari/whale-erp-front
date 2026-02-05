@@ -203,8 +203,13 @@ function LegalHolidayForm({
     const confirmed = await confirm('삭제하시겠습니까?')
     if (!confirmed) return
 
-    await deleteLegal(row.id)
-    handleRemoveRow(row.tempId)
+    try {
+      await deleteLegal(row.id)
+      handleRemoveRow(row.tempId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '삭제에 실패했습니다.'
+      await alert(message)
+    }
   }
 
   const sortedRows = useMemo(

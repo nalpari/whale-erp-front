@@ -147,6 +147,21 @@ export const useStoreScheduleDownloadExcel = () => {
 }
 
 /**
+ * ExcelUploadResult 타입 가드
+ */
+const isExcelUploadResult = (data: unknown): data is ExcelUploadResult => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'success' in data &&
+    'totalRows' in data &&
+    'successRows' in data &&
+    'failedRows' in data &&
+    'errors' in data
+  )
+}
+
+/**
  * 점포별 근무 계획표 엑셀 업로드 훅.
  * - 성공 시 목록 캐시 무효화
  */
@@ -174,13 +189,19 @@ export const useStoreScheduleUploadExcel = () => {
       } catch (error) {
         // 백엔드에서 validation 실패 시 에러 응답에 ExcelUploadResult가 포함됨
         if (error instanceof AxiosError && error.response?.data?.data) {
-          return error.response.data.data as ExcelUploadResult
+          const errorData = error.response.data.data
+          if (isExcelUploadResult(errorData)) {
+            return errorData
+          }
         }
         throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
+    onSuccess: (data) => {
+      // 업로드 성공 시에만 캐시 무효화
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
+      }
     },
   })
 }
