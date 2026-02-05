@@ -153,6 +153,9 @@ function LegalHolidayForm({
       if (row.hasPeriod && !row.endDate) {
         return `${i + 1}번째 행의 종료일을 입력해주세요.`
       }
+      if (row.hasPeriod && row.endDate && row.startDate > row.endDate) {
+        return `${i + 1}번째 행의 종료일이 시작일보다 빠릅니다.`
+      }
     }
     return null
   }
@@ -205,7 +208,13 @@ function LegalHolidayForm({
   }
 
   const sortedRows = useMemo(
-    () => [...rows].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    () => {
+      // 기존 법정공휴일(id 있음)은 startDate로 정렬, 새로 추가한 휴일(id 없음)은 맨 아래 유지
+      const existingRows = rows.filter((r) => r.id != null)
+      const newRows = rows.filter((r) => r.id == null)
+      const sortedExisting = [...existingRows].sort((a, b) => a.startDate.localeCompare(b.startDate))
+      return [...sortedExisting, ...newRows]
+    },
     [rows]
   )
 

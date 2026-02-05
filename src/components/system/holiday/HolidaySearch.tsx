@@ -55,7 +55,12 @@ export default function HolidaySearch({
           검색결과<span>{resultCount}건</span>
         </div>
         <ul className="search-result-list" />
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          onClick={() => setSearchOpen(!searchOpen)}
+        />
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
