@@ -1,7 +1,7 @@
 'use client'
 
 import '@/components/common/custom-css/FormHelper.css'
-import { useCallback, useId, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import DatePicker from '@/components/ui/common/DatePicker'
@@ -10,7 +10,9 @@ import {
   useCreateLegalHoliday,
   useUpsertLegalHoliday,
   useDeleteLegalHoliday,
+  holidayKeys,
 } from '@/hooks/queries'
+import { useQueryClient } from '@tanstack/react-query'
 import type { LegalHolidayResponse, LegalHolidayRequest } from '@/types/holiday'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리', '법정공휴일 관리']
@@ -70,6 +72,7 @@ export default function LegalHolidayDetail() {
         <div className="p-4">데이터를 불러오는 중...</div>
       ) : (
         <LegalHolidayForm
+          key={`${year}-${legalData?.length ?? 0}`}
           year={year}
           onYearChange={setYear}
           initialData={legalData ?? []}
@@ -90,6 +93,7 @@ function LegalHolidayForm({
 }) {
   const router = useRouter()
   const baseId = useId()
+  const queryClient = useQueryClient()
 
   const { mutateAsync: createLegal, isPending: creating } = useCreateLegalHoliday()
   const { mutateAsync: upsertLegal, isPending: upserting } = useUpsertLegalHoliday()
@@ -100,14 +104,17 @@ function LegalHolidayForm({
   )
 
   const handleAddRow = useCallback(() => {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
     setRows((prev) => [
       ...prev,
       {
         tempId: generateTempId(),
         holidayName: '',
         hasPeriod: false,
-        startDate: '',
-        endDate: '',
+        startDate: toDateString(today),
+        endDate: toDateString(tomorrow),
       },
     ])
   }, [])
@@ -132,7 +139,29 @@ function LegalHolidayForm({
     []
   )
 
+  const validateRows = (): string | null => {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      if (!row.holidayName.trim()) {
+        return `${i + 1}번째 행의 공휴일명을 입력해주세요.`
+      }
+      if (!row.startDate) {
+        return `${i + 1}번째 행의 날짜를 입력해주세요.`
+      }
+      if (row.hasPeriod && !row.endDate) {
+        return `${i + 1}번째 행의 종료일을 입력해주세요.`
+      }
+    }
+    return null
+  }
+
   const handleSave = async () => {
+    const validationError = validateRows()
+    if (validationError) {
+      alert(validationError)
+      return
+    }
+
     if (!confirm('저장하시겠습니까?')) return
 
     const hasExisting = rows.some((r) => r.id)
@@ -150,6 +179,7 @@ function LegalHolidayForm({
       await createLegal({ year, payload, skipDuplicate: true })
     }
 
+    await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
     alert('저장되었습니다.')
     router.push('/system/holiday')
   }
@@ -160,11 +190,16 @@ function LegalHolidayForm({
       return
     }
 
-    if (!confirm(`"${row.holidayName}" 공휴일을 삭제하시겠습니까?`)) return
+    if (!confirm('삭제하시겠습니까?')) return
 
     await deleteLegal(row.id)
     handleRemoveRow(row.tempId)
   }
+
+  const sortedRows = useMemo(
+    () => [...rows].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    [rows]
+  )
 
   const isSaving = creating || upserting || deleting
 
@@ -236,14 +271,14 @@ function LegalHolidayForm({
                 <col width="42px" />
               </colgroup>
               <tbody>
-                {rows.length === 0 ? (
+                {sortedRows.length === 0 ? (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '20px 0' }}>
                       등록된 법정공휴일이 없습니다.
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => (
+                  sortedRows.map((row) => (
                     <tr key={row.tempId}>
                       {/* 공휴일명 */}
                       <td>

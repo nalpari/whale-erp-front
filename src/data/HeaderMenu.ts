@@ -220,7 +220,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
         link: '/system/holiday',
       },
       {
-        id: 'system-06',
+        id: 52,
         name: '법정공휴일 관리',
         link: '/system/holiday/legal',
       },
