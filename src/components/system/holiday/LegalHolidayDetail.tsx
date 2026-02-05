@@ -183,7 +183,6 @@ function LegalHolidayForm({
     }
 
     await queryClient.invalidateQueries({ queryKey: holidayKeys.all })
-    await alert('저장되었습니다.')
     router.push('/system/holiday')
   }
 
@@ -208,7 +207,7 @@ function LegalHolidayForm({
   const isSaving = creating || upserting || deleting
 
   const handleListClick = async () => {
-    const confirmed = await confirm('변경 사항이 저장되지 않았습니다. 목록으로 이동하시겠습니까?')
+    const confirmed = await confirm('입력한 내용을 저장하지 않았습니다. 휴일 관리 목록으로 이동하시겠습니까?')
     if (!confirmed) return
 
     const params = new URLSearchParams()
