@@ -200,21 +200,9 @@ export const attendanceKeys = {
   records: (params?: unknown) => [...attendanceKeys.all, 'records', params ?? null] as const,
 }
 
-export interface HolidayListParams {
-  year: number
-  office?: number
-  franchise?: number
-  store?: number
-  holidayType?: 'LEGAL' | 'PARTNER'
-  page?: number
-  size?: number
-}
-
-export interface HolidayOwnerParams {
-  year: number
-  orgId?: number
-  storeId?: number
-}
+// Re-export types from holiday.ts to avoid duplication
+export type { HolidayListParams, HolidayOwnerParams } from '@/types/holiday'
+import type { HolidayListParams, HolidayOwnerParams } from '@/types/holiday'
 
 export const holidayKeys = {
   all: ['holidays'] as const,

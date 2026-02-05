@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { holidayKeys, type HolidayListParams, type HolidayOwnerParams } from './query-keys'
+import { holidayKeys, type HolidayListParams, type HolidayOwnerParams } from '@/hooks/queries/query-keys'
 import type { ApiResponse } from '@/lib/schemas/api'
 import type {
   HolidayListItem,

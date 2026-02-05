@@ -2,7 +2,7 @@
 import axios, { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse } from '@/lib/schemas/api'
-import { storeScheduleKeys } from './query-keys'
+import { storeScheduleKeys } from '@/hooks/queries/query-keys'
 import type {
   ExcelDownloadResult,
   ExcelUploadResult,
