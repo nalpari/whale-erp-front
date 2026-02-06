@@ -2,33 +2,25 @@
 
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useAlert } from '@/components/common/ui'
-
-type UploadErrorRow = {
-  rowNumber: number
-  message: string
-}
-
-type UploadResult = {
-  success: boolean
-  totalRows: number
-  successRows: number
-  failedRows: number
-  errors: UploadErrorRow[]
-}
+import type { ExcelValidationResult } from '@/types/work-schedule'
 
 type UploadExcelProps = {
   isUploading?: boolean
-  result?: UploadResult | null
-  onClose: () => void
+  isSaving?: boolean
+  result?: ExcelValidationResult | null
+  onClose: (hasSaved: boolean) => void
   onUpload: (file: File) => void
+  onSave: () => void
   onDownloadSample?: () => void
 }
 
 export default function UploadExcel({
   isUploading = false,
+  isSaving = false,
   result = null,
   onClose,
   onUpload,
+  onSave,
   onDownloadSample,
 }: UploadExcelProps) {
   const { alert } = useAlert()
@@ -36,7 +28,8 @@ export default function UploadExcel({
   const [file, setFile] = useState<File | null>(null)
 
   const errorRows = useMemo(() => result?.errors ?? [], [result])
-  const isSuccess = useMemo(() => result?.success ?? false, [result])
+  const isValid = result?.valid ?? false
+  const isProcessing = isUploading || isSaving
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
@@ -58,7 +51,7 @@ export default function UploadExcel({
         <div className="modal-content">
           <div className="modal-header">
             <h2>엑셀 업로드</h2>
-            <button className="modal-close" aria-label="닫기" onClick={onClose}></button>
+            <button className="modal-close" aria-label="닫기" onClick={() => onClose(false)}></button>
           </div>
           <div className="modal-body">
             <div className="search-filed">
@@ -86,7 +79,7 @@ export default function UploadExcel({
                           type="button"
                           className="btn-form outline s"
                           onClick={() => uploadRef.current?.click()}
-                          disabled={isUploading}
+                          disabled={isProcessing}
                         >
                           파일 찾기
                         </button>
@@ -94,7 +87,7 @@ export default function UploadExcel({
                           type="button"
                           className="btn-form outline s"
                           onClick={onDownloadSample}
-                          disabled={!onDownloadSample || isUploading}
+                          disabled={!onDownloadSample || isProcessing}
                         >
                           샘플
                         </button>
@@ -112,7 +105,7 @@ export default function UploadExcel({
                 </tbody>
               </table>
               <div className="btn-filed">
-                <button className="btn-form basic" onClick={handleUpload} disabled={isUploading}>
+                <button className="btn-form basic" onClick={handleUpload} disabled={isProcessing}>
                   업로드
                 </button>
               </div>
@@ -120,14 +113,14 @@ export default function UploadExcel({
 
             {result && (
               <div className="search-filed" style={{ marginTop: 16 }}>
-                {result.success ? (
+                {isValid ? (
                   <div style={{ padding: '16px', textAlign: 'center', color: '#22c55e' }}>
-                    ✓ 정상적으로 업로드되었습니다.
+                    ✅ 정상적으로 업로드되었습니다.
                   </div>
                 ) : (
                   <>
                     <div style={{ padding: '16px', textAlign: 'center', color: '#ef4444' }}>
-                      ✗ 실패했습니다. 다시 시도해주세요.
+                      ❌ 실패했습니다. 다시 시도해주세요.
                     </div>
                     {errorRows.length > 0 && (
                       <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '8px' }}>
@@ -141,7 +134,9 @@ export default function UploadExcel({
                           <tbody>
                             {errorRows.map((error, idx) => (
                               <tr key={idx}>
-                                <td style={{ textAlign: 'center' }}>{error.rowNumber}행</td>
+                                <td style={{ textAlign: 'center' }}>
+                                  {error.rowNumber === 0 ? '파일' : `${error.rowNumber}행`}
+                                </td>
                                 <td>{error.message}</td>
                               </tr>
                             ))}
@@ -155,15 +150,16 @@ export default function UploadExcel({
             )}
 
             <div className="pop-btn-content" style={{ marginTop: 16 }}>
-              {isSuccess && (
+              {isValid && (
                 <button
                   className="btn-form outline"
-                  onClick={onClose}
+                  onClick={onSave}
+                  disabled={isSaving}
                 >
                   저장
                 </button>
               )}
-              <button className="btn-form gray" onClick={onClose}>
+              <button className="btn-form gray" onClick={() => onClose(false)} disabled={isProcessing}>
                 닫기
               </button>
             </div>

@@ -5,7 +5,7 @@ import type { ApiResponse } from '@/lib/schemas/api'
 import { storeScheduleKeys } from '@/hooks/queries/query-keys'
 import type {
   ExcelDownloadResult,
-  ExcelUploadResult,
+  ExcelValidationResult,
   ScheduleRequest,
   ScheduleResponse,
   ScheduleSummary,
@@ -99,14 +99,17 @@ export const useStoreScheduleUpsert = () => {
     mutationFn: async ({
       storeId,
       payload,
+      replaceMode = false,
     }: {
       storeId: number
       payload: ScheduleRequest[]
+      replaceMode?: boolean
     }) => {
       try {
         const response = await api.post<ApiResponse<ScheduleSummary[]>>(
           `${STORE_SCHEDULE_BASE}/${storeId}`,
-          payload
+          payload,
+          { params: { replaceMode } }
         )
         return response.data.data ?? []
       } catch (error) {
@@ -168,34 +171,33 @@ export const useStoreScheduleDownloadTemplate = () => {
 }
 
 /**
- * ExcelUploadResult 타입 가드
+ * ExcelValidationResult 타입 가드
  */
-const isExcelUploadResult = (data: unknown): data is ExcelUploadResult => {
+const isExcelValidationResult = (data: unknown): data is ExcelValidationResult => {
   return (
     typeof data === 'object' &&
     data !== null &&
-    'success' in data &&
+    'valid' in data &&
     'totalRows' in data &&
-    'successRows' in data &&
-    'failedRows' in data &&
+    'validRows' in data &&
+    'invalidRows' in data &&
     'errors' in data
   )
 }
 
 /**
- * 점포별 근무 계획표 엑셀 업로드 훅.
- * - 성공 시 목록 캐시 무효화
+ * 점포별 근무 계획표 엑셀 검증 훅.
+ * - 검증만 수행하고 DB에 저장하지 않음
+ * - 검증 성공 시 schedules 데이터를 반환하며, 저장은 useStoreScheduleUpsert로 별도 호출
  */
-export const useStoreScheduleUploadExcel = () => {
-  const queryClient = useQueryClient()
-
+export const useStoreScheduleValidateExcel = () => {
   return useMutation({
-    mutationFn: async ({ storeId, file }: { storeId: number; file: File }) => {
+    mutationFn: async ({ storeId, file }: { storeId: number; file: File }): Promise<ExcelValidationResult> => {
       const formData = new FormData()
       formData.append('excel', file)
       try {
-        const response = await api.post<ApiResponse<ExcelUploadResult>>(
-          `${STORE_SCHEDULE_BASE}/excel/${storeId}`,
+        const response = await api.post<ApiResponse<ExcelValidationResult>>(
+          `${STORE_SCHEDULE_BASE}/excel/${storeId}/validate`,
           formData,
           {
             headers: {
@@ -204,24 +206,18 @@ export const useStoreScheduleUploadExcel = () => {
           }
         )
         if (!response.data.data) {
-          throw new Error('업로드 결과가 없습니다.')
+          throw new Error('검증 결과가 없습니다.')
         }
         return response.data.data
       } catch (error) {
-        // 백엔드에서 validation 실패 시 에러 응답에 ExcelUploadResult가 포함됨
+        // 백엔드에서 validation 실패도 HTTP 200으로 내려오지만, 혹시 에러 응답인 경우 처리
         if (error instanceof AxiosError && error.response?.data?.data) {
           const errorData = error.response.data.data
-          if (isExcelUploadResult(errorData)) {
+          if (isExcelValidationResult(errorData)) {
             return errorData
           }
         }
-        throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))
-      }
-    },
-    onSuccess: (data) => {
-      // 업로드 성공 시에만 캐시 무효화
-      if (data.success) {
-        queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
+        throw new Error(getErrorMessage(error, '엑셀 검증에 실패했습니다.'))
       }
     },
   })
