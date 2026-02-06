@@ -19,7 +19,9 @@ import type {
   PostOvertimeAllowanceStatementRequest,
 } from '@/lib/api/overtimeAllowanceStatement'
 import { OvertimeWorkTimeEditData, EditableOvertimeRecord, EditableWeeklySubtotal } from './OvertimeWorkTimeEdit'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
+import { useBp } from '@/hooks/useBp'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { useAuthStore } from '@/stores/auth-store'
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -67,15 +69,25 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
 
   // Organization selection state
-  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('1')
-  const [selectedFranchise, setSelectedFranchise] = useState<string>('1')
-  const [selectedStore, setSelectedStore] = useState<string>('1')
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('')
+  const [selectedStore, setSelectedStore] = useState<string>('')
+
+  // BP 트리 데이터
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBp(isReady)
+
+  // 점포 옵션 조회
+  const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null
+  const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
+  const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
   // TanStack Query hooks
   const { data: existingStatement } = useOvertimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
-    { headOfficeId: DEFAULT_HEAD_OFFICE_ID, franchiseId: DEFAULT_FRANCHISE_ID, employeeType: 'FULL_TIME' },
-    isNewMode
+    headOfficeIdNum ? { headOfficeId: headOfficeIdNum, franchiseId: franchiseIdNum ?? undefined, employeeType: 'FULL_TIME' } : { headOfficeId: 0, employeeType: 'FULL_TIME' },
+    isNewMode && !!headOfficeIdNum
   )
   const { data: overtimeData, refetch: refetchOvertimeData } = useDailyOvertimeHours(
     { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },
@@ -522,17 +534,19 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return options
   }, [employeeList])
 
-  const headquarterOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '따름인' }
-  ], [])
+  const headquarterOptions: SelectOption[] = useMemo(() =>
+    bpTree.map((office) => ({ value: String(office.id), label: office.name }))
+  , [bpTree])
 
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '을지로3가점' }
-  ], [])
+  const franchiseOptions: SelectOption[] = useMemo(() => {
+    if (!headOfficeIdNum) return []
+    const office = bpTree.find((o) => o.id === headOfficeIdNum)
+    return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
+  }, [bpTree, headOfficeIdNum])
 
-  const storeOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '힘이나는커피생활 을지로3가점' }
-  ], [])
+  const storeOptions: SelectOption[] = useMemo(() =>
+    storeOptionList.map(store => ({ value: String(store.id), label: store.storeName }))
+  , [storeOptionList])
 
   return (
     <div className="contents-wrap">
@@ -590,7 +604,11 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       <SearchSelect
                         options={headquarterOptions}
                         value={headquarterOptions.find(opt => opt.value === selectedHeadquarter) || null}
-                        onChange={(opt) => setSelectedHeadquarter(opt?.value || '')}
+                        onChange={(opt) => {
+                          setSelectedHeadquarter(opt?.value || '')
+                          setSelectedFranchise('')
+                          setSelectedStore('')
+                        }}
                         placeholder="본사 선택"
                         isDisabled={!isEditMode}
                       />
@@ -599,7 +617,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       <SearchSelect
                         options={franchiseOptions}
                         value={franchiseOptions.find(opt => opt.value === selectedFranchise) || null}
-                        onChange={(opt) => setSelectedFranchise(opt?.value || '')}
+                        onChange={(opt) => {
+                          setSelectedFranchise(opt?.value || '')
+                          setSelectedStore('')
+                        }}
                         placeholder="가맹점 선택"
                         isDisabled={!isEditMode}
                       />

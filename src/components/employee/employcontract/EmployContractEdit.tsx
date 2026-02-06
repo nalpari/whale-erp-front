@@ -15,6 +15,9 @@ import {
 } from '@/hooks/queries/use-contract-queries'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHeaderRequest } from '@/lib/api/employmentContract'
+import { useBp } from '@/hooks/useBp'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface EmployContractEditProps {
   contractId?: number
@@ -44,6 +47,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [headerId, setHeaderId] = useState<number | null>(null)
   const [selectedEmployeeInfoId, setSelectedEmployeeInfoId] = useState<number | null>(null)
+
+  // BP 트리 데이터
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree } = useBp(isReady)
 
   // 파일 input refs
   const laborContractFileRef = useRef<HTMLInputElement>(null)
@@ -83,12 +91,17 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     jobDescription: ''
   })
 
+  // 점포 옵션 조회
+  const headOfficeIdNum = formData.headOfficeId ? parseInt(formData.headOfficeId) : null
+  const franchiseIdNum = formData.franchiseId ? parseInt(formData.franchiseId) : null
+  const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
+
   // TanStack Query - 직원 목록 조회
   const { data: employeeList = [] } = useEmployeeListByType({
-    headOfficeId: 1,
-    franchiseId: 2,
+    headOfficeId: headOfficeIdNum!,
+    franchiseId: franchiseIdNum ?? undefined,
     employeeType: 'ALL'
-  })
+  }, !!headOfficeIdNum)
 
   // TanStack Query - 계약 상세 조회 (수정 모드)
   const { data: contractDetail, isPending: isLoading } = useContractDetail(
@@ -111,18 +124,22 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   // SearchSelect 옵션들
   const headOfficeOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '본사 선택' },
-    { value: '1', label: '주식회사 따름인' }
-  ], [])
+    ...bpTree.map((office) => ({ value: String(office.id), label: office.name }))
+  ], [bpTree])
 
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '가맹점 선택' },
-    { value: '1', label: '종로젊음의거리점' }
-  ], [])
+  const franchiseOptions: SelectOption[] = useMemo(() => {
+    if (!headOfficeIdNum) return [{ value: '', label: '가맹점 선택' }]
+    const office = bpTree.find((o) => o.id === headOfficeIdNum)
+    return [
+      { value: '', label: '가맹점 선택' },
+      ...(office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? [])
+    ]
+  }, [bpTree, headOfficeIdNum])
 
   const storeOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '점포 선택' },
-    { value: '1', label: '삼힘이나는커피생활 종로젊음의거리점' }
-  ], [])
+    ...storeOptionList.map(store => ({ value: String(store.id), label: store.storeName }))
+  ], [storeOptionList])
 
   const employeeOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '직원 선택' },
@@ -148,6 +165,12 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     { value: 'SLRCF_002', label: '익월' }
   ], [])
 
+  const displayEmployeeNumber = useMemo(() => {
+    if (formData.employeeNumber) return formData.employeeNumber
+    const emp = employeeList.find(e => String(e.employeeInfoId) === formData.employeeId)
+    return emp?.employeeNumber || '-'
+  }, [formData.employeeNumber, formData.employeeId, employeeList])
+
   // 계약 상세 데이터 로드 시 폼 업데이트
   useEffect(() => {
     if (contractDetail && !isCreateMode && headerId === null) {
@@ -168,7 +191,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
 
       setFormData(prev => ({
         ...prev,
-        employeeId: String(member?.id ?? ''),
+        headOfficeId: String(contractDetail.headOfficeOrganizationId ?? ''),
+        franchiseId: String(contractDetail.franchiseOrganizationId ?? ''),
+        storeId: String(contractDetail.storeId ?? ''),
+        employeeAffiliation: contractDetail.franchiseOrganizationId ? 'FRANCHISE' : 'HEAD_OFFICE',
+        employeeId: String(contractDetail.employeeInfoId ?? ''),
         employeeName: member?.name || '',
         employeeNumber: member?.employeeNumber || '',
         contractClassification: header?.contractClassification || 'CNTCFWK_001',
@@ -200,7 +227,15 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
 
   const handleInputChange = (field: string, value: string | number | boolean | string[] | Date | null) => {
     if (field === 'employeeAffiliation' && value === 'HEAD_OFFICE') {
-      setFormData(prev => ({ ...prev, [field]: value, franchiseId: '' }))
+      setFormData(prev => ({ ...prev, [field]: value, franchiseId: '', storeId: '' }))
+      return
+    }
+    if (field === 'headOfficeId') {
+      setFormData(prev => ({ ...prev, headOfficeId: value as string, franchiseId: '', storeId: '' }))
+      return
+    }
+    if (field === 'franchiseId') {
+      setFormData(prev => ({ ...prev, franchiseId: value as string, storeId: '' }))
       return
     }
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -517,6 +552,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           type="button"
                           className={`btn-form ${formData.employeeAffiliation === 'HEAD_OFFICE' ? 'basic' : 'outline'}`}
                           onClick={() => handleInputChange('employeeAffiliation', 'HEAD_OFFICE')}
+                          disabled={!isCreateMode}
                         >
                           본사
                         </button>
@@ -524,6 +560,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           type="button"
                           className={`btn-form ${formData.employeeAffiliation === 'FRANCHISE' ? 'basic' : 'outline'}`}
                           onClick={() => handleInputChange('employeeAffiliation', 'FRANCHISE')}
+                          disabled={!isCreateMode}
                         >
                           가맹점
                         </button>
@@ -540,12 +577,14 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           value={headOfficeOptions.find(opt => opt.value === formData.headOfficeId) || null}
                           onChange={(option) => handleInputChange('headOfficeId', option?.value || '')}
                           className={isHeadOfficeRequired ? 'border-red-500' : ''}
+                          isDisabled={!isCreateMode}
                         />
                         {formData.employeeAffiliation === 'FRANCHISE' && (
                           <SearchSelect
                             options={franchiseOptions}
                             value={franchiseOptions.find(opt => opt.value === formData.franchiseId) || null}
                             onChange={(option) => handleInputChange('franchiseId', option?.value || '')}
+                            isDisabled={!isCreateMode}
                           />
                         )}
                         {isHeadOfficeRequired && (
@@ -563,6 +602,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           options={storeOptions}
                           value={storeOptions.find(opt => opt.value === formData.storeId) || null}
                           onChange={(option) => handleInputChange('storeId', option?.value || '')}
+                          isDisabled={!isCreateMode}
                         />
                       </div>
                     </td>
@@ -624,14 +664,17 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                               }
                             }}
                             className={isEmployeeRequired ? 'border-red-500' : ''}
+                            isDisabled={!isCreateMode}
                           />
                         </div>
                         <span style={{ padding: '4px 12px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-                          {formData.employeeNumber || '-'}
+                          {displayEmployeeNumber}
                         </span>
-                        <button className="btn-form outline" onClick={handleLoadPreviousContract}>
-                          이전 계약정보 불러오기
-                        </button>
+                        {isCreateMode && (
+                          <button className="btn-form outline" onClick={handleLoadPreviousContract}>
+                            이전 계약정보 불러오기
+                          </button>
+                        )}
                         {isEmployeeRequired && (
                           <span className="warning-txt">* 필수 입력 항목입니다.</span>
                         )}

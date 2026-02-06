@@ -1,9 +1,4 @@
 import api from '../api'
-import {
-  DEFAULT_HEAD_OFFICE_ID,
-  DEFAULT_FRANCHISE_ID,
-  DEFAULT_STORE_ID
-} from '../constants/organization'
 
 // 계약서 파일 정보 타입
 export interface ContractFileInfo {
@@ -141,15 +136,9 @@ export interface GetEmploymentContractParams {
 
 // 근로 계약 목록 조회
 export async function getEmploymentContracts(params?: GetEmploymentContractParams): Promise<EmploymentContractListResponse> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<EmploymentContractListResponse>(
     '/api/employee/contract',
-    { params: defaultParams }
+    { params }
   )
 
   // API 응답이 없는 경우 빈 응답 반환

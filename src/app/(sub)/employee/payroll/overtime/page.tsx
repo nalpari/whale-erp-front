@@ -48,10 +48,8 @@ export default function OvertimePayrollPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // 직원 분류 목록 조회
+  // 직원 분류 목록 조회 (employeeClassificationName이 null인 경우 fallback)
   const { data: classifications = [] } = useEmployeeClassifications()
-
-  // React 19: derived state - 분류 맵 생성
   const classificationMap = new Map<string, string>(
     classifications.map(item => [item.code, item.name])
   )
@@ -71,27 +69,24 @@ export default function OvertimePayrollPage() {
     paymentEndDate: searchParams.endDate
   })
 
-  // React 19: derived state - 응답 데이터를 컴포넌트 데이터로 변환
-  const payrolls = (payrollData?.content || []).map(payroll => {
-    const classificationName = payroll.employeeClassification
-      ? classificationMap.get(payroll.employeeClassification) || payroll.employeeClassification
-      : ''
-
-    return {
-      id: payroll.id,
-      rowNumber: 0, // OvertimePayrollList에서 재계산됨
-      workStatus: payroll.workStatus || '',
-      headOffice: payroll.headOfficeName || '',
-      franchise: payroll.franchiseName || '',
-      store: payroll.storeName || '',
-      employeeName: payroll.memberName,
-      employeeClassification: classificationName,
-      workDays: formatWorkDays(payroll.workDays),
-      payrollDate: payroll.paymentDate || '',
-      registrationDate: payroll.createdAt?.split('T')[0] || '',
-      emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
-    }
-  })
+  // React 19: derived state - API 응답의 employeeClassificationName 사용
+  const payrolls = (payrollData?.content || []).map(payroll => ({
+    id: payroll.id,
+    rowNumber: 0, // OvertimePayrollList에서 재계산됨
+    workStatus: payroll.workStatus || '',
+    headOffice: payroll.headOfficeName || '',
+    franchise: payroll.franchiseName || '',
+    store: payroll.storeName || '',
+    employeeName: payroll.memberName,
+    employeeClassification: payroll.employeeClassificationName
+      || (payroll.employeeClassification ? classificationMap.get(payroll.employeeClassification) : undefined)
+      || payroll.employeeClassification
+      || '',
+    workDays: formatWorkDays(payroll.workDays),
+    payrollDate: payroll.paymentDate || '',
+    registrationDate: payroll.createdAt?.split('T')[0] || '',
+    emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
+  }))
 
   const totalCount = payrollData?.totalElements || 0
   const totalPages = payrollData?.totalPages || 0

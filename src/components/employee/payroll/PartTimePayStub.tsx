@@ -21,7 +21,9 @@ import type {
   PartTimerPaymentItemRequest,
 } from '@/lib/api/partTimerPayrollStatement'
 import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
+import { useBp } from '@/hooks/useBp'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { useAuthStore } from '@/stores/auth-store'
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -74,15 +76,25 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
 
   // Organization selection state
-  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('1')
-  const [selectedFranchise, setSelectedFranchise] = useState<string>('1')
-  const [selectedStore, setSelectedStore] = useState<string>('1')
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('')
+  const [selectedStore, setSelectedStore] = useState<string>('')
+
+  // BP 트리 데이터
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree } = useBp(isReady)
+
+  // 점포 옵션 조회
+  const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null
+  const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
+  const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
   // TanStack Query hooks
   const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
-    { headOfficeId: DEFAULT_HEAD_OFFICE_ID, franchiseId: DEFAULT_FRANCHISE_ID, employeeType: 'PART_TIME' },
-    isNewMode
+    { headOfficeId: headOfficeIdNum ?? 0, franchiseId: franchiseIdNum ?? undefined, employeeType: 'PART_TIME' },
+    isNewMode && !!headOfficeIdNum
   )
   const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
     { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },
@@ -98,17 +110,19 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
 
   // Select options
-  const headquarterOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '따름인' }
-  ], [])
+  const headquarterOptions: SelectOption[] = useMemo(() =>
+    bpTree.map((office) => ({ value: String(office.id), label: office.name }))
+  , [bpTree])
 
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '을지로3가점' }
-  ], [])
+  const franchiseOptions: SelectOption[] = useMemo(() => {
+    if (!headOfficeIdNum) return []
+    const office = bpTree.find((o) => o.id === headOfficeIdNum)
+    return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
+  }, [bpTree, headOfficeIdNum])
 
-  const storeOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '힘이나는커피생활 을지로3가점' }
-  ], [])
+  const storeOptions: SelectOption[] = useMemo(() =>
+    storeOptionList.map(store => ({ value: String(store.id), label: store.storeName }))
+  , [storeOptionList])
 
   const employeeOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '파트타이머를 선택하세요' },
@@ -612,7 +626,11 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       <SearchSelect
                         options={headquarterOptions}
                         value={headquarterOptions.find(o => o.value === selectedHeadquarter) || null}
-                        onChange={(opt) => setSelectedHeadquarter(opt?.value || '')}
+                        onChange={(opt) => {
+                          setSelectedHeadquarter(opt?.value || '')
+                          setSelectedFranchise('')
+                          setSelectedStore('')
+                        }}
                         placeholder="본사 선택"
                         isDisabled={!isEditMode}
                       />
@@ -621,7 +639,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       <SearchSelect
                         options={franchiseOptions}
                         value={franchiseOptions.find(o => o.value === selectedFranchise) || null}
-                        onChange={(opt) => setSelectedFranchise(opt?.value || '')}
+                        onChange={(opt) => {
+                          setSelectedFranchise(opt?.value || '')
+                          setSelectedStore('')
+                        }}
                         placeholder="가맹점 선택"
                         isDisabled={!isEditMode}
                       />

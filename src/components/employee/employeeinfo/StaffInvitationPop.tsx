@@ -4,6 +4,9 @@ import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useBp } from '@/hooks/useBp'
+import { useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -62,6 +65,7 @@ const createInitialWorkHours = (): EmploymentContractWorkHourDto[] => {
 
 // 에러 상태 타입
 interface FormErrors {
+  headOfficeOrganizationId?: string
   employeeName?: string
   mobilePhone?: string
   franchiseOrganizationId?: string
@@ -83,9 +87,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
 
   // Form 상태
   const [workplaceType, setWorkplaceType] = useState<WorkplaceType>('FRANCHISE')
-  const [headOfficeOrganizationId, setHeadOfficeOrganizationId] = useState<number>(1) // 본사 ID: 1
-  const [franchiseOrganizationId, setFranchiseOrganizationId] = useState<number | null>(2) // 가맹점 ID: 2
-  const [storeId, setStoreId] = useState<number | null>(1) // 점포 ID: 1
+  const [headOfficeOrganizationId, setHeadOfficeOrganizationId] = useState<number | null>(null)
+  const [franchiseOrganizationId, setFranchiseOrganizationId] = useState<number | null>(null)
+  const [storeId, setStoreId] = useState<number | null>(null)
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
   const [contractClassification, setContractClassification] = useState<ContractClassificationType>('CNTCFWK_001')
@@ -143,6 +147,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     if (!isValidationAttempted) return {}
     const errors: FormErrors = {}
 
+    if (!headOfficeOrganizationId) {
+      errors.headOfficeOrganizationId = '본사를 선택해주세요.'
+    }
     if (!employeeName.trim()) {
       errors.employeeName = '직원명을 입력해주세요.'
     }
@@ -178,8 +185,39 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const handleSubmit = async () => {
     setIsValidationAttempted(true)
 
-    // 에러가 있으면 저장하지 않음
-    const errors = getFormErrors()
+    // 에러가 있으면 저장하지 않음 (validate를 직접 수행 - setState는 비동기이므로)
+    const errors: FormErrors = {}
+
+    if (!headOfficeOrganizationId) {
+      errors.headOfficeOrganizationId = '본사를 선택해주세요.'
+    }
+    if (!employeeName.trim()) {
+      errors.employeeName = '직원명을 입력해주세요.'
+    }
+    if (!mobilePhone.trim()) {
+      errors.mobilePhone = '휴대폰 번호를 입력해주세요.'
+    } else if (mobilePhone.trim().length < 10) {
+      errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
+    }
+    if (workplaceType === 'FRANCHISE' && !franchiseOrganizationId) {
+      errors.franchiseOrganizationId = '가맹점을 선택해주세요.'
+    }
+    if (!contractStartDate) {
+      errors.contractStartDate = '계약 시작일을 선택해주세요.'
+    }
+    if (!noEndDate && !contractEndDate) {
+      errors.contractEndDate = '계약 종료일을 선택해주세요.'
+    }
+    if (!jobDescription.trim()) {
+      errors.jobDescription = '업무 내용을 입력해주세요.'
+    }
+    if (saturdayWorkType === 'biweekly' && !saturdayBiweeklyStartDate) {
+      errors.saturdayBiweeklyStartDate = '토요일 격주 시작일을 선택해주세요.'
+    }
+    if (sundayWorkType === 'biweekly' && !sundayBiweeklyStartDate) {
+      errors.sundayBiweeklyStartDate = '일요일 격주 시작일을 선택해주세요.'
+    }
+
     if (Object.keys(errors).length > 0) {
       return
     }
@@ -233,9 +271,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
 
       const requestData: PostEmployeeInfoRequest = {
         workplaceType,
-        headOfficeOrganizationId,
+        headOfficeOrganizationId: headOfficeOrganizationId!,
         franchiseOrganizationId: workplaceType === 'FRANCHISE' ? franchiseOrganizationId : null,
-        storeId: workplaceType === 'FRANCHISE' ? storeId : null,
+        storeId,
         employeeName: employeeName.trim(),
         mobilePhone: mobilePhone.trim() || null,
         hireDate: contractStartDate, // 입사일을 계약 시작일로 설정
@@ -266,9 +304,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
 
   const resetForm = () => {
     setWorkplaceType('FRANCHISE')
-    setHeadOfficeOrganizationId(1) // 본사 ID: 1
-    setFranchiseOrganizationId(2) // 가맹점 ID: 2
-    setStoreId(1) // 점포 ID: 1
+    setHeadOfficeOrganizationId(null)
+    setFranchiseOrganizationId(null)
+    setStoreId(null)
     setEmployeeName('')
     setMobilePhone('')
     setContractClassification('CNTCFWK_001')
@@ -312,20 +350,32 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     onClose()
   }
 
-  // SearchSelect options
-  const headOfficeOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '본사' }
-  ], [])
+  // BP 트리 기반 동적 옵션 (검색 영역과 동일한 로직)
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree, loading: bpLoading } = useBp(isReady)
 
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '가맹점 선택' },
-    { value: '2', label: '가맹점 (ID: 2)' }
-  ], [])
+  const headOfficeOptions: SelectOption[] = useMemo(() =>
+    bpTree.map((office) => ({ value: String(office.id), label: office.name })),
+    [bpTree]
+  )
 
-  const storeOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '선택' },
-    { value: '1', label: '점포 (ID: 1)' }
-  ], [])
+  const franchiseOptions: SelectOption[] = useMemo(() => {
+    if (!headOfficeOrganizationId) return []
+    const office = bpTree.find((o) => o.id === headOfficeOrganizationId)
+    return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
+  }, [bpTree, headOfficeOrganizationId])
+
+  const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
+    headOfficeOrganizationId,
+    franchiseOrganizationId,
+    isReady
+  )
+
+  const storeOptions: SelectOption[] = useMemo(() =>
+    storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
+    [storeOptionList]
+  )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
     { value: 'SLRCC_001', label: '월급' },
@@ -367,7 +417,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                             name="workplaceType"
                             id="workplaceType-headoffice"
                             checked={workplaceType === 'HEAD_OFFICE'}
-                            onChange={() => setWorkplaceType('HEAD_OFFICE')}
+                            onChange={() => {
+                              setWorkplaceType('HEAD_OFFICE')
+                              setFranchiseOrganizationId(null)
+                              setStoreId(null)
+                            }}
                           />
                           <label htmlFor="workplaceType-headoffice">본사</label>
                         </div>
@@ -393,39 +447,68 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                         <div className="block">
                           <SearchSelect
                             options={headOfficeOptions}
-                            value={headOfficeOptions.find(opt => opt.value === String(headOfficeOrganizationId)) || null}
-                            onChange={(opt) => setHeadOfficeOrganizationId(opt?.value ? Number(opt.value) : 1)}
+                            value={headOfficeOrganizationId ? headOfficeOptions.find(opt => opt.value === String(headOfficeOrganizationId)) || null : null}
+                            onChange={(opt) => {
+                              const nextOfficeId = opt?.value ? Number(opt.value) : null
+                              setHeadOfficeOrganizationId(nextOfficeId)
+                              // 본사 변경 시 가맹점/점포 자동 초기화
+                              if (nextOfficeId !== headOfficeOrganizationId) {
+                                const nextFranchises = nextOfficeId
+                                  ? bpTree.find((o) => o.id === nextOfficeId)?.franchises ?? []
+                                  : []
+                                const shouldClearFranchise = franchiseOrganizationId !== null &&
+                                  !nextFranchises.some((f) => f.id === franchiseOrganizationId)
+                                if (shouldClearFranchise) {
+                                  setFranchiseOrganizationId(null)
+                                }
+                                setStoreId(null)
+                              }
+                            }}
                             placeholder="본사 선택"
+                            isDisabled={bpLoading}
+                            isSearchable={true}
+                            isClearable={true}
                           />
+                          {formErrors.headOfficeOrganizationId && (
+                            <div className="warning-txt mt5" role="alert">* {formErrors.headOfficeOrganizationId}</div>
+                          )}
                         </div>
                         {workplaceType === 'FRANCHISE' && (
                           <div className="block">
                             <SearchSelect
                               options={franchiseOptions}
-                              value={franchiseOptions.find(opt => opt.value === String(franchiseOrganizationId ?? '')) || null}
-                              onChange={(opt) => setFranchiseOrganizationId(opt?.value ? Number(opt.value) : null)}
+                              value={franchiseOrganizationId ? franchiseOptions.find(opt => opt.value === String(franchiseOrganizationId)) || null : null}
+                              onChange={(opt) => {
+                                setFranchiseOrganizationId(opt?.value ? Number(opt.value) : null)
+                                // 가맹점 변경 시 점포 자동 초기화
+                                setStoreId(null)
+                              }}
                               placeholder="가맹점 선택"
+                              isDisabled={bpLoading}
+                              isSearchable={true}
+                              isClearable={true}
                             />
                           </div>
                         )}
                       </div>
                     </td>
                   </tr>
-                  {workplaceType === 'FRANCHISE' && (
-                    <tr>
-                      <th>점포 선택</th>
-                      <td>
-                        <div className="block">
-                          <SearchSelect
-                            options={storeOptions}
-                            value={storeOptions.find(opt => opt.value === String(storeId ?? '')) || null}
-                            onChange={(opt) => setStoreId(opt?.value ? Number(opt.value) : null)}
-                            placeholder="선택"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  <tr>
+                    <th>점포 선택</th>
+                    <td>
+                      <div className="block">
+                        <SearchSelect
+                          options={storeOptions}
+                          value={storeId ? storeOptions.find(opt => opt.value === String(storeId)) || null : null}
+                          onChange={(opt) => setStoreId(opt?.value ? Number(opt.value) : null)}
+                          placeholder="점포 선택"
+                          isDisabled={storeLoading}
+                          isSearchable={true}
+                          isClearable={true}
+                        />
+                      </div>
+                    </td>
+                  </tr>
                   <tr>
                     <th>
                       직원명 <span className="red">*</span>
@@ -565,7 +648,12 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               type="checkbox"
                               id="toggle-end-date"
                               checked={noEndDate}
-                              onChange={(e) => setNoEndDate(e.target.checked)}
+                              onChange={(e) => {
+                                setNoEndDate(e.target.checked)
+                                if (e.target.checked) {
+                                  setContractEndDate('')
+                                }
+                              }}
                             />
                             <label className="slider" htmlFor="toggle-end-date"></label>
                           </div>
