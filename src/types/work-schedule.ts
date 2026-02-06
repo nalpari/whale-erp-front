@@ -77,3 +77,19 @@ export type ExcelDownloadResult = {
   blob: Blob;
   fileName: string;
 };
+
+// 엑셀 업로드 오류 행
+export type ExcelRowError = {
+  rowNumber: number;
+  message: string;
+};
+
+// 엑셀 업로드 결과
+export type ExcelUploadResult = {
+  success: boolean;
+  totalRows: number;
+  successRows: number;
+  failedRows: number;
+  errors: ExcelRowError[];
+  savedSchedules: ScheduleSummary[];
+};

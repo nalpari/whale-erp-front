@@ -199,3 +199,17 @@ export const attendanceKeys = {
   list: (params?: unknown) => [...attendanceKeys.lists(), params ?? null] as const,
   records: (params?: unknown) => [...attendanceKeys.all, 'records', params ?? null] as const,
 }
+
+// Re-export types from holiday.ts to avoid duplication
+export type { HolidayListParams, HolidayOwnerParams } from '@/types/holiday'
+import type { HolidayListParams, HolidayOwnerParams } from '@/types/holiday'
+
+export const holidayKeys = {
+  all: ['holidays'] as const,
+  lists: () => [...holidayKeys.all, 'list'] as const,
+  list: (params: HolidayListParams) => [...holidayKeys.lists(), params] as const,
+  owners: () => [...holidayKeys.all, 'owner'] as const,
+  owner: (params: HolidayOwnerParams) => [...holidayKeys.owners(), params] as const,
+  legal: () => [...holidayKeys.all, 'legal'] as const,
+  legalByYear: (year: number) => [...holidayKeys.legal(), year] as const,
+}

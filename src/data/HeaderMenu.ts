@@ -238,7 +238,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 24,
         name: '휴일 관리',
-        link: '/',
+        link: '/system/holiday',
+      },
+      {
+        id: 52,
+        name: '법정공휴일 관리',
+        link: '/system/holiday/legal',
       },
     ],
   },
@@ -283,7 +288,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 29,
         name: '휴일 관리',
-        link: '/',
+        link: '/system/holiday',
       },
       {
         id: 30,

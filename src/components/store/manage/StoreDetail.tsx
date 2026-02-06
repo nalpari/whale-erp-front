@@ -2,7 +2,7 @@
 import '@/components/common/custom-css/FormHelper.css'
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Input } from '@/components/common/ui'
+import { Input, useAlert } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
 import { useStoreDetail, useCreateStore, useUpdateStore } from '@/hooks/queries'
 import { useBp } from '@/hooks/useBp'
@@ -61,6 +61,7 @@ interface StoreDetailFormProps {
 
 // 상세 폼(저장/검증/입력 포함) 본체
 function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDetailFormProps) {
+  const { alert, confirm } = useAlert()
   const { data: bpTree, loading: bpLoading, getBpDetail } = useBp()
 
   const {
@@ -111,7 +112,8 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
     setFormErrors(validationErrors.formErrors)
     if (Object.keys(validationErrors.fieldErrors).length || validationErrors.formErrors.length) return
 
-    if (!window.confirm('저장하시겠습니까?')) return
+    const confirmed = await confirm('저장하시겠습니까?')
+    if (!confirmed) return
 
     const existingFileIds = new Set(formState.existingFiles.map((file: UploadFile) => file.id))
     const payload = buildPayload(formState)
@@ -133,7 +135,7 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
       }
       onAfterSave()
     } catch {
-      window.alert('점포 저장/삭제에 실패했습니다. 잠시 후 다시 시도해주세요')
+      await alert('점포 저장에 실패했습니다. 잠시 후 다시 시도해주세요')
       return
     }
   }
