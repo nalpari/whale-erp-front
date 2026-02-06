@@ -4,14 +4,15 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useAlert } from '@/components/common/ui'
 
 type UploadErrorRow = {
-  row: number
+  rowNumber: number
   message: string
 }
 
 type UploadResult = {
-  total: number
-  success: number
-  failed: number
+  success: boolean
+  totalRows: number
+  successRows: number
+  failedRows: number
   errors: UploadErrorRow[]
 }
 
@@ -21,7 +22,6 @@ type UploadExcelProps = {
   onClose: () => void
   onUpload: (file: File) => void
   onDownloadSample?: () => void
-  onDownloadErrorFile?: () => void
 }
 
 export default function UploadExcel({
@@ -30,13 +30,14 @@ export default function UploadExcel({
   onClose,
   onUpload,
   onDownloadSample,
-  onDownloadErrorFile,
 }: UploadExcelProps) {
+  const { alert } = useAlert()
   const uploadRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const { alert } = useAlert()
 
   const errorRows = useMemo(() => result?.errors ?? [], [result])
+  const isSuccess = useMemo(() => result?.success ?? false, [result])
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
@@ -118,14 +119,51 @@ export default function UploadExcel({
               </div>
             </div>
 
+            {result && (
+              <div className="search-filed" style={{ marginTop: 16 }}>
+                {result.success ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#22c55e' }}>
+                    ✓ 정상적으로 업로드되었습니다.
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#ef4444' }}>
+                      ✗ 실패했습니다. 다시 시도해주세요.
+                    </div>
+                    {errorRows.length > 0 && (
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', padding: '8px' }}>
+                        <table className="default-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '80px' }}>행 번호</th>
+                              <th>오류 내용</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {errorRows.map((error, idx) => (
+                              <tr key={idx}>
+                                <td style={{ textAlign: 'center' }}>{error.rowNumber}행</td>
+                                <td>{error.message}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="pop-btn-content" style={{ marginTop: 16 }}>
-              <button
-                className="btn-form outline"
-                onClick={onDownloadErrorFile}
-                disabled={!onDownloadErrorFile || errorRows.length === 0}
-              >
-                에러 파일 다운로드
-              </button>
+              {isSuccess && (
+                <button
+                  className="btn-form outline"
+                  onClick={onClose}
+                >
+                  저장
+                </button>
+              )}
               <button className="btn-form gray" onClick={onClose}>
                 닫기
               </button>
