@@ -1,35 +1,28 @@
 ﻿import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
 import { fileKeys } from './query-keys'
+import { getFile, getDownloadUrl } from '@/lib/api/file'
 
 /**
- * 파일 다운로드 URL 응답 타입.
- * - 일부 API는 downloadUrl, 일부는 url 키로 내려주므로 둘 다 허용한다.
+ * 파일 정보 조회 훅.
  */
-interface DownloadUrlResponse {
-  downloadUrl?: string
-  url?: string
+export const useFileInfo = (fileId: number, enabled = true) => {
+  return useQuery({
+    queryKey: [...fileKeys.all, 'info', fileId] as const,
+    queryFn: () => getFile(fileId),
+    enabled: enabled && !!fileId,
+    staleTime: 5 * 60 * 1000, // 5분 캐시
+  })
 }
 
 /**
  * 파일 다운로드 URL 조회 훅.
- * - 서버 응답 형태가 달라도 문자열 URL로 정규화하여 반환한다.
+ * - 전체 DownloadUrlResponse 객체를 반환한다.
  */
-export const useFileDownloadUrl = (fileId: number | null, enabled = true) => {
+export const useFileDownloadUrl = (fileId: number, enabled = true) => {
   return useQuery({
-    queryKey: fileKeys.downloadUrl(fileId!),
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/files/${fileId}/download-url`)
-      const payload = response.data?.data ?? response.data
-      const downloadUrl =
-        payload && typeof payload === 'object'
-          ? (payload as DownloadUrlResponse).downloadUrl ?? (payload as DownloadUrlResponse).url
-          : typeof payload === 'string'
-            ? payload
-            : null
-      return downloadUrl
-    },
+    queryKey: fileKeys.downloadUrl(fileId),
+    queryFn: () => getDownloadUrl(fileId),
     enabled: enabled && !!fileId,
-    staleTime: 60 * 1000,
+    staleTime: 60 * 1000, // 1분 캐시 (다운로드 URL은 만료될 수 있음)
   })
 }

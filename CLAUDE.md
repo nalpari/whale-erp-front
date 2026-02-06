@@ -5,10 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm dev       # Start development server on http://localhost:3000
-pnpm build     # Production build
-pnpm start     # Start production server
-pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
+pnpm dev       # 개발 서버 (localhost:3000)
+pnpm build     # 프로덕션 빌드
+pnpm start     # 프로덕션 서버 실행
+pnpm lint      # ESLint 검사 (flat config, eslint.config.mjs)
 ```
 
 ## Tech Stack
@@ -28,54 +28,46 @@ pnpm lint      # Run ESLint (flat config, eslint.config.mjs)
 
 ### Route Groups
 
-- `src/app/(auth)/` — Authentication pages (login) with dedicated CSS, no shared layout
-- `src/app/(sub)/` — Main ERP pages with shared layout (LNB sidebar, Header, FullDownMenu)
-  - `masterlist/` — Master list page
-  - `store/(manage)/info/` — Store management pages (list, detail, header)
-- `src/app/editor/` — Standalone rich text editor page
+- `src/app/(auth)/` — 인증 페이지 (로그인), 별도 레이아웃
+- `src/app/(sub)/` — 메인 ERP 페이지 (LNB 사이드바, Header, FullDownMenu 공유 레이아웃)
+  - `store/(manage)/info/` — 점포 관리
+  - `employee/` — 직원 관리 (목록, 상세, 근무 일정)
+  - `storybook/` — 공통 컴포넌트 데모 페이지
+- `src/app/editor/` — 독립 Tiptap 에디터 페이지
 
-### Component Structure
+### Component Domains
 
 ```
 src/components/
-├── common/                        # 공통 컴포넌트
-│   ├── FileUploader.tsx           # 파일 업로드
-│   └── HeadOfficeFranchiseStoreSelect.tsx  # 본사-가맹점-점포 계층 선택
-├── editor/                        # Tiptap 에디터
-│   ├── Editor.tsx
-│   ├── SlashCommand.tsx
-│   └── slash-commands.ts
-├── login/                         # 로그인 관련
-│   ├── FindIdPw.tsx
-│   └── find/
-├── masterlist/                    # 마스터리스트
-│   ├── MasterList.tsx
-│   └── MasterSearch.tsx
-├── store/manage/                  # 점포 관리
-│   ├── StoreList.tsx
-│   ├── StoreInfo.tsx
-│   ├── StoreDetail.tsx
-│   └── StoreHeader.tsx
-└── ui/                            # 공통 UI
-    ├── AgGrid.tsx
-    ├── Header.tsx
-    ├── Location.tsx
-    ├── Pagination.tsx
-    └── common/
-        ├── DatePicker.tsx
-        ├── FullDownMenu.tsx
-        ├── Lnb.tsx
-        ├── MyData.tsx
-        └── ServiceTab.tsx
+├── common/              # 공통 컴포넌트
+│   ├── FileUploader.tsx              # 파일 업로드
+│   ├── HeadOfficeFranchiseStoreSelect.tsx  # 본사-가맹점-점포 계층 선택
+│   ├── DraggableTree.tsx             # 드래그 가능 트리
+│   └── SearchableSelect.tsx          # 검색 가능 셀렉트
+├── editor/              # Tiptap 에디터
+├── employee/            # 직원 관리
+│   ├── employeeinfo/    # 직원 정보 CRUD
+│   ├── work-status/     # 근무 일정 관리
+│   ├── settings/        # 직원 설정
+│   └── popup/           # 직원 검색 팝업
+├── store/manage/        # 점포 관리
+└── ui/common/           # 공통 UI 컴포넌트
+    ├── DatePicker.tsx        # 단일 날짜 선택
+    ├── RangeDatePicker.tsx   # 날짜 범위 선택
+    ├── SearchSelect.tsx      # 검색 셀렉트
+    ├── Lnb.tsx               # 좌측 네비게이션
+    └── FullDownMenu.tsx      # 전체 메뉴
 ```
 
 ### Types
 
 ```
 src/types/
-├── bp.ts              # BP (본사/가맹점/점포) 타입
-├── store.ts           # 점포 관련 타입
-└── upload-files.ts    # 파일 업로드 타입
+├── bp.ts              # BP (본사/가맹점/점포)
+├── store.ts           # 점포
+├── employee.ts        # 직원
+├── work-schedule.ts   # 근무 일정
+└── upload-files.ts    # 파일 업로드
 ```
 
 ### API Layer
@@ -99,6 +91,7 @@ src/types/
   - `env.ts` — Environment variable validation
   - `forms.ts` — Form validation schemas (common fields, patterns)
   - `menu.ts` — Menu type schemas
+  - `program.ts` — Program schemas (hierarchy, form validation, CRUD)
   - `index.ts` — Unified exports
 
 - **`src/lib/zod-utils.ts`**: Utility functions
@@ -132,30 +125,30 @@ import type { LoginRequest } from '@/lib/schemas/auth';
   - `refetchOnWindowFocus: false` (ERP 특성상 비활성화)
 - **`src/providers/query-provider.tsx`**: QueryClientProvider 래퍼 (DevTools 포함)
 - **`src/hooks/queries/`**: 쿼리 훅 모음
-  - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조: storeKeys, fileKeys, bpKeys, commonCodeKeys)
-  - `use-store-queries.ts` — 점포 CRUD 훅
-  - `use-file-queries.ts` — 파일 다운로드 URL 조회
-  - `use-bp-queries.ts` — BP 본사/가맹점/점포 트리 조회
-  - `use-common-code-queries.ts` — 공통코드 계층 조회 및 캐시 유틸
+  - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조)
+  - `use-store-queries.ts` — 점포 CRUD
+  - `use-store-schedule-queries.ts` — 점포 스케줄
+  - `use-employee-queries.ts` — 직원 CRUD
+  - `use-employee-settings-queries.ts` — 직원 설정
+  - `use-bp-queries.ts` — BP 본사/가맹점/점포 트리
+  - `use-common-code-queries.ts` — 공통코드 계층 조회
+  - `use-program-queries.ts` — 프로그램 CRUD
+  - `use-file-queries.ts` — 파일 다운로드 URL
 
 ```typescript
-// 점포 조회
-const { data, isPending, error } = useStoreList(params)
-const { data, isPending } = useStoreDetail(storeId)
+// 점포 조회/생성
+const { data, isPending } = useStoreList(params)
+const { mutateAsync } = useCreateStore()
 
-// 점포 생성/수정/삭제
-const { mutateAsync, isPending } = useCreateStore()
-await mutateAsync({ payload, files })
+// 직원 조회/생성
+const { data } = useEmployeeList(params)
+const { mutateAsync } = useCreateEmployee()
 
 // BP 트리 조회
-const { data, isPending } = useBpHeadOfficeTree()
+const { data } = useBpHeadOfficeTree()
 
 // 공통코드 조회
-const { data, isPending } = useCommonCodeHierarchy('GENDER')
-
-// 레거시 호환 래퍼 훅
-import { useBp } from '@/hooks/useBp'
-import { useCommonCode } from '@/hooks/useCommonCode'
+const { data } = useCommonCodeHierarchy('GENDER')
 ```
 
 **Client State (Zustand)** — UI 상태
@@ -163,9 +156,11 @@ import { useCommonCode } from '@/hooks/useCommonCode'
 - **`src/stores/auth-store.ts`**: Zustand store with `persist` middleware (localStorage key: `auth-storage`)
   - Stores `accessToken`, `refreshToken`, `authority` (권한 상세), `affiliationId` (조직 ID), `subscriptionPlan`
   - Methods: `setTokens()`, `setAccessToken()`, `setAuthority()`, `setAffiliationId()`, `setSubscriptionPlan()`, `clearAuth()`
-- **`src/stores/bp-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useBpHeadOfficeTree` instead)
-- **`src/stores/common-code-store.ts`**: ⚠️ **@deprecated** — TanStack Query로 마이그레이션 완료 (use `useCommonCodeHierarchy` instead)
-- Access state outside React: `useAuthStore.getState()`
+- **`src/stores/program-store.ts`**: 프로그램 UI 상태
+- **`src/stores/store-search-store.ts`**: 점포 검색 상태
+- **`src/stores/store-schedule-store.ts`**: 점포 스케줄 UI 상태
+- **`src/stores/mypage-store.ts`**: 마이페이지 UI 상태
+- React 외부 접근: `useAuthStore.getState()`
 
 **상태 관리 전략:**
 - 서버에서 오는 데이터 → TanStack Query (점포, BP, 공통코드 등)
@@ -203,12 +198,18 @@ Dual styling system:
 
 ### Rich Text Editor (Tiptap)
 
-Available at `/editor`:
+`/editor` 경로에서 사용 가능:
+- **Editor.tsx**: 이미지, 링크, 테이블, 코드 블록 확장 포함
+- **SlashCommand**: "/" 트리거 커맨드 팔레트
 
-- **Editor.tsx**: Main editor with extensions (images, links, tables, code blocks with lowlight)
-- **SlashCommand extension**: Custom Tiptap extension triggered by "/" character
-- **slash-commands.ts**: Command definitions — add new commands to `slashCommands` array
-- **SlashCommand.tsx**: Command palette UI with keyboard navigation
+### Storybook (컴포넌트 데모)
+
+`/storybook/*` 경로에서 공통 컴포넌트 데모 확인:
+- `/storybook/datepicker` — DatePicker, RangeDatePicker
+- `/storybook/search-select` — SearchSelect
+- `/storybook/upload` — FileUploader
+- `/storybook/editor` — Tiptap Editor
+- `/storybook/radio` — RadioButtonGroup
 
 ## Key Configuration
 
@@ -248,21 +249,23 @@ Available at `/editor`:
 
 ## Development Guidelines
 
-### Adding New Features
-1. Define types in `src/types/` if needed
-2. Create Zod schemas in `src/lib/schemas/`
-3. Add API hooks in `src/hooks/queries/`
-4. Create components in appropriate folders
-5. Add routes in `src/app/(sub)/`
+### 새 기능 추가 순서
+1. `src/types/`에 타입 정의
+2. `src/lib/schemas/`에 Zod 스키마 작성
+3. `src/hooks/queries/`에 API 훅 추가
+4. 컴포넌트 생성
+5. `src/app/(sub)/`에 라우트 추가
+6. `/storybook/`에 데모 페이지 추가 (공통 컴포넌트인 경우)
 
-### Working with TanStack Query
-- Always define query keys in `query-keys.ts` using factory pattern
-- Use hierarchical keys for proper cache invalidation
-- Set appropriate `staleTime` based on data volatility
-- Use `enabled` option for dependent queries
+### TanStack Query
+- `query-keys.ts`에 쿼리 키 팩토리 패턴으로 정의
+- 계층적 키 사용으로 캐시 무효화 관리
+- 의존적 쿼리는 `enabled` 옵션 사용
 
 ### Code Quality
-- Run `pnpm lint` before committing
-- Follow TypeScript strict mode
-- Avoid `any` types
-- Keep components focused and single-purpose
+- 커밋 전 `pnpm lint` 실행
+- TypeScript strict mode 준수
+- `any` 타입 사용 금지
+
+### Memo
+- 태스크가 끝나면 린트체크, 타입체크, 빌드체크를 수행해줘.

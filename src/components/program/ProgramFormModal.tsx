@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import '@/components/common/custom-css/FormHelper.css'
 
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { programFormSchema, type Program, type ProgramFormData } from '@/lib/schemas/program'
 import { formatDateYmd } from '@/util/date-util'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 
 interface ProgramFormModalProps {
   isOpen: boolean
@@ -14,12 +15,15 @@ interface ProgramFormModalProps {
   onSubmit: (data: ProgramFormData) => void
   level1Name?: string
   level2Name?: string
+  parentMenuKind?: string
   editData?: Program | null
 }
 
 const INITIAL_FORM_DATA: ProgramFormData = {
+  menu_kind: '',
   name: '',
   path: '',
+  icon_url: '',
   is_active: true,
 }
 
@@ -40,19 +44,47 @@ export default function ProgramFormModal({
   onSubmit,
   level1Name,
   level2Name,
+  parentMenuKind,
   editData,
 }: ProgramFormModalProps) {
+  const { data: menuKindCodes = [] } = useCommonCodeHierarchy('MNKND')
+
   const initialData =
     mode === 'edit' && editData
       ? {
+          menu_kind: editData.menu_kind,
           name: editData.name,
           path: editData.path || '',
+          icon_url: editData.icon_url || '',
           is_active: editData.is_active,
         }
-      : INITIAL_FORM_DATA
+      : mode === 'create' && parentMenuKind
+        ? {
+            ...INITIAL_FORM_DATA,
+            menu_kind: parentMenuKind,
+          }
+        : {
+            ...INITIAL_FORM_DATA,
+            menu_kind: menuKindCodes[0]?.code || '',
+          }
 
   const [formData, setFormData] = useState<ProgramFormData>(initialData)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  /**
+   * menuKindCodes 로드 완료 시 기본값 설정
+   * 최상위 프로그램 생성 시 첫 번째 menuKind를 기본 선택
+   * 조건: !formData.menu_kind로 인해 한 번만 실행되므로 cascading render 없음
+   */
+  useEffect(() => {
+    if (mode === 'create' && !parentMenuKind && menuKindCodes.length > 0 && !formData.menu_kind) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData((prev) => ({
+        ...prev,
+        menu_kind: menuKindCodes[0].code,
+      }))
+    }
+  }, [menuKindCodes, mode, parentMenuKind, formData.menu_kind])
 
   /**
    * 폼 제출 핸들러 - Zod 검증 후 상위 컴포넌트로 전달
@@ -96,6 +128,36 @@ export default function ProgramFormModal({
                   <col />
                 </colgroup>
                 <tbody>
+                  <tr>
+                    <th>
+                      메뉴 구분 {mode === 'create' && !parentMenuKind && <span className="red">*</span>}
+                    </th>
+                    <td colSpan={3}>
+                      <div className="block">
+                        {mode === 'create' && !parentMenuKind ? (
+                          <select
+                            className="select-form"
+                            value={formData.menu_kind}
+                            onChange={(e) => setFormData({ ...formData, menu_kind: e.target.value })}
+                          >
+                            {menuKindCodes.map((code) => (
+                              <option key={code.code} value={code.code}>
+                                {code.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            className="input-frame"
+                            value={menuKindCodes.find((c) => c.code === formData.menu_kind)?.name || formData.menu_kind}
+                            readOnly
+                          />
+                        )}
+                      </div>
+                      {fieldErrors.menu_kind && <div className="warning-txt">{fieldErrors.menu_kind}</div>}
+                    </td>
+                  </tr>
                   {level1Name && (
                     <tr>
                       <th>Level 1</th>
@@ -145,10 +207,9 @@ export default function ProgramFormModal({
                           className="input-frame"
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder="메뉴명을 입력하세요"
                         />
                       </div>
-                      {fieldErrors.name && <div className="form-helper error">{fieldErrors.name}</div>}
+                      {fieldErrors.name && <div className="warning-txt">{fieldErrors.name}</div>}
                     </td>
                   </tr>
                   <tr>
@@ -160,7 +221,19 @@ export default function ProgramFormModal({
                           className="input-frame"
                           value={formData.path ?? ''}
                           onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                          placeholder="/path/to/menu"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>아이콘 URL</th>
+                    <td colSpan={3}>
+                      <div className="block">
+                        <input
+                          type="text"
+                          className="input-frame"
+                          value={formData.icon_url ?? ''}
+                          onChange={(e) => setFormData({ ...formData, icon_url: e.target.value })}
                         />
                       </div>
                     </td>

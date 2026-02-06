@@ -1,12 +1,21 @@
-import type { RefObject } from 'react'
 import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
+import type { RefObject } from 'react'
+import { useMemo } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
 import type { FieldErrors, StoreFormState } from '@/types/store'
 import { UploadFile } from '@/types/upload-files'
-import { FileUploader } from '@/components/common/FileUploader'
+import {
+  Input,
+  FileUpload,
+  RadioButtonGroup,
+  type FileItem,
+  type RadioOption,
+} from '@/components/common/ui'
+import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
 const formatBusinessNumberInput = (value: string) => {
@@ -50,11 +59,11 @@ interface StoreDetailBasicInfoProps {
   bpTree: BpHeadOfficeNode[]
   bpLoading: boolean
   franchiseOptions: BpFranchiseNode[]
-  addressDetailRef: RefObject<HTMLInputElement | null>
+  addressDetailRef?: RefObject<HTMLInputElement | null>
+  /** AddressSearch onChange 핸들러 */
+  onAddressChange: (data: AddressData) => void
   existingBusinessFile?: UploadFile
   existingStoreImages: UploadFile[]
-  businessFilePreview: string | null
-  storeImagePreviews: { file: File; url: string }[]
   // UI 토글/입력 변경 핸들러들
   onToggleOpen: () => void
   onStoreOwnerChange: (owner: StoreFormState['storeOwner']) => void
@@ -69,18 +78,23 @@ interface StoreDetailBasicInfoProps {
   onRemoveBusinessFile: () => void
   onCeoNameChange: (value: string) => void
   onBusinessNumberChange: (value: string) => void
-  onStoreAddressDetailChange: (value: string) => void
   onCeoPhoneChange: (value: string) => void
   onStorePhoneChange: (value: string) => void
   onStoreImagesSelect: (files: File[]) => void
   onRemoveNewImage: (index: number) => void
   onToggleDeleteImage: (fileId: number) => void
-  onAddressSearch: () => void
   onExistingFileDownload: (file: UploadFile) => void
-  onRemoveAllStoreImages: () => void
-  getFileUrl: (file: UploadFile) => string
-  resolveExistingFileUrl: (file: UploadFile) => Promise<string | null>
 }
+
+const storeOwnerOptions: RadioOption<StoreFormState['storeOwner']>[] = [
+  { value: 'HEAD_OFFICE', label: '본사' },
+  { value: 'FRANCHISE', label: '가맹점' },
+]
+
+const operationStatusOptions: RadioOption<StoreFormState['operationStatus']>[] = [
+  { value: 'STOPR_001', label: '운영' },
+  { value: 'STOPR_002', label: '미운영' },
+]
 
 // 점포 기본 정보(소유/조직/사업자/주소/파일) 입력 섹션
 // 매장 기본 정보(소유/조직/사업자/주소/이미지) 입력 섹션 컴포넌트
@@ -93,10 +107,9 @@ export const StoreDetailBasicInfo = ({
   bpLoading,
   franchiseOptions,
   addressDetailRef,
+  onAddressChange,
   existingBusinessFile,
   existingStoreImages,
-  businessFilePreview,
-  storeImagePreviews,
   onToggleOpen,
   onStoreOwnerChange,
   onOfficeChange,
@@ -110,24 +123,138 @@ export const StoreDetailBasicInfo = ({
   onRemoveBusinessFile,
   onCeoNameChange,
   onBusinessNumberChange,
-  onStoreAddressDetailChange,
   onCeoPhoneChange,
   onStorePhoneChange,
   onStoreImagesSelect,
   onRemoveNewImage,
   onToggleDeleteImage,
-  onAddressSearch,
   onExistingFileDownload,
-  onRemoveAllStoreImages,
-  getFileUrl,
-  resolveExistingFileUrl,
 }: StoreDetailBasicInfoProps) => {
-  // 단일 파일 업로더에 맞게 미리보기/기존파일을 배열 형태로 구성
-  const businessPreviews =
-    businessFilePreview && formState.businessFile
-      ? [{ file: formState.businessFile, url: businessFilePreview }]
-      : []
-  const businessExistingFiles = existingBusinessFile ? [existingBusinessFile] : []
+  // 본사 옵션
+  const officeOptions = useMemo<SelectOption[]>(
+    () => bpTree.map((office) => ({ value: String(office.id), label: office.name })),
+    [bpTree]
+  )
+
+  // 가맹점 옵션
+  const franchiseSelectOptions = useMemo<SelectOption[]>(
+    () => franchiseOptions.map((franchise) => ({ value: String(franchise.id), label: franchise.name })),
+    [franchiseOptions]
+  )
+
+  // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
+  const businessFiles = useMemo<FileItem[]>(() => {
+    const files: FileItem[] = []
+    // 기존 파일
+    if (existingBusinessFile) {
+      files.push({
+        id: existingBusinessFile.id,
+        name: existingBusinessFile.originalFileName,
+      })
+    }
+    // 새 파일
+    if (formState.businessFile) {
+      files.push({
+        name: formState.businessFile.name,
+        file: formState.businessFile,
+      })
+    }
+    return files
+  }, [existingBusinessFile, formState.businessFile])
+
+  // 점포 이미지 파일 목록 (기존 파일들 + 새 파일들)
+  const storeImageFiles = useMemo<FileItem[]>(() => {
+    const files: FileItem[] = []
+    // 기존 파일들
+    existingStoreImages.forEach((file) => {
+      files.push({
+        id: file.id,
+        name: file.originalFileName,
+      })
+    })
+    // 새 파일들
+    formState.storeImages.forEach((file: File) => {
+      files.push({
+        name: file.name,
+        file,
+      })
+    })
+    return files
+  }, [existingStoreImages, formState.storeImages])
+
+  // 사업자등록증 파일 추가 핸들러
+  const handleBusinessFileAdd = (files: File[]) => {
+    if (files.length > 0) {
+      onBusinessFilesSelect(files)
+    }
+  }
+
+  // 사업자등록증 파일 삭제 핸들러
+  const handleBusinessFileRemove = (index: number) => {
+    const file = businessFiles[index]
+    if (file.id !== undefined) {
+      // 기존 파일
+      onRemoveExistingBusinessFile(file.id as number)
+    } else {
+      // 새 파일
+      onRemoveBusinessFile()
+    }
+  }
+
+  // 사업자등록증 파일 클릭 핸들러 (다운로드)
+  const handleBusinessFileClick = (file: FileItem) => {
+    if (file.file) {
+      // 새 파일: 브라우저에서 다운로드
+      const url = URL.createObjectURL(file.file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    } else if (file.id !== undefined && existingBusinessFile) {
+      // 기존 파일: 서버에서 다운로드
+      onBusinessFileDownload(existingBusinessFile)
+    }
+  }
+
+  // 점포 이미지 파일 추가 핸들러
+  const handleStoreImageAdd = (files: File[]) => {
+    if (files.length > 0) {
+      onStoreImagesSelect(files)
+    }
+  }
+
+  // 점포 이미지 파일 삭제 핸들러
+  const handleStoreImageRemove = (index: number) => {
+    const existingCount = existingStoreImages.length
+    if (index < existingCount) {
+      // 기존 파일
+      const file = existingStoreImages[index]
+      onToggleDeleteImage(file.id)
+    } else {
+      // 새 파일
+      const newFileIndex = index - existingCount
+      onRemoveNewImage(newFileIndex)
+    }
+  }
+
+  // 점포 이미지 파일 클릭 핸들러 (다운로드)
+  const handleStoreImageClick = (file: FileItem, index: number) => {
+    const existingCount = existingStoreImages.length
+    if (file.file) {
+      // 새 파일: 브라우저에서 다운로드
+      const url = URL.createObjectURL(file.file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    } else if (index < existingCount) {
+      // 기존 파일: 서버에서 다운로드
+      const existingFile = existingStoreImages[index]
+      onExistingFileDownload(existingFile)
+    }
+  }
 
   return (
     <div className={`slidebox-wrap ${isOpen ? '' : 'close'}`}>
@@ -150,61 +277,40 @@ export const StoreDetailBasicInfo = ({
               <tr>
                 <th>점포 소유</th>
                 <td>
-                  <div className="filed-check-flx">
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="owner-office"
-                        name="storeOwner"
-                        checked={formState.storeOwner === 'HEAD_OFFICE'}
-                        onChange={() => onStoreOwnerChange('HEAD_OFFICE')}
-                      />
-                      <label htmlFor="owner-office">본사</label>
-                    </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="owner-franchise"
-                        name="storeOwner"
-                        checked={formState.storeOwner === 'FRANCHISE'}
-                        onChange={() => onStoreOwnerChange('FRANCHISE')}
-                      />
-                      <label htmlFor="owner-franchise">가맹점</label>
-                    </div>
-                  </div>
+                  <RadioButtonGroup
+                    className="filed-check-flx"
+                    name="storeOwner"
+                    options={storeOwnerOptions}
+                    value={formState.storeOwner}
+                    onChange={(nextValue) => onStoreOwnerChange(nextValue)}
+                  />
                 </td>
               </tr>
               <tr>
                 <th>본사/가맹점 선택</th>
                 <td>
                   <div className="data-filed store-basic-row">
-                    <select
-                      className="select-form store-select-fixed"
-                      value={formState.officeId ?? ''}
-                      onChange={(event) => onOfficeChange(event.target.value ? Number(event.target.value) : null)}
-                      disabled={bpLoading}
-                    >
-                      <option value="">본사 선택</option>
-                      {bpTree.map((office) => (
-                        <option key={office.id} value={office.id}>
-                          {office.name}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      className="store-select-fixed"
+                      value={formState.officeId !== null ? officeOptions.find((opt) => opt.value === String(formState.officeId)) || null : null}
+                      options={officeOptions}
+                      placeholder="본사 선택"
+                      isDisabled={bpLoading}
+                      isSearchable={false}
+                      isClearable={false}
+                      onChange={(option) => onOfficeChange(option ? Number(option.value) : null)}
+                    />
                     {formState.storeOwner === 'FRANCHISE' && (
-                      <select
-                        className="select-form store-select-fixed"
-                        value={formState.franchiseId ?? ''}
-                        onChange={(event) => onFranchiseChange(event.target.value ? Number(event.target.value) : null)}
-                        disabled={bpLoading}
-                      >
-                        <option value="">가맹점 선택</option>
-                        {franchiseOptions.map((franchise) => (
-                          <option key={franchise.id} value={franchise.id}>
-                            {franchise.name}
-                          </option>
-                        ))}
-                      </select>
+                      <SearchSelect
+                        className="store-select-fixed"
+                        value={formState.franchiseId !== null ? franchiseSelectOptions.find((opt) => opt.value === String(formState.franchiseId)) || null : null}
+                        options={franchiseSelectOptions}
+                        placeholder="가맹점 선택"
+                        isDisabled={bpLoading}
+                        isSearchable={false}
+                        isClearable={false}
+                        onChange={(option) => onFranchiseChange(option ? Number(option.value) : null)}
+                      />
                     )}
                     <button className="tooltip-btn store-tooltip-fixed">
                       <span className="tooltip-icon" id="tooltip-btn-anchor"></span>
@@ -217,17 +323,22 @@ export const StoreDetailBasicInfo = ({
                 </td>
               </tr>
               <tr>
-                <th>점포명 *</th>
+                <th>점포명 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx">
-                    <input
-                      type="text"
-                      className="input-frame input-grow store-name-input"
+                    <Input
+                      className="input-grow store-name-input"
                       value={formState.storeName}
                       onChange={(event) => onStoreNameChange(event.target.value)}
                       readOnly={!formState.organizationId}
                     />
-                    {isEditMode && <input type="text" className="input-frame input-grow store-name-input" value={formState.storeCode} readOnly />}
+                    {isEditMode && (
+                      <Input
+                        className="input-grow store-name-input"
+                        value={formState.storeCode}
+                        readOnly
+                      />
+                    )}
                     {!isEditMode && (
                       <div className="toggle-wrap">
                         <label className="toggle-btn" htmlFor="same-as-owner">
@@ -243,35 +354,21 @@ export const StoreDetailBasicInfo = ({
                       </div>
                     )}
                   </div>
-                  {fieldErrors.storeName && <div className="form-helper error">{fieldErrors.storeName}</div>}
+                  {fieldErrors.storeName && <div className="warning-txt">{fieldErrors.storeName}</div>}
                 </td>
               </tr>
               <tr>
-                <th>운영여부</th>
+                <th>운영 여부 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx">
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="status-operating"
-                        name="operationStatus"
-                        checked={formState.operationStatus === 'STOPR_001'}
-                        onChange={() => onOperationStatusChange('STOPR_001')}
-                      />
-                      <label htmlFor="status-operating">운영</label>
-                    </div>
-                    <div className="radio-form-box">
-                      <input
-                        type="radio"
-                        id="status-stopped"
-                        name="operationStatus"
-                        checked={formState.operationStatus === 'STOPR_002'}
-                        onChange={() => onOperationStatusChange('STOPR_002')}
-                      />
-                      <label htmlFor="status-stopped">미운영</label>
-                    </div>
+                    <RadioButtonGroup
+                      name="operationStatus"
+                      options={operationStatusOptions}
+                      value={formState.operationStatus}
+                      onChange={(nextValue) => onOperationStatusChange(nextValue)}
+                    />
                     {formState.operationStatusEditedDate && (
-                      <span className="form-helper">운영여부 변경일: {formState.operationStatusEditedDate}</span>
+                      <span className="form-helper">운영여부 변경일 : {formState.operationStatusEditedDate}</span>
                     )}
                   </div>
                 </td>
@@ -284,42 +381,31 @@ export const StoreDetailBasicInfo = ({
                       ※ 사업자등록증 등록 시 대표자, 사업자등록번호, 점포주소가 자동 입력됩니다.
                     </span>
                   </div>
-                  <FileUploader
-                    mode="single"
-                    value={formState.businessFile}
-                    previews={businessPreviews}
-                    existingFiles={businessExistingFiles}
-                    onChange={onBusinessFilesSelect}
-                    onRemoveNew={() => onRemoveBusinessFile()}
-                    onRemoveExisting={onRemoveExistingBusinessFile}
-                    onDownloadExisting={onBusinessFileDownload}
-                    getExistingFileUrl={getFileUrl}
-                    resolveExistingFileUrl={resolveExistingFileUrl}
+                  <FileUpload
+                    files={businessFiles}
+                    onAdd={handleBusinessFileAdd}
+                    onRemove={handleBusinessFileRemove}
+                    onFileClick={handleBusinessFileClick}
+                    error={!!fieldErrors.businessFile}
+                    helpText={fieldErrors.businessFile}
                   />
-                  {fieldErrors.businessFile && (
-                    <div className="form-helper error">{fieldErrors.businessFile}</div>
-                  )}
                 </td>
               </tr>
               <tr>
-                <th>대표자 *</th>
+                <th>대표자 <span className="red">*</span></th>
                 <td>
-                  <input
-                    type="text"
-                    className="input-frame"
+                  <Input
                     value={formState.ceoName}
                     onChange={(event) => onCeoNameChange(event.target.value)}
                   />
-                  {fieldErrors.ceoName && <div className="form-helper error">{fieldErrors.ceoName}</div>}
+                  {fieldErrors.ceoName && <div className="warning-txt">{fieldErrors.ceoName}</div>}
                 </td>
               </tr>
               <tr>
-                <th>사업자등록번호 *</th>
+                <th>사업자등록번호 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <Input
                       value={formatBusinessNumberInput(formState.businessNumber)}
                       onChange={(event) => onBusinessNumberChange(event.target.value)}
                       inputMode="numeric"
@@ -327,42 +413,32 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.businessNumber && <div className="form-helper error">{fieldErrors.businessNumber}</div>}
+                  {fieldErrors.businessNumber && <div className="warning-txt">{fieldErrors.businessNumber}</div>}
                 </td>
               </tr>
               <tr>
-                <th>점포 주소 *</th>
+                <th>점포 주소 <span className="red">*</span></th>
                 <td>
-                  <div className="filed-flx g8 address-row">
-                    <button className="btn-form basic" type="button" onClick={onAddressSearch}>
-                      주소찾기
-                    </button>
-                    <input
-                      type="text"
-                      className="input-frame"
-                      value={formState.storeAddress}
-                      readOnly
-                      placeholder="주소를 선택하세요"
-                    />
-                    <input
-                      type="text"
-                      className="input-frame"
-                      value={formState.storeAddressDetail}
-                      onChange={(event) => onStoreAddressDetailChange(event.target.value)}
-                      ref={addressDetailRef}
-                      placeholder="상세 주소"
-                    />
-                  </div>
-                  {fieldErrors.storeAddress && <div className="form-helper error">{fieldErrors.storeAddress}</div>}
+                  <AddressSearch
+                    value={{
+                      address: formState.storeAddress,
+                      addressDetail: formState.storeAddressDetail,
+                      zonecode: formState.postalCode,
+                    }}
+                    onChange={onAddressChange}
+                      detailInputRef={addressDetailRef}
+                    error={!!fieldErrors.storeAddress}
+                    helpText={fieldErrors.storeAddress}
+                    addressPlaceholder="주소를 선택하세요"
+                    detailPlaceholder="상세 주소"
+                  />
                 </td>
               </tr>
               <tr>
-                <th>대표자 핸드폰 번호 *</th>
+                <th>대표자 핸드폰 번호 <span className="red">*</span></th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame"
+                    <Input
                       value={formatPhoneNumberInput(formState.ceoPhone)}
                       onChange={(event) => onCeoPhoneChange(event.target.value)}
                       inputMode="numeric"
@@ -370,16 +446,15 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.ceoPhone && <div className="form-helper error">{fieldErrors.ceoPhone}</div>}
+                  {fieldErrors.ceoPhone && <div className="warning-txt">{fieldErrors.ceoPhone}</div>}
                 </td>
               </tr>
               <tr>
                 <th>점포 전화번호</th>
                 <td>
                   <div className="filed-check-flx input-inline-help">
-                    <input
-                      type="text"
-                      className="input-frame input-grow"
+                    <Input
+                      className="input-grow"
                       value={formatPhoneNumberInput(formState.storePhone)}
                       onChange={(event) => onStorePhoneChange(event.target.value)}
                       inputMode="numeric"
@@ -387,28 +462,21 @@ export const StoreDetailBasicInfo = ({
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.storePhone && <div className="form-helper error">{fieldErrors.storePhone}</div>}
+                  {fieldErrors.storePhone && <div className="warning-txt">{fieldErrors.storePhone}</div>}
                 </td>
               </tr>
               <tr>
                 <th>점포 이미지</th>
                 <td>
-                  <FileUploader
-                    mode="multiple"
-                    value={formState.storeImages}
-                    previews={storeImagePreviews}
-                    existingFiles={existingStoreImages}
-                    onChange={onStoreImagesSelect}
-                    onRemoveNew={onRemoveNewImage}
-                    onRemoveExisting={onToggleDeleteImage}
-                    onDownloadExisting={onExistingFileDownload}
-                    onRemoveAll={onRemoveAllStoreImages}
-                    getExistingFileUrl={getFileUrl}
-                    resolveExistingFileUrl={resolveExistingFileUrl}
+                  <FileUpload
+                    files={storeImageFiles}
+                    onAdd={handleStoreImageAdd}
+                    onRemove={handleStoreImageRemove}
+                    onFileClick={handleStoreImageClick}
+                    multiple
+                    error={!!fieldErrors.storeImages}
+                    helpText={fieldErrors.storeImages}
                   />
-                  {fieldErrors.storeImages && (
-                    <div className="form-helper error">{fieldErrors.storeImages}</div>
-                  )}
                 </td>
               </tr>
             </tbody>

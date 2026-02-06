@@ -44,9 +44,9 @@ import { useBp } from '@/hooks/useBp'
 import { useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
-import SearchableSelect, { type SearchableSelectOption } from '@/components/common/SearchableSelect'
+import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
 
-export type SelectOption = SearchableSelectOption<number>
+export type SelectOption = SearchSelectOption
 
 export type OfficeFranchiseStoreValue = {
     head_office: number | null // 본사 선택 값(id)
@@ -59,6 +59,7 @@ type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
+    isStoreRequired?: boolean
     showStoreError?: boolean
     officeId: number | null // 본사 선택 값(id)
     franchiseId: number | null // 가맹점 선택 값(id)
@@ -68,20 +69,21 @@ type HeadOfficeFranchiseStoreSelectProps = {
 }
 
 const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
-    bpTree.map((office) => ({ value: office.id, label: office.name }))
+    bpTree.map((office) => ({ value: String(office.id), label: office.name }))
 
 const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | null) =>
     officeId
         ? bpTree
             .find((office) => office.id === officeId)
-            ?.franchises.map((franchise) => ({ value: franchise.id, label: franchise.name })) ?? []
+            ?.franchises.map((franchise) => ({ value: String(franchise.id), label: franchise.name })) ?? []
         : bpTree.flatMap((office) =>
-            office.franchises.map((franchise) => ({ value: franchise.id, label: franchise.name }))
+            office.franchises.map((franchise) => ({ value: String(franchise.id), label: franchise.name }))
         )
 
 export default function HeadOfficeFranchiseStoreSelect({
     isHeadOfficeRequired = true,
     showHeadOfficeError = false,
+    isStoreRequired = false,
     showStoreError = false,
     officeId,
     franchiseId,
@@ -103,7 +105,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     )
     // 점포 옵션은 API 결과를 select에 맞게 변환
     const storeOptions = useMemo(
-        () => storeOptionList.map((option) => ({ value: option.id, label: option.storeName })),
+        () => storeOptionList.map((option) => ({ value: String(option.id), label: option.storeName })),
         [storeOptionList]
     )
 
@@ -111,15 +113,18 @@ export default function HeadOfficeFranchiseStoreSelect({
         <>
             {visibleFields.includes('office') && (
                 <>
-                    <th>본사 {isHeadOfficeRequired ? '*' : ''}</th>
+                    <th>본사 {isHeadOfficeRequired && <span className="red">*</span>}</th>
                     <td>
                         <div className="data-filed">
-                            <SearchableSelect
-                                value={officeId}
+                            <SearchSelect
+                                value={officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null}
                                 options={officeOptions}
                                 placeholder="전체"
-                                disabled={bpLoading}
-                                onChange={(nextOfficeId) => {
+                                isDisabled={bpLoading}
+                                isSearchable={true}
+                                isClearable={true}
+                                onChange={(option) => {
+                                    const nextOfficeId = option ? Number(option.value) : null
                                     const nextFranchiseOptions = nextOfficeId
                                         ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
                                         : bpTree.flatMap((office) => office.franchises)
@@ -136,7 +141,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 }}
                             />
                             {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
-                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                                <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                             )}
                         </div>
                     </td>
@@ -147,18 +152,21 @@ export default function HeadOfficeFranchiseStoreSelect({
                     <th>가맹점</th>
                     <td>
                         <div className="data-filed">
-                            <SearchableSelect
-                                value={franchiseId}
+                            <SearchSelect
+                                value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                disabled={bpLoading}
-                                onChange={(nextFranchiseId) =>
+                                isDisabled={bpLoading}
+                                isSearchable={true}
+                                isClearable={true}
+                                onChange={(option) => {
+                                    const nextFranchiseId = option ? Number(option.value) : null
                                     onChange({
                                         head_office: officeId,
                                         franchise: nextFranchiseId,
                                         store: null,
                                     })
-                                }
+                                }}
                             />
                         </div>
                     </td>
@@ -166,24 +174,27 @@ export default function HeadOfficeFranchiseStoreSelect({
             )}
             {visibleFields.includes('store') && (
                 <>
-                    <th>점포</th>
+                    <th>점포 {isStoreRequired && <span className="red">*</span>}</th>
                     <td>
                         <div className="data-filed">
-                            <SearchableSelect
-                                value={storeId}
+                            <SearchSelect
+                                value={storeId !== null ? storeOptions.find((opt) => opt.value === String(storeId)) || null : null}
                                 options={storeOptions}
                                 placeholder="전체"
-                                disabled={storeLoading}
-                                onChange={(nextStoreId) =>
+                                isDisabled={storeLoading}
+                                isSearchable={true}
+                                isClearable={true}
+                                onChange={(option) => {
+                                    const nextStoreId = option ? Number(option.value) : null
                                     onChange({
                                         head_office: officeId,
                                         franchise: franchiseId,
                                         store: nextStoreId,
                                     })
-                                }
+                                }}
                             />
                             {showStoreError && !storeId && (
-                                <span className="form-helper error">※ 필수 입력 항목입니다.</span>
+                                <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                             )}
                         </div>
                     </td>

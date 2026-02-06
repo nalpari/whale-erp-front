@@ -118,19 +118,19 @@ const buildDefaultOperating = (dayType: OperatingDayType, mode: StoreFormMode): 
       openTime: '07:00',
       closeTime: '18:00',
       breakTimeEnabled: true,
-      breakStartTime: '07:00',
-      breakEndTime: '08:00',
+      breakStartTime: '14:00',
+      breakEndTime: '16:00',
     }
   }
 
   return {
     dayType,
     isOperating: false,
-    openTime: '00:00',
-    closeTime: '00:00',
+    openTime: '07:00',
+    closeTime: '18:00',
     breakTimeEnabled: false,
-    breakStartTime: '00:00',
-    breakEndTime: '00:00',
+    breakStartTime: '14:00',
+    breakEndTime: '16:00',
   }
 }
 
@@ -377,19 +377,11 @@ export const validateForm = (formState: StoreFormState) => {
   return { fieldErrors, formErrors }
 }
 
-// 다음 주소 검색 API 응답 일부 타입
-interface DaumPostcodeData {
+// 다음 주소 검색 API 응답 일부 타입 - AddressSearch 컴포넌트에서 전역 Window.daum 타입 정의됨
+interface DaumPostcodeDataLocal {
   zonecode?: string
   address?: string
   roadAddress?: string
-}
-
-declare global {
-  interface Window {
-    daum?: {
-      Postcode: new (options: { oncomplete: (data: DaumPostcodeData) => void }) => { open: () => void }
-    }
-  }
 }
 
 // 폼 초기화/매핑에 필요한 입력값
@@ -483,7 +475,7 @@ export const useStoreDetailForm = ({
 
     const openPostcode = (DaumPostcode: NonNullable<Window['daum']>['Postcode']) => {
       const daumPostcode = new DaumPostcode({
-        oncomplete: (data: DaumPostcodeData) => {
+        oncomplete: (data: DaumPostcodeDataLocal) => {
           const address = data.roadAddress || data.address || ''
           setFormState((prev) => ({
             ...prev,

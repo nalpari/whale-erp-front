@@ -8,8 +8,10 @@ import { apiResponseSchema } from './api';
 export const programSchema: z.ZodType<Program> = z.object({
   id: z.number().nullable(),
   parent_id: z.number().nullable(),
+  menu_kind: z.string(),
   name: z.string(),
   path: z.string().nullable(),
+  icon_url: z.string().nullable(),
   order_index: z.number(),
   level: z.number(),
   is_active: z.boolean(),
@@ -38,8 +40,10 @@ export const programResponseSchema = apiResponseSchema(programSchema);
 export interface Program {
   id: number | null;
   parent_id: number | null;
+  menu_kind: string;
   name: string;
   path: string | null;
+  icon_url: string | null;
   order_index: number;
   level: number;
   is_active: boolean;
@@ -61,8 +65,10 @@ export type ProgramListResponse = z.infer<typeof programListResponseSchema>;
  * 프로그램 폼 밸리데이션 스키마 (생성/수정 공통)
  */
 export const programFormSchema = z.object({
+  menu_kind: z.string().trim().min(1, '※ 필수 입력입니다.'),
   name: z.string().trim().min(1, '※ 필수 입력입니다.'),
   path: z.string().transform(val => val.trim() === '' ? null : val).nullable(),
+  icon_url: z.string().transform(val => val.trim() === '' ? null : val).nullable(),
   is_active: z.boolean(),
 });
 
@@ -76,8 +82,10 @@ export type ProgramFormData = z.infer<typeof programFormSchema>;
  */
 export interface ProgramCreateRequest {
   parent_id: number | null;
+  menu_kind: string;
   name: string;
   path: string | null;
+  icon_url: string | null;
   is_active: boolean;
 }
 
@@ -87,6 +95,7 @@ export interface ProgramCreateRequest {
 export interface ProgramUpdateRequest {
   name: string;
   path: string | null;
+  icon_url: string | null;
   is_active: boolean;
 }
 

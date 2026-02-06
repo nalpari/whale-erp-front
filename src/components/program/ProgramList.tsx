@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 
 import type { Program } from '@/lib/schemas/program'
 import { useProgram } from '@/hooks/useProgram'
 import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
 import ProgramFormModal from '@/components/program/ProgramFormModal'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 
 /**
  * 프로그램 목록 및 계층 관리 컴포넌트
@@ -14,10 +15,16 @@ import ProgramFormModal from '@/components/program/ProgramFormModal'
  * - 드래그 앤 드롭으로 순서 변경
  */
 export default function ProgramList() {
+  const { data: menuKindCodes = [] } = useCommonCodeHierarchy('MNKND')
+
   const {
     programs,
     loading,
     error,
+    selectedMenuKind,
+    setSelectedMenuKind,
+    inputKeyword,
+    setInputKeyword,
     searchKeyword,
     searchResults,
     openItems,
@@ -33,42 +40,15 @@ export default function ProgramList() {
     handleSubmit,
     handleDelete, // eslint-disable-line @typescript-eslint/no-unused-vars -- 기획에 없어 현재 미사용
     handleReorder,
+    findProgramParents,
   } = useProgram()
-
-  const [inputKeyword, setInputKeyword] = useState('')
 
   // 초기 로드시 트리 전체 열기
   useEffect(() => {
     if (programs.length > 0 && openItems.size === 0) {
       expandAll()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programs.length])
-
-  // 프로그램의 부모 이름 찾기 (모달에서 표시용)
-  const findProgramParents = (targetId: number | null): { level1Name?: string; level2Name?: string } => {
-    if (targetId === null) return {}
-
-    const findInTree = (items: Program[], parents: Program[] = []): { level1Name?: string; level2Name?: string } => {
-      for (const program of items) {
-        if (program.id === targetId) {
-          if (parents.length === 0) return {}
-          if (parents.length === 1) return { level1Name: parents[0].name }
-          return { level1Name: parents[0].name, level2Name: parents[1].name }
-        }
-
-        if (program.children?.length) {
-          parents.push(program)
-          const result = findInTree(program.children, parents)
-          if (Object.keys(result).length > 0) return result
-          parents.pop()
-        }
-      }
-      return {}
-    }
-
-    return findInTree(programs)
-  }
+  }, [programs.length, openItems.size, expandAll])
 
   // 검색 키워드 하이라이트 (대소문자 구분 없음)
   const highlightKeyword = (text: string, keyword: string) => {
@@ -239,6 +219,19 @@ export default function ProgramList() {
               <div className="hierarchy-txt">드래그 앤 드롭을 사용하여 동일 레벨 내 순서를 변경할 수 있습니다.</div>
             </div>
             <div className="data-header-right">
+              <div className="hierarchy-select">
+                <select
+                  className="select-form"
+                  value={selectedMenuKind}
+                  onChange={(e) => setSelectedMenuKind(e.target.value)}
+                >
+                  {menuKindCodes.map((code) => (
+                    <option key={code.code} value={code.code}>
+                      {code.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <button className="btn-form gray s" onClick={() => setOpenItems(new Set())}>
                 All Close
               </button>
@@ -249,7 +242,7 @@ export default function ProgramList() {
           </div>
           <div className="hierarchy-wrap">
             {programs.length === 0 ? (
-              <div></div>
+              <div>등록된 프로그램이 없습니다.</div>
             ) : (
               <DraggableTree
                 items={programs}
@@ -269,6 +262,7 @@ export default function ProgramList() {
         onSubmit={handleSubmit}
         level1Name={level1Name}
         level2Name={level2Name}
+        parentMenuKind={modalMode === 'create' && modalProgram ? modalProgram.menu_kind : undefined}
         editData={modalMode === 'edit' ? modalProgram : null}
       />
     </div>

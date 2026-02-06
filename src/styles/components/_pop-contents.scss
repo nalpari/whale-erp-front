@@ -7,7 +7,7 @@
   margin-bottom: 16px;
   .pop-form-tit {
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
-    color: #888;
+    color: #222;
     margin-bottom: 8px;
   }
 }
@@ -22,6 +22,15 @@
   color: #333;
   letter-spacing: -0.375px;
   border-bottom: 1px solid #ebebeb;
+}
+.alert-txt {
+  @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+  color: #222;
+  text-align: center;
+  padding: 10px 0;
+  span {
+    display: block;
+  }
 }
 .pop-table {
   width: 100%;
@@ -86,9 +95,6 @@
     background-color: #aaaaaa;
     color: #fff;
   }
-}
-.biweek-wrap {
-  padding-top: 8px;
 }
 
 // 연봉 및 통상시급 계산기 팝업
@@ -421,11 +427,10 @@
   }
 }
 
-
 // 마이페이지 팝업
-.mypage-sub{
-  .mypage-header{
-    h2{
+.mypage-sub {
+  .mypage-header {
+    h2 {
       @include fontDefinition($font-ds-24, $font-w-600, $line-h-140);
     }
   }
@@ -448,41 +453,41 @@
     background-position: center;
   }
 }
-.mypage-body{
+.mypage-body {
   padding: 0 24px 24px;
 }
-.mypage-tab{
+.mypage-tab {
   @include flex(1px);
   align-items: center;
-  .mypage-tab-item{
+  .mypage-tab-item {
     display: block;
     width: 100%;
-    background-color: #EBF1FC;
+    background-color: #ebf1fc;
     padding: 20px 0;
     @include fontDefinition($font-ds-16, $font-w-500, $line-h-140);
-    color: #6C96EA;
+    color: #6c96ea;
     transition: all 0.15s ease-in-out;
     &:hover,
     &.act {
-      background-color: #366FE3;
+      background-color: #366fe3;
       color: #fff;
       font-weight: $font-w-600;
     }
   }
 }
-.mypage-frame-wrap{
+.mypage-frame-wrap {
   padding-top: 34px;
 }
-.mypage-frame-tit{
-  h2{
+.mypage-frame-tit {
+  h2 {
     @include fontDefinition($font-ds-24, $font-w-500, $line-h-140);
     color: #222;
   }
 }
-.mypage-frame-content{
+.mypage-frame-content {
   margin-top: 24px;
 }
-.mypage-footer{
+.mypage-footer {
   @include flex(10px);
   align-items: center;
   justify-content: center;
@@ -491,13 +496,13 @@
 
 // 마이페이지 내정보
 
-.mypage-data-wrap{
+.mypage-data-wrap {
   padding-top: 42px;
 }
-.mypage-data-info{
+.mypage-data-info {
   @include flex(12px);
   align-items: center;
-  .mypage-img{
+  .mypage-img {
     position: relative;
     flex: none;
     width: 64px;
@@ -507,25 +512,25 @@
   }
 }
 
-.mypage-info{
-  .mypage-name{
+.mypage-info {
+  .mypage-name {
     @include fontDefinition($font-ds-24, $font-w-600, $line-h-140);
     color: #222;
   }
 }
-.mypage-info-wrap{
+.mypage-info-wrap {
   @include flex(12px);
   align-items: center;
   margin-top: 4px;
-  .my-id{
+  .my-id {
     @include flex(0px);
     align-items: center;
-    .id-tit{
+    .id-tit {
       position: relative;
       @include fontDefinition($font-ds-18, $font-w-400, $line-h-140);
       color: #222;
       padding-right: 8px;
-      &:after{
+      &:after {
         content: '';
         position: absolute;
         top: 50%;
@@ -533,68 +538,68 @@
         transform: translateY(-50%);
         width: 1px;
         height: 9px;
-        background-color: #999A9A; 
+        background-color: #999a9a;
       }
     }
-    .id-data{
+    .id-data {
       padding-left: 8px;
       @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
-      color: #4E637E;
+      color: #4e637e;
     }
   }
 }
-.mypage-info-badge{
+.mypage-info-badge {
   @include flex(6px);
   align-items: center;
-  .id-copy{
+  .id-copy {
     display: block;
     height: 30px;
     padding: 0 10px;
     border-radius: 3px;
-    background-color: #4E637E;
+    background-color: #4e637e;
     @include fontDefinition($font-ds-15, $font-w-600, 30px);
     color: #fff;
   }
-  .badge{
+  .badge {
     display: block;
     height: 30px;
     padding: 0 13px;
     border-radius: 3px;
     @include fontDefinition($font-ds-15, $font-w-600, 30px);
-    &.blue{
-      background-color: #F2F6FF;
-      color: #366FE3;
+    &.blue {
+      background-color: #f2f6ff;
+      color: #366fe3;
     }
-    &.red{
-      background-color: #F2F6FF;
-      color: #366FE3;
+    &.red {
+      background-color: #f2f6ff;
+      color: #366fe3;
     }
-    &.grey{
-      background-color: #EAEAEA;
+    &.grey {
+      background-color: #eaeaea;
       color: #505050;
     }
   }
 }
 
-.mypage-data-table-wrap{
+.mypage-data-table-wrap {
   padding: 10px 24px;
   margin-top: 34px;
   border: 1px solid #ebebeb;
   border-radius: 6px;
 }
-.select-avatar{
+.select-avatar {
   @include flex(10px);
   align-items: center;
-  .avatar-btn{
+  .avatar-btn {
     position: relative;
     display: block;
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.10);
+    background-color: rgba(0, 0, 0, 0.1);
     transition: all 0.15s ease-in-out;
-    &.check{
-      &::before{
+    &.check {
+      &::before {
         content: '';
         position: absolute;
         top: 50%;
@@ -603,7 +608,7 @@
         width: 100%;
         height: 100%;
         border-radius: 50%;
-        background: rgba(0, 0, 0, 0.50) url('/assets/images/ui/avatar_check.svg') no-repeat center center;
+        background: rgba(0, 0, 0, 0.5) url('/assets/images/ui/avatar_check.svg') no-repeat center center;
         background-size: 18.4px 13.2px;
         z-index: 2;
       }
@@ -611,37 +616,37 @@
   }
 }
 
-.sub-contents-wrap{
+.sub-contents-wrap {
   margin-top: 34px;
-  .sub-contents-tit{
+  .sub-contents-tit {
     @include fontDefinition($font-ds-16, $font-w-500, $line-h-140);
     color: #222;
-    span{
+    span {
       @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
-      color: #366FE3;
+      color: #366fe3;
     }
   }
 }
-.myservice-wrap{
+.myservice-wrap {
   margin-top: 12px;
 }
 
-.mypage-filter-head{
+.mypage-filter-head {
   @include flex(0px);
   align-items: center;
-  .filter-left{
+  .filter-left {
     @include flex(8px);
     align-items: center;
-    .filter-tit{
+    .filter-tit {
       flex: none;
       @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
       color: #222;
     }
-    .sel-year{
+    .sel-year {
       width: 120px;
     }
   }
-  .filter-right{
+  .filter-right {
     @include flex(8px);
     align-items: center;
     margin-left: auto;
@@ -659,7 +664,7 @@
   @include flex(0px);
   padding: 23px 16px;
   background-color: #fff;
-  border: 1px solid #EBEBEB;
+  border: 1px solid #ebebeb;
   border-radius: 12px;
   .pay-method-tit {
     @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
@@ -690,23 +695,23 @@
     display: block;
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
     color: #505050;
-    &.date{
+    &.date {
       margin-left: auto;
     }
   }
 }
-.pay-method-add{
+.pay-method-add {
   @include flex(8px);
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  border: 1px solid #5E8CE9;
+  border: 1px solid #5e8ce9;
   @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
-  color: #5E8CE9;
+  color: #5e8ce9;
   padding: 24px 16px;
   // align-self: flex-start;
   transition: all 0.15s ease-in-out;
-  .method-add{
+  .method-add {
     display: block;
     width: 24px;
     height: 24px;
@@ -715,42 +720,110 @@
     background-repeat: no-repeat;
     background-position: center;
   }
-  &:hover{
-    background-color: rgb(238, 244, 255)
+  &:hover {
+    background-color: rgb(238, 244, 255);
   }
 }
 
 // 비밀번호 변경
-.password-change-wrap{
+.password-change-wrap {
   max-width: 420px;
   margin: 0 auto;
-  .password-change-inner{
+  .password-change-inner {
     padding: 38px 32px;
     border: 1px solid #ebebeb;
     border-radius: 6px;
   }
 }
-.filed-wrap{
+.filed-wrap {
   @include flex(14px);
   flex-direction: column;
-  .filed-item{
-    .filed-tit{
+  .filed-item {
+    .filed-tit {
       @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
       color: #222;
     }
-    .filed-input{
+    .filed-input {
       margin-top: 10px;
     }
-    .filed-error{
+    .filed-error {
       @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
       color: #f00;
       margin-top: 10px;
     }
   }
 }
-.password-change-btn{
+.password-change-btn {
   @include flex(10px);
   align-items: center;
   justify-content: center;
   margin-top: 14px;
+}
+
+// BP선택 팝업
+.bp-sel-txt {
+  @include fontDefinition($font-ds-22, $font-w-600, $line-h-140);
+  color: #222;
+  margin-bottom: 24px;
+}
+
+// 공지사항 팝업
+.notice-header {
+  padding-bottom: 14px;
+  border-bottom: 2px solid #222;
+  .notice-date {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #505050;
+  }
+  .notice-tit {
+    @include fontDefinition($font-ds-20, $font-w-600, $line-h-140);
+    color: #222;
+    margin-top: 4px;
+  }
+}
+.notice-content {
+  padding-top: 34px;
+  padding-bottom: 42px;
+  p {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #222;
+    white-space: pre-wrap;
+  }
+}
+.notice-file {
+  padding-top: 22px;
+  border-top: 1px solid #222;
+  .notice-file-tit {
+    @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
+    color: #222;
+  }
+  .notice-file-list {
+    @include flex(4px);
+    flex-direction: column;
+    margin-top: 10px;
+    .notice-file-item {
+      .notice-file-btn {
+        @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+        color: #366fe3;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// 문의하기 성공 팝업
+.contact-success-wrap {
+  text-align: center;
+  .contact-name {
+    @include fontDefinition($font-ds-28, $font-w-600, $line-h-140);
+    color: #222;
+  }
+  .contact-txt {
+    margin-top: 12px;
+    span {
+      display: block;
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+      color: #222;
+    }
+  }
 }
