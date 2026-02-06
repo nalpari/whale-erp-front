@@ -73,6 +73,11 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [employmentInsurance, setEmploymentInsurance] = useState('')
   const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
 
+  // Organization selection state
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('1')
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('1')
+  const [selectedStore, setSelectedStore] = useState<string>('1')
+
   // TanStack Query hooks
   const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
@@ -94,15 +99,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   // Select options
   const headquarterOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '따름인' }
+    { value: '1', label: '따름인' }
   ], [])
 
   const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '을지로3가점' }
+    { value: '1', label: '을지로3가점' }
   ], [])
 
   const storeOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '힘이나는커피생활 을지로3가점' }
+    { value: '1', label: '힘이나는커피생활 을지로3가점' }
   ], [])
 
   const employeeOptions: SelectOption[] = useMemo(() => [
@@ -606,8 +611,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="block">
                       <SearchSelect
                         options={headquarterOptions}
-                        value={headquarterOptions.find(o => o.value === '')}
-                        onChange={() => {}}
+                        value={headquarterOptions.find(o => o.value === selectedHeadquarter) || null}
+                        onChange={(opt) => setSelectedHeadquarter(opt?.value || '')}
                         placeholder="본사 선택"
                         isDisabled={!isEditMode}
                       />
@@ -615,8 +620,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="block">
                       <SearchSelect
                         options={franchiseOptions}
-                        value={franchiseOptions.find(o => o.value === '')}
-                        onChange={() => {}}
+                        value={franchiseOptions.find(o => o.value === selectedFranchise) || null}
+                        onChange={(opt) => setSelectedFranchise(opt?.value || '')}
                         placeholder="가맹점 선택"
                         isDisabled={!isEditMode}
                       />
@@ -630,8 +635,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   <div className="block">
                     <SearchSelect
                       options={storeOptions}
-                      value={storeOptions.find(o => o.value === '')}
-                      onChange={() => {}}
+                      value={storeOptions.find(o => o.value === selectedStore) || null}
+                      onChange={(opt) => setSelectedStore(opt?.value || '')}
                       placeholder="점포 선택"
                       isDisabled={!isEditMode}
                     />
@@ -663,7 +668,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         />
                       )}
                     </div>
-                    <span className="info-text">{selectedEmployee?.employeeNumber || existingStatement?.memberId || '-'}</span>
+                    {selectedEmployee?.employeeNumber && <span className="info-text">{selectedEmployee.employeeNumber}</span>}
                   </div>
                 </td>
               </tr>
@@ -673,7 +678,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 </th>
                 <td>
                   <div className="filed-flx">
-                    <div className="block" style={{ maxWidth: '150px' }}>
+                    <div className="block" style={{ width: '150px', flexShrink: 0 }}>
                       <SearchSelect
                         options={monthOptions}
                         value={monthOptions.find(o => o.value === payrollMonth)}
@@ -682,7 +687,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         isDisabled={!isEditMode}
                       />
                     </div>
-                    {paymentDate && <span className="info-text">급여 지급일 : {paymentDate}</span>}
+                    {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>급여 지급일 : {paymentDate}</span>}
                   </div>
                 </td>
               </tr>

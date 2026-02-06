@@ -10,6 +10,7 @@ import {
   useUpdateEmployeeWithFiles
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
+import { useStoreOptions } from '@/hooks/queries'
 import { getDownloadUrl } from '@/lib/api/file'
 import { Input, AddressSearch, type AddressData, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -344,6 +345,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     !!(headOfficeId && franchiseId)
   )
 
+  // 점포 옵션 조회
+  const { data: storeOptionList = [] } = useStoreOptions(headOfficeId, franchiseId)
+
   // Select 옵션 생성
   const headOfficeSelectOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '본사 선택' },
@@ -356,8 +360,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   ], [])
 
   const storeSelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '#힘이나는커피생활 을지로3가점' }
-  ], [])
+    { value: '', label: '점포 선택' },
+    ...storeOptionList.map(store => ({
+      value: store.id.toString(),
+      label: store.storeName
+    }))
+  ], [storeOptionList])
 
   const employeeClassSelectOptions: SelectOption[] = useMemo(() => {
     const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
@@ -371,7 +379,8 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   }, [settingsData?.codeMemoContent?.EMPLOYEE])
 
   const contractClassSelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '정직원' },
+    { value: '', label: '선택' },
+    { value: 'regular', label: '정직원' },
     { value: 'contract', label: '계약직' },
     { value: 'parttime', label: '파트타이머' }
   ], [])

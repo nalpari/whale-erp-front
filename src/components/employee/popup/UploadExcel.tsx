@@ -34,7 +34,6 @@ export default function UploadExcel({
   const { alert } = useAlert()
   const uploadRef = useRef<HTMLInputElement | null>(null)
   const [file, setFile] = useState<File | null>(null)
-  const { alert } = useAlert()
 
   const errorRows = useMemo(() => result?.errors ?? [], [result])
   const isSuccess = useMemo(() => result?.success ?? false, [result])

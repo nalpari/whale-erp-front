@@ -66,6 +66,11 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [isSaving, setIsSaving] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
 
+  // Organization selection state
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('1')
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('1')
+  const [selectedStore, setSelectedStore] = useState<string>('1')
+
   // TanStack Query hooks
   const { data: existingStatement } = useOvertimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
@@ -518,15 +523,15 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }, [employeeList])
 
   const headquarterOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '따름인' }
+    { value: '1', label: '따름인' }
   ], [])
 
   const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '을지로3가점' }
+    { value: '1', label: '을지로3가점' }
   ], [])
 
-  const _storeOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '힘이나는커피생활 을지로3가점' }
+  const storeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '힘이나는커피생활 을지로3가점' }
   ], [])
 
   return (
@@ -584,8 +589,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="block">
                       <SearchSelect
                         options={headquarterOptions}
-                        value={headquarterOptions[0]}
-                        onChange={() => {}}
+                        value={headquarterOptions.find(opt => opt.value === selectedHeadquarter) || null}
+                        onChange={(opt) => setSelectedHeadquarter(opt?.value || '')}
                         placeholder="본사 선택"
                         isDisabled={!isEditMode}
                       />
@@ -593,8 +598,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="block">
                       <SearchSelect
                         options={franchiseOptions}
-                        value={franchiseOptions[0]}
-                        onChange={() => {}}
+                        value={franchiseOptions.find(opt => opt.value === selectedFranchise) || null}
+                        onChange={(opt) => setSelectedFranchise(opt?.value || '')}
                         placeholder="가맹점 선택"
                         isDisabled={!isEditMode}
                       />
@@ -607,9 +612,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <td>
                   <div className="block">
                     <SearchSelect
-                      options={_storeOptions}
-                      value={_storeOptions[0]}
-                      onChange={() => {}}
+                      options={storeOptions}
+                      value={storeOptions.find(opt => opt.value === selectedStore) || null}
+                      onChange={(opt) => setSelectedStore(opt?.value || '')}
                       placeholder="점포 선택"
                       isDisabled={!isEditMode}
                     />
@@ -641,7 +646,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         />
                       )}
                     </div>
-                    <span className="info-text">{selectedEmployee?.employeeNumber || existingStatement?.memberId || '-'}</span>
+                    {selectedEmployee?.employeeNumber && <span className="info-text">{selectedEmployee.employeeNumber}</span>}
                   </div>
                 </td>
               </tr>
@@ -651,7 +656,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 </th>
                 <td>
                   <div className="filed-flx">
-                    <div className="block" style={{ maxWidth: '150px' }}>
+                    <div className="block" style={{ width: '150px', flexShrink: 0 }}>
                       <SearchSelect
                         options={_monthOptions}
                         value={_monthOptions.find(opt => opt.value === payrollMonth) || null}
@@ -660,7 +665,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         isDisabled={!isEditMode}
                       />
                     </div>
-                    {paymentDate && <span className="info-text">지급일 : {paymentDate}</span>}
+                    {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>지급일 : {paymentDate}</span>}
                   </div>
                 </td>
               </tr>

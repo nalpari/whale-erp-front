@@ -6,7 +6,6 @@ import AgGrid from '@/components/ui/AgGrid'
 import { useAlert } from '@/components/common/ui'
 import { useEmployeeInfoList } from '@/hooks/queries'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
-import { useAlert } from '@/components/common/ui'
 
 type EmployeeRow = {
   id: string

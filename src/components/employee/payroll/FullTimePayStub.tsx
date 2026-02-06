@@ -219,7 +219,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   )
 
   // React 19: derived state
-  const payrollMonthOptions = getPayrollMonthOptions()
+  const payrollMonthOptions = useMemo(() => getPayrollMonthOptions(), [])
   const bonusCategories = payrollSettings?.bonusCategories || []
 
   // SearchSelect options

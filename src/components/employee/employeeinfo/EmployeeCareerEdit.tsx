@@ -276,6 +276,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                               value={workplaceTypeSelectOptions.find(opt => opt.value === (career.workplaceType ?? '')) || null}
                               onChange={(opt) => handleCareerChange(index, 'workplaceType', opt?.value || null)}
                               placeholder="근무처 유형"
+                              error={!!errors.workplaceType}
                             />
                           </div>
                           <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
@@ -358,7 +359,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             value={contractClassSelectOptions.find(opt => opt.value === (career.contractClassification ?? '')) || null}
                             onChange={(opt) => handleCareerChange(index, 'contractClassification', opt?.value || null)}
                             placeholder="선택"
-                            className={errors.contractClassification ? 'border-red-500' : ''}
+                            error={!!errors.contractClassification}
                           />
                         </div>
                         {errors.contractClassification && (
