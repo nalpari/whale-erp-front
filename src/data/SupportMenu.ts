@@ -23,7 +23,7 @@ export const SupportMenu: SupportMenuItem[] = [
     id: 3,
     name: '공지사항',
     icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon03.svg',
-    link: '#',
+    link: '/customer/notice',
   },
   {
     id: 4,
