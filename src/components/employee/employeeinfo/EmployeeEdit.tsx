@@ -150,9 +150,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   })
 
   // 직원 정보로 폼 초기화 (렌더링 중 처리)
-  const [prevEmployeeData, setPrevEmployeeData] = useState(employeeData)
-  if (employeeData && employeeData !== prevEmployeeData) {
-    setPrevEmployeeData(employeeData)
+  // 캐시 히트 시에도 초기화되도록 초기값을 null로 설정
+  const [prevEmployeeDataId, setPrevEmployeeDataId] = useState<number | null>(null)
+  if (employeeData && employeeData.id !== prevEmployeeDataId) {
+    setPrevEmployeeDataId(employeeData.id)
     const employee = employeeData
 
     // workplaceType 설정
