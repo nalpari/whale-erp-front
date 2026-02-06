@@ -193,6 +193,13 @@ export const payrollKeys = {
   },
 }
 
+export const noticeKeys = {
+  all: ['notices'] as const,
+  lists: () => [...noticeKeys.all, 'list'] as const,
+  details: () => [...noticeKeys.all, 'detail'] as const,
+  detail: (id: number) => [...noticeKeys.details(), id] as const,
+}
+
 export const attendanceKeys = {
   all: ['attendances'] as const,
   lists: () => [...attendanceKeys.all, 'list'] as const,
