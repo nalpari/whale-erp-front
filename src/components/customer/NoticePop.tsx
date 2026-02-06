@@ -1,30 +1,9 @@
- 'use client'
- 
- type NoticeFile = {
-  id: number
-  name: string
-  downloadUrl: string
- }
- 
- type NoticePopProps = {
-   notice: {
-     title: string
-    createdAt: string
-     content: string
-     files?: NoticeFile[]
-   }
-   onClose: () => void
- }
- 
-const formatDate = (value: string) => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}.${month}.${day}`
+import type { NoticeDetail } from '@/lib/schemas/notice'
+import { formatDateDot } from '@/util/date-util'
+
+type NoticePopProps = {
+  notice: NoticeDetail
+  onClose: () => void
 }
 
 export default function NoticePop({ notice, onClose }: NoticePopProps) {
@@ -38,7 +17,7 @@ export default function NoticePop({ notice, onClose }: NoticePopProps) {
           <div className="modal-body">
             <div className="pop-frame">
               <div className="notice-header">
-                <div className="notice-date">{formatDate(notice.createdAt)}</div>
+                <div className="notice-date">{formatDateDot(notice.createdAt)}</div>
                 <div className="notice-tit">{notice.title}</div>
               </div>
               <div className="notice-content">
