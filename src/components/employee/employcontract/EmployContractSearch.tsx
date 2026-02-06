@@ -1,9 +1,10 @@
 'use client'
 import AnimateHeight from 'react-animate-height'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import Input from '@/components/common/ui/Input'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 
 interface EmployContractSearchProps {
@@ -41,8 +42,6 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     !!formData.headOfficeOrganizationId
   )
 
-  // 직원 분류 옵션 추출
-  const employeeClassificationOptions = settingsData?.codeMemoContent?.EMPLOYEE ?? []
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -170,6 +169,42 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
   // 직원 분류 선택 가능 여부
   const isEmployeeClassificationEnabled = !!formData.headOfficeOrganizationId
 
+  // 근무여부 옵션
+  const workStatusOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '전체' },
+    { value: 'EMPWK_001', label: '근무' },
+    { value: 'EMPWK_002', label: '휴직' },
+    { value: 'EMPWK_003', label: '퇴사' }
+  ], [])
+
+  // 직원 분류 옵션
+  const employeeClassOptions: SelectOption[] = useMemo(() => {
+    const options = settingsData?.codeMemoContent?.EMPLOYEE ?? []
+    return [
+      { value: '', label: isEmployeeClassificationEnabled ? (isEmployeeClassificationLoading ? '로딩중...' : '전체') : '선택' },
+      ...options.map(item => ({
+        value: item.code,
+        label: item.name
+      }))
+    ]
+  }, [isEmployeeClassificationEnabled, isEmployeeClassificationLoading, settingsData])
+
+  // 계약 분류 옵션
+  const contractClassOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '전체' },
+    { value: 'CNTCFWK_001', label: '포괄연봉제' },
+    { value: 'CNTCFWK_002', label: '비포괄연봉제' },
+    { value: 'CNTCFWK_003', label: '파트타임' }
+  ], [])
+
+  // 계약 상태 옵션
+  const contractStatusOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    { value: 'drafting', label: '작성중' },
+    { value: 'in_progress', label: '진행중' },
+    { value: 'completed', label: '계약완료' }
+  ], [])
+
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
@@ -218,18 +253,12 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
                 <th>근무여부</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      name="workStatus"
-                      className="select-form"
-                      value={formData.workStatus}
-                      onChange={(e) => handleInputChange('workStatus', e.target.value)}
-                      aria-label="근무여부 선택"
-                    >
-                      <option value="">전체</option>
-                      <option value="EMPWK_001">근무</option>
-                      <option value="EMPWK_002">휴직</option>
-                      <option value="EMPWK_003">퇴사</option>
-                    </select>
+                    <SearchSelect
+                      options={workStatusOptions}
+                      value={workStatusOptions.find(opt => opt.value === formData.workStatus) || null}
+                      onChange={(opt) => handleInputChange('workStatus', opt?.value || '')}
+                      placeholder="전체"
+                    />
                   </div>
                 </td>
                 <th>직원명</th>
@@ -276,61 +305,35 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
                 <th>직원 분류</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      name="employeeClassification"
-                      className="select-form"
-                      value={formData.employeeClassification}
-                      onChange={(e) => handleInputChange('employeeClassification', e.target.value)}
-                      disabled={!isEmployeeClassificationEnabled}
-                      aria-label="직원 분류 선택"
-                    >
-                      <option value="">
-                        {!isEmployeeClassificationEnabled
-                          ? '선택'
-                          : isEmployeeClassificationLoading
-                            ? '로딩중...'
-                            : '전체'}
-                      </option>
-                      {employeeClassificationOptions.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchSelect
+                      options={employeeClassOptions}
+                      value={employeeClassOptions.find(opt => opt.value === formData.employeeClassification) || null}
+                      onChange={(opt) => handleInputChange('employeeClassification', opt?.value || '')}
+                      placeholder="선택"
+                      isDisabled={!isEmployeeClassificationEnabled}
+                    />
                   </div>
                 </td>
                 <th>계약 분류</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      name="contractClassification"
-                      className="select-form"
-                      value={formData.contractClassification}
-                      onChange={(e) => handleInputChange('contractClassification', e.target.value)}
-                      aria-label="계약 분류 선택"
-                    >
-                      <option value="">전체</option>
-                      <option value="CNTCFWK_001">포괄연봉제</option>
-                      <option value="CNTCFWK_002">비포괄연봉제</option>
-                      <option value="CNTCFWK_003">파트타임</option>
-                    </select>
+                    <SearchSelect
+                      options={contractClassOptions}
+                      value={contractClassOptions.find(opt => opt.value === formData.contractClassification) || null}
+                      onChange={(opt) => handleInputChange('contractClassification', opt?.value || '')}
+                      placeholder="전체"
+                    />
                   </div>
                 </td>
                 <th>계약 상태</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      name="contractStatus"
-                      className="select-form"
-                      value={formData.contractStatus}
-                      onChange={(e) => handleInputChange('contractStatus', e.target.value)}
-                      aria-label="계약 상태 선택"
-                    >
-                      <option value="">선택</option>
-                      <option value="drafting">작성중</option>
-                      <option value="in_progress">진행중</option>
-                      <option value="completed">계약완료</option>
-                    </select>
+                    <SearchSelect
+                      options={contractStatusOptions}
+                      value={contractStatusOptions.find(opt => opt.value === formData.contractStatus) || null}
+                      onChange={(opt) => handleInputChange('contractStatus', opt?.value || '')}
+                      placeholder="선택"
+                    />
                   </div>
                 </td>
               </tr>

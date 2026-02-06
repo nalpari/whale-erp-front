@@ -1,7 +1,9 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Tooltip } from 'react-tooltip'
 import Location from '@/components/ui/Location'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
   usePayrollStatementSettings,
   useSavePayrollStatementSettings,
@@ -116,6 +118,9 @@ function BonusCategoryRow({
 }
 
 export default function PayrollStatementSettings() {
+  // Alert hook
+  const { alert } = useAlert()
+
   // 본사/가맹점 선택
   const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
@@ -129,6 +134,20 @@ export default function PayrollStatementSettings() {
     true
   )
   const saveMutation = useSavePayrollStatementSettings()
+
+  // Select options
+  const headOfficeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '따름인' },
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '2', label: '을지로3가점' },
+  ], [])
+
+  const monthOptions: SelectOption[] = useMemo(() => [
+    { value: 'CURRENT', label: '당월' },
+    { value: 'NEXT', label: '익월' },
+  ], [])
 
   // React 19: derived state - settings 우선순위: localSettings > fetchedSettings > defaults
   const settings = localSettings ?? fetchedSettings ?? DEFAULT_PAYROLL_STATEMENT_SETTINGS
@@ -163,10 +182,10 @@ export default function PayrollStatementSettings() {
         settings: updatedSettings
       })
       setLocalSettings(updatedSettings)
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장에 실패했습니다.')
+      await alert('저장에 실패했습니다.')
     }
   }
 
@@ -274,22 +293,20 @@ export default function PayrollStatementSettings() {
                   <td>
                     <div className="filed-flx">
                       <div className="block" style={{ maxWidth: '250px' }}>
-                        <select
-                          className="select-form"
-                          value={selectedHeadOfficeId}
-                          onChange={(e) => setSelectedHeadOfficeId(Number(e.target.value))}
-                        >
-                          <option value={1}>따름인</option>
-                        </select>
+                        <SearchSelect
+                          options={headOfficeOptions}
+                          value={headOfficeOptions.find(o => o.value === String(selectedHeadOfficeId)) || null}
+                          onChange={(opt) => setSelectedHeadOfficeId(Number(opt?.value || DEFAULT_HEAD_OFFICE_ID))}
+                          placeholder="본사 선택"
+                        />
                       </div>
                       <div className="block" style={{ maxWidth: '250px' }}>
-                        <select
-                          className="select-form"
-                          value={selectedFranchiseId}
-                          onChange={(e) => setSelectedFranchiseId(Number(e.target.value))}
-                        >
-                          <option value={2}>을지로3가점</option>
-                        </select>
+                        <SearchSelect
+                          options={franchiseOptions}
+                          value={franchiseOptions.find(o => o.value === String(selectedFranchiseId)) || null}
+                          onChange={(opt) => setSelectedFranchiseId(Number(opt?.value || DEFAULT_FRANCHISE_ID))}
+                          placeholder="가맹점 선택"
+                        />
                       </div>
                       <button className="btn-form basic" onClick={handleSearch} disabled={isLoading}>
                         {isLoading ? '조회중...' : '검색'}
@@ -324,14 +341,12 @@ export default function PayrollStatementSettings() {
                       <td>
                         <div className="filed-flx">
                           <div className="block" style={{ maxWidth: '120px' }}>
-                            <select
-                              className="select-form"
-                              value={settings.fulltimePaydayMonth}
-                              onChange={(e) => handleSettingChange('fulltimePaydayMonth', e.target.value as 'CURRENT' | 'NEXT')}
-                            >
-                              <option value="CURRENT">당월</option>
-                              <option value="NEXT">익월</option>
-                            </select>
+                            <SearchSelect
+                              options={monthOptions}
+                              value={monthOptions.find(o => o.value === settings.fulltimePaydayMonth) || null}
+                              onChange={(opt) => handleSettingChange('fulltimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
+                              placeholder="선택"
+                            />
                           </div>
                           <span style={{ padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: 500 }}>일</span>
                           <div className="block" style={{ maxWidth: '80px' }}>
@@ -352,14 +367,12 @@ export default function PayrollStatementSettings() {
                       <td>
                         <div className="filed-flx">
                           <div className="block" style={{ maxWidth: '120px' }}>
-                            <select
-                              className="select-form"
-                              value={settings.parttimePaydayMonth}
-                              onChange={(e) => handleSettingChange('parttimePaydayMonth', e.target.value as 'CURRENT' | 'NEXT')}
-                            >
-                              <option value="CURRENT">당월</option>
-                              <option value="NEXT">익월</option>
-                            </select>
+                            <SearchSelect
+                              options={monthOptions}
+                              value={monthOptions.find(o => o.value === settings.parttimePaydayMonth) || null}
+                              onChange={(opt) => handleSettingChange('parttimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
+                              placeholder="선택"
+                            />
                           </div>
                           <span style={{ padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: 500 }}>일</span>
                           <div className="block" style={{ maxWidth: '80px' }}>

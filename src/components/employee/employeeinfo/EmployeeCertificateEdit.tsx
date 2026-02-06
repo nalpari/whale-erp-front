@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
-import { Input } from '@/components/common/ui'
+import { Input, useAlert } from '@/components/common/ui'
 import {
   useEmployeeCertificates,
   useSaveEmployeeCertificatesWithFiles,
@@ -34,6 +34,7 @@ const createEmptyCertificate = (): CertificateFormItem => ({
 
 export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertificateEditProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const [sectionOpen, setSectionOpen] = useState(true)
   const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
@@ -124,7 +125,7 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
 
   // 전체 삭제
   const handleDeleteAll = async () => {
-    if (!confirm('모든 자격증 정보를 삭제하시겠습니까?')) {
+    if (!(await confirm('모든 자격증 정보를 삭제하시겠습니까?'))) {
       return
     }
 
@@ -132,10 +133,10 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
       await deleteAllCertificatesMutation.mutateAsync(employeeId)
       setLocalCertificates([createEmptyCertificate()])
       setDataVersion(null)
-      alert('모든 자격증 정보가 삭제되었습니다.')
+      await alert('모든 자격증 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
-      alert('삭제 중 오류가 발생했습니다.')
+      await alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -192,14 +193,14 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
         data: { certificates: certificatesToSave },
         files
       })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (error) {
       console.error('저장 실패:', error)
       if (error instanceof Error) {
-        alert(error.message)
+        await alert(error.message)
       } else {
-        alert('저장 중 오류가 발생했습니다.')
+        await alert('저장 중 오류가 발생했습니다.')
       }
     }
   }

@@ -1,7 +1,9 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCommonCodeCache } from '@/hooks/queries'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
   useFullTimePayrollDetail,
   useLatestFullTimePayroll,
@@ -160,6 +162,7 @@ const calculateSettlementPeriod = (
 
 export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayStubProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const { getHierarchyChildren } = useCommonCodeCache()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
@@ -216,8 +219,30 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   )
 
   // React 19: derived state
-  const payrollMonthOptions = getPayrollMonthOptions()
+  const payrollMonthOptions = useMemo(() => getPayrollMonthOptions(), [])
   const bonusCategories = payrollSettings?.bonusCategories || []
+
+  // SearchSelect options
+  const employeeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    ...employeeList.map(emp => ({
+      value: String(emp.employeeInfoId),
+      label: `${emp.employeeName} (${emp.employeeNumber})`
+    }))
+  ], [employeeList])
+
+  const payrollMonthSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    ...payrollMonthOptions.map(opt => ({
+      value: opt.value,
+      label: opt.label
+    }))
+  ], [payrollMonthOptions])
+
+  // Empty options for organization selects (not yet implemented)
+  const emptySelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' }
+  ], [])
 
   // 오늘 날짜
   const today = new Date()
@@ -683,7 +708,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // 이전 급여 정보 불러오기 - React 19 Compiler가 자동 최적화
   const handleLoadPreviousPayroll = async () => {
     if (!selectedEmployeeId) {
-      alert('직원을 먼저 선택해주세요.')
+      await alert('직원을 먼저 선택해주세요.')
       return
     }
 
@@ -692,7 +717,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       const response = result.data
 
       if (!response?.data) {
-        alert(response?.message || '이전 급여 정보가 없습니다.')
+        await alert(response?.message || '이전 급여 정보가 없습니다.')
         return
       }
 
@@ -718,16 +743,15 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       const year = payrollYearMonth.substring(0, 4)
       const month = parseInt(payrollYearMonth.substring(4, 6))
-      alert(`${year}년 ${month}월 급여 정보를 불러왔습니다.`)
+      await alert(`${year}년 ${month}월 급여 정보를 불러왔습니다.`)
     } catch (error) {
       console.error('이전 급여 정보 조회 실패:', error)
-      alert('이전 급여 정보를 불러오는 중 오류가 발생했습니다.')
+      await alert('이전 급여 정보를 불러오는 중 오류가 발생했습니다.')
     }
   }
 
   // 급여 지급월 변경 핸들러 - React 19 Compiler가 자동 최적화
-  const handlePayrollYearMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPayrollYearMonth = e.target.value
+  const handlePayrollYearMonthChange = (newPayrollYearMonth: string) => {
     const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
     const { startDate, endDate } = calculateSettlementPeriod(newPayrollYearMonth, salaryMonth)
 
@@ -802,12 +826,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   }
 
   // 상여금 항목 추가
-  const handleAddBonusItem = (bonus: BonusCategory) => {
+  const handleAddBonusItem = async (bonus: BonusCategory) => {
     if (!payrollData) return
 
     const exists = payrollData.bonuses?.some(item => item.bonusType === bonus.code)
     if (exists) {
-      alert('이미 추가된 항목입니다.')
+      await alert('이미 추가된 항목입니다.')
       return
     }
 
@@ -834,12 +858,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   }
 
   // 추가 공제 항목 추가
-  const handleAddDeductionItem = (code: CommonCodeNode) => {
+  const handleAddDeductionItem = async (code: CommonCodeNode) => {
     if (!payrollData) return
 
     const exists = payrollData.deductionItems.some(item => item.itemCode === code.code)
     if (exists) {
-      alert('이미 추가된 항목입니다.')
+      await alert('이미 추가된 항목입니다.')
       return
     }
 
@@ -868,12 +892,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // 연장근무 수당 불러오기
   const handleLoadOvertimeAllowance = async () => {
     if (!formData.payrollYearMonth) {
-      alert('급여 지급월을 먼저 선택해주세요.')
+      await alert('급여 지급월을 먼저 선택해주세요.')
       return
     }
 
     if (!selectedEmployeeId && !payrollData?.memberId) {
-      alert('직원을 먼저 선택해주세요.')
+      await alert('직원을 먼저 선택해주세요.')
       return
     }
 
@@ -891,7 +915,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       const memberOvertime = overtimeData.content.find(item => item.memberId === targetMemberId)
 
       if (!memberOvertime) {
-        alert(`${formData.payrollYearMonth.substring(0, 4)}년 ${parseInt(formData.payrollYearMonth.substring(4, 6))}월의 연장근무 수당명세서가 없습니다.`)
+        await alert(`${formData.payrollYearMonth.substring(0, 4)}년 ${parseInt(formData.payrollYearMonth.substring(4, 6))}월의 연장근무 수당명세서가 없습니다.`)
         return
       }
 
@@ -918,10 +942,10 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         extraWorkAllowance: overtimeAmount
       }))
 
-      alert(`연장근무 수당 ${overtimeAmount.toLocaleString()}원을 불러왔습니다.`)
+      await alert(`연장근무 수당 ${overtimeAmount.toLocaleString()}원을 불러왔습니다.`)
     } catch (error) {
       console.error('연장근무 수당 불러오기 실패:', error)
-      alert('연장근무 수당을 불러오는데 실패했습니다.')
+      await alert('연장근무 수당을 불러오는데 실패했습니다.')
     } finally {
       setIsLoadingOvertime(false)
     }
@@ -931,17 +955,17 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleSave = async () => {
     if (isNewMode) {
       if (!payrollData || !selectedEmployeeId) {
-        alert('직원을 선택해주세요.')
+        await alert('직원을 선택해주세요.')
         return
       }
 
       if (!formData.payrollYearMonth) {
-        alert('급여 지급월을 선택해주세요.')
+        await alert('급여 지급월을 선택해주세요.')
         return
       }
 
       if (!formData.paymentDate) {
-        alert('지급일을 입력해주세요.')
+        await alert('지급일을 입력해주세요.')
         return
       }
 
@@ -975,12 +999,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
           request,
           attachmentFile: attachedFile || undefined
         })
-        alert('저장되었습니다.')
+        await alert('저장되었습니다.')
         router.push(`/employee/payroll/regular/${created.id}`)
       } catch (error: unknown) {
         console.error('저장 실패:', error)
         const errorMessage = getErrorMessage(error)
-        alert(errorMessage || '저장에 실패했습니다.')
+        await alert(errorMessage || '저장에 실패했습니다.')
       }
       return
     }
@@ -1016,11 +1040,11 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       }
 
       await updateMutation.mutateAsync({ id: statementId, request })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
     } catch (error: unknown) {
       console.error('저장 실패:', error)
       const errorMessage = getErrorMessage(error)
-      alert(errorMessage || '저장에 실패했습니다.')
+      await alert(errorMessage || '저장에 실패했습니다.')
     }
   }
 
@@ -1028,15 +1052,15 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleDelete = async () => {
     if (!statementId) return
 
-    if (!confirm('정말로 이 급여명세서를 삭제하시겠습니까?')) return
+    if (!(await confirm('정말로 이 급여명세서를 삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(statementId)
-      alert('삭제되었습니다.')
+      await alert('삭제되었습니다.')
       router.push('/employee/payroll/regular')
     } catch (error) {
       console.error('삭제 실패:', error)
-      alert('삭제에 실패했습니다.')
+      await alert('삭제에 실패했습니다.')
     }
   }
 
@@ -1066,7 +1090,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       }
     } catch (error) {
       console.error('다운로드 실패:', error)
-      alert('급여명세서 다운로드에 실패했습니다.')
+      await alert('급여명세서 다운로드에 실패했습니다.')
     }
   }
 
@@ -1074,14 +1098,14 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleSendEmail = async () => {
     if (!statementId) return
 
-    if (!confirm('급여명세서를 이메일로 전송하시겠습니까?')) return
+    if (!(await confirm('급여명세서를 이메일로 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(statementId)
-      alert('이메일 전송이 완료되었습니다.')
+      await alert('이메일 전송이 완료되었습니다.')
     } catch (error) {
       console.error('이메일 전송 실패:', error)
-      alert('이메일 전송에 실패했습니다.')
+      await alert('이메일 전송에 실패했습니다.')
     }
   }
 
@@ -1145,9 +1169,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                 <td>
                   <div className="block">
                     {isEditMode ? (
-                      <select className="select-form">
-                        <option value="">선택</option>
-                      </select>
+                      <SearchSelect
+                        options={emptySelectOptions}
+                        value={null}
+                        onChange={() => {}}
+                        placeholder="선택"
+                      />
                     ) : (
                       <input type="text" className="input-frame" value={formData.headOffice} readOnly />
                     )}
@@ -1157,9 +1184,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                 <td>
                   <div className="block">
                     {isEditMode ? (
-                      <select className="select-form">
-                        <option value="">선택</option>
-                      </select>
+                      <SearchSelect
+                        options={emptySelectOptions}
+                        value={null}
+                        onChange={() => {}}
+                        placeholder="선택"
+                      />
                     ) : (
                       <input type="text" className="input-frame" value={formData.franchise} readOnly />
                     )}
@@ -1171,9 +1201,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                 <td>
                   <div className="block">
                     {isEditMode ? (
-                      <select className="select-form">
-                        <option value="">선택</option>
-                      </select>
+                      <SearchSelect
+                        options={emptySelectOptions}
+                        value={null}
+                        onChange={() => {}}
+                        placeholder="선택"
+                      />
                     ) : (
                       <input type="text" className="input-frame" value={formData.store} readOnly />
                     )}
@@ -1186,21 +1219,15 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   <div className="filed-flx">
                     <div className="block">
                       {isEditMode ? (
-                        <select
-                          className="select-form"
-                          value={selectedEmployeeId ?? ''}
-                          onChange={(e) => {
-                            const employeeId = e.target.value ? Number(e.target.value) : null
+                        <SearchSelect
+                          options={employeeSelectOptions}
+                          value={employeeSelectOptions.find(opt => opt.value === String(selectedEmployeeId ?? '')) || null}
+                          onChange={(opt) => {
+                            const employeeId = opt?.value ? Number(opt.value) : null
                             handleEmployeeSelect(employeeId)
                           }}
-                        >
-                          <option value="">선택</option>
-                          {employeeList.map((employee) => (
-                            <option key={employee.employeeInfoId} value={employee.employeeInfoId}>
-                              {employee.employeeName} ({employee.employeeNumber})
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="선택"
+                        />
                       ) : (
                         <input type="text" className="input-frame" value={formData.memberName} readOnly />
                       )}
@@ -1220,18 +1247,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                 <td>
                   <div className="block">
                     {isEditMode ? (
-                      <select
-                        className="select-form"
-                        value={formData.payrollYearMonth}
-                        onChange={handlePayrollYearMonthChange}
-                      >
-                        <option value="">선택</option>
-                        {payrollMonthOptions.map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                      <SearchSelect
+                        options={payrollMonthSelectOptions}
+                        value={payrollMonthSelectOptions.find(opt => opt.value === formData.payrollYearMonth) || null}
+                        onChange={(opt) => handlePayrollYearMonthChange(opt?.value || '')}
+                        placeholder="선택"
+                      />
                     ) : (
                       <span>
                         {formData.payrollYearMonth

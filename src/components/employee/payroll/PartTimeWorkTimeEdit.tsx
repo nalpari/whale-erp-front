@@ -1,8 +1,10 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import { useDailyWorkHours } from '@/hooks/queries/use-payroll-queries'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 interface PartTimeWorkTimeEditProps {
   id: string
@@ -86,6 +88,7 @@ export default function PartTimeWorkTimeEdit({
   payrollMonth = ''
 }: PartTimeWorkTimeEditProps) {
   const router = useRouter()
+  const { alert } = useAlert()
   const [dailyRecords, setDailyRecords] = useState<EditableDailyRecord[]>([])
   const [weeklyHolidayAllowances, setWeeklyHolidayAllowances] = useState<EditableWeeklyHolidayAllowance[]>([])
   const [employeeName, setEmployeeName] = useState('')
@@ -256,7 +259,7 @@ export default function PartTimeWorkTimeEdit({
     }).sort((a, b) => a.weekNumber - b.weekNumber)
   }
 
-  const handleApplyContractTime = () => {
+  const handleApplyContractTime = async () => {
     const updatedRecords = dailyRecords.map(record => {
       const updated = {
         ...record,
@@ -298,7 +301,7 @@ export default function PartTimeWorkTimeEdit({
 
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
-    alert('계약 시급이 적용되었습니다.')
+    await alert('계약 시급이 적용되었습니다.')
     const targetPath = id === 'new' ? '/employee/payroll/parttime/new?fromWorkTime=true' : `/employee/payroll/parttime/${id}`
     router.push(targetPath)
   }
@@ -345,7 +348,12 @@ export default function PartTimeWorkTimeEdit({
     return dayOfWeekMap[date.getDay()]
   }
 
-  const hourOptions = Array.from({ length: 49 }, (_, i) => i * 0.5)
+  const hourOptions: SelectOption[] = useMemo(() =>
+    Array.from({ length: 49 }, (_, i) => {
+      const value = i * 0.5
+      return { value: value.toString(), label: value.toString() }
+    }), []
+  )
 
   // 합계 계산
   const dailyTotalWorkHours = dailyRecords.reduce((sum, r) => sum + r.workHours, 0)
@@ -487,16 +495,12 @@ export default function PartTimeWorkTimeEdit({
                                 <tr key={record.date} className={record.workHours === 0 ? 'disabled' : ''}>
                                   <td>{record.date} ({record.dayOfWeekKorean})</td>
                                   <td>
-                                    <select
-                                      className="select-form"
-                                      value={record.workHours}
-                                      onChange={(e) => handleWorkHoursChange(originalIndex, parseFloat(e.target.value))}
-                                      style={{ width: '100%' }}
-                                    >
-                                      {hourOptions.map(h => (
-                                        <option key={h} value={h}>{h}</option>
-                                      ))}
-                                    </select>
+                                    <SearchSelect
+                                      options={hourOptions}
+                                      value={hourOptions.find(opt => opt.value === record.workHours.toString()) || null}
+                                      onChange={(opt) => handleWorkHoursChange(originalIndex, parseFloat(opt?.value || '0'))}
+                                      placeholder="시간"
+                                    />
                                   </td>
                                   <td>
                                     <div className="filed-flx">

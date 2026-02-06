@@ -1,11 +1,12 @@
 'use client'
 import '@/components/common/custom-css/FormHelper.css'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 // 근로 계약 데이터 타입 (AG Grid 용)
 export interface EmployContractRowData {
@@ -232,6 +233,13 @@ export default function EmployContractList({
 }: EmployContractListProps) {
   const router = useRouter()
 
+  // 페이지 사이즈 옵션
+  const pageSizeOptions: SelectOption[] = useMemo(() => [
+    { value: '50', label: '50' },
+    { value: '100', label: '100' },
+    { value: '200', label: '200' }
+  ], [])
+
   // 행 번호 추가 - React 19: 단순 계산은 직접 수행 (React Compiler가 최적화)
   const rowData = contracts.map((contract, index) => ({
     ...contract,
@@ -304,18 +312,14 @@ export default function EmployContractList({
             등록
           </button>
           <div className="data-count-select">
-            <select
-              className="select-form"
-              value={pageSize}
-              onChange={(e) => handlePageSizeChangeInternal(Number(e.target.value))}
-              aria-label="페이지당 표시 개수 선택"
-            >
-              {[50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              options={pageSizeOptions}
+              value={pageSizeOptions.find(opt => opt.value === String(pageSize)) || null}
+              onChange={(opt) => handlePageSizeChangeInternal(opt?.value ? Number(opt.value) : 50)}
+              placeholder="50"
+              isClearable={false}
+              isSearchable={false}
+            />
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import AnimateHeight from 'react-animate-height'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import Input from '@/components/common/ui/Input'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 interface PartTimePayrollSearchProps {
   onSearch: (params: SearchParams) => void
@@ -38,6 +39,13 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
     startDate: null,
     endDate: null
   })
+
+  const workStatusOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '전체' },
+    { value: 'EMPWK_001', label: '근무' },
+    { value: 'EMPWK_002', label: '휴직' },
+    { value: 'EMPWK_003', label: '퇴사' }
+  ], [])
 
   // React 19: 함수형 setState로 종속성이 없으므로 useCallback 불필요
   const handleInputChange = (field: string, value: string) => {
@@ -149,16 +157,12 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
                 <th>근무여부</th>
                 <td>
                   <div className="data-filed">
-                    <select
-                      className="select-form"
-                      value={formData.workStatus}
-                      onChange={(e) => handleInputChange('workStatus', e.target.value)}
-                    >
-                      <option value="">전체</option>
-                      <option value="EMPWK_001">근무</option>
-                      <option value="EMPWK_002">휴직</option>
-                      <option value="EMPWK_003">퇴사</option>
-                    </select>
+                    <SearchSelect
+                      options={workStatusOptions}
+                      value={workStatusOptions.find(o => o.value === formData.workStatus) || null}
+                      onChange={(opt) => handleInputChange('workStatus', opt?.value || '')}
+                      placeholder="선택"
+                    />
                   </div>
                 </td>
                 <th>직원명</th>

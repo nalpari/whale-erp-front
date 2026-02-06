@@ -1,11 +1,13 @@
 'use client'
 import '@/components/common/custom-css/FormHelper.css'
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import { useUploadFullTimePayrollExcel, useSendFullTimePayrollEmail } from '@/hooks/queries/use-payroll-queries'
+import { useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 
 // 급여명세서 데이터 타입
 interface PayrollRowData {
@@ -79,6 +81,7 @@ export default function FullTimePayrollList({
   onRefresh
 }: FullTimePayrollListProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [showYearMonthModal, setShowYearMonthModal] = useState(false)
@@ -92,6 +95,13 @@ export default function FullTimePayrollList({
   // TanStack Query mutations
   const uploadMutation = useUploadFullTimePayrollExcel()
   const sendEmailMutation = useSendFullTimePayrollEmail()
+
+  // PageSize select options
+  const pageSizeOptions: SelectOption[] = useMemo(() => [
+    { value: '50', label: '50' },
+    { value: '100', label: '100' },
+    { value: '200', label: '200' },
+  ], [])
 
   // React 19: derived state
   const rowData = payrolls.map((payroll, index) => ({
@@ -122,7 +132,7 @@ export default function FullTimePayrollList({
     const validExtensions = ['.xlsx', '.xls']
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
     if (!validExtensions.includes(fileExtension)) {
-      alert('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.')
+      await alert('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.')
       e.target.value = ''
       return
     }
@@ -153,7 +163,7 @@ export default function FullTimePayrollList({
       }
 
       if (response.successCount > 0) {
-        alert(`엑셀 업로드가 완료되었습니다.\n성공: ${response.successCount}건`)
+        await alert(`엑셀 업로드가 완료되었습니다.\n성공: ${response.successCount}건`)
         onRefresh?.()
       }
 
@@ -161,13 +171,13 @@ export default function FullTimePayrollList({
         const failureMessages = response.failures
           .map(f => `행 ${f.rowNumber}: ${f.errorMessage}`)
           .join('\n')
-        alert(`일부 데이터 업로드 실패:\n${failureMessages}`)
+        await alert(`일부 데이터 업로드 실패:\n${failureMessages}`)
       }
 
       setPendingFile(null)
     } catch (error) {
       console.error('엑셀 업로드 실패:', error)
-      alert('엑셀 업로드에 실패했습니다.')
+      await alert('엑셀 업로드에 실패했습니다.')
       setPendingFile(null)
     }
   }
@@ -189,15 +199,15 @@ export default function FullTimePayrollList({
 
   // 이메일 전송 핸들러
   const handleSendEmail = async (id: number, employeeName: string) => {
-    if (!confirm(`${employeeName}님에게 급여명세서를 이메일로 전송하시겠습니까?`)) return
+    if (!(await confirm(`${employeeName}님에게 급여명세서를 이메일로 전송하시겠습니까?`))) return
 
     try {
       await sendEmailMutation.mutateAsync(id)
-      alert('이메일 전송이 완료되었습니다.')
+      await alert('이메일 전송이 완료되었습니다.')
       onRefresh?.()
     } catch (error) {
       console.error('이메일 전송 실패:', error)
-      alert('이메일 전송에 실패했습니다.')
+      await alert('이메일 전송에 실패했습니다.')
     }
   }
 
@@ -297,17 +307,12 @@ export default function FullTimePayrollList({
           </button>
           <button className="btn-form basic" onClick={handleNavigateToNew} type="button">등록</button>
           <div className="data-count-select">
-            <select
-              className="select-form"
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            >
-              {[50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              options={pageSizeOptions}
+              value={pageSizeOptions.find(o => o.value === String(pageSize)) || null}
+              onChange={(opt) => onPageSizeChange(Number(opt?.value || '50'))}
+              placeholder="선택"
+            />
           </div>
         </div>
       </div>
@@ -323,6 +328,9 @@ export default function FullTimePayrollList({
             rowData={rowData}
             columnDefs={columnDefs}
             onRowClicked={(event) => {
+              // 이메일 전송 버튼 클릭 시 상세 페이지로 이동하지 않음
+              const target = event.event?.target as HTMLElement
+              if (target?.closest('button')) return
               if (event.data) handleNavigateToDetail(event.data.id)
             }}
           />

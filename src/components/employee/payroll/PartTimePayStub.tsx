@@ -1,7 +1,9 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import DatePicker from '../../ui/common/DatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useAlert } from '@/components/common/ui'
 import {
   usePartTimePayrollDetail,
   useDailyWorkHours,
@@ -47,6 +49,7 @@ interface PartTimePayStubProps {
 
 export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: PartTimePayStubProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
@@ -70,6 +73,11 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [employmentInsurance, setEmploymentInsurance] = useState('')
   const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
 
+  // Organization selection state
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('1')
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('1')
+  const [selectedStore, setSelectedStore] = useState<string>('1')
+
   // TanStack Query hooks
   const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
@@ -88,6 +96,38 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   // React 19: derived state
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
+
+  // Select options
+  const headquarterOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '따름인' }
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '을지로3가점' }
+  ], [])
+
+  const storeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '힘이나는커피생활 을지로3가점' }
+  ], [])
+
+  const employeeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '파트타이머를 선택하세요' },
+    ...employeeList.map(emp => ({
+      value: String(emp.employeeInfoId),
+      label: `${emp.employeeName} (${emp.contractClassificationName || '파트타이머'})`
+    }))
+  ], [employeeList])
+
+  const monthOptions: SelectOption[] = useMemo(() => {
+    const options = [{ value: '', label: '선택' }]
+    const now = new Date()
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      options.push({ value, label: value })
+    }
+    return options
+  }, [])
 
   // 기존 데이터 로드 처리
   useEffect(() => {
@@ -138,15 +178,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const handleDelete = async () => {
     if (!existingStatement?.id) return
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    if (!(await confirm('정말 삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(existingStatement.id)
-      alert('삭제되었습니다.')
+      await alert('삭제되었습니다.')
       router.push('/employee/payroll/parttime')
     } catch (error) {
       console.error('삭제 실패:', error)
-      alert('삭제 중 오류가 발생했습니다.')
+      await alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -155,10 +195,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
-      alert('이메일 전송이 요청되었습니다.')
+      await alert('이메일 전송이 요청되었습니다.')
     } catch (error) {
       console.error('이메일 전송 실패:', error)
-      alert('이메일 전송 중 오류가 발생했습니다.')
+      await alert('이메일 전송 중 오류가 발생했습니다.')
     }
   }
 
@@ -177,13 +217,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       document.body.removeChild(a)
     } catch (error) {
       console.error('엑셀 다운로드 실패:', error)
-      alert('엑셀 다운로드 중 오류가 발생했습니다.')
+      await alert('엑셀 다운로드 중 오류가 발생했습니다.')
     }
   }
 
-  const handleEmployeeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = parseInt(e.target.value)
-    if (isNaN(selectedId)) {
+  const handleEmployeeChange = (value: string) => {
+    const selectedId = parseInt(value)
+    if (isNaN(selectedId) || !value) {
       setEmployeeInfoId(null)
       setPayrollMonth('')
       setStartDate('')
@@ -225,13 +265,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
   }
 
-  const handleGoToWorkTimeEdit = () => {
+  const handleGoToWorkTimeEdit = async () => {
     if (!employeeInfoId) {
-      alert('파트타이머를 선택해주세요.')
+      await alert('파트타이머를 선택해주세요.')
       return
     }
     if (!startDate || !endDate) {
-      alert('급여지급월을 선택하고 기간을 설정해주세요.')
+      await alert('급여지급월을 선택하고 기간을 설정해주세요.')
       return
     }
     const params = new URLSearchParams({
@@ -243,14 +283,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     router.push(`/employee/payroll/parttime/${id}/worktime?${params.toString()}`)
   }
 
-  const handlePayrollMonthChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handlePayrollMonthChange = async (month: string) => {
     if (!isEditMode) return
-
-    const month = e.target.value
 
     if (month) {
       if (!employeeInfoId) {
-        alert('먼저 파트타이머를 선택해주세요.')
+        await alert('먼저 파트타이머를 선택해주세요.')
         return
       }
 
@@ -262,7 +300,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         })
 
         if (existingPayrolls.content.length > 0) {
-          alert(`해당 직원의 ${month} 급여명세서가 이미 등록되어 있습니다.`)
+          await alert(`해당 직원의 ${month} 급여명세서가 이미 등록되어 있습니다.`)
           return
         }
       } catch (error) {
@@ -295,12 +333,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     if (!isEditMode) return
 
     if (!employeeInfoId) {
-      alert('파트타이머를 선택해주세요.')
+      await alert('파트타이머를 선택해주세요.')
       return
     }
 
     if (!payrollMonth || !startDate || !endDate) {
-      alert('급여지급월과 기간을 설정해주세요.')
+      await alert('급여지급월과 기간을 설정해주세요.')
       return
     }
 
@@ -320,15 +358,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const handleSave = async () => {
     if (!employeeInfoId) {
-      alert('파트타이머를 선택해주세요.')
+      await alert('파트타이머를 선택해주세요.')
       return
     }
     if (!selectedEmployee?.employmentContractId) {
-      alert('선택한 직원의 근로계약 정보가 없습니다.')
+      await alert('선택한 직원의 근로계약 정보가 없습니다.')
       return
     }
     if (!payrollMonth || !startDate || !endDate || !paymentDate) {
-      alert('급여지급월과 기간을 설정해주세요.')
+      await alert('급여지급월과 기간을 설정해주세요.')
       return
     }
 
@@ -364,7 +402,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     if (paymentItems.length === 0) {
-      alert('저장할 근무 데이터가 없습니다. 기간을 설정하고 검색 버튼을 클릭해주세요.')
+      await alert('저장할 근무 데이터가 없습니다. 기간을 설정하고 검색 버튼을 클릭해주세요.')
       return
     }
 
@@ -383,12 +421,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     setIsLoading(true)
     try {
       await createPartTimerPayrollStatement(request)
-      alert('급여명세서가 저장되었습니다.')
+      await alert('급여명세서가 저장되었습니다.')
       localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
       router.push('/employee/payroll/parttime')
     } catch (error) {
       console.error('급여명세서 저장 실패:', error)
-      alert('급여명세서 저장 중 오류가 발생했습니다.')
+      await alert('급여명세서 저장 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -405,17 +443,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
     const date = new Date(dateStr)
     return dayOfWeekMap[date.getDay()]
-  }
-
-  const generateMonthOptions = () => {
-    const options = []
-    const now = new Date()
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      options.push({ value, label: value })
-    }
-    return options
   }
 
   const renderTableRow = (item: DailyWorkHoursItem, index: number) => {
@@ -582,14 +609,22 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <td>
                   <div className="filed-flx">
                     <div className="block">
-                      <select className="select-form" disabled={!isEditMode}>
-                        <option value="">따름인</option>
-                      </select>
+                      <SearchSelect
+                        options={headquarterOptions}
+                        value={headquarterOptions.find(o => o.value === selectedHeadquarter) || null}
+                        onChange={(opt) => setSelectedHeadquarter(opt?.value || '')}
+                        placeholder="본사 선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
                     <div className="block">
-                      <select className="select-form" disabled={!isEditMode}>
-                        <option value="">을지로3가점</option>
-                      </select>
+                      <SearchSelect
+                        options={franchiseOptions}
+                        value={franchiseOptions.find(o => o.value === selectedFranchise) || null}
+                        onChange={(opt) => setSelectedFranchise(opt?.value || '')}
+                        placeholder="가맹점 선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
                   </div>
                 </td>
@@ -598,9 +633,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <th>점포 선택</th>
                 <td>
                   <div className="block">
-                    <select className="select-form" disabled={!isEditMode}>
-                      <option value="">힘이나는커피생활 을지로3가점</option>
-                    </select>
+                    <SearchSelect
+                      options={storeOptions}
+                      value={storeOptions.find(o => o.value === selectedStore) || null}
+                      onChange={(opt) => setSelectedStore(opt?.value || '')}
+                      placeholder="점포 선택"
+                      isDisabled={!isEditMode}
+                    />
                   </div>
                 </td>
               </tr>
@@ -612,26 +651,24 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   <div className="filed-flx">
                     <div className="block" style={{ maxWidth: '250px' }}>
                       {isNewMode ? (
-                        <select
-                          className="select-form"
-                          value={employeeInfoId || ''}
-                          onChange={handleEmployeeChange}
-                          disabled={!isEditMode}
-                        >
-                          <option value="">파트타이머를 선택하세요</option>
-                          {employeeList.map(emp => (
-                            <option key={emp.employeeInfoId} value={emp.employeeInfoId}>
-                              {emp.employeeName} ({emp.contractClassificationName || '파트타이머'})
-                            </option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={employeeOptions}
+                          value={employeeOptions.find(o => o.value === String(employeeInfoId || ''))}
+                          onChange={(opt) => handleEmployeeChange(opt?.value || '')}
+                          placeholder="파트타이머 선택"
+                          isDisabled={!isEditMode}
+                        />
                       ) : (
-                        <select className="select-form" disabled>
-                          <option value="">{existingStatement?.memberName || '-'}</option>
-                        </select>
+                        <SearchSelect
+                          options={[{ value: '', label: existingStatement?.memberName || '-' }]}
+                          value={{ value: '', label: existingStatement?.memberName || '-' }}
+                          onChange={() => {}}
+                          placeholder="직원명"
+                          isDisabled
+                        />
                       )}
                     </div>
-                    <span className="info-text">{selectedEmployee?.employeeNumber || existingStatement?.memberId || '-'}</span>
+                    {selectedEmployee?.employeeNumber && <span className="info-text">{selectedEmployee.employeeNumber}</span>}
                   </div>
                 </td>
               </tr>
@@ -641,20 +678,16 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 </th>
                 <td>
                   <div className="filed-flx">
-                    <div className="block" style={{ maxWidth: '150px' }}>
-                      <select
-                        className="select-form"
-                        value={payrollMonth}
-                        onChange={handlePayrollMonthChange}
-                        disabled={!isEditMode}
-                      >
-                        <option value="">선택</option>
-                        {generateMonthOptions().map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                    <div className="block" style={{ width: '150px', flexShrink: 0 }}>
+                      <SearchSelect
+                        options={monthOptions}
+                        value={monthOptions.find(o => o.value === payrollMonth)}
+                        onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
+                        placeholder="선택"
+                        isDisabled={!isEditMode}
+                      />
                     </div>
-                    {paymentDate && <span className="info-text">급여 지급일 : {paymentDate}</span>}
+                    {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>급여 지급일 : {paymentDate}</span>}
                   </div>
                 </td>
               </tr>

@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
-import { Input } from '@/components/common/ui'
+import { useState, useMemo } from 'react'
+import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -77,6 +78,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   // TanStack Query mutation
   const createEmployeeMutation = useCreateEmployee()
   const isSubmitting = createEmployeeMutation.isPending
+
+  const { alert } = useAlert()
 
   // Form 상태
   const [workplaceType, setWorkplaceType] = useState<WorkplaceType>('FRANCHISE')
@@ -257,7 +260,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       onSuccess?.()
       onClose()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
+      await alert(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
     }
   }
 
@@ -308,6 +311,31 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     resetForm()
     onClose()
   }
+
+  // SearchSelect options
+  const headOfficeOptions: SelectOption[] = useMemo(() => [
+    { value: '1', label: '본사' }
+  ], [])
+
+  const franchiseOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '가맹점 선택' },
+    { value: '2', label: '가맹점 (ID: 2)' }
+  ], [])
+
+  const storeOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    { value: '1', label: '점포 (ID: 1)' }
+  ], [])
+
+  const salaryCycleOptions: SelectOption[] = useMemo(() => [
+    { value: 'SLRCC_001', label: '월급' },
+    { value: 'SLRCC_002', label: '주급' }
+  ], [])
+
+  const salaryMonthOptions: SelectOption[] = useMemo(() => [
+    { value: 'SLRCF_001', label: '당월' },
+    { value: 'SLRCF_002', label: '익월' }
+  ], [])
 
   if (!isOpen) return null
 
@@ -363,24 +391,21 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     <td>
                       <div className="filed-flx">
                         <div className="block">
-                          <select
-                            className="select-form"
-                            value={headOfficeOrganizationId}
-                            onChange={(e) => setHeadOfficeOrganizationId(Number(e.target.value))}
-                          >
-                            <option value={1}>본사</option>
-                          </select>
+                          <SearchSelect
+                            options={headOfficeOptions}
+                            value={headOfficeOptions.find(opt => opt.value === String(headOfficeOrganizationId)) || null}
+                            onChange={(opt) => setHeadOfficeOrganizationId(opt?.value ? Number(opt.value) : 1)}
+                            placeholder="본사 선택"
+                          />
                         </div>
                         {workplaceType === 'FRANCHISE' && (
                           <div className="block">
-                            <select
-                              className="select-form"
-                              value={franchiseOrganizationId || ''}
-                              onChange={(e) => setFranchiseOrganizationId(e.target.value ? Number(e.target.value) : null)}
-                            >
-                              <option value="">가맹점 선택</option>
-                              <option value={2}>가맹점 (ID: 2)</option>
-                            </select>
+                            <SearchSelect
+                              options={franchiseOptions}
+                              value={franchiseOptions.find(opt => opt.value === String(franchiseOrganizationId ?? '')) || null}
+                              onChange={(opt) => setFranchiseOrganizationId(opt?.value ? Number(opt.value) : null)}
+                              placeholder="가맹점 선택"
+                            />
                           </div>
                         )}
                       </div>
@@ -391,14 +416,12 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                       <th>점포 선택</th>
                       <td>
                         <div className="block">
-                          <select
-                            className="select-form"
-                            value={storeId || ''}
-                            onChange={(e) => setStoreId(e.target.value ? Number(e.target.value) : null)}
-                          >
-                            <option value="">선택</option>
-                            <option value={1}>점포 (ID: 1)</option>
-                          </select>
+                          <SearchSelect
+                            options={storeOptions}
+                            value={storeOptions.find(opt => opt.value === String(storeId ?? '')) || null}
+                            onChange={(opt) => setStoreId(opt?.value ? Number(opt.value) : null)}
+                            placeholder="선택"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -475,24 +498,20 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     <td>
                       <div className="filed-flx">
                         <div className="block">
-                          <select
-                            className="select-form"
-                            value={salaryCycle}
-                            onChange={(e) => setSalaryCycle(e.target.value as SalaryCycle)}
-                          >
-                            <option value="SLRCC_001">월급</option>
-                            <option value="SLRCC_002">주급</option>
-                          </select>
+                          <SearchSelect
+                            options={salaryCycleOptions}
+                            value={salaryCycleOptions.find(opt => opt.value === salaryCycle) || null}
+                            onChange={(opt) => setSalaryCycle((opt?.value || 'SLRCC_001') as SalaryCycle)}
+                            placeholder="선택"
+                          />
                         </div>
                         <div className="block">
-                          <select
-                            className="select-form"
-                            value={salaryMonth}
-                            onChange={(e) => setSalaryMonth(e.target.value as SalaryMonth)}
-                          >
-                            <option value="SLRCF_001">당월</option>
-                            <option value="SLRCF_002">익월</option>
-                          </select>
+                          <SearchSelect
+                            options={salaryMonthOptions}
+                            value={salaryMonthOptions.find(opt => opt.value === salaryMonth) || null}
+                            onChange={(opt) => setSalaryMonth((opt?.value || 'SLRCF_001') as SalaryMonth)}
+                            placeholder="선택"
+                          />
                         </div>
                         <div>
                           <input
