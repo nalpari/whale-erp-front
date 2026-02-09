@@ -187,6 +187,9 @@ export default function WorkScheduleTable({
                                   <div className="staff-name">{worker.workerName}</div>
                                   <div className="store-work-time">
                                     {formatTimeRange(worker.workStartTime, worker.workEndTime)}
+                                    {worker.hasBreak && worker.breakStartTime && worker.breakEndTime && (
+                                      <span> | {formatTimeRange(worker.breakStartTime, worker.breakEndTime)}</span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="auto-right">
