@@ -220,3 +220,21 @@ export const holidayKeys = {
   legal: () => [...holidayKeys.all, 'legal'] as const,
   legalByYear: (year: number) => [...holidayKeys.legal(), year] as const,
 }
+
+export interface AuthorityListParams {
+  owner_group: string
+  head_office_code?: string
+  franchisee_code?: string
+  name?: string
+  is_used?: boolean
+  page?: number
+  size?: number
+}
+
+export const authorityKeys = {
+  all: ['authorities'] as const,
+  lists: () => [...authorityKeys.all, 'list'] as const,
+  list: (params: AuthorityListParams) => [...authorityKeys.lists(), params] as const,
+  details: () => [...authorityKeys.all, 'detail'] as const,
+  detail: (id: number) => [...authorityKeys.details(), id] as const,
+}

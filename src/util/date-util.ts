@@ -25,3 +25,40 @@ export const formatDateDot = (value?: string | Date | null, fallback = '-') => {
   if (!date) return fallback
   return `${date.getFullYear()}.${padTwo(date.getMonth() + 1)}.${padTwo(date.getDate())}`
 }
+
+/**
+ * YYYY-MM-DD HH:MM 형식으로 날짜/시간 포맷
+ * @param value - 날짜 문자열 또는 Date 객체
+ * @param fallback - 값이 없을 때 반환할 기본값 (기본: '-')
+ * @returns 포맷된 날짜/시간 문자열 (예: "2024-12-25 14:30")
+ */
+export const formatDateTime = (value?: string | Date | null, fallback = '-') => {
+  const date = toDate(value)
+  if (!date) return fallback
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/**
+ * YYYY-MM-DD HH:MM:SS 형식으로 날짜/시간 포맷 (초 포함)
+ * @param value - 날짜 문자열 또는 Date 객체
+ * @param fallback - 값이 없을 때 반환할 기본값 (기본: '-')
+ * @returns 포맷된 날짜/시간 문자열 (예: "2024-12-25 14:30:45")
+ */
+export const formatDateTimeWithSeconds = (value?: string | Date | null, fallback = '-') => {
+  const date = toDate(value)
+  if (!date) return fallback
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}

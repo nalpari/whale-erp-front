@@ -66,6 +66,7 @@ type HeadOfficeFranchiseStoreSelectProps = {
     storeId: number | null // 점포 선택 값(id)
     fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
+    isDisabled?: boolean // 전체 비활성화 여부
 }
 
 const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
@@ -90,6 +91,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     storeId,
     fields,
     onChange,
+    isDisabled = false,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
@@ -120,7 +122,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null}
                                 options={officeOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading}
+                                isDisabled={isDisabled || bpLoading}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -156,7 +158,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading}
+                                isDisabled={isDisabled || bpLoading}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -181,7 +183,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={storeId !== null ? storeOptions.find((opt) => opt.value === String(storeId)) || null : null}
                                 options={storeOptions}
                                 placeholder="전체"
-                                isDisabled={storeLoading}
+                                isDisabled={isDisabled || storeLoading}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
