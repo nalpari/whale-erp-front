@@ -1,91 +1,11 @@
-/* WorkScheduleTable Component Styles - Time Slider 
-
-미구현 컴포넌트 스타일의 예시로 작성되었습니다.
-추후 퍼블리싱이 완료 된 이후 삭제 예정입니다.
-
-*/
-
-.staff-work-table .time-slider {
-  position: relative;
-  height: 20px;
-  cursor: ew-resize;
-}
-
-.staff-work-table .time-slider.is-disabled {
-  opacity: 0.4;
-}
-
-.staff-work-table .time-slider.is-disabled .time-handle {
-  pointer-events: none;
-}
-
-.staff-work-table .break-slider {
-  margin-top: 20px;
-}
-
-.staff-work-table .time-handle {
-  position: absolute;
-  top: -6px;
-  width: 12px;
-  height: 32px;
-  border-radius: 6px;
-  background-color: #222;
-  pointer-events: auto;
-  cursor: ew-resize;
-}
-
-.staff-work-table .time-handle.end {
-  background-color: #555;
-}
-
-.staff-work-table .time-handle.break {
-  background-color: #8d8d8d;
-}
-
-.staff-work-table .time-range {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 20px;
-  opacity: 0;
-  cursor: ew-resize;
-  pointer-events: auto;
-  appearance: none;
-}
-
-.staff-work-table .time-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 12px;
-  height: 32px;
-  border-radius: 6px;
-  background: transparent;
-  pointer-events: auto;
-}
-
-.staff-work-table .time-range::-moz-range-thumb {
-  width: 12px;
-  height: 32px;
-  border-radius: 6px;
-  background: transparent;
-  pointer-events: auto;
-  border: none;
-}
-
-.staff-work-table .time-range-start {
-  z-index: 2;
-}
-
-.staff-work-table .time-range-end {
-  z-index: 3;
-}
-
-/* Time Header with tick marks */
+/* 시간축 라벨 (00, 01, ... 23) - 상하 여백 및 구분선 기준점 */
 .staff-work-table .time-header .time-label {
   position: relative;
   padding-top: 2px;
   padding-bottom: 2px;
 }
 
+/* 시간축 라벨 사이 세로 구분선 (첫 번째 라벨 제외) */
 .staff-work-table .time-header .time-label:not(:first-child)::before {
   content: '';
   position: absolute;
@@ -97,11 +17,14 @@
   background-color: #b5b5b5;
 }
 
-/* Time Blocks with grid lines */
+/* 근무 시간 블록 컨테이너 - 격자선 오버레이의 기준 */
 .staff-work-table .time-blocks {
   position: relative;
 }
 
+/* 근무 시간 블록 위에 겹쳐지는 24시간/48블록 격자선 오버레이
+   - 1시간 단위 굵은 선 (opacity 0.16)
+   - 30분 단위 얇은 선 (opacity 0.06) */
 .staff-work-table .time-blocks::after {
   content: '';
   position: absolute;
