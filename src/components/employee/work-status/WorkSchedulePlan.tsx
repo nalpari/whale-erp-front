@@ -671,17 +671,6 @@ export default function WorkSchedulePlan() {
                               <div className="work-info" style={{ marginBottom: 10 }}>
                                 <div className={`work-badge ${badgeColor}`}>{worker.contractType}</div>
                                 <div className="staff-name">{worker.name}</div>
-                                <div className="store-work-time">
-                                  {worker.hasWork
-                                    ? `${indexToTime(worker.startIndex)}-${indexToTime(worker.endIndex)}`
-                                    : ' - '}
-                                  {worker.hasBreak && (
-                                    <span>
-                                      {' | '}
-                                      {indexToTime(worker.breakStartIndex)}-{indexToTime(worker.breakEndIndex)}
-                                    </span>
-                                  )}
-                                </div>
                                 <div className="more-btn">
                                   <span className="icon-more" id={`more-btn-worker-${dayIndex}-${worker.id}`}></span>
                                   <Tooltip

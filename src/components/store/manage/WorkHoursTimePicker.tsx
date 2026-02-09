@@ -2,7 +2,7 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
-import 'swiper/css/pagination'
+import 'swiper/css/navigation'
 import { Navigation } from 'swiper/modules'
 import { useState } from 'react'
 import type { OperatingFormState } from '@/types/store'
@@ -16,6 +16,7 @@ interface WorkHoursTimePickerProps {
   breakEndTime?: string | null
   isOperating: boolean
   breakTimeEnabled: boolean
+  readOnly?: boolean
   onChange?: (next: Partial<OperatingFormState>) => void
 }
 
@@ -59,6 +60,7 @@ const slideIndexToMinute = (index: number): string => (index === 1 ? '30' : '00'
 
 interface TimeSwiperColumnProps {
   disabled?: boolean
+  readOnly?: boolean
   period: Period
   hour: string
   minute: string
@@ -70,6 +72,7 @@ interface TimeSwiperColumnProps {
 
 function TimeSwiperColumn({
   disabled = false,
+  readOnly = false,
   period,
   hour,
   minute,
@@ -78,20 +81,24 @@ function TimeSwiperColumn({
   onHourChange,
   onMinuteChange,
 }: TimeSwiperColumnProps) {
+  const isInteractionBlocked = disabled || readOnly
   return (
     <td style={{ padding: '0 16px' }}>
-      <div className={`work-hours-box${disabled ? ' disabled' : ''}`}>
+      <div
+        className={`work-hours-box${disabled ? ' disabled' : ''}`}
+        style={readOnly ? { pointerEvents: 'none' } : undefined}
+      >
         <div className="work-hours-tab">
           <button
             className={`work-time-tab ${period === '오전' ? 'act' : ''}`}
-            onClick={() => !disabled && onPeriodChange('오전')}
+            onClick={() => !isInteractionBlocked && onPeriodChange('오전')}
             type="button"
           >
             오전
           </button>
           <button
             className={`work-time-tab ${period === '오후' ? 'act' : ''}`}
-            onClick={() => !disabled && onPeriodChange('오후')}
+            onClick={() => !isInteractionBlocked && onPeriodChange('오후')}
             type="button"
           >
             오후
@@ -104,13 +111,14 @@ function TimeSwiperColumn({
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"
-              navigation
-              loop
+              navigation={!readOnly}
+              loop={!readOnly}
               centeredSlides
-              modules={[Navigation]}
+              modules={readOnly ? [] : [Navigation]}
+              allowTouchMove={!readOnly}
               className="mySwiper"
               initialSlide={hourToSlideIndex(hour)}
-              onSlideChange={(swiper) => !disabled && onHourChange(slideIndexToHour(swiper.realIndex))}
+              onSlideChange={(swiper) => !isInteractionBlocked && onHourChange(slideIndexToHour(swiper.realIndex))}
             >
               {Array.from({ length: 12 }).map((_, index) => (
                 <SwiperSlide key={index}>
@@ -126,13 +134,14 @@ function TimeSwiperColumn({
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"
-              navigation
-              modules={[Navigation]}
+              navigation={!readOnly}
+              modules={readOnly ? [] : [Navigation]}
               loop={false}
               centeredSlides
+              allowTouchMove={!readOnly}
               className="mySwiper"
               initialSlide={minuteToSlideIndex(minute)}
-              onSlideChange={(swiper) => !disabled && onMinuteChange(slideIndexToMinute(swiper.activeIndex))}
+              onSlideChange={(swiper) => !isInteractionBlocked && onMinuteChange(slideIndexToMinute(swiper.activeIndex))}
             >
               <SwiperSlide>
                 <div className="number-box">00</div>
@@ -171,6 +180,7 @@ export default function WorkHoursTimePicker({
   breakEndTime,
   isOperating,
   breakTimeEnabled,
+  readOnly = false,
   onChange,
 }: WorkHoursTimePickerProps) {
   const [workStart, setWorkStart] = useState(() => parseTime(openTime))
@@ -222,53 +232,65 @@ export default function WorkHoursTimePicker({
       <thead>
         <tr>
           <th colSpan={2}>
-            <div className="toggle-wrap">
-              <span className="toggle-txt">{toggleLabel[0]}</span>
-              <div className="toggle-btn">
-                <input
-                  type="checkbox"
-                  id={`toggle-work-${idPrefix}`}
-                  checked={workEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setWorkEnabled(checked)
-                    if (checked) {
-                      onChange?.({ isOperating: true })
-                    } else {
-                      setBreakEnabled(false)
-                      onChange?.({ isOperating: false, breakTimeEnabled: false })
-                    }
-                  }}
-                />
-                <label className="slider" htmlFor={`toggle-work-${idPrefix}`} />
+            {readOnly ? (
+              <div className="toggle-wrap">
+                <span className="toggle-txt">{toggleLabel[0]}</span>
               </div>
-            </div>
+            ) : (
+              <div className="toggle-wrap">
+                <span className="toggle-txt">{toggleLabel[0]}</span>
+                <div className="toggle-btn">
+                  <input
+                    type="checkbox"
+                    id={`toggle-work-${idPrefix}`}
+                    checked={workEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setWorkEnabled(checked)
+                      if (checked) {
+                        onChange?.({ isOperating: true })
+                      } else {
+                        setBreakEnabled(false)
+                        onChange?.({ isOperating: false, breakTimeEnabled: false })
+                      }
+                    }}
+                  />
+                  <label className="slider" htmlFor={`toggle-work-${idPrefix}`} />
+                </div>
+              </div>
+            )}
           </th>
           <th colSpan={2}>
-            <div className="toggle-wrap">
-              <span className="toggle-txt">{toggleLabel[1]}</span>
-              <div className="toggle-btn">
-                <input
-                  type="checkbox"
-                  id={`toggle-break-${idPrefix}`}
-                  checked={breakEnabled}
-                  disabled={!workEnabled}
-                  onChange={(e) => {
-                    setBreakEnabled(e.target.checked)
-                    onChange?.({ breakTimeEnabled: e.target.checked })
-                  }}
-                />
-                <label className="slider" htmlFor={`toggle-break-${idPrefix}`} />
+            {readOnly ? (
+              <div className="toggle-wrap">
+                <span className="toggle-txt">{toggleLabel[1]}</span>
               </div>
-            </div>
+            ) : (
+              <div className="toggle-wrap">
+                <span className="toggle-txt">{toggleLabel[1]}</span>
+                <div className="toggle-btn">
+                  <input
+                    type="checkbox"
+                    id={`toggle-break-${idPrefix}`}
+                    checked={breakEnabled}
+                    disabled={!workEnabled}
+                    onChange={(e) => {
+                      setBreakEnabled(e.target.checked)
+                      onChange?.({ breakTimeEnabled: e.target.checked })
+                    }}
+                  />
+                  <label className="slider" htmlFor={`toggle-break-${idPrefix}`} />
+                </div>
+              </div>
+            )}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <TimeSwiperColumn
-
             disabled={!workEnabled}
+            readOnly={readOnly}
             period={workStart.period}
             hour={workStart.hour}
             minute={workStart.minute}
@@ -278,8 +300,8 @@ export default function WorkHoursTimePicker({
             onMinuteChange={(m) => { setWorkStart((prev) => ({ ...prev, minute: m })); emitWorkStart(workStart.period, workStart.hour, m) }}
           />
           <TimeSwiperColumn
-
             disabled={!workEnabled}
+            readOnly={readOnly}
             period={workEnd.period}
             hour={workEnd.hour}
             minute={workEnd.minute}
@@ -289,8 +311,8 @@ export default function WorkHoursTimePicker({
             onMinuteChange={(m) => { setWorkEnd((prev) => ({ ...prev, minute: m })); emitWorkEnd(workEnd.period, workEnd.hour, m) }}
           />
           <TimeSwiperColumn
-
             disabled={!breakEnabled}
+            readOnly={readOnly}
             period={breakStart.period}
             hour={breakStart.hour}
             minute={breakStart.minute}
@@ -300,8 +322,8 @@ export default function WorkHoursTimePicker({
             onMinuteChange={(m) => { setBreakStart((prev) => ({ ...prev, minute: m })); emitBreakStart(breakStart.period, breakStart.hour, m) }}
           />
           <TimeSwiperColumn
-
             disabled={!breakEnabled}
+            readOnly={readOnly}
             period={breakEnd.period}
             hour={breakEnd.hour}
             minute={breakEnd.minute}
