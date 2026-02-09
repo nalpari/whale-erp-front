@@ -11,13 +11,17 @@ import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 
 /**
  * 권한 상세 노드 (프로그램 트리)
+ *
+ * 백엔드에서:
+ * - 실제 권한이 있는 프로그램: can_read/can_create_delete/can_update가 true/false
+ * - 계층 구조상 필요한 상위 프로그램: 권한 필드가 null
  */
 export interface AuthorityDetailNode {
   program_id: number
   program_name: string
-  can_read: boolean
-  can_create_delete: boolean
-  can_update: boolean
+  can_read?: boolean
+  can_create_delete?: boolean
+  can_update?: boolean
   // 생성 모드에서 본인이 가진 최대 권한 (UI 제한용)
   max_can_read?: boolean
   max_can_create_delete?: boolean
@@ -51,7 +55,9 @@ export interface AuthorityListItem {
   owner_code: string
   owner_group: string
   head_office_code: string | null
+  head_office_name: string | null
   franchisee_code: string | null
+  franchisee_name: string | null
   name: string
   is_used: boolean
   description: string | null
@@ -131,9 +137,9 @@ export const authorityDetailNodeSchema: z.ZodType<AuthorityDetailNode> = z.lazy(
   z.object({
     program_id: z.number(),
     program_name: z.string(),
-    can_read: z.boolean(),
-    can_create_delete: z.boolean(),
-    can_update: z.boolean(),
+    can_read: z.boolean().optional(),
+    can_create_delete: z.boolean().optional(),
+    can_update: z.boolean().optional(),
     children: z.array(authorityDetailNodeSchema).optional(),
   })
 )
@@ -143,7 +149,9 @@ export const authorityListItemSchema = z.object({
   owner_code: z.string(),
   owner_group: z.string(),
   head_office_code: z.string().nullable(),
+  head_office_name: z.string().nullable(),
   franchisee_code: z.string().nullable(),
+  franchisee_name: z.string().nullable(),
   name: z.string(),
   is_used: z.boolean(),
   description: z.string().nullable(),

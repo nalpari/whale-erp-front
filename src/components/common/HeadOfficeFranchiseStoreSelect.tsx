@@ -158,7 +158,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={isDisabled || bpLoading}
+                                isDisabled={isDisabled || bpLoading || officeId === null}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {

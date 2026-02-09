@@ -109,11 +109,11 @@ export default function AuthorityProgramTree({
 
     switch (activeFilter) {
       case 'read':
-        return node.can_read
+        return node.can_read ?? false
       case 'create_delete':
-        return node.can_create_delete
+        return node.can_create_delete ?? false
       case 'update':
-        return node.can_update
+        return node.can_update ?? false
       default:
         return false
     }
@@ -217,7 +217,7 @@ export default function AuthorityProgramTree({
                 <input
                   type="checkbox"
                   id={`read-${node.program_id}`}
-                  checked={node.can_read}
+                  checked={node.can_read ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_read', e.target.checked)}
                   disabled={node.max_can_read === false}
                 />
@@ -227,7 +227,7 @@ export default function AuthorityProgramTree({
                 <input
                   type="checkbox"
                   id={`create-delete-${node.program_id}`}
-                  checked={node.can_create_delete}
+                  checked={node.can_create_delete ?? false}
                   onChange={(e) =>
                     handlePermissionChange(node.program_id, 'can_create_delete', e.target.checked)
                   }
@@ -239,7 +239,7 @@ export default function AuthorityProgramTree({
                 <input
                   type="checkbox"
                   id={`update-${node.program_id}`}
-                  checked={node.can_update}
+                  checked={node.can_update ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_update', e.target.checked)}
                   disabled={!node.can_read || node.max_can_update === false}
                 />

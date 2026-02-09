@@ -245,9 +245,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     const traverse = (node: AuthorityDetailNode) => {
       result.push({
         program_id: node.program_id,
-        can_read: node.can_read,
-        can_create_delete: node.can_create_delete,
-        can_update: node.can_update,
+        can_read: node.can_read ?? false,
+        can_create_delete: node.can_create_delete ?? false,
+        can_update: node.can_update ?? false,
       })
 
       if (node.children) {
@@ -318,9 +318,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
               id: authorityId,
               programId: node.program_id,
               data: {
-                can_read: node.can_read,
-                can_create_delete: node.can_create_delete,
-                can_update: node.can_update,
+                can_read: node.can_read ?? false,
+                can_create_delete: node.can_create_delete ?? false,
+                can_update: node.can_update ?? false,
               },
             })
           }

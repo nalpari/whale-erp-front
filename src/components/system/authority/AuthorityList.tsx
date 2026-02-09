@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
-import { formatDateTime } from '@/util/date-util'
+import { formatDateYmd } from '@/util/date-util'
 import type { AuthorityListItem } from '@/lib/schemas/authority'
 
 /**
@@ -50,10 +50,10 @@ const IsUsedCellRenderer = (params: ICellRendererParams<AuthorityRowDataInternal
 
 /**
  * 날짜 셀 렌더러
- * YYYY-MM-DD HH:MM 형식으로 포맷
+ * YYYY-MM-DD 형식으로 포맷
  */
 const DateCellRenderer = (params: ICellRendererParams<AuthorityRowDataInternal>) => {
-  return <span>{formatDateTime(params.value)}</span>
+  return <span>{formatDateYmd(params.value)}</span>
 }
 
 /**
@@ -118,16 +118,16 @@ export default function AuthorityList({
       cellRenderer: OwnerGroupCellRenderer,
     },
     {
-      field: 'head_office_code',
+      field: 'head_office_name',
       headerName: '본사',
       flex: 1,
-      valueGetter: (params) => params.data?.head_office_code || '-',
+      valueGetter: (params) => params.data?.head_office_name || '-',
     },
     {
-      field: 'franchisee_code',
+      field: 'franchisee_name',
       headerName: '가맹점',
       flex: 1,
-      valueGetter: (params) => params.data?.franchisee_code || '-',
+      valueGetter: (params) => params.data?.franchisee_name || '-',
     },
     {
       field: 'name',

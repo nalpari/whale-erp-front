@@ -47,7 +47,7 @@ export default function AuthorityForm({
 
   // 선택된 본사의 가맹점 목록
   const selectedHeadOffice = bpTree?.find(
-    (office) => String(office.id) === formData.head_office_code
+    (office) => office.organizationCode === formData.head_office_code
   )
   const franchiseList = selectedHeadOffice?.franchises || []
 
@@ -154,11 +154,14 @@ export default function AuthorityForm({
                         >
                           <option value="">본사 선택</option>
                           {bpTree?.map((office) => (
-                            <option key={office.id} value={String(office.id)}>
+                            <option key={office.id} value={office.organizationCode}>
                               {office.name}
                             </option>
                           ))}
                         </select>
+                        {errors.head_office_code && (
+                          <div className="warning-txt mt5" role="alert">* {errors.head_office_code}</div>
+                        )}
                       </div>
                       {showFranchise && (
                         <div className="mx-500">
@@ -170,17 +173,17 @@ export default function AuthorityForm({
                           >
                             <option value="">가맹점 선택</option>
                             {franchiseList.map((franchise) => (
-                              <option key={franchise.id} value={String(franchise.id)}>
+                              <option key={franchise.id} value={franchise.organizationCode}>
                                 {franchise.name}
                               </option>
                             ))}
                           </select>
+                          {errors.franchisee_code && (
+                            <div className="warning-txt mt5" role="alert">* {errors.franchisee_code}</div>
+                          )}
                         </div>
                       )}
                     </div>
-                    {(errors.head_office_code || errors.franchisee_code) && (
-                      <div className="warning-txt mt5" role="alert">* {errors.head_office_code || errors.franchisee_code}</div>
-                    )}
                   </td>
                 </tr>
               )}
