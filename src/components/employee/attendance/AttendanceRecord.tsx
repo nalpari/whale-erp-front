@@ -5,7 +5,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
-import { useAttendanceList, useEmployeeCommonCode } from '@/hooks/queries'
+import { useAttendanceList } from '@/hooks/queries'
+import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAttendanceSearchStore } from '@/stores/attendance-search-store'
@@ -85,12 +86,15 @@ export default function AttendanceRecord() {
   const { children: workStatusChildren } = useCommonCode('EMPWK', hydrated)
   const { children: contractClassChildren } = useCommonCode('CNTCFWK', hydrated)
 
-  // 직원 분류: 본사/가맹점 기반 API 조회
-  const { data: empClassList = [] } = useEmployeeCommonCode(
-    filters.officeId,
-    filters.franchiseId,
-    hydrated
+  // 직원 분류: 본사/가맹점 기반 API 조회 (useEmployeeInfoSettings 사용)
+  const { data: settingsData } = useEmployeeInfoSettings(
+    {
+      headOfficeId: filters.officeId ?? undefined,
+      franchiseId: filters.franchiseId ?? undefined,
+    },
+    hydrated && !!filters.officeId
   )
+  const empClassList = settingsData?.codeMemoContent?.EMPLOYEE ?? []
 
   const attendanceParams: AttendanceListParams = {
     officeId: appliedFilters.officeId ?? undefined,
