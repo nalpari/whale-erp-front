@@ -1624,18 +1624,28 @@
       @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
       color: #222;
       margin-bottom: 8px;
+      .required {
+        color: #f00;
+      }
       .s {
         font-weight: $font-w-400;
         color: #505050;
       }
     }
-    .filed-error {
+    .filed-error,
+    .filed-hint {
       @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
       color: #f00;
     }
   }
   .textarea-form {
     height: 240px;
+    &.err {
+      border-color: $input-brd-error;
+    }
+  }
+  .input-frame.err {
+    border-color: $input-brd-error;
   }
 }
 
@@ -1644,14 +1654,34 @@
   align-items: flex-start;
 }
 
+// 문의유형: 항목명 아래에 선택 버튼 배치
+.contact-filed-inquiry-type {
+  .filed-item {
+    display: block;
+  }
+  .filed-tit {
+    display: block;
+    margin-bottom: 8px;
+  }
+  .contact-check-wrap {
+    display: flex;
+    width: 100%;
+    margin-top: 0;
+  }
+}
+
 .contact-check-wrap {
   @include flex(8px);
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   .contact-btn {
     min-width: 120px;
     height: 42px;
     padding: 0 5px;
     border-radius: 6px;
+    border: 1px solid #e5e9ed;
+    text-align: center;
     @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
     color: #9ba7ba;
     transition: all 0.15s ease-in-out;

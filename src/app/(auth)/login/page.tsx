@@ -20,6 +20,7 @@ export default function LoginPage() {
   const setTokens = useAuthStore((state) => state.setTokens);
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
+  const setMemberName = useAuthStore((state) => state.setMemberName);
 
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -72,10 +73,20 @@ export default function LoginPage() {
       const response = await api.post("/api/auth/login", validation.data);
       console.log("Login success:", response.data);
 
-      const { accessToken, refreshToken, authority, companies } = response.data.data;
+      const data = response.data?.data;
+      if (!data) {
+        alert("로그인 응답 형식이 올바르지 않습니다.");
+        return;
+      }
 
+      const accessToken = data.accessToken;
+      const refreshToken = data.refreshToken;
+      const authority = data.authority;
+      const companies = data.companies;
       console.log("authority:", authority);
       console.log("companies:", companies);
+      // 로그인 사용자 이름 (members.name) — API가 member_name으로 내려줌
+      const memberName = data.member_name ?? null;
 
       // 권한 처리
       if (authority) {
@@ -94,6 +105,7 @@ export default function LoginPage() {
         // affiliation header 설정을 위한 id 저장
         setAffiliationId(String(authority.authority_id));
 
+        setMemberName(memberName ?? null);
         setTokens(accessToken, refreshToken);
 
         // 아이디 저장 처리
@@ -108,6 +120,7 @@ export default function LoginPage() {
       } else if (companies && companies.length > 0) {
         // 권한이 여러 개인 경우: 회사 선택 모달
         console.log("Multiple companies found:", companies);
+        setMemberName(memberName);
         setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
           id: String(c.authority_id),
           name: c.company_name || c.brand_name || `회사 ${c.authority_id}`,
@@ -148,8 +161,10 @@ export default function LoginPage() {
       console.log("Selected Authority:", authoritiesResponse.data);
 
       // zustand에 authority programs 저장
-      if (authoritiesResponse.data?.data?.authority?.programs) {
-        setAuthority(authoritiesResponse.data.data.authority.programs);
+      const resData = authoritiesResponse.data?.data;
+      if (resData?.authority?.programs) {
+        setAuthority(resData.authority.programs);
+        setMemberName(resData.member_name ?? null);
       } else {
         // programs 데이터가 없는 경우
         setSelectedAuthorityId(null);
