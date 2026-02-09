@@ -196,6 +196,7 @@ export default function StoreSchedulePageClient() {
       <WorkScheduleTable
         schedules={schedules}
         isLoading={isLoading}
+        isDownloading={downloadMutation.isPending || templateMutation.isPending}
         onDownloadExcel={handleDownloadExcel}
         onOpenUploadExcel={handleOpenUploadExcel}
         onPlan={handlePlan}

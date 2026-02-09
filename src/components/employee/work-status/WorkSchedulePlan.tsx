@@ -507,12 +507,16 @@ export default function WorkSchedulePlan() {
     workerId: string,
     next: Partial<OperatingFormState>
   ) => {
+    const day = plans[dayIndex];
+    if (day) {
+      dirtyWorkersRef.current.add(`${day.date}|${workerId}`);
+    }
     setPlans((prev) =>
-      prev.map((day, idx) => {
-        if (idx !== dayIndex) return day;
+      prev.map((d, idx) => {
+        if (idx !== dayIndex) return d;
         return {
-          ...day,
-          workers: day.workers.map((worker) => {
+          ...d,
+          workers: d.workers.map((worker) => {
             if (worker.id !== workerId) return worker;
             const updated = { ...worker };
             if (next.isOperating !== undefined) {
@@ -536,7 +540,6 @@ export default function WorkSchedulePlan() {
             if (next.closeTime !== undefined) updated.endIndex = parseTimeToIndex(next.closeTime) ?? updated.endIndex;
             if (next.breakStartTime !== undefined) updated.breakStartIndex = parseTimeToIndex(next.breakStartTime) ?? updated.breakStartIndex;
             if (next.breakEndTime !== undefined) updated.breakEndIndex = parseTimeToIndex(next.breakEndTime) ?? updated.breakEndIndex;
-            dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
             return updated;
           }),
         };

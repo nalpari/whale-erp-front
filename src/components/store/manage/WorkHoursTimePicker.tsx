@@ -4,12 +4,12 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { Navigation } from 'swiper/modules'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { OperatingFormState } from '@/types/store'
 
 interface WorkHoursTimePickerProps {
   idPrefix: string
-  toggleLabel: string[]
+  toggleLabel: [string, string]
   openTime?: string | null
   closeTime?: string | null
   breakStartTime?: string | null
@@ -100,6 +100,7 @@ function TimeSwiperColumn({
         <div className="work-hours-inner">
           <div className="time-swiper hours">
             <Swiper
+              key={`hour-${hour}`}
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"
@@ -121,6 +122,7 @@ function TimeSwiperColumn({
           <div className="time-colon">:</div>
           <div className="time-swiper minutes">
             <Swiper
+              key={`min-${minute}`}
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"
@@ -178,12 +180,23 @@ export default function WorkHoursTimePicker({
   const [workEnabled, setWorkEnabled] = useState(isOperating)
   const [breakEnabled, setBreakEnabled] = useState(breakTimeEnabled)
 
-  useEffect(() => { setWorkEnabled(isOperating) }, [isOperating])
-  useEffect(() => { setBreakEnabled(breakTimeEnabled) }, [breakTimeEnabled])
-  useEffect(() => { setWorkStart(parseTime(openTime)) }, [openTime])
-  useEffect(() => { setWorkEnd(parseTime(closeTime)) }, [closeTime])
-  useEffect(() => { setBreakStart(parseTime(breakStartTime)) }, [breakStartTime])
-  useEffect(() => { setBreakEnd(parseTime(breakEndTime)) }, [breakEndTime])
+  const [prevProps, setPrevProps] = useState({ isOperating, breakTimeEnabled, openTime, closeTime, breakStartTime, breakEndTime })
+  if (
+    isOperating !== prevProps.isOperating ||
+    breakTimeEnabled !== prevProps.breakTimeEnabled ||
+    openTime !== prevProps.openTime ||
+    closeTime !== prevProps.closeTime ||
+    breakStartTime !== prevProps.breakStartTime ||
+    breakEndTime !== prevProps.breakEndTime
+  ) {
+    setPrevProps({ isOperating, breakTimeEnabled, openTime, closeTime, breakStartTime, breakEndTime })
+    setWorkEnabled(isOperating)
+    setBreakEnabled(breakTimeEnabled)
+    setWorkStart(parseTime(openTime))
+    setWorkEnd(parseTime(closeTime))
+    setBreakStart(parseTime(breakStartTime))
+    setBreakEnd(parseTime(breakEndTime))
+  }
 
   const emitWorkStart = (p: Period, h: string, m: string) => {
     onChange?.({ openTime: to24Hour(p, h, m) })
