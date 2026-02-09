@@ -40,8 +40,7 @@ export default function StoreSchedulePageClient() {
   const downloadMutation = useStoreScheduleDownloadExcel();
   const templateMutation = useStoreScheduleDownloadTemplate();
   const schedules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
-  const isLoading =
-    scheduleQuery.isFetching || validateMutation.isPending || downloadMutation.isPending || templateMutation.isPending;
+  const isLoading = scheduleQuery.isFetching;
 
   const resultCount = useMemo(
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),

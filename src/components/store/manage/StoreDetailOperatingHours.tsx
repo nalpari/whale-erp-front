@@ -1,8 +1,9 @@
+'use client'
+
 import AnimateHeight from 'react-animate-height'
-import { WorkHoursTable } from '@/components/store/manage/WorkHoursTable'
+import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 
-// 점포 운영시간 섹션 UI 전용 props
 interface StoreDetailOperatingHoursProps {
   isOpen: boolean
   formState: StoreFormState
@@ -14,7 +15,6 @@ interface StoreDetailOperatingHoursProps {
   onHoliday: () => void
 }
 
-// 평일/토/일 운영/휴게 시간 입력 섹션
 export const StoreDetailOperatingHours = ({
   isOpen,
   formState,
@@ -42,11 +42,13 @@ export const StoreDetailOperatingHours = ({
             <col />
           </colgroup>
           <tbody>
+            {/* 평일 운영시간 */}
             <tr>
-              <th>평일 오픈 시간</th>
+              <th>평일 운영시간</th>
               <td>
-                <WorkHoursTable
+                <WorkHoursTimePicker
                   idPrefix="weekday"
+                  toggleLabel={["운영", "B/T"]}
                   openTime={formState.operating.WEEKDAY.openTime}
                   closeTime={formState.operating.WEEKDAY.closeTime}
                   breakStartTime={formState.operating.WEEKDAY.breakStartTime}
@@ -55,8 +57,14 @@ export const StoreDetailOperatingHours = ({
                   breakTimeEnabled={formState.operating.WEEKDAY.breakTimeEnabled}
                   onChange={(next) => onOperatingChange('WEEKDAY', next)}
                 />
+              </td>
+            </tr>
 
-                <div className="filed-flx g8" style={{ marginTop: '10px' }}>
+            {/* 평일 운영 요일 */}
+            <tr>
+              <th>평일 운영 요일</th>
+              <td>
+                <div className="filed-flx g8">
                   {weekdayKeys.map((day) => (
                     <button
                       key={day}
@@ -70,11 +78,14 @@ export const StoreDetailOperatingHours = ({
                 </div>
               </td>
             </tr>
+
+            {/* 토요일 근무시간 */}
             <tr>
-              <th>토요일 오픈 시간</th>
+              <th>토요일 운영시간</th>
               <td>
-                <WorkHoursTable
+                <WorkHoursTimePicker
                   idPrefix="saturday"
+                  toggleLabel={["운영", "B/T"]}
                   openTime={formState.operating.SATURDAY.openTime}
                   closeTime={formState.operating.SATURDAY.closeTime}
                   breakStartTime={formState.operating.SATURDAY.breakStartTime}
@@ -85,11 +96,14 @@ export const StoreDetailOperatingHours = ({
                 />
               </td>
             </tr>
+
+            {/* 일요일 운영시간 */}
             <tr>
-              <th>일요일 오픈 시간</th>
+              <th>일요일 운영시간</th>
               <td>
-                <WorkHoursTable
+                <WorkHoursTimePicker
                   idPrefix="sunday"
+                  toggleLabel={["운영", "B/T"]}
                   openTime={formState.operating.SUNDAY.openTime}
                   closeTime={formState.operating.SUNDAY.closeTime}
                   breakStartTime={formState.operating.SUNDAY.breakStartTime}
@@ -100,6 +114,8 @@ export const StoreDetailOperatingHours = ({
                 />
               </td>
             </tr>
+
+            {/* 정기 휴일 */}
             <tr>
               <th>정기 휴일</th>
               <td>
