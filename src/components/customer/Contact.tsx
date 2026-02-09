@@ -81,7 +81,9 @@ function validateForm(form: ContactFormState): ContactFormErrors {
 }
 
 export default function Contact() {
-  const memberName = useAuthStore((s) => s.memberName)
+  // auth store: 로그인 사용자 정보 (setUserInfo로 저장된 name, mobilePhone)
+  const storeName = useAuthStore((s) => s.name ?? null)
+  const storeMobilePhone = useAuthStore((s) => s.mobilePhone ?? null)
 
   const [form, setForm] = useState<ContactFormState>(createInitialForm)
   const [errors, setErrors] = useState<ContactFormErrors>({})
@@ -91,10 +93,16 @@ export default function Contact() {
   const { data: inquiryTypes = [], isPending: isTypesLoading } = useCommonCodeHierarchy('INQTYP')
   const { mutateAsync, isPending: isSubmitting } = useCreateInquiry()
 
-  // 로그인 사용자 이름 연동 (store memberName → 폼 이름 필드)
+  // 로그인 사용자 정보 연동 (store → 폼 이름/휴대전화)
   useEffect(() => {
-    if (memberName) setForm((prev) => ({ ...prev, name: memberName }))
-  }, [memberName])
+    if (storeName || storeMobilePhone) {
+      setForm((prev) => ({
+        ...prev,
+        ...(storeName && { name: storeName }),
+        ...(storeMobilePhone && { phone: formatPhone(storeMobilePhone) }),
+      }))
+    }
+  }, [storeName, storeMobilePhone])
 
   const handleChange = (field: keyof ContactFormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -110,7 +118,8 @@ export default function Contact() {
   const resetForm = () => {
     setForm(() => ({
       ...createInitialForm(),
-      name: memberName ?? '',
+      name: storeName ?? '',
+      phone: storeMobilePhone ? formatPhone(storeMobilePhone) : '',
     }))
     setErrors({})
     setSubmitError(null)
@@ -146,24 +155,24 @@ export default function Contact() {
           <div className="contact-filed contact-filed-flx">
             <div className="filed-item">
               <div className="filed-tit">
-                이름 {!memberName && <span className="required">*</span>}
+                이름 {!storeName && <span className="required">*</span>}
               </div>
               <input
                 type="text"
                 className={`input-frame ${errors.name ? 'err' : ''}`}
-                placeholder={memberName ? undefined : '이름을 입력해 주세요.'}
+                placeholder={storeName ? undefined : '이름을 입력해 주세요.'}
                 value={form.name}
-                disabled={!!memberName}
-                readOnly={!!memberName}
-                onChange={memberName ? undefined : (e) => handleChange('name', e.target.value)}
-                aria-label={memberName ? '이름 (로그인 정보)' : '이름'}
+                disabled={!!storeName}
+                readOnly={!!storeName}
+                onChange={storeName ? undefined : (e) => handleChange('name', e.target.value)}
+                aria-label={storeName ? '이름 (로그인 정보)' : '이름'}
               />
               {errors.name && <div className="filed-error">※ {errors.name}</div>}
             </div>
 
             <div className="filed-item">
               <div className="filed-tit">
-                휴대전화 번호<span className="required">*</span>
+                휴대전화 번호 {!storeMobilePhone && <span className="required">*</span>}
               </div>
               <div className={`input-icon-frame ${errors.phone ? 'err' : ''}`}>
                 <input
@@ -171,10 +180,12 @@ export default function Contact() {
                   inputMode="numeric"
                   placeholder="숫자만 입력해 주세요."
                   value={form.phone}
-                  onChange={(e) => handleChange('phone', formatPhone(e.target.value))}
-                  disabled={isSubmitting}
+                  onChange={storeMobilePhone ? undefined : (e) => handleChange('phone', formatPhone(e.target.value))}
+                  disabled={!!storeMobilePhone || isSubmitting}
+                  readOnly={!!storeMobilePhone}
+                  aria-label={storeMobilePhone ? '휴대전화 (로그인 정보)' : '휴대전화 번호'}
                 />
-                {form.phone ? (
+                {form.phone && !storeMobilePhone ? (
                   <button
                     type="button"
                     className="input-icon-btn del"
