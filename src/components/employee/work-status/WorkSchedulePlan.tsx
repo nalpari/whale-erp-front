@@ -1,11 +1,12 @@
 ﻿'use client';
 
-import '@/components/employee/custom-css/WorkScheduleTable.css';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAlert } from '@/components/common/ui';
 import WorkScheduleSearch from './WorkScheduleSearch';
+import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker';
 import type { DayType, ScheduleResponse, StoreScheduleQuery } from '@/types/work-schedule';
+import type { OperatingFormState } from '@/types/store';
 import {
   fetchStoreSchedules,
   storeScheduleKeys,
@@ -37,13 +38,6 @@ type DayPlan = {
   dayLabel: string;
   workers: WorkerPlan[];
 };
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const BLOCKS = Array.from({ length: 48 }, (_, i) => ({
-  index: i,
-  hour: Math.floor(i / 2),
-  minute: i % 2 === 0 ? 0 : 30,
-}));
 
 const CONTRACT_COLOR_MAP: Record<string, 'blue' | 'green'> = {
   정직원: 'blue',
@@ -124,21 +118,6 @@ const buildPlansFromSchedules = (schedules: ScheduleResponse[]): DayPlan[] =>
       dayLabel,
       workers,
     };
-  });
-
-const buildWorkBlockStates = (worker: WorkerPlan) =>
-  BLOCKS.map((block) => {
-    const isWorking = block.index >= worker.startIndex && block.index < worker.endIndex;
-    return { state: isWorking ? ('work' as const) : ('empty' as const) };
-  });
-
-const buildBreakBlockStates = (worker: WorkerPlan) =>
-  BLOCKS.map((block) => {
-    const isBreak =
-      worker.hasBreak &&
-      block.index >= worker.breakStartIndex &&
-      block.index < worker.breakEndIndex;
-    return { state: isBreak ? ('break' as const) : ('empty' as const) };
   });
 
 const DEFAULT_WORK_RANGE = { startIndex: 18, endIndex: 36 };
@@ -286,12 +265,6 @@ export default function WorkSchedulePlan() {
   const dirtyWorkersRef = useRef<Set<string>>(new Set());
   const isLoading = isFetching || upsertMutation.isPending;
 
-  const dragRef = useRef<{
-    dayIndex: number;
-    workerId: string;
-    type: 'work-start' | 'work-end' | 'break-start' | 'break-end';
-    slider: HTMLDivElement;
-  } | null>(null);
   const initialQuery = useMemo(() => {
     const getNumberParam = (key: string) => {
       const value = searchParams.get(key);
@@ -360,39 +333,6 @@ export default function WorkSchedulePlan() {
     setShowStoreError(false);
     setLastQuery(null);
   }, [setLastQuery]);
-
-  const handleBreakToggle = (dayIndex: number, workerId: string, enabled: boolean) => {
-    setPlans((prev) =>
-      prev.map((day, index) => {
-        if (index !== dayIndex) return day;
-        return {
-          ...day,
-          workers: day.workers.map((worker) => {
-            if (worker.id !== workerId) return worker;
-            dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
-            if (!enabled) {
-              return { ...worker, hasBreak: false };
-            }
-            if (!worker.hasWork) {
-              return { ...worker, hasBreak: false };
-            }
-            const defaultBreakStart = clamp(worker.startIndex + 6, worker.startIndex, worker.endIndex - 1);
-            const defaultBreakEnd = clamp(defaultBreakStart + 2, defaultBreakStart + 1, worker.endIndex);
-            const isValidBreak =
-              worker.breakEndIndex > worker.breakStartIndex &&
-              worker.breakStartIndex >= worker.startIndex &&
-              worker.breakEndIndex <= worker.endIndex;
-            return {
-              ...worker,
-              hasBreak: true,
-              breakStartIndex: isValidBreak ? worker.breakStartIndex : defaultBreakStart,
-              breakEndIndex: isValidBreak ? worker.breakEndIndex : defaultBreakEnd,
-            };
-          }),
-        };
-      })
-    );
-  };
 
   const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
     setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });
@@ -562,69 +502,50 @@ export default function WorkSchedulePlan() {
     [plans]
   );
 
-  useEffect(() => {
-    const handleMove = (event: MouseEvent) => {
-      if (!dragRef.current) return;
-      const { dayIndex, workerId, type, slider } = dragRef.current;
-      const rect = slider.getBoundingClientRect();
-      const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-      const nextIndex = Math.round(ratio * 48);
-
-      setPlans((prev) =>
-        prev.map((day, index) => {
-          if (index !== dayIndex) return day;
-          return {
-            ...day,
-            workers: day.workers.map((worker) => {
-              if (worker.id !== workerId) return worker;
-              if (!worker.hasWork) return worker;
-
-              if (type === 'work-start') {
-                const startIndex = clamp(nextIndex, 0, worker.endIndex - 1);
-                if (startIndex !== worker.startIndex) {
-                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
+  const handleTimePickerChange = (
+    dayIndex: number,
+    workerId: string,
+    next: Partial<OperatingFormState>
+  ) => {
+    const day = plans[dayIndex];
+    if (day) {
+      dirtyWorkersRef.current.add(`${day.date}|${workerId}`);
+    }
+    setPlans((prev) =>
+      prev.map((d, idx) => {
+        if (idx !== dayIndex) return d;
+        return {
+          ...d,
+          workers: d.workers.map((worker) => {
+            if (worker.id !== workerId) return worker;
+            const updated = { ...worker };
+            if (next.isOperating !== undefined) {
+              updated.hasWork = next.isOperating;
+              if (!next.isOperating) updated.hasBreak = false;
+            }
+            if (next.breakTimeEnabled !== undefined) {
+              updated.hasBreak = next.breakTimeEnabled;
+              if (next.breakTimeEnabled && updated.hasWork) {
+                const isValidBreak =
+                  updated.breakEndIndex > updated.breakStartIndex &&
+                  updated.breakStartIndex >= updated.startIndex &&
+                  updated.breakEndIndex <= updated.endIndex;
+                if (!isValidBreak) {
+                  updated.breakStartIndex = clamp(updated.startIndex + 6, updated.startIndex, updated.endIndex - 1);
+                  updated.breakEndIndex = clamp(updated.breakStartIndex + 2, updated.breakStartIndex + 1, updated.endIndex);
                 }
-                return { ...worker, startIndex };
               }
-              if (type === 'work-end') {
-                const endIndex = clamp(nextIndex, worker.startIndex + 1, 48);
-                if (endIndex !== worker.endIndex) {
-                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
-                }
-                return { ...worker, endIndex };
-              }
-              if (type === 'break-start') {
-                const breakStartIndex = clamp(nextIndex, worker.startIndex, worker.breakEndIndex - 1);
-                if (breakStartIndex !== worker.breakStartIndex) {
-                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
-                }
-                return { ...worker, breakStartIndex };
-              }
-              if (type === 'break-end') {
-                const breakEndIndex = clamp(nextIndex, worker.breakStartIndex + 1, worker.endIndex);
-                if (breakEndIndex !== worker.breakEndIndex) {
-                  dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
-                }
-                return { ...worker, breakEndIndex };
-              }
-              return worker;
-            }),
-          };
-        })
-      );
-    };
-
-    const handleUp = () => {
-      dragRef.current = null;
-    };
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-    };
-  }, []);
+            }
+            if (next.openTime !== undefined) updated.startIndex = parseTimeToIndex(next.openTime) ?? updated.startIndex;
+            if (next.closeTime !== undefined) updated.endIndex = parseTimeToIndex(next.closeTime) ?? updated.endIndex;
+            if (next.breakStartTime !== undefined) updated.breakStartIndex = parseTimeToIndex(next.breakStartTime) ?? updated.breakStartIndex;
+            if (next.breakEndTime !== undefined) updated.breakEndIndex = parseTimeToIndex(next.breakEndTime) ?? updated.breakEndIndex;
+            return updated;
+          }),
+        };
+      })
+    );
+  };
 
   return (
     <>
@@ -727,8 +648,8 @@ export default function WorkSchedulePlan() {
                             anchorSelect={`#more-btn-anchor-work-hours-empty-${dayIndex}`}
                             place="right-start"
                             offset={0}
-                            openOnClick={true} // 클릭으로 열기
-                            clickable={true} // 툴팁 내부 클릭 가능
+                            openOnClick={true}
+                            clickable={true}
                             opacity={1}
                           >
                             <button className="option-item" onClick={() => openAddEmployee(dayIndex)}>근무자 추가</button>
@@ -744,236 +665,60 @@ export default function WorkSchedulePlan() {
                         </div>
                       ) : (
                         day.workers.map((worker) => {
-                          const workBlockStates = buildWorkBlockStates(worker);
-                          const breakBlockStates = buildBreakBlockStates(worker);
                           const badgeColor = CONTRACT_COLOR_MAP[worker.contractType] ?? 'blue';
-                          const startPercent = (worker.startIndex / 48) * 100;
-                          const endPercent = (worker.endIndex / 48) * 100;
-                          const breakStartPercent = (worker.breakStartIndex / 48) * 100;
-                          const breakEndPercent = (worker.breakEndIndex / 48) * 100;
                           return (
                             <div key={worker.id} className="store-work-data-wrap">
-                              <div className="flx-bx">
-                                <div className="work-info">
-                                  <div className={`work-badge ${badgeColor}`}>{worker.contractType}</div>
-                                  <div className="staff-name">{worker.name}</div>
-                                  <div className="store-work-time">
-                                    {worker.hasWork
-                                      ? `${indexToTime(worker.startIndex)}-${indexToTime(worker.endIndex)}`
-                                      : ' - '}
-                                    {worker.hasBreak && (
-                                      <span>
-                                        {' | '}
-                                        {indexToTime(worker.breakStartIndex)}-{indexToTime(worker.breakEndIndex)}
-                                      </span>
-                                    )}
-                                  </div>
+                              <div className="work-info" style={{ marginBottom: 10 }}>
+                                <div className={`work-badge ${badgeColor}`}>{worker.contractType}</div>
+                                <div className="staff-name">{worker.name}</div>
+                                <div className="store-work-time">
+                                  {worker.hasWork
+                                    ? `${indexToTime(worker.startIndex)}-${indexToTime(worker.endIndex)}`
+                                    : ' - '}
+                                  {worker.hasBreak && (
+                                    <span>
+                                      {' | '}
+                                      {indexToTime(worker.breakStartIndex)}-{indexToTime(worker.breakEndIndex)}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="auto-right">
-                                  <div className="total-hours">
-                                    {worker.hasWork
-                                      ? `${((worker.endIndex - worker.startIndex) / 2).toFixed(1)}h`
-                                      : '0H'}
-                                  </div>
-                                  <div className="more-btn">
-                                    <span className="icon-more" id={`more-btn-worker-${dayIndex}-${worker.id}`}></span>
-                                    <Tooltip
-                                      className="option-list"
-                                      anchorSelect={`#more-btn-worker-${dayIndex}-${worker.id}`}
-                                      place="left-start"
-                                      offset={0}
-                                      openOnClick={true}
-                                      clickable={true}
-                                      opacity={1}
-                                    >
-                                      <button className="option-item" onClick={() => openAddEmployee(dayIndex, worker.id)}>
-                                        근무자 추가
-                                      </button>
-                                      <button className="option-item" onClick={() => openTempWorker(dayIndex, worker.id)}>
-                                        직원 외 근무자 추가
-                                      </button>
-                                      <button className="option-item" onClick={() => openReplaceEmployee(dayIndex, worker.id)}>
-                                        근무자 교체
-                                      </button>
-                                      <button className="option-item" onClick={() => handleDeleteWorker(dayIndex, worker.id)}>
-                                        근무자 삭제
-                                      </button>
-                                    </Tooltip>
-                                  </div>
+                                <div className="more-btn">
+                                  <span className="icon-more" id={`more-btn-worker-${dayIndex}-${worker.id}`}></span>
+                                  <Tooltip
+                                    className="option-list"
+                                    anchorSelect={`#more-btn-worker-${dayIndex}-${worker.id}`}
+                                    place="right-start"
+                                    offset={0}
+                                    openOnClick={true}
+                                    clickable={true}
+                                    opacity={1}
+                                  >
+                                    <button className="option-item" onClick={() => openAddEmployee(dayIndex, worker.id)}>
+                                      근무자 추가
+                                    </button>
+                                    <button className="option-item" onClick={() => openTempWorker(dayIndex, worker.id)}>
+                                      직원 외 근무자 추가
+                                    </button>
+                                    <button className="option-item" onClick={() => openReplaceEmployee(dayIndex, worker.id)}>
+                                      근무자 교체
+                                    </button>
+                                    <button className="option-item" onClick={() => handleDeleteWorker(dayIndex, worker.id)}>
+                                      근무자 삭제
+                                    </button>
+                                  </Tooltip>
                                 </div>
                               </div>
-                              <div className="staff-work-table">
-                                <div className="work-hours-preview" style={{ marginTop: 0, marginBottom: 8 }}>
-                                  <div
-                                    className="work-hours-wrap"
-                                    style={{ width: '100%', gap: 16, justifyContent: 'flex-start' }}
-                                  >
-                                    <div className="toggle-wrap">
-                                      <span className="toggle-txt">근무 여부</span>
-                                      <label className="toggle-btn" htmlFor={`work-toggle-${worker.id}`}>
-                                        <input
-                                          type="checkbox"
-                                          id={`work-toggle-${worker.id}`}
-                                          checked={worker.hasWork}
-                                          onChange={(event) => {
-                                            const nextHasWork = event.target.checked;
-                                            setPlans((prev) =>
-                                              prev.map((dayItem, dIndex) => {
-                                                if (dIndex !== dayIndex) return dayItem;
-                                                return {
-                                                  ...dayItem,
-                                                  workers: dayItem.workers.map((item) =>
-                                                    item.id !== worker.id
-                                                      ? item
-                                                      : {
-                                                        ...item,
-                                                        hasWork: nextHasWork,
-                                                        hasBreak: nextHasWork ? item.hasBreak : false,
-                                                      }
-                                                  ),
-                                                };
-                                              })
-                                            );
-                                            dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
-                                          }}
-                                        />
-                                        <span className="slider" />
-                                      </label>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className={`time-slider${worker.hasWork ? '' : ' is-disabled'}`}>
-                                  <div className={`time-blocks ${badgeColor}`}>
-                                    <span
-                                      className="time-handle start"
-                                      style={{ left: `calc(${startPercent}% - 6px)` }}
-                                      onMouseDown={(event) => {
-                                        if (!worker.hasWork) return;
-                                        const slider = event.currentTarget.closest(
-                                          '.time-slider'
-                                        ) as HTMLDivElement | null;
-                                        if (!slider) return;
-                                        dragRef.current = {
-                                          dayIndex,
-                                          workerId: worker.id,
-                                          type: 'work-start',
-                                          slider,
-                                        };
-                                      }}
-                                    />
-                                    <span
-                                      className="time-handle end"
-                                      style={{ left: `calc(${endPercent}% - 6px)` }}
-                                      onMouseDown={(event) => {
-                                        if (!worker.hasWork) return;
-                                        const slider = event.currentTarget.closest(
-                                          '.time-slider'
-                                        ) as HTMLDivElement | null;
-                                        if (!slider) return;
-                                        dragRef.current = {
-                                          dayIndex,
-                                          workerId: worker.id,
-                                          type: 'work-end',
-                                          slider,
-                                        };
-                                      }}
-                                    />
-                                    {workBlockStates.map((block, index) => {
-                                      const className = 'time-block';
-                                      const style =
-                                        block.state === 'empty'
-                                          ? { backgroundColor: 'transparent' }
-                                          : undefined;
-                                      return <div key={index} className={className} style={style} />;
-                                    })}
-                                  </div>
-                                </div>
-                                <div className="time-header">
-                                  {HOURS.map((hour) => (
-                                    <div key={hour} className="time-label">
-                                      {String(hour).padStart(2, '0')}
-                                    </div>
-                                  ))}
-                                </div>
-                                <div className="work-hours-preview" style={{ marginTop: 8, marginBottom: 8 }}>
-                                  <div
-                                    className="work-hours-wrap"
-                                    style={{ width: '100%', gap: 16, justifyContent: 'flex-start' }}
-                                  >
-                                    <div className="toggle-wrap">
-                                      <span className="toggle-txt">휴게 여부</span>
-                                      <label className="toggle-btn" htmlFor={`break-toggle-${worker.id}`}>
-                                        <input
-                                          type="checkbox"
-                                          id={`break-toggle-${worker.id}`}
-                                          checked={worker.hasBreak}
-                                          onChange={(event) =>
-                                            handleBreakToggle(dayIndex, worker.id, event.target.checked)
-                                          }
-                                          disabled={!worker.hasWork}
-                                        />
-                                        <span className="slider" />
-                                      </label>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div
-                                  className={`time-slider break-slider${worker.hasWork && worker.hasBreak ? '' : ' is-disabled'
-                                    }`}
-                                >
-                                  <div className="time-blocks">
-                                    <span
-                                      className="time-handle start break"
-                                      style={{ left: `calc(${breakStartPercent}% - 6px)` }}
-                                      onMouseDown={(event) => {
-                                        if (!worker.hasWork || !worker.hasBreak) return;
-                                        const slider = event.currentTarget.closest(
-                                          '.time-slider'
-                                        ) as HTMLDivElement | null;
-                                        if (!slider) return;
-                                        dragRef.current = {
-                                          dayIndex,
-                                          workerId: worker.id,
-                                          type: 'break-start',
-                                          slider,
-                                        };
-                                      }}
-                                    />
-                                    <span
-                                      className="time-handle end break"
-                                      style={{ left: `calc(${breakEndPercent}% - 6px)` }}
-                                      onMouseDown={(event) => {
-                                        if (!worker.hasWork || !worker.hasBreak) return;
-                                        const slider = event.currentTarget.closest(
-                                          '.time-slider'
-                                        ) as HTMLDivElement | null;
-                                        if (!slider) return;
-                                        dragRef.current = {
-                                          dayIndex,
-                                          workerId: worker.id,
-                                          type: 'break-end',
-                                          slider,
-                                        };
-                                      }}
-                                    />
-                                    {breakBlockStates.map((block, index) => {
-                                      const className = `time-block${block.state === 'break' ? ' gray' : ''}`;
-                                      const style =
-                                        block.state === 'empty'
-                                          ? { backgroundColor: 'transparent' }
-                                          : undefined;
-                                      return <div key={index} className={className} style={style} />;
-                                    })}
-                                  </div>
-                                </div>
-                                <div className="time-header">
-                                  {HOURS.map((hour) => (
-                                    <div key={hour} className="time-label">
-                                      {String(hour).padStart(2, '0')}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                              <WorkHoursTimePicker
+                                idPrefix={`plan-${dayIndex}-${worker.id}`}
+                                toggleLabel={["근무", "휴게"]}
+                                openTime={indexToTime(worker.startIndex)}
+                                closeTime={indexToTime(worker.endIndex)}
+                                breakStartTime={indexToTime(worker.breakStartIndex)}
+                                breakEndTime={indexToTime(worker.breakEndIndex)}
+                                isOperating={worker.hasWork}
+                                breakTimeEnabled={worker.hasBreak}
+                                onChange={(next) => handleTimePickerChange(dayIndex, worker.id, next)}
+                              />
                             </div>
                           );
                         })

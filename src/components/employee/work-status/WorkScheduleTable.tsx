@@ -7,6 +7,7 @@ import type { ScheduleResponse, WorkerResponse } from '@/types/work-schedule';
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
   isLoading: boolean;
+  isDownloading?: boolean;
   onDownloadExcel: () => void;
   onOpenUploadExcel: () => void;
   onPlan: () => void;
@@ -120,6 +121,7 @@ const sortWorkersByRule = (workers: WorkerResponse[]) =>
 export default function WorkScheduleTable({
   schedules,
   isLoading,
+  isDownloading,
   onDownloadExcel,
   onOpenUploadExcel,
   onPlan,
@@ -136,7 +138,7 @@ export default function WorkScheduleTable({
       <div className="contents-body">
         <div className="content-wrap">
           <div className="store-work-btn">
-            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading}>
+            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading || isDownloading}>
               엑셀 파일 다운로드
             </button>
             <button className="btn-form outline s" onClick={onOpenUploadExcel} disabled={isLoading}>
@@ -187,6 +189,9 @@ export default function WorkScheduleTable({
                                   <div className="staff-name">{worker.workerName}</div>
                                   <div className="store-work-time">
                                     {formatTimeRange(worker.workStartTime, worker.workEndTime)}
+                                    {worker.hasBreak && worker.breakStartTime && worker.breakEndTime && (
+                                      <span> | {formatTimeRange(worker.breakStartTime, worker.breakEndTime)}</span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="auto-right">

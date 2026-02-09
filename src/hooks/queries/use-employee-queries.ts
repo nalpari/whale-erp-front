@@ -85,7 +85,8 @@ export const useEmployeeCommonCode = (
         '/api/employee/info/common-code',
         { params: { headOfficeId, franchiseId } }
       )
-      return response.data.data ?? []
+      const data = response.data.data
+      return Array.isArray(data) ? data : []
     },
     enabled: enabled && !!headOfficeId,
   })
