@@ -7,6 +7,7 @@ import Lnb from '@/components/ui/common/Lnb'
 import FullDownMenu from '@/components/ui/common/FullDownMenu'
 import Header from '@/components/ui/Header'
 import MyPageLayout from '@/components/mypage/MyPageLayout'
+import { AlertProvider } from '@/components/common/ui'
 
 interface MainLayoutProps {
     children: ReactNode
@@ -17,6 +18,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
     const accessToken = useAuthStore((state) => state.accessToken)
+    const [menuType, setMenuType] = useState<'header' | 'support'>('header')
+
+    const handleToggleMenuType = () => {
+        setMenuType((prev) => (prev === 'header' ? 'support' : 'header'))
+    }
 
     useEffect(() => {
         // 클라이언트에서만 실행
@@ -64,19 +70,21 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
 
     return (
-        <div className={`wrap ${isOpen ? 'sm' : ''}`}>
-            <Lnb isOpen={isOpen} setIsOpen={setIsOpen} />
-            <div className="container">
-                <div className="frame">
-                    <div className="header-wrap">
-                        <FullDownMenu />
-                        <Header />
-                    </div>
+        <AlertProvider>
+            <div className={`wrap ${isOpen ? 'sm' : ''}`}>
+                <Lnb isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
+                <div className="container">
+                    <div className="frame">
+                        <div className="header-wrap">
+                            <FullDownMenu />
+                            <Header onToggleMenuType={handleToggleMenuType} />
+                        </div>
 
-                    {children}
+                        {children}
+                    </div>
                 </div>
+                <MyPageLayout />
             </div>
-            <MyPageLayout />
-        </div>
+        </AlertProvider>
     )
 }

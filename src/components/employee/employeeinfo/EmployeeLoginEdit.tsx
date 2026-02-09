@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import { useQuery } from '@tanstack/react-query'
-import { Input } from '@/components/common/ui'
+import { Input, useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
   useEmployeeDetail,
   useSendEmployeeRegistrationEmail,
@@ -40,11 +41,21 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
   const updateLoginInfoMutation = useUpdateEmployeeLoginInfo()
   const withdrawMutation = useWithdrawEmployeeMember()
 
+  const { alert, confirm } = useAlert()
+
   const loading = isEmployeeLoading
   const saving = updateLoginInfoMutation.isPending
   const sendingEmail = sendEmailMutation.isPending
   const withdrawing = withdrawMutation.isPending
   const error = employeeError ? '데이터를 불러오는데 실패했습니다.' : null
+
+  const authorityOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택하세요' },
+    ...authorities.map(auth => ({
+      value: String(auth.id),
+      label: auth.name
+    }))
+  ], [authorities])
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-'
@@ -62,34 +73,34 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     if (!employeeId) return
 
     if (!employee?.email) {
-      alert('직원의 이메일 주소가 없습니다.')
+      await alert('직원의 이메일 주소가 없습니다.')
       return
     }
 
-    if (!confirm('직원 회원 가입 요청 메일을 발송하시겠습니까?')) return
+    if (!(await confirm('직원 회원 가입 요청 메일을 발송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(employeeId)
-      alert('회원 가입 요청 메일이 발송되었습니다.')
+      await alert('회원 가입 요청 메일이 발송되었습니다.')
     } catch (err) {
       console.error('메일 발송 실패:', err)
-      alert('메일 발송에 실패했습니다.')
+      await alert('메일 발송에 실패했습니다.')
     }
   }
 
   const handleWithdraw = async () => {
     if (!employeeId || !employee?.memberId) return
 
-    if (!confirm('정말 탈퇴 처리하시겠습니까?\n탈퇴 처리 후에는 해당 회원의 로그인이 불가능합니다.')) return
+    if (!(await confirm('정말 탈퇴 처리하시겠습니까?\n탈퇴 처리 후에는 해당 회원의 로그인이 불가능합니다.'))) return
 
     try {
       await withdrawMutation.mutateAsync(employeeId)
-      alert('탈퇴 처리가 완료되었습니다.')
+      await alert('탈퇴 처리가 완료되었습니다.')
       // 페이지 새로고침
       window.location.reload()
     } catch (err) {
       console.error('탈퇴 처리 실패:', err)
-      alert('탈퇴 처리에 실패했습니다.')
+      await alert('탈퇴 처리에 실패했습니다.')
     }
   }
 
@@ -101,11 +112,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
         employeeInfoId: employeeId,
         request: { partnerOfficeAuthorityId: selectedAuthorityId }
       })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (err) {
       console.error('저장 실패:', err)
-      alert('저장에 실패했습니다.')
+      await alert('저장에 실패했습니다.')
     }
   }
 
@@ -206,18 +217,12 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                   <td>
                     <div className="filed-flx">
                       <div className="mx-200">
-                        <select
-                          className="select-form"
-                          value={selectedAuthorityId || ''}
-                          onChange={(e) => setSelectedAuthorityId(e.target.value ? Number(e.target.value) : null)}
-                        >
-                          <option value="">선택하세요</option>
-                          {authorities.map((auth) => (
-                            <option key={auth.id} value={auth.id}>
-                              {auth.name}
-                            </option>
-                          ))}
-                        </select>
+                        <SearchSelect
+                          options={authorityOptions}
+                          value={authorityOptions.find(opt => opt.value === String(selectedAuthorityId || '')) || null}
+                          onChange={(opt) => setSelectedAuthorityId(opt?.value ? Number(opt.value) : null)}
+                          placeholder="선택하세요"
+                        />
                       </div>
                       <span style={{ color: '#666', fontSize: '13px' }}>
                         ※ 직원이 Partner Office에서 관리자로 접근할 때 사용합니다.

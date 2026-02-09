@@ -36,6 +36,8 @@ interface SearchSelectBaseProps {
   fullWidth?: boolean
   /** 추가 클래스명 */
   className?: string
+  /** 에러 상태 여부 (빨간 테두리 표시) */
+  error?: boolean
 }
 
 interface SingleSelectProps extends SearchSelectBaseProps {
@@ -58,14 +60,18 @@ interface MultiSelectProps extends SearchSelectBaseProps {
 
 type SearchSelectProps = SingleSelectProps | MultiSelectProps
 
-const customStyles: StylesConfig<SelectOption, boolean, GroupBase<SelectOption>> = {
+const getCustomStyles = (hasError: boolean): StylesConfig<SelectOption, boolean, GroupBase<SelectOption>> => ({
   control: (base, state) => ({
     ...base,
     minHeight: '36px',
-    borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
-    boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+    borderColor: hasError ? '#dc3545' : state.isFocused ? '#3b82f6' : '#d1d5db',
+    boxShadow: hasError
+      ? '0 0 0 1px #dc3545'
+      : state.isFocused
+        ? '0 0 0 1px #3b82f6'
+        : 'none',
     '&:hover': {
-      borderColor: state.isFocused ? '#3b82f6' : '#9ca3af',
+      borderColor: hasError ? '#dc3545' : state.isFocused ? '#3b82f6' : '#9ca3af',
     },
   }),
   valueContainer: (base) => ({
@@ -121,7 +127,7 @@ const customStyles: StylesConfig<SelectOption, boolean, GroupBase<SelectOption>>
       color: '#1e40af',
     },
   }),
-}
+})
 
 export default function SearchSelect(props: SearchSelectProps) {
   const {
@@ -136,6 +142,7 @@ export default function SearchSelect(props: SearchSelectProps) {
     required = false,
     fullWidth = false,
     className = '',
+    error = false,
   } = props
 
   const instanceId = useId()
@@ -193,7 +200,7 @@ export default function SearchSelect(props: SearchSelectProps) {
         isSearchable={isSearchable}
         isMulti={props.isMulti}
         noOptionsMessage={() => noOptionsMessage}
-        styles={customStyles}
+        styles={getCustomStyles(error)}
         classNamePrefix="search-select"
       />
     </div>

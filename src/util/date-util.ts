@@ -18,3 +18,10 @@ export const formatDateYmdOrUndefined = (value?: string | Date | null) => {
   const formatted = formatDateYmd(value, '')
   return formatted === '' ? undefined : formatted
 }
+
+// YYYY.MM.DD format for display purposes.
+export const formatDateDot = (value?: string | Date | null, fallback = '-') => {
+  const date = toDate(value)
+  if (!date) return fallback
+  return `${date.getFullYear()}.${padTwo(date.getMonth() + 1)}.${padTwo(date.getDate())}`
+}

@@ -1,10 +1,11 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import api from '@/lib/api'
 import type { ApiResponse } from '@/lib/schemas/api'
-import { storeScheduleKeys } from './query-keys'
+import { storeScheduleKeys } from '@/hooks/queries/query-keys'
 import type {
   ExcelDownloadResult,
+  ExcelValidationResult,
   ScheduleRequest,
   ScheduleResponse,
   ScheduleSummary,
@@ -98,14 +99,17 @@ export const useStoreScheduleUpsert = () => {
     mutationFn: async ({
       storeId,
       payload,
+      replaceMode = false,
     }: {
       storeId: number
       payload: ScheduleRequest[]
+      replaceMode?: boolean
     }) => {
       try {
         const response = await api.post<ApiResponse<ScheduleSummary[]>>(
           `${STORE_SCHEDULE_BASE}/${storeId}`,
-          payload
+          payload,
+          { params: { replaceMode } }
         )
         return response.data.data ?? []
       } catch (error) {
@@ -146,28 +150,75 @@ export const useStoreScheduleDownloadExcel = () => {
 }
 
 /**
- * 점포별 근무 계획표 엑셀 업로드 훅.
- * - 성공 시 목록 캐시 무효화
+ * 점포별 근무 계획표 업로드 샘플 다운로드 훅.
  */
-export const useStoreScheduleUploadExcel = () => {
-  const queryClient = useQueryClient()
-
+export const useStoreScheduleDownloadTemplate = () => {
   return useMutation({
-    mutationFn: async ({ storeId, file }: { storeId: number; file: File }) => {
+    mutationFn: async (): Promise<ExcelDownloadResult> => {
+      try {
+        const response = await api.get(`${STORE_SCHEDULE_BASE}/template`, {
+          responseType: 'blob',
+        })
+        const contentDisposition = response.headers['content-disposition']
+        const fileName =
+          getFileNameFromDisposition(contentDisposition) ?? '근무계획_업로드_샘플.xlsx'
+        return { blob: response.data, fileName }
+      } catch (error) {
+        throw new Error(getErrorMessage(error, '샘플 파일 다운로드에 실패했습니다.'))
+      }
+    },
+  })
+}
+
+/**
+ * ExcelValidationResult 타입 가드
+ */
+const isExcelValidationResult = (data: unknown): data is ExcelValidationResult => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'valid' in data &&
+    'totalRows' in data &&
+    'validRows' in data &&
+    'invalidRows' in data &&
+    'errors' in data
+  )
+}
+
+/**
+ * 점포별 근무 계획표 엑셀 검증 훅.
+ * - 검증만 수행하고 DB에 저장하지 않음
+ * - 검증 성공 시 schedules 데이터를 반환하며, 저장은 useStoreScheduleUpsert로 별도 호출
+ */
+export const useStoreScheduleValidateExcel = () => {
+  return useMutation({
+    mutationFn: async ({ storeId, file }: { storeId: number; file: File }): Promise<ExcelValidationResult> => {
       const formData = new FormData()
       formData.append('excel', file)
       try {
-        const response = await api.post<ApiResponse<ScheduleSummary[]>>(
-          `${STORE_SCHEDULE_BASE}/excel/${storeId}`,
-          formData
+        const response = await api.post<ApiResponse<ExcelValidationResult>>(
+          `${STORE_SCHEDULE_BASE}/excel/${storeId}/validate`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
         )
-        return response.data.data ?? []
+        if (!response.data.data) {
+          throw new Error('검증 결과가 없습니다.')
+        }
+        return response.data.data
       } catch (error) {
-        throw new Error(getErrorMessage(error, '엑셀 업로드에 실패했습니다.'))
+        // 백엔드에서 validation 실패도 HTTP 200으로 내려오지만, 혹시 에러 응답인 경우 처리
+        if (error instanceof AxiosError && error.response?.data?.data) {
+          const errorData = error.response.data.data
+          if (isExcelValidationResult(errorData)) {
+            return errorData
+          }
+        }
+        throw new Error(getErrorMessage(error, '엑셀 검증에 실패했습니다.'))
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeScheduleKeys.lists() })
     },
   })
 }

@@ -15,14 +15,14 @@ export default function Lnb({
   setIsOpen: (isOpen: boolean) => void;
   menuType?: 'header' | 'support';
 }) {
-  const [activeMenu, setActiveMenu] = useState<string | null>(null)
-  const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null)
+  const [activeMenu, setActiveMenu] = useState<number | null>(null)
+  const [activeSubMenu, setActiveSubMenu] = useState<number | null>(null)
 
   // 메뉴 리스트 설정
   const menuList = menuType === 'support' ? SupportMenu : HeaderMenu
 
 
-  const handleMenuToggle = (id: string, isSubMenu: boolean, link: boolean, e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleMenuToggle = (id: number, isSubMenu: boolean, link: boolean, e: React.MouseEvent<HTMLAnchorElement>) => {
     if (link) {
       e.preventDefault()
     }
@@ -69,7 +69,7 @@ export default function Lnb({
                   handleMenuToggle(menu.id, false, menu.link === '#', e)
                 }
               >
-                <Image src={`/assets/images/ui/${menu.icon}`} alt="menu" fill />
+                <Image src={`${menu.icon}`} alt="menu" fill />
                 <span className="lnb-menu-name">{menu.name}</span>
               </Link>
               {menu.children && (

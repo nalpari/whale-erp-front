@@ -6,6 +6,7 @@ import type {
   SaveEmployeeCertificatesRequest,
   UpdateEmployeeInfoRequest,
 } from '@/types/employee'
+import type { ApiResponse } from '@/lib/schemas/api'
 import {
   getEmployee,
   getEmployeeList,
@@ -23,6 +24,7 @@ import {
   saveEmployeeCertificatesWithFiles,
   deleteAllEmployeeCertificates,
   getMinimumWage,
+  getMinimumWageList,
   getEmployeeListByType,
   updateEmployeeLoginInfo,
   withdrawEmployeeMember,
@@ -30,24 +32,64 @@ import {
   type GetEmployeeListByTypeParams,
   type UpdateEmployeeLoginInfoRequest,
 } from '@/lib/api/employee'
+import api from '@/lib/api'
 
 
 /**
  * 직원 목록 조회 파라미터.
  * - 백엔드 검색 조건과 동일한 키를 사용한다.
+ * - officeId/headOfficeOrganizationId, franchiseId/franchiseOrganizationId 둘 다 지원
  */
 export type EmployeeListParams = {
   officeId?: number | null
+  headOfficeOrganizationId?: number | null
   franchiseId?: number | null
+  franchiseOrganizationId?: number | null
   storeId?: number | null
   workStatus?: string
   employeeName?: string
   employeeClassification?: string
   contractClassification?: string
+  adminAuthority?: string
+  memberStatus?: string
   hireDateFrom?: string
   hireDateTo?: string
+  healthCheckExpiryFrom?: string
+  healthCheckExpiryTo?: string
   page?: number
   size?: number
+}
+
+
+/**
+ * 직원 분류 공통코드 항목 타입.
+ */
+export type EmployeeCommonCodeItem = {
+  code: string
+  name: string
+}
+
+/**
+ * 직원 분류 공통코드 조회 훅.
+ * - headOfficeId 필수: 값이 없으면 쿼리를 실행하지 않는다.
+ */
+export const useEmployeeCommonCode = (
+  headOfficeId?: number | null,
+  franchiseId?: number | null,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: employeeKeys.commonCode(headOfficeId, franchiseId),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<EmployeeCommonCodeItem[]>>(
+        '/api/employee/info/common-code',
+        { params: { headOfficeId, franchiseId } }
+      )
+      const data = response.data.data
+      return Array.isArray(data) ? data : []
+    },
+    enabled: enabled && !!headOfficeId,
+  })
 }
 
 /**
@@ -59,16 +101,21 @@ export const useEmployeeInfoList = (params: EmployeeListParams, enabled = true) 
     queryKey: employeeKeys.list(params),
     queryFn: () => {
       // null을 undefined로 변환하여 EmployeeSearchParams와 호환
+      // officeId/headOfficeOrganizationId, franchiseId/franchiseOrganizationId 둘 다 지원
       const searchParams = {
-        headOfficeOrganizationId: params.officeId ?? undefined,
-        franchiseOrganizationId: params.franchiseId ?? undefined,
+        headOfficeOrganizationId: params.officeId ?? params.headOfficeOrganizationId ?? undefined,
+        franchiseOrganizationId: params.franchiseId ?? params.franchiseOrganizationId ?? undefined,
         storeId: params.storeId ?? undefined,
         workStatus: params.workStatus as 'EMPWK_001' | 'EMPWK_002' | 'EMPWK_003' | undefined,
         employeeName: params.employeeName,
         employeeClassification: params.employeeClassification,
         contractClassification: params.contractClassification,
+        adminAuthority: params.adminAuthority,
+        memberStatus: params.memberStatus,
         hireDateFrom: params.hireDateFrom,
         hireDateTo: params.hireDateTo,
+        healthCheckExpiryFrom: params.healthCheckExpiryFrom,
+        healthCheckExpiryTo: params.healthCheckExpiryTo,
         page: params.page,
         size: params.size,
       }
@@ -114,6 +161,16 @@ export const useMinimumWage = (year: number, enabled = true) => {
   return useQuery({
     queryKey: employeeKeys.minimumWage(year),
     queryFn: () => getMinimumWage(year),
+    enabled,
+  })
+}
+
+// 최저시급 목록 조회 (현재년도 + 다음년도)
+export const useMinimumWageList = (enabled = true) => {
+  return useQuery({
+    queryKey: [...employeeKeys.all, 'minimum-wage-list'] as const,
+    queryFn: () => getMinimumWageList(),
+    staleTime: 24 * 60 * 60 * 1000, // 24시간 캐시 (최저시급은 잘 변하지 않음)
     enabled,
   })
 }

@@ -15,6 +15,15 @@ export default function InputStorybookPage() {
   const [clearValue, setClearValue] = useState('삭제 가능한 텍스트')
   const [explainValue, setExplainValue] = useState('주식회사 따름인')
 
+  // 숫자/금액/퍼센트 타입 예제용 상태
+  const [numberValue, setNumberValue] = useState('')
+  const [numberActual, setNumberActual] = useState<number | null>(null)
+  const [currencyValue, setCurrencyValue] = useState('')
+  const [currencyActual, setCurrencyActual] = useState<number | null>(null)
+  const [percentValue, setPercentValue] = useState('')
+  const [percentActual, setPercentActual] = useState<number | null>(null)
+  const [cellphoneValue, setCellphoneValue] = useState('')
+
   return (
     <div className="data-wrap">
       <div className="master-detail-data">
@@ -193,6 +202,125 @@ export default function InputStorybookPage() {
           </div>
         </div>
 
+        {/* 숫자/금액/퍼센트 타입 섹션 */}
+        <div className="slidebox-wrap">
+          <div className="slidebox-header">
+            <h2>숫자/금액/퍼센트 타입</h2>
+          </div>
+          <div className="slidebox-body">
+            <div className="slide-table-wrap">
+              <table className="default-table">
+                <colgroup>
+                  <col width="200px" />
+                  <col />
+                  <col width="200px" />
+                </colgroup>
+                <tbody>
+                  {/* 11. 숫자만 입력 */}
+                  <tr>
+                    <th>숫자만 입력 (number)</th>
+                    <td>
+                      <Input
+                        type="number"
+                        placeholder="숫자만 입력 가능"
+                        value={numberValue}
+                        onChange={(e) => setNumberValue(e.target.value)}
+                        onValueChange={(val) => setNumberActual(val)}
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {numberActual !== null ? numberActual : '(없음)'}
+                    </td>
+                  </tr>
+
+                  {/* 12. 금액 입력 */}
+                  <tr>
+                    <th>금액 (currency)</th>
+                    <td>
+                      <Input
+                        type="currency"
+                        label="단가"
+                        placeholder="금액을 입력하세요"
+                        value={currencyValue}
+                        onChange={(e) => setCurrencyValue(e.target.value)}
+                        onValueChange={(val) => setCurrencyActual(val)}
+                        endAdornment={<span className="explain">원</span>}
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {currencyActual !== null ? currencyActual.toLocaleString() : '(없음)'}
+                    </td>
+                  </tr>
+
+                  {/* 13. 퍼센트 입력 */}
+                  <tr>
+                    <th>퍼센트 (percent)</th>
+                    <td>
+                      <Input
+                        type="percent"
+                        label="할인율"
+                        placeholder="0~100 사이 값"
+                        value={percentValue}
+                        onChange={(e) => setPercentValue(e.target.value)}
+                        onValueChange={(val) => setPercentActual(val)}
+                        endAdornment={<span className="explain">%</span>}
+                        helpText="0보다 크고 100보다 작은 값만 입력 가능합니다."
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {percentActual !== null ? percentActual : '(없음)'}
+                    </td>
+                  </tr>
+
+                  {/* 14. 금액 + Clear 버튼 */}
+                  <tr>
+                    <th>금액 + Clear 버튼</th>
+                    <td>
+                      <Input
+                        type="currency"
+                        label="판매가"
+                        required
+                        placeholder="판매가를 입력하세요"
+                        value={currencyValue}
+                        onChange={(e) => setCurrencyValue(e.target.value)}
+                        onValueChange={(val) => setCurrencyActual(val)}
+                        showClear
+                        onClear={() => {
+                          setCurrencyValue('')
+                          setCurrencyActual(null)
+                        }}
+                        endAdornment={<span className="explain">원</span>}
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {currencyActual !== null ? currencyActual.toLocaleString() : '(없음)'}
+                    </td>
+                  </tr>
+
+                  {/* 15. 휴대폰 번호 입력 */}
+                  <tr>
+                    <th>휴대폰 번호 (cellphone)</th>
+                    <td>
+                      <Input
+                        type="cellphone"
+                        label="연락처"
+                        placeholder="010-0000-0000"
+                        value={cellphoneValue}
+                        onChange={(e) => setCellphoneValue(e.target.value)}
+                        showClear
+                        onClear={() => setCellphoneValue('')}
+                      />
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      실제 값: {cellphoneValue || '(없음)'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         {/* Props 설명 테이블 */}
         <div className="slidebox-wrap">
           <div className="slidebox-header">
@@ -275,6 +403,63 @@ export default function InputStorybookPage() {
                     <td>boolean</td>
                     <td>false</td>
                     <td>전체 너비 사용 여부</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">type</code></td>
+                    <td>&apos;text&apos; | &apos;number&apos; | &apos;currency&apos; | &apos;percent&apos; | &apos;cellphone&apos;</td>
+                    <td>&apos;text&apos;</td>
+                    <td>입력 타입 (text: 일반, number: 숫자만, currency: 금액, percent: 퍼센트, cellphone: 휴대폰)</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">onValueChange</code></td>
+                    <td>(value: number | null) =&gt; void</td>
+                    <td>-</td>
+                    <td>숫자 타입에서 실제 숫자 값 변경 핸들러</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* 타입별 설명 */}
+        <div className="slidebox-wrap">
+          <div className="slidebox-header">
+            <h2>타입별 특징</h2>
+          </div>
+          <div className="slidebox-body">
+            <div className="slide-table-wrap">
+              <table className="default-table">
+                <colgroup>
+                  <col width="120px" />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>타입</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">text</code></td>
+                    <td>일반 텍스트 입력 (기본값)</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">number</code></td>
+                    <td>숫자만 입력 가능 (정수). 음수 허용.</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">currency</code></td>
+                    <td>금액 입력. 입력 시 3자리마다 콤마 표시. 실제 값은 숫자.</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">percent</code></td>
+                    <td>퍼센트 입력. 숫자와 소수점만 허용. 0 &lt; 값 &lt; 100 범위 제한.</td>
+                  </tr>
+                  <tr>
+                    <td><code className="bg-gray-100 px-1 rounded">cellphone</code></td>
+                    <td>휴대폰 번호 입력. 숫자만 허용 (최대 11자리). 010-1234-1234 패턴으로 자동 포맷팅.</td>
                   </tr>
                 </tbody>
               </table>

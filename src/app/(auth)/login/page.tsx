@@ -20,6 +20,7 @@ export default function LoginPage() {
   const setTokens = useAuthStore((state) => state.setTokens);
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
+  const setUserInfo = useAuthStore((state) => state.setUserInfo);
 
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -72,7 +73,7 @@ export default function LoginPage() {
       const response = await api.post("/api/auth/login", validation.data);
       console.log("Login success:", response.data);
 
-      const { accessToken, refreshToken, authority, companies } = response.data.data;
+      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone } = response.data.data;
 
       console.log("authority:", authority);
       console.log("companies:", companies);
@@ -95,6 +96,7 @@ export default function LoginPage() {
         setAffiliationId(String(authority.authority_id));
 
         setTokens(accessToken, refreshToken);
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
 
         // 아이디 저장 처리
         if (rememberMe) {
@@ -113,6 +115,7 @@ export default function LoginPage() {
           name: c.company_name || c.brand_name || `회사 ${c.authority_id}`,
         })));
         setPendingTokens({ accessToken, refreshToken });
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
         setShowAuthorityModal(true);
       } else {
         // authority와 companies 모두 없는 경우

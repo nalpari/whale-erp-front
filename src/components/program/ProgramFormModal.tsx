@@ -155,7 +155,7 @@ export default function ProgramFormModal({
                           />
                         )}
                       </div>
-                      {fieldErrors.menu_kind && <div className="form-helper error">{fieldErrors.menu_kind}</div>}
+                      {fieldErrors.menu_kind && <div className="warning-txt">{fieldErrors.menu_kind}</div>}
                     </td>
                   </tr>
                   {level1Name && (
@@ -209,7 +209,7 @@ export default function ProgramFormModal({
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         />
                       </div>
-                      {fieldErrors.name && <div className="form-helper error">{fieldErrors.name}</div>}
+                      {fieldErrors.name && <div className="warning-txt">{fieldErrors.name}</div>}
                     </td>
                   </tr>
                   <tr>

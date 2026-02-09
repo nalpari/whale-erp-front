@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
-import DatePicker from '../../ui/common/DatePicker'
-import { Input } from '@/components/common/ui'
+import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
+import { Input, useAlert } from '@/components/common/ui'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
   useEmployeeCareers,
   useSaveEmployeeCareers,
@@ -56,6 +57,7 @@ const contractClassificationOptions: ClassificationItem[] = [
 
 export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditProps) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
   const [sectionOpen, setSectionOpen] = useState(true)
   const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
@@ -119,7 +121,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
 
   // 전체 삭제
   const handleDeleteAll = async () => {
-    if (!confirm('모든 경력 정보를 삭제하시겠습니까?')) {
+    if (!(await confirm('모든 경력 정보를 삭제하시겠습니까?'))) {
       return
     }
 
@@ -127,10 +129,10 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
       await deleteAllCareersMutation.mutateAsync(employeeId)
       setLocalCareers([createEmptyCareer()])
       setDataVersion(null)
-      alert('모든 경력 정보가 삭제되었습니다.')
+      await alert('모든 경력 정보가 삭제되었습니다.')
     } catch (error) {
       console.error('삭제 실패:', error)
-      alert('삭제 중 오류가 발생했습니다.')
+      await alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -186,17 +188,35 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         employeeInfoId: employeeId,
         data: { careers: careersToSave }
       })
-      alert('저장되었습니다.')
+      await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
     } catch (error) {
       console.error('저장 실패:', error)
-      alert('저장 중 오류가 발생했습니다.')
+      await alert('저장 중 오류가 발생했습니다.')
     }
   }
 
   const handleCancel = () => {
     router.push(`/employee/info/${employeeId}`)
   }
+
+  // 근무처 유형 SelectOption 변환
+  const workplaceTypeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '근무처 유형' },
+    ...workplaceTypeOptions.map(opt => ({
+      value: opt.code,
+      label: opt.name
+    }))
+  ], [])
+
+  // 계약 분류 SelectOption 변환
+  const contractClassSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '선택' },
+    ...contractClassificationOptions.map(opt => ({
+      value: opt.code,
+      label: opt.name
+    }))
+  ], [])
 
   return (
     <div className="master-detail-data">
@@ -251,16 +271,13 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             containerClassName="mx-400"
                           />
                           <div className="mx-200">
-                            <select
-                              className="select-form"
-                              value={career.workplaceType ?? ''}
-                              onChange={(e) => handleCareerChange(index, 'workplaceType', e.target.value || null)}
-                            >
-                              <option value="">근무처 유형</option>
-                              {workplaceTypeOptions.map((opt) => (
-                                <option key={opt.code} value={opt.code}>{opt.name}</option>
-                              ))}
-                            </select>
+                            <SearchSelect
+                              options={workplaceTypeSelectOptions}
+                              value={workplaceTypeSelectOptions.find(opt => opt.value === (career.workplaceType ?? '')) || null}
+                              onChange={(opt) => handleCareerChange(index, 'workplaceType', opt?.value || null)}
+                              placeholder="근무처 유형"
+                              error={!!errors.workplaceType}
+                            />
                           </div>
                           <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
                             <button
@@ -312,22 +329,17 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                         근무기간 <span className="red">*</span>
                       </th>
                       <td>
-                        <div className="filed-flx">
-                          <div className={`date-picker-wrap${errors.startDate ? ' has-error' : ''}`}>
-                            <DatePicker
-                              value={career.startDate ? new Date(career.startDate) : null}
-                              onChange={(date) => handleCareerChange(index, 'startDate', date ? date.toISOString().split('T')[0] : null)}
-                              placeholder="시작일"
-                            />
-                          </div>
-                          <span style={{ margin: '0 8px' }}>~</span>
-                          <div className="date-picker-wrap">
-                            <DatePicker
-                              value={career.endDate ? new Date(career.endDate) : null}
-                              onChange={(date) => handleCareerChange(index, 'endDate', date ? date.toISOString().split('T')[0] : null)}
-                              placeholder="종료일"
-                            />
-                          </div>
+                        <div className={errors.startDate ? 'has-error' : ''}>
+                          <RangeDatePicker
+                            startDate={career.startDate ? new Date(career.startDate) : null}
+                            endDate={career.endDate ? new Date(career.endDate) : null}
+                            onChange={(range: DateRange) => {
+                              handleCareerChange(index, 'startDate', range.startDate ? range.startDate.toISOString().split('T')[0] : null)
+                              handleCareerChange(index, 'endDate', range.endDate ? range.endDate.toISOString().split('T')[0] : null)
+                            }}
+                            startDatePlaceholder="시작일"
+                            endDatePlaceholder="종료일"
+                          />
                         </div>
                         {errors.startDate && (
                           <div className="warning-txt mt5" role="alert">* {errors.startDate}</div>
@@ -342,17 +354,13 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                       </th>
                       <td>
                         <div className="mx-300">
-                          <select
-                            className={`select-form${errors.contractClassification ? ' border-red-500' : ''}`}
-                            value={career.contractClassification ?? ''}
-                            onChange={(e) => handleCareerChange(index, 'contractClassification', e.target.value || null)}
-                            style={errors.contractClassification ? { borderColor: '#dc3545' } : undefined}
-                          >
-                            <option value="">선택</option>
-                            {contractClassificationOptions.map((opt) => (
-                              <option key={opt.code} value={opt.code}>{opt.name}</option>
-                            ))}
-                          </select>
+                          <SearchSelect
+                            options={contractClassSelectOptions}
+                            value={contractClassSelectOptions.find(opt => opt.value === (career.contractClassification ?? '')) || null}
+                            onChange={(opt) => handleCareerChange(index, 'contractClassification', opt?.value || null)}
+                            placeholder="선택"
+                            error={!!errors.contractClassification}
+                          />
                         </div>
                         {errors.contractClassification && (
                           <div className="warning-txt mt5" role="alert">* {errors.contractClassification}</div>

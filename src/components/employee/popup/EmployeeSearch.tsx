@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
+import { useAlert } from '@/components/common/ui'
 import { useEmployeeInfoList } from '@/hooks/queries'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
@@ -43,6 +44,7 @@ const getContractTypeLabel = (code?: string | null) => {
 }
 
 export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps) {
+  const { alert } = useAlert()
   const [form, setForm] = useState<SearchForm>({
     officeId: null,
     franchiseId: null,
@@ -71,21 +73,24 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
   const { data: employeePage, isPending, error } = useEmployeeInfoList(queryParams, true)
 
   // 행 데이터 변환 (React Compiler 자동 메모이제이션)
-  const rowData: EmployeeRow[] = (employeePage?.content ?? []).map((employee, index) => {
-    const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
-    const workerId = employee.memberId ?? employee.employeeInfoId ?? null
-    return {
-      id,
-      workerId,
-      status: employee.workStatusName ?? employee.workStatus ?? '',
-      office: employee.headOfficeName ?? '',
-      franchise: employee.franchiseName ?? '',
-      store: employee.storeName ?? '',
-      name: employee.employeeName,
-      contractType: getContractTypeLabel(employee.contractClassification),
-      isSelected: selectedId === id,
-    }
-  })
+  // memberId가 있는 직원만 선택 가능하도록 필터링 - 가입 요청 상태이고 가입되지 않은 직원들은 보이지 않음
+  const rowData: EmployeeRow[] = (employeePage?.content ?? [])
+    .filter((employee) => employee.memberId != null)
+    .map((employee, index) => {
+      const id = `${employee.employeeInfoId ?? ''}-${employee.memberId ?? ''}-${employee.rowNumber ?? index}`
+      const workerId = employee.memberId ?? null
+      return {
+        id,
+        workerId,
+        status: employee.workStatusName ?? employee.workStatus ?? '',
+        office: employee.headOfficeName ?? '',
+        franchise: employee.franchiseName ?? '',
+        store: employee.storeName ?? '',
+        name: employee.employeeName,
+        contractType: getContractTypeLabel(employee.contractClassification),
+        isSelected: selectedId === id,
+      }
+    })
 
   // 필터링된 행 (React Compiler 자동 메모이제이션)
   const filteredRows = rowData.filter((row) => {
@@ -224,7 +229,7 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
               </div>
             </div>
 
-            <div className="searh-result-wrap" style={{ marginTop: 12 }}>
+            <div className="search-result-wrap" style={{ marginTop: 12 }}>
               <div className="search-result">
                 {isPending
                   ? '검색결과 조회 중'
@@ -265,14 +270,14 @@ export default function EmployeeSearch({ onClose, onApply }: EmployeeSearchProps
               <button className="btn-form gray" onClick={onClose}>닫기</button>
               <button
                 className="btn-form basic"
-                onClick={() => {
+                onClick={async () => {
                   const selected = rowData.find((row) => row.id === selectedId)
                   if (!selected) {
-                    alert('직원을 선택해주세요.')
+                    await alert('직원을 선택해주세요.')
                     return
                   }
                   if (!selected.workerId) {
-                    alert('직원 정보가 올바르지 않습니다.')
+                    await alert('직원 정보가 올바르지 않습니다.')
                     return
                   }
                   onApply({
