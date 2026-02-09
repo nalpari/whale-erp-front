@@ -22,6 +22,10 @@ interface WorkHoursTimePickerProps {
 
 type Period = '오전' | '오후'
 
+const EMPTY_MODULES: [] = []
+const NAV_MODULES = [Navigation]
+
+/** HH:mm 형식의 시간 문자열을 파싱한다. HH:mm:ss 형식이 전달되어도 초(seconds)는 무시한다. */
 const parseTime = (timeStr?: string | null): { period: Period; hour: string; minute: string } => {
   if (!timeStr) return { period: '오전', hour: '09', minute: '00' }
 
@@ -91,15 +95,17 @@ function TimeSwiperColumn({
         <div className="work-hours-tab">
           <button
             className={`work-time-tab ${period === '오전' ? 'act' : ''}`}
-            onClick={() => !isInteractionBlocked && onPeriodChange('오전')}
+            onClick={() => onPeriodChange('오전')}
             type="button"
+            disabled={isInteractionBlocked}
           >
             오전
           </button>
           <button
             className={`work-time-tab ${period === '오후' ? 'act' : ''}`}
-            onClick={() => !isInteractionBlocked && onPeriodChange('오후')}
+            onClick={() => onPeriodChange('오후')}
             type="button"
+            disabled={isInteractionBlocked}
           >
             오후
           </button>
@@ -114,7 +120,7 @@ function TimeSwiperColumn({
               navigation={!readOnly}
               loop={!readOnly}
               centeredSlides
-              modules={readOnly ? [] : [Navigation]}
+              modules={readOnly ? EMPTY_MODULES : NAV_MODULES}
               allowTouchMove={!readOnly}
               className="mySwiper"
               initialSlide={hourToSlideIndex(hour)}
@@ -135,7 +141,7 @@ function TimeSwiperColumn({
               slidesPerView={3}
               direction="vertical"
               navigation={!readOnly}
-              modules={readOnly ? [] : [Navigation]}
+              modules={readOnly ? EMPTY_MODULES : NAV_MODULES}
               loop={false}
               centeredSlides
               allowTouchMove={!readOnly}
@@ -232,13 +238,9 @@ export default function WorkHoursTimePicker({
       <thead>
         <tr>
           <th colSpan={2}>
-            {readOnly ? (
-              <div className="toggle-wrap">
-                <span className="toggle-txt">{toggleLabel[0]}</span>
-              </div>
-            ) : (
-              <div className="toggle-wrap">
-                <span className="toggle-txt">{toggleLabel[0]}</span>
+            <div className="toggle-wrap">
+              <span className="toggle-txt">{toggleLabel[0]}</span>
+              {!readOnly && (
                 <div className="toggle-btn">
                   <input
                     type="checkbox"
@@ -257,17 +259,13 @@ export default function WorkHoursTimePicker({
                   />
                   <label className="slider" htmlFor={`toggle-work-${idPrefix}`} />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </th>
           <th colSpan={2}>
-            {readOnly ? (
-              <div className="toggle-wrap">
-                <span className="toggle-txt">{toggleLabel[1]}</span>
-              </div>
-            ) : (
-              <div className="toggle-wrap">
-                <span className="toggle-txt">{toggleLabel[1]}</span>
+            <div className="toggle-wrap">
+              <span className="toggle-txt">{toggleLabel[1]}</span>
+              {!readOnly && (
                 <div className="toggle-btn">
                   <input
                     type="checkbox"
@@ -281,8 +279,8 @@ export default function WorkHoursTimePicker({
                   />
                   <label className="slider" htmlFor={`toggle-break-${idPrefix}`} />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </th>
         </tr>
       </thead>

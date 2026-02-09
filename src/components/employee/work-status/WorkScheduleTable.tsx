@@ -1,8 +1,7 @@
 ﻿'use client';
 
 import { useMemo } from 'react';
-import type { WorkerResponse } from '@/types/work-schedule';
-import type { ScheduleResponse } from '@/types/work-schedule';
+import type { WorkerResponse, ScheduleResponse } from '@/types/work-schedule';
 import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker';
 
 type WorkScheduleTableProps = {
@@ -114,7 +113,7 @@ export default function WorkScheduleTable({
                           const badgeColor = CONTRACT_COLOR_MAP[worker.contractType] ?? 'blue';
                           return (
                             <div
-                              key={`${schedule.date}-${worker.workerName}-${worker.shiftId ?? 'temp'}`}
+                              key={`${schedule.date}-${worker.workerName}-${worker.shiftId ?? idx}`}
                               className="store-work-data-wrap"
                             >
                               <div className="flx-bx" style={{ marginBottom: 10 }}>
