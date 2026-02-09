@@ -532,10 +532,10 @@ export default function WorkSchedulePlan() {
                 }
               }
             }
-            if (next.openTime) updated.startIndex = parseTimeToIndex(next.openTime) ?? updated.startIndex;
-            if (next.closeTime) updated.endIndex = parseTimeToIndex(next.closeTime) ?? updated.endIndex;
-            if (next.breakStartTime) updated.breakStartIndex = parseTimeToIndex(next.breakStartTime) ?? updated.breakStartIndex;
-            if (next.breakEndTime) updated.breakEndIndex = parseTimeToIndex(next.breakEndTime) ?? updated.breakEndIndex;
+            if (next.openTime !== undefined) updated.startIndex = parseTimeToIndex(next.openTime) ?? updated.startIndex;
+            if (next.closeTime !== undefined) updated.endIndex = parseTimeToIndex(next.closeTime) ?? updated.endIndex;
+            if (next.breakStartTime !== undefined) updated.breakStartIndex = parseTimeToIndex(next.breakStartTime) ?? updated.breakStartIndex;
+            if (next.breakEndTime !== undefined) updated.breakEndIndex = parseTimeToIndex(next.breakEndTime) ?? updated.breakEndIndex;
             dirtyWorkersRef.current.add(`${day.date}|${worker.id}`);
             return updated;
           }),

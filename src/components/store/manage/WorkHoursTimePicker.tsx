@@ -217,9 +217,11 @@ export default function WorkHoursTimePicker({
                   id={`toggle-work-${idPrefix}`}
                   checked={workEnabled}
                   onChange={(e) => {
-                    setWorkEnabled(e.target.checked)
-                    onChange?.({ isOperating: e.target.checked })
-                    if (!e.target.checked) {
+                    const checked = e.target.checked
+                    setWorkEnabled(checked)
+                    if (checked) {
+                      onChange?.({ isOperating: true })
+                    } else {
                       setBreakEnabled(false)
                       onChange?.({ isOperating: false, breakTimeEnabled: false })
                     }
