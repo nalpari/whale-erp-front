@@ -8,7 +8,6 @@ interface AuthStore extends AuthState {
   setAccessToken: (token: string | null) => void;
   setAuthority: (authority: Record<string, unknown>) => void;
   setAffiliationId: (id: string | null) => void;
-  setMemberName: (name: string | null) => void;
   setSubscriptionPlan: (plan: number) => void;
   clearAuth: () => void;
 }
@@ -20,14 +19,12 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: null,
       authority: null,
       affiliationId: null,
-      memberName: null,
       subscriptionPlan: 0,
       setTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken }),
       setAccessToken: (token) => set({ accessToken: token }),
       setAuthority: (authority) => set({ authority }),
       setAffiliationId: (id) => set({ affiliationId: id }),
-      setMemberName: (memberName) => set({ memberName }),
       setSubscriptionPlan: (plan) => set({ subscriptionPlan: plan }),
       clearAuth: () =>
         set({
@@ -35,7 +32,6 @@ export const useAuthStore = create<AuthStore>()(
           refreshToken: null,
           authority: null,
           affiliationId: null,
-          memberName: null,
           subscriptionPlan: 0,
         }),
     }),

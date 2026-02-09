@@ -1,8 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/stores/auth-store'
+import { useState } from 'react'
 import { useCreateInquiry } from '@/hooks/queries'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import { getErrorMessage } from '@/lib/api'
@@ -81,8 +80,6 @@ function validateForm(form: ContactFormState): ContactFormErrors {
 }
 
 export default function Contact() {
-  const memberName = useAuthStore((s) => s.memberName)
-
   const [form, setForm] = useState<ContactFormState>(createInitialForm)
   const [errors, setErrors] = useState<ContactFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -90,11 +87,6 @@ export default function Contact() {
 
   const { data: inquiryTypes = [], isPending: isTypesLoading } = useCommonCodeHierarchy('INQTYP')
   const { mutateAsync, isPending: isSubmitting } = useCreateInquiry()
-
-  // 로그인 사용자 이름 연동 (store memberName → 폼 이름 필드)
-  useEffect(() => {
-    if (memberName) setForm((prev) => ({ ...prev, name: memberName }))
-  }, [memberName])
 
   const handleChange = (field: keyof ContactFormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -108,10 +100,7 @@ export default function Contact() {
   }
 
   const resetForm = () => {
-    setForm(() => ({
-      ...createInitialForm(),
-      name: memberName ?? '',
-    }))
+    setForm(createInitialForm)
     setErrors({})
     setSubmitError(null)
   }
@@ -145,18 +134,14 @@ export default function Contact() {
           {/* 이름 / 휴대전화 / 이메일 — 한 줄 */}
           <div className="contact-filed contact-filed-flx">
             <div className="filed-item">
-              <div className="filed-tit">
-                이름 {!memberName && <span className="required">*</span>}
-              </div>
+              <div className="filed-tit">이름</div>
               <input
                 type="text"
                 className={`input-frame ${errors.name ? 'err' : ''}`}
-                placeholder={memberName ? undefined : '이름을 입력해 주세요.'}
                 value={form.name}
-                disabled={!!memberName}
-                readOnly={!!memberName}
-                onChange={memberName ? undefined : (e) => handleChange('name', e.target.value)}
-                aria-label={memberName ? '이름 (로그인 정보)' : '이름'}
+                disabled
+                readOnly
+                aria-label="이름 (로그인 정보)"
               />
               {errors.name && <div className="filed-error">※ {errors.name}</div>}
             </div>

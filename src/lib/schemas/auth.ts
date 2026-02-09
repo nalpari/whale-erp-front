@@ -57,7 +57,6 @@ export const authStateSchema = z.object({
   refreshToken: z.string().nullable(),
   authority: z.record(z.string(), z.unknown()).nullable(),
   affiliationId: z.string().nullable(),
-  memberName: z.string().nullable(),
 });
 
 /**
