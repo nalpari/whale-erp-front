@@ -84,12 +84,12 @@ export type ExcelRowError = {
   message: string;
 };
 
-// 엑셀 업로드 결과
-export type ExcelUploadResult = {
-  success: boolean;
+// 엑셀 검증 결과 (검증만 수행, 저장하지 않음)
+export type ExcelValidationResult = {
+  valid: boolean;
   totalRows: number;
-  successRows: number;
-  failedRows: number;
+  validRows: number;
+  invalidRows: number;
+  schedules: ScheduleRequest[] | null;
   errors: ExcelRowError[];
-  savedSchedules: ScheduleSummary[];
 };

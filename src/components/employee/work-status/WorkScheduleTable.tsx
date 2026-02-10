@@ -1,22 +1,17 @@
 ﻿'use client';
 
-import '@/components/employee/custom-css/WorkScheduleTable.css';
 import { useMemo } from 'react';
-import type { ScheduleResponse, WorkerResponse } from '@/types/work-schedule';
+import type { WorkerResponse, ScheduleResponse } from '@/types/work-schedule';
+import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker';
 
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
   isLoading: boolean;
+  isDownloading?: boolean;
   onDownloadExcel: () => void;
   onOpenUploadExcel: () => void;
   onPlan: () => void;
   onSelectDate: (date: string, storeId?: number | null) => void;
-};
-
-type TimeBlock = {
-  hour: number;
-  minute: 0 | 30;
-  startMinute: number;
 };
 
 const CONTRACT_COLOR_MAP: Record<string, 'blue' | 'green'> = {
@@ -42,68 +37,9 @@ const parseTimeToMinutes = (value?: string | null) => {
   return hour * 60 + minute;
 };
 
-const formatTimeRange = (start?: string | null, end?: string | null) => {
-  if (!start || !end) return '-';
-  return `${start.slice(0, 5)}-${end.slice(0, 5)}`;
-};
-
 const formatDateLabel = (date: string, day?: string) => {
   const normalized = date.replace(/-/g, '.');
   return day ? `${normalized} (${day})` : normalized;
-};
-
-const calculateTotalHours = (worker: WorkerResponse) => {
-  if (!worker.hasWork) return '-';
-  const start = parseTimeToMinutes(worker.workStartTime);
-  const end = parseTimeToMinutes(worker.workEndTime);
-  if (start == null || end == null || end <= start) return '-';
-  let minutes = end - start;
-  if (worker.hasBreak) {
-    const breakStart = parseTimeToMinutes(worker.breakStartTime);
-    const breakEnd = parseTimeToMinutes(worker.breakEndTime);
-    if (breakStart != null && breakEnd != null && breakEnd > breakStart) {
-      minutes -= Math.min(minutes, breakEnd - breakStart);
-    }
-  }
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
-};
-
-const buildTimeAxis = () => {
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const timeBlocks: TimeBlock[] = hours.flatMap((hour) => [
-    { hour, minute: 0, startMinute: hour * 60 },
-    { hour, minute: 30, startMinute: hour * 60 + 30 },
-  ]);
-
-  return { hours, timeBlocks };
-};
-
-const buildBlockStates = (worker: WorkerResponse, blocks: TimeBlock[]) => {
-  const start = parseTimeToMinutes(worker.workStartTime);
-  const end = parseTimeToMinutes(worker.workEndTime);
-  const breakStart = parseTimeToMinutes(worker.breakStartTime);
-  const breakEnd = parseTimeToMinutes(worker.breakEndTime);
-
-  return blocks.map((block) => {
-    const blockEnd = block.startMinute + 30;
-    const isWorking =
-      worker.hasWork &&
-      start != null &&
-      end != null &&
-      block.startMinute < end &&
-      blockEnd > start;
-    if (!isWorking) {
-      return { state: 'empty' as const };
-    }
-    const isBreak =
-      worker.hasBreak &&
-      breakStart != null &&
-      breakEnd != null &&
-      block.startMinute < breakEnd &&
-      blockEnd > breakStart;
-    return { state: isBreak ? ('break' as const) : ('work' as const) };
-  });
 };
 
 const sortWorkersByRule = (workers: WorkerResponse[]) =>
@@ -120,12 +56,12 @@ const sortWorkersByRule = (workers: WorkerResponse[]) =>
 export default function WorkScheduleTable({
   schedules,
   isLoading,
+  isDownloading,
   onDownloadExcel,
   onOpenUploadExcel,
   onPlan,
   onSelectDate,
 }: WorkScheduleTableProps) {
-  const { hours, timeBlocks } = useMemo(() => buildTimeAxis(), []);
   const sortedSchedules = useMemo(
     () => [...schedules].sort((a, b) => a.date.localeCompare(b.date)),
     [schedules]
@@ -136,7 +72,7 @@ export default function WorkScheduleTable({
       <div className="contents-body">
         <div className="content-wrap">
           <div className="store-work-btn">
-            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading}>
+            <button className="btn-form outline s" onClick={onDownloadExcel} disabled={isLoading || isDownloading}>
               엑셀 파일 다운로드
             </button>
             <button className="btn-form outline s" onClick={onOpenUploadExcel} disabled={isLoading}>
@@ -173,45 +109,34 @@ export default function WorkScheduleTable({
                           <div className="empty-data">근무자가 없습니다.</div>
                         </div>
                       ) : (
-                        sortedWorkers.map((worker) => {
+                        sortedWorkers.map((worker, idx) => {
                           const badgeColor = CONTRACT_COLOR_MAP[worker.contractType] ?? 'blue';
-                          const blockStates = buildBlockStates(worker, timeBlocks);
                           return (
                             <div
-                              key={`${schedule.date}-${worker.workerName}-${worker.shiftId ?? 'temp'}`}
+                              key={`${schedule.date}-${worker.workerName}-${worker.shiftId ?? idx}`}
                               className="store-work-data-wrap"
                             >
-                              <div className="flx-bx">
+                              <div className="flx-bx" style={{ marginBottom: 10 }}>
                                 <div className="work-info">
                                   <div className={`work-badge ${badgeColor}`}>{worker.contractType}</div>
                                   <div className="staff-name">{worker.workerName}</div>
-                                  <div className="store-work-time">
-                                    {formatTimeRange(worker.workStartTime, worker.workEndTime)}
-                                  </div>
-                                </div>
-                                <div className="auto-right">
-                                  <div className="total-hours">{calculateTotalHours(worker)}</div>
                                 </div>
                               </div>
-                              <div className="staff-work-table">
-                                <div className={`time-blocks ${badgeColor}`}>
-                                  {blockStates.map((block, index) => {
-                                    const className = `time-block${block.state === 'break' ? ' gray' : ''}`;
-                                    const style =
-                                      block.state === 'empty'
-                                        ? { backgroundColor: 'transparent' }
-                                        : undefined;
-                                    return <div key={index} className={className} style={style} />;
-                                  })}
-                                </div>
-                                <div className="time-header">
-                                  {hours.map((hour) => (
-                                    <div key={hour} className="time-label">
-                                      {String(hour).padStart(2, '0')}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                              {worker.hasWork ? (
+                                <WorkHoursTimePicker
+                                  idPrefix={`view-${schedule.date}-${worker.shiftId ?? idx}`}
+                                  toggleLabel={['근무', '휴게']}
+                                  openTime={worker.workStartTime ?? null}
+                                  closeTime={worker.workEndTime ?? null}
+                                  breakStartTime={worker.breakStartTime ?? null}
+                                  breakEndTime={worker.breakEndTime ?? null}
+                                  isOperating={worker.hasWork}
+                                  breakTimeEnabled={worker.hasBreak}
+                                  readOnly
+                                />
+                              ) : (
+                                <div style={{ padding: '8px 16px', color: '#999' }}>근무 없음</div>
+                              )}
                             </div>
                           );
                         })

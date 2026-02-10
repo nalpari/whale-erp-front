@@ -12,12 +12,13 @@ import {
   useStoreScheduleDownloadExcel,
   useStoreScheduleDownloadTemplate,
   useStoreScheduleList,
-  useStoreScheduleUploadExcel,
+  useStoreScheduleValidateExcel,
+  useStoreScheduleUpsert,
 } from '@/hooks/queries';
 import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
-import type { ExcelUploadResult, StoreScheduleQuery } from '@/types/work-schedule';
+import type { ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
@@ -32,14 +33,14 @@ export default function StoreSchedulePageClient() {
   const setUploadOpen = useStoreScheduleViewStore((state) => state.setUploadOpen);
   const resetFilters = useStoreScheduleViewStore((state) => state.resetFilters);
   const [showStoreError, setShowStoreError] = useState(false);
-  const [uploadResult, setUploadResult] = useState<ExcelUploadResult | null>(null);
+  const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
   const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
-  const uploadMutation = useStoreScheduleUploadExcel();
+  const validateMutation = useStoreScheduleValidateExcel();
+  const upsertMutation = useStoreScheduleUpsert();
   const downloadMutation = useStoreScheduleDownloadExcel();
   const templateMutation = useStoreScheduleDownloadTemplate();
   const schedules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
-  const isLoading =
-    scheduleQuery.isFetching || uploadMutation.isPending || downloadMutation.isPending || templateMutation.isPending;
+  const isLoading = scheduleQuery.isFetching;
 
   const resultCount = useMemo(
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),
@@ -120,29 +121,45 @@ export default function StoreSchedulePageClient() {
       setShowStoreError(true);
       return;
     }
-    setUploadResult(null); // 팝업 열 때 이전 결과 초기화
+    setValidationResult(null);
     setUploadOpen(true);
   }
 
-  const handleUploadExcel = async (file: File) => {
+  // 1단계: 엑셀 검증
+  const handleValidateExcel = async (file: File) => {
     try {
-      const result = await uploadMutation.mutateAsync({ storeId: lastQuery?.storeId ?? 0, file });
-      setUploadResult(result);
-
-      if (result.success) {
-        // 성공 시 데이터 새로고침
-        await queryClient.invalidateQueries({ queryKey: storeScheduleKeys.list(lastQuery!) });
-      }
+      const result = await validateMutation.mutateAsync({ storeId: lastQuery?.storeId ?? 0, file });
+      setValidationResult(result);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '엑셀 업로드에 실패했습니다.';
-      setUploadResult({
-        success: false,
+      const message = error instanceof Error ? error.message : '엑셀 검증에 실패했습니다.';
+      setValidationResult({
+        valid: false,
         totalRows: 0,
-        successRows: 0,
-        failedRows: 0,
+        validRows: 0,
+        invalidRows: 0,
+        schedules: null,
         errors: [{ rowNumber: 0, message }],
-        savedSchedules: [],
       });
+    }
+  };
+
+  // 2단계: 검증 성공 데이터 저장
+  const handleSaveValidated = async () => {
+    if (!validationResult?.schedules || !lastQuery?.storeId) return;
+
+    try {
+      await upsertMutation.mutateAsync({
+        storeId: lastQuery.storeId,
+        payload: validationResult.schedules,
+        replaceMode: true,
+      });
+      await alert('저장되었습니다.');
+      setUploadOpen(false);
+      setValidationResult(null);
+      await queryClient.invalidateQueries({ queryKey: storeScheduleKeys.list(lastQuery) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '저장에 실패했습니다.';
+      await alert(message);
     }
   };
 
@@ -179,21 +196,23 @@ export default function StoreSchedulePageClient() {
       <WorkScheduleTable
         schedules={schedules}
         isLoading={isLoading}
+        isDownloading={downloadMutation.isPending || templateMutation.isPending}
         onDownloadExcel={handleDownloadExcel}
-        // onOpenUploadExcel={() => setUploadOpen(true)}
         onOpenUploadExcel={handleOpenUploadExcel}
         onPlan={handlePlan}
         onSelectDate={handleSelectDate}
       />
       {isUploadOpen && (
         <UploadExcel
-          isUploading={isLoading}
-          result={uploadResult}
+          isUploading={validateMutation.isPending}
+          isSaving={upsertMutation.isPending}
+          result={validationResult}
           onClose={() => {
             setUploadOpen(false);
-            setUploadResult(null);
+            setValidationResult(null);
           }}
-          onUpload={handleUploadExcel}
+          onUpload={handleValidateExcel}
+          onSave={handleSaveValidated}
           onDownloadSample={handleDownloadSample}
         />
       )}
