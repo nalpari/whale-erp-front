@@ -1,5 +1,4 @@
 import api from '../api'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID, DEFAULT_STORE_ID } from '../constants/organization'
 
 // 연장근무 수당 상세 항목 타입
 export interface OvertimeAllowanceItemDto {
@@ -53,6 +52,9 @@ export interface OvertimeAllowanceStatementDetailResponse {
   paymentDate?: string
   remarks?: string
   details: OvertimeAllowanceItemDto[]
+  headOfficeName?: string
+  franchiseName?: string
+  storeName?: string
   isEmailSend?: boolean
   createdAt?: string
   updatedAt?: string
@@ -93,15 +95,9 @@ export interface GetOvertimeAllowanceStatementParams {
 
 // 연장근무 수당명세서 목록 조회
 export async function getOvertimeAllowanceStatements(params?: GetOvertimeAllowanceStatementParams): Promise<OvertimeAllowanceStatementListResponse> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<{ data: OvertimeAllowanceStatementListResponse }>(
     '/api/employee/payroll/overtime',
-    { params: defaultParams }
+    { params }
   )
 
   if (!response.data?.data) {
@@ -188,15 +184,9 @@ export interface DailyOvertimeHoursSummaryResponse {
 
 // 일별 연장근무 시간 Summary 조회
 export async function getDailyOvertimeHoursSummary(params: GetDailyOvertimeHoursParams): Promise<DailyOvertimeHoursSummaryResponse | null> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<{ data: DailyOvertimeHoursSummaryResponse }>(
     '/api/employee/payroll/overtime/daily-overtime-hours',
-    { params: defaultParams }
+    { params }
   )
 
   if (!response.data?.data) {

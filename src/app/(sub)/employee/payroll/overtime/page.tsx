@@ -48,10 +48,8 @@ export default function OvertimePayrollPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // 직원 분류 목록 조회
+  // 직원 분류 목록 조회 (employeeClassificationName이 null인 경우 fallback)
   const { data: classifications = [] } = useEmployeeClassifications()
-
-  // React 19: derived state - 분류 맵 생성
   const classificationMap = new Map<string, string>(
     classifications.map(item => [item.code, item.name])
   )

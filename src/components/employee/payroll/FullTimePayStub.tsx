@@ -18,7 +18,9 @@ import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import { useContractsByEmployee } from '@/hooks/queries/use-contract-queries'
 import { useFileInfo, useFileDownloadUrl } from '@/hooks/queries/use-file-queries'
 import { getOvertimeAllowanceStatements, getOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
+import { useBp } from '@/hooks/useBp'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { useAuthStore } from '@/stores/auth-store'
 import type {
   PayrollStatementResponse,
   PaymentItemDto,
@@ -167,17 +169,28 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // Local state - 조직 선택 (hooks보다 먼저 선언)
-  // TODO: 나중에 로그인한 사용자가 선택한 조직으로 대체
-  const [selectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
-  const [selectedFranchiseStoreId] = useState<number>(DEFAULT_FRANCHISE_ID)
+  // 조직 선택 상태
+  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number | null>(null)
+  const [selectedFranchiseStoreId, setSelectedFranchiseStoreId] = useState<number | null>(null)
+  const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null)
+
+  // BP 트리 데이터
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBp(isReady)
+
+  // 점포 옵션 조회
+  const { data: storeOptionList = [] } = useStoreOptions(selectedHeadOfficeId, selectedFranchiseStoreId)
 
   // TanStack Query hooks
   const { data: existingPayrollData, isPending: isDetailLoading } = useFullTimePayrollDetail(statementId)
-  const { data: payrollSettings } = usePayrollStatementSettings({ headOfficeId: selectedHeadOfficeId, franchiseId: selectedFranchiseStoreId })
+  const { data: payrollSettings } = usePayrollStatementSettings(
+    { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined },
+    !!selectedHeadOfficeId
+  )
   const { data: employeeList = [] } = useEmployeeListByType(
-    { headOfficeId: selectedHeadOfficeId, franchiseId: selectedFranchiseStoreId, employeeType: 'FULL_TIME' },
-    isNewMode
+    { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined, employeeType: 'FULL_TIME' },
+    isEditMode && !!selectedHeadOfficeId
   )
 
   // Mutations
@@ -239,10 +252,25 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     }))
   ], [payrollMonthOptions])
 
-  // Empty options for organization selects (not yet implemented)
-  const emptySelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '선택' }
-  ], [])
+  // 조직 선택 옵션
+  const headOfficeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '본사 선택' },
+    ...bpTree.map((office) => ({ value: String(office.id), label: office.name }))
+  ], [bpTree])
+
+  const franchiseSelectOptions: SelectOption[] = useMemo(() => {
+    if (!selectedHeadOfficeId) return [{ value: '', label: '가맹점 선택' }]
+    const office = bpTree.find((o) => o.id === selectedHeadOfficeId)
+    return [
+      { value: '', label: '가맹점 선택' },
+      ...(office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? [])
+    ]
+  }, [bpTree, selectedHeadOfficeId])
+
+  const storeSelectOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: '점포 선택' },
+    ...storeOptionList.map(store => ({ value: String(store.id), label: store.storeName }))
+  ], [storeOptionList])
 
   // 오늘 날짜
   const today = new Date()
@@ -907,8 +935,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       const overtimeData = await getOvertimeAllowanceStatements({
         allowanceYearMonth: yearMonth,
-        headOfficeId: selectedHeadOfficeId,
-        franchiseStoreId: selectedFranchiseStoreId,
+        headOfficeId: selectedHeadOfficeId ?? undefined,
+        franchiseStoreId: selectedFranchiseStoreId ?? undefined,
       })
 
       const targetMemberId = payrollData?.memberId || employeeList.find(emp => emp.employeeInfoId === selectedEmployeeId)?.memberId
@@ -1170,10 +1198,17 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   <div className="block">
                     {isEditMode ? (
                       <SearchSelect
-                        options={emptySelectOptions}
-                        value={null}
-                        onChange={() => {}}
-                        placeholder="선택"
+                        options={headOfficeSelectOptions}
+                        value={headOfficeSelectOptions.find(opt => opt.value === String(selectedHeadOfficeId ?? '')) || null}
+                        onChange={(opt) => {
+                          const id = opt?.value ? Number(opt.value) : null
+                          setSelectedHeadOfficeId(id)
+                          setSelectedFranchiseStoreId(null)
+                          setSelectedStoreId(null)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
+                        }}
+                        placeholder="본사 선택"
                       />
                     ) : (
                       <input type="text" className="input-frame" value={formData.headOffice} readOnly />
@@ -1185,10 +1220,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   <div className="block">
                     {isEditMode ? (
                       <SearchSelect
-                        options={emptySelectOptions}
-                        value={null}
-                        onChange={() => {}}
-                        placeholder="선택"
+                        options={franchiseSelectOptions}
+                        value={franchiseSelectOptions.find(opt => opt.value === String(selectedFranchiseStoreId ?? '')) || null}
+                        onChange={(opt) => {
+                          const id = opt?.value ? Number(opt.value) : null
+                          setSelectedFranchiseStoreId(id)
+                          setSelectedStoreId(null)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
+                        }}
+                        placeholder="가맹점 선택"
                       />
                     ) : (
                       <input type="text" className="input-frame" value={formData.franchise} readOnly />
@@ -1202,10 +1243,15 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   <div className="block">
                     {isEditMode ? (
                       <SearchSelect
-                        options={emptySelectOptions}
-                        value={null}
-                        onChange={() => {}}
-                        placeholder="선택"
+                        options={storeSelectOptions}
+                        value={storeSelectOptions.find(opt => opt.value === String(selectedStoreId ?? '')) || null}
+                        onChange={(opt) => {
+                          const id = opt?.value ? Number(opt.value) : null
+                          setSelectedStoreId(id)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
+                        }}
+                        placeholder="점포 선택"
                       />
                     ) : (
                       <input type="text" className="input-frame" value={formData.store} readOnly />

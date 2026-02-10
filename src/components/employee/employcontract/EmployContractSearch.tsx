@@ -19,9 +19,9 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
 
   // 검색 폼 상태
   const [formData, setFormData] = useState({
-    headOfficeOrganizationId: 1 as number | null,
-    franchiseOrganizationId: 2 as number | null,
-    storeId: 1 as number | null,
+    headOfficeOrganizationId: null as number | null,
+    franchiseOrganizationId: null as number | null,
+    storeId: null as number | null,
     workStatus: '',
     employeeName: '',
     workDays: [] as string[],

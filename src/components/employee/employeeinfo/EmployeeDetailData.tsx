@@ -605,31 +605,50 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
       </div>
 
       {/* 등록 및 수정 이력 */}
-      <div className="detail-data-info-wrap">
-        <table className="default-table">
-          <colgroup>
-            <col width="180px" />
-            <col />
-            <col width="180px" />
-            <col />
-          </colgroup>
-          <tbody>
-            <tr>
-              <th>등록일</th>
-              <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" value={formatDate(employee?.createdAt)} disabled />
-                </div>
-              </td>
-              <th>최근수정일</th>
-              <td>
-                <div className="data-filed">
-                  <input type="text" className="input-frame" value={formatDate(employee?.updatedAt)} disabled />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="content-wrap">
+        <div className="slidebox-wrap">
+          <div className="slidebox-header">
+            <h2>등록 및 수정 이력</h2>
+          </div>
+          <div className="slidebox-body">
+            <div className="detail-data-wrap">
+              <table className="detail-data-table">
+                <colgroup>
+                  <col width="200px" />
+                  <col />
+                </colgroup>
+                <tbody>
+                  <tr>
+                    <th>등록자/등록일</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{employee?.createdByName || '-'}</span>
+                        </li>
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{formatDate(employee?.createdAt) || '-'}</span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>최근수정자/최근수정일</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{employee?.updatedByName || '-'}</span>
+                        </li>
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{formatDate(employee?.updatedAt) || '-'}</span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
