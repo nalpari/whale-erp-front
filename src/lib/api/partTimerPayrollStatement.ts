@@ -39,6 +39,7 @@ export interface PartTimerPayrollStatementListItem {
   franchiseName?: string
   storeName?: string
   employeeClassification?: string
+  employeeClassificationName?: string
   payrollYearMonth: string
   paymentDate: string
   workDays?: string

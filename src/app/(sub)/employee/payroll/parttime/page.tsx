@@ -64,9 +64,10 @@ export default function PartTimePayrollPage() {
 
   // React 19: derived state - 응답 데이터를 컴포넌트 데이터로 변환
   const payrolls = (payrollData?.content || []).map(payroll => {
-    const classificationName = payroll.employeeClassification
-      ? classificationMap.get(payroll.employeeClassification) || payroll.employeeClassification
-      : ''
+    const classificationName = payroll.employeeClassificationName
+      || (payroll.employeeClassification ? classificationMap.get(payroll.employeeClassification) : undefined)
+      || payroll.employeeClassification
+      || ''
 
     return {
       id: payroll.id,
