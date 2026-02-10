@@ -59,6 +59,7 @@ type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
+    isFranchiseRequired?: boolean
     isStoreRequired?: boolean
     showStoreError?: boolean
     officeId: number | null // 본사 선택 값(id)
@@ -84,6 +85,7 @@ const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | nu
 export default function HeadOfficeFranchiseStoreSelect({
     isHeadOfficeRequired = true,
     showHeadOfficeError = false,
+    isFranchiseRequired = false,
     isStoreRequired = false,
     showStoreError = false,
     officeId,
@@ -151,7 +153,7 @@ export default function HeadOfficeFranchiseStoreSelect({
             )}
             {visibleFields.includes('franchise') && (
                 <>
-                    <th>가맹점</th>
+                    <th>가맹점 {isFranchiseRequired && <span className="red">*</span>}</th>
                     <td>
                         <div className="data-filed">
                             <SearchSelect

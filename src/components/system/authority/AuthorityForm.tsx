@@ -102,13 +102,15 @@ export default function AuthorityForm({
             <colgroup>
               <col width="180px" />
               <col />
+              {showFranchise && <col width="120px" />}
+              {showFranchise && <col />}
             </colgroup>
             <tbody>
               <tr>
                 <th>
                   권한 소유 <span className="red">*</span>
                 </th>
-                <td>
+                <td colSpan={showFranchise ? 3 : undefined}>
                   <RadioButtonGroup
                     options={[
                       { value: 'PRGRP_001_001', label: '플랫폼' },
@@ -125,46 +127,24 @@ export default function AuthorityForm({
               </tr>
               {showHeadOffice && (
                 <tr>
-                  <th>
-                    본사/가맹점 선택 <span className="red">*</span>
-                  </th>
-                  <td>
-                    <table className="default-table">
-                      <colgroup>
-                        <col width="120px" />
-                        <col />
-                        {showFranchise && <col width="120px" />}
-                        {showFranchise && <col />}
-                      </colgroup>
-                      <tbody>
-                        <tr>
-                          <HeadOfficeFranchiseStoreSelect
-                            isHeadOfficeRequired={true}
-                            showHeadOfficeError={!!errors.head_office_id}
-                            fields={showFranchise ? ['office', 'franchise'] : ['office']}
-                            officeId={formData.head_office_id ?? null}
-                            franchiseId={formData.franchisee_id ?? null}
-                            storeId={null}
-                            onChange={handleBpSelectChange}
-                            isDisabled={isBpDisabled}
-                          />
-                        </tr>
-                      </tbody>
-                    </table>
-                    {errors.head_office_id && (
-                      <div className="warning-txt mt5" role="alert">* {errors.head_office_id}</div>
-                    )}
-                    {errors.franchisee_id && (
-                      <div className="warning-txt mt5" role="alert">* {errors.franchisee_id}</div>
-                    )}
-                  </td>
+                  <HeadOfficeFranchiseStoreSelect
+                    isHeadOfficeRequired={true}
+                    showHeadOfficeError={!!errors.head_office_id}
+                    isFranchiseRequired={showFranchise}
+                    fields={showFranchise ? ['office', 'franchise'] : ['office']}
+                    officeId={formData.head_office_id ?? null}
+                    franchiseId={formData.franchisee_id ?? null}
+                    storeId={null}
+                    onChange={handleBpSelectChange}
+                    isDisabled={isBpDisabled}
+                  />
                 </tr>
               )}
               <tr>
                 <th>
                   권한명 <span className="red">*</span>
                 </th>
-                <td>
+                <td colSpan={showFranchise ? 3 : undefined}>
                   <div className="mx-500">
                     <input
                       type="text"
@@ -180,7 +160,7 @@ export default function AuthorityForm({
                 <th>
                   운영여부 <span className="red">*</span>
                 </th>
-                <td>
+                <td colSpan={showFranchise ? 3 : undefined}>
                   <div className="filed-flx">
                     <RadioButtonGroup
                       options={[
@@ -198,7 +178,7 @@ export default function AuthorityForm({
               </tr>
               <tr>
                 <th>권한 설명</th>
-                <td>
+                <td colSpan={showFranchise ? 3 : undefined}>
                   <div className="block">
                     <input
                       type="text"
