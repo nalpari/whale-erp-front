@@ -488,6 +488,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               isSearchable={true}
                               isClearable={true}
                             />
+                            {formErrors.franchiseOrganizationId && (
+                              <div className="warning-txt mt5" role="alert">* {formErrors.franchiseOrganizationId}</div>
+                            )}
                           </div>
                         )}
                       </div>

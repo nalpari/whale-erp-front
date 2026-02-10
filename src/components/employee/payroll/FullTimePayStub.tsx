@@ -190,7 +190,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   )
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined, employeeType: 'FULL_TIME' },
-    isNewMode && !!selectedHeadOfficeId
+    isEditMode && !!selectedHeadOfficeId
   )
 
   // Mutations
@@ -1205,6 +1205,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                           setSelectedHeadOfficeId(id)
                           setSelectedFranchiseStoreId(null)
                           setSelectedStoreId(null)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
                         }}
                         placeholder="본사 선택"
                       />
@@ -1224,6 +1226,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                           const id = opt?.value ? Number(opt.value) : null
                           setSelectedFranchiseStoreId(id)
                           setSelectedStoreId(null)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
                         }}
                         placeholder="가맹점 선택"
                       />
@@ -1244,6 +1248,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                         onChange={(opt) => {
                           const id = opt?.value ? Number(opt.value) : null
                           setSelectedStoreId(id)
+                          setSelectedEmployeeId(null)
+                          setPayrollData(null)
                         }}
                         placeholder="점포 선택"
                       />

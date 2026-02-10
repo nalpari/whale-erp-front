@@ -608,6 +608,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           setSelectedHeadquarter(opt?.value || '')
                           setSelectedFranchise('')
                           setSelectedStore('')
+                          setEmployeeInfoId(null)
+                          setPayrollMonth('')
+                          setStartDate('')
+                          setEndDate('')
+                          setPaymentDate('')
+                          setIsSearched(false)
                         }}
                         placeholder="본사 선택"
                         isDisabled={!isEditMode}
@@ -620,6 +626,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         onChange={(opt) => {
                           setSelectedFranchise(opt?.value || '')
                           setSelectedStore('')
+                          setEmployeeInfoId(null)
+                          setPayrollMonth('')
+                          setStartDate('')
+                          setEndDate('')
+                          setPaymentDate('')
+                          setIsSearched(false)
                         }}
                         placeholder="가맹점 선택"
                         isDisabled={!isEditMode}
@@ -635,7 +647,15 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <SearchSelect
                       options={storeOptions}
                       value={storeOptions.find(opt => opt.value === selectedStore) || null}
-                      onChange={(opt) => setSelectedStore(opt?.value || '')}
+                      onChange={(opt) => {
+                        setSelectedStore(opt?.value || '')
+                        setEmployeeInfoId(null)
+                        setPayrollMonth('')
+                        setStartDate('')
+                        setEndDate('')
+                        setPaymentDate('')
+                        setIsSearched(false)
+                      }}
                       placeholder="점포 선택"
                       isDisabled={!isEditMode}
                     />

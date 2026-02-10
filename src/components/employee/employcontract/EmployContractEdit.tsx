@@ -94,7 +94,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   // 점포 옵션 조회
   const headOfficeIdNum = formData.headOfficeId ? parseInt(formData.headOfficeId) : null
   const franchiseIdNum = formData.franchiseId ? parseInt(formData.franchiseId) : null
-  const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
+  const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum, Boolean(headOfficeIdNum) && isReady)
 
   // TanStack Query - 직원 목록 조회
   const { data: employeeList = [] } = useEmployeeListByType({
@@ -227,15 +227,18 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
 
   const handleInputChange = (field: string, value: string | number | boolean | string[] | Date | null) => {
     if (field === 'employeeAffiliation' && value === 'HEAD_OFFICE') {
-      setFormData(prev => ({ ...prev, [field]: value, franchiseId: '', storeId: '' }))
+      setFormData(prev => ({ ...prev, [field]: value, franchiseId: '', storeId: '', employeeId: '', employeeName: '', employeeNumber: '' }))
+      setSelectedEmployeeInfoId(null)
       return
     }
     if (field === 'headOfficeId') {
-      setFormData(prev => ({ ...prev, headOfficeId: value as string, franchiseId: '', storeId: '' }))
+      setFormData(prev => ({ ...prev, headOfficeId: value as string, franchiseId: '', storeId: '', employeeId: '', employeeName: '', employeeNumber: '' }))
+      setSelectedEmployeeInfoId(null)
       return
     }
     if (field === 'franchiseId') {
-      setFormData(prev => ({ ...prev, franchiseId: value as string, storeId: '' }))
+      setFormData(prev => ({ ...prev, franchiseId: value as string, storeId: '', employeeId: '', employeeName: '', employeeNumber: '' }))
+      setSelectedEmployeeInfoId(null)
       return
     }
     setFormData(prev => ({ ...prev, [field]: value }))
