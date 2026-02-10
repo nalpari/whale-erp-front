@@ -91,6 +91,7 @@ export default function AuthorityEditPage() {
             programTree={programTree}
             onChange={handleProgramTreeChange}
             currentOwnerCode={authority.owner_code}
+            authorityId={authorityId}
           />
         </AuthorityForm>
       </div>

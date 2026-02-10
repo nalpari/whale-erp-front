@@ -1,4 +1,4 @@
-import api, { getWithSchema, postWithSchema, putWithSchema } from '@/lib/api'
+import api, { getWithSchema, postWithSchema, putWithSchema, patchWithSchema } from '@/lib/api'
 import type { PageResponse } from '@/lib/schemas/api'
 import type {
   AuthoritySearchParams,
@@ -111,7 +111,7 @@ export async function updateProgramAuthority(
   programId: number,
   data: AuthorityDetailUpdateRequest
 ): Promise<AuthorityResponse> {
-  const response = await putWithSchema(
+  const response = await patchWithSchema(
     `/api/system/authorities/${id}/programs/${programId}`,
     data,
     authorityDetailResponseSchema

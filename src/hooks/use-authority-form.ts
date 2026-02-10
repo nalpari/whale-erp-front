@@ -310,26 +310,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         // 마스터 정보 수정 API 호출
         await updateAuthority({ id: authorityId, data: validated })
 
-        // 프로그램별 권한 수정
-        const updateProgramPermissions = async (nodes: AuthorityDetailNode[]) => {
-          for (const node of nodes) {
-            // 루트 노드만 업데이트 (백엔드가 하위 전파 처리)
-            await updateProgramAuthority({
-              id: authorityId,
-              programId: node.program_id,
-              data: {
-                can_read: node.can_read ?? false,
-                can_create_delete: node.can_create_delete ?? false,
-                can_update: node.can_update ?? false,
-              },
-            })
-          }
-        }
-
-        // 루트 레벨 노드만 업데이트
-        if (programTree.length > 0) {
-          await updateProgramPermissions(programTree)
-        }
+        // 프로그램별 권한은 체크박스 클릭 시 실시간으로 업데이트됨 (낙관적 업데이트)
 
         // 성공 시 목록으로 이동
         alert('권한이 수정되었습니다.')

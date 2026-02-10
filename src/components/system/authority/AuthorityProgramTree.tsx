@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
-import { useAuthorityList, useAuthorityDetail } from '@/hooks/queries/use-authority-queries'
+import { useAuthorityList, useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
 import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
 
 /**
@@ -16,20 +16,32 @@ import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/aut
  * @param programTree - 프로그램 트리 데이터
  * @param onChange - 프로그램 트리 변경 핸들러
  * @param currentOwnerCode - 현재 권한의 owner_code (권한 복사 필터링용)
+ * @param authorityId - 권한 ID (수정 모드에서 낙관적 업데이트용)
  */
 interface AuthorityProgramTreeProps {
   programTree: AuthorityDetailNode[]
   onChange: (tree: AuthorityDetailNode[]) => void
   currentOwnerCode?: string
+  authorityId?: number
 }
 
 export default function AuthorityProgramTree({
   programTree,
   onChange,
   currentOwnerCode,
+  authorityId,
 }: AuthorityProgramTreeProps) {
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
   const [activeFilter, setActiveFilter] = useState<AuthorityFilterType>(null)
+
+  // 프로그램 권한 수정 mutation (낙관적 업데이트용)
+  const { mutateAsync: updateProgramAuthority } = useUpdateProgramAuthority()
+
+  // Loading state: API 호출 중인 프로그램 ID 추적
+  const [loadingPrograms, setLoadingPrograms] = useState<Set<number>>(new Set())
+
+  // Race condition 방지: 최신 요청 ID 추적
+  const latestRequestIdRef = useRef<number>(0)
 
   // 모든 프로그램 ID 수집 (재귀)
   const collectAllProgramIds = (nodes: AuthorityDetailNode[]): number[] => {
@@ -119,15 +131,26 @@ export default function AuthorityProgramTree({
     }
   }
 
-  // 권한 변경 핸들러 (하위 전파)
-  const handlePermissionChange = (
+  // 권한 변경 핸들러 (낙관적 업데이트 + API 호출)
+  const handlePermissionChange = async (
     programId: number,
     field: 'can_read' | 'can_create_delete' | 'can_update',
     value: boolean
   ) => {
-    const updateNodeAndChildren = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
-      return nodes.map((node) => {
-        if (node.program_id === programId) {
+    // 중복 탐색 방지: 업데이트된 트리와 대상 노드를 함께 반환
+    type UpdateResult = {
+      newTree: AuthorityDetailNode[]
+      targetNode: AuthorityDetailNode | null
+    }
+
+    const updateNodeAndChildren = (
+      nodes: AuthorityDetailNode[],
+      targetId: number
+    ): UpdateResult => {
+      let foundNode: AuthorityDetailNode | null = null
+
+      const updatedNodes = nodes.map((node) => {
+        if (node.program_id === targetId) {
           // 현재 노드 업데이트
           const updatedNode = { ...node, [field]: value }
 
@@ -144,12 +167,19 @@ export default function AuthorityProgramTree({
             )
           }
 
+          foundNode = updatedNode
           return updatedNode
         } else if (node.children) {
-          return { ...node, children: updateNodeAndChildren(node.children) }
+          const result = updateNodeAndChildren(node.children, targetId)
+          if (result.targetNode) {
+            foundNode = result.targetNode
+          }
+          return { ...node, children: result.newTree }
         }
         return node
       })
+
+      return { newTree: updatedNodes, targetNode: foundNode }
     }
 
     const updateNodeRecursive = (
@@ -175,8 +205,68 @@ export default function AuthorityProgramTree({
       return updatedNode
     }
 
-    const newTree = updateNodeAndChildren(programTree)
+    // 이전 상태 저장 (에러 시 롤백용)
+    const previousTree = programTree
+
+    // 1. 낙관적 업데이트: 즉시 UI 반영
+    const { newTree, targetNode } = updateNodeAndChildren(programTree, programId)
     onChange(newTree)
+
+    // 2. 수정 모드에서만 API 호출 (생성 모드는 저장 버튼 클릭 시 한번에 전송)
+    if (authorityId) {
+      if (!targetNode) {
+        console.error('프로그램을 찾을 수 없습니다:', programId)
+        return
+      }
+
+      // Race condition 방지: 현재 요청 ID 생성
+      const currentRequestId = ++latestRequestIdRef.current
+
+      // Loading state 추가
+      setLoadingPrograms((prev) => new Set(prev).add(programId))
+
+      try {
+        // API 호출
+        const response = await updateProgramAuthority({
+          id: authorityId,
+          programId,
+          data: {
+            can_read: targetNode.can_read ?? false,
+            can_create_delete: targetNode.can_create_delete ?? false,
+            can_update: targetNode.can_update ?? false,
+          },
+        })
+
+        // Race condition 방지: 최신 요청만 적용
+        if (currentRequestId !== latestRequestIdRef.current) {
+          console.log('이전 요청 무시 (최신 요청이 있음)')
+          return
+        }
+
+        // 응답 검증 및 동기화
+        if (response?.details) {
+          onChange(response.details)
+        } else {
+          console.warn('서버 응답에 details가 없습니다')
+        }
+      } catch (error) {
+        console.error('프로그램 권한 업데이트 실패:', error)
+
+        // Race condition 방지: 최신 요청만 롤백
+        if (currentRequestId === latestRequestIdRef.current) {
+          // 에러 발생 시 이전 상태로 롤백
+          onChange(previousTree)
+          alert('권한 업데이트에 실패했습니다.')
+        }
+      } finally {
+        // Loading state 제거
+        setLoadingPrograms((prev) => {
+          const next = new Set(prev)
+          next.delete(programId)
+          return next
+        })
+      }
+    }
   }
 
   // 권한 복사 적용
@@ -191,6 +281,7 @@ export default function AuthorityProgramTree({
     const hasChildren = node.children && node.children.length > 0
     const isOpen = openItems.has(node.program_id)
     const isHighlighted = matchesFilter(node)
+    const isLoading = loadingPrograms.has(node.program_id)
 
     const childDepth = depth + 1
     const childDepthClass = `depth0${Math.min(childDepth, 3)}`
@@ -219,9 +310,9 @@ export default function AuthorityProgramTree({
                   id={`read-${node.program_id}`}
                   checked={node.can_read ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_read', e.target.checked)}
-                  disabled={node.max_can_read === false}
+                  disabled={isLoading || node.max_can_read === false}
                 />
-                <label htmlFor={`read-${node.program_id}`}>Read</label>
+                <label htmlFor={`read-${node.program_id}`}>Read{isLoading && ' (저장중...)'}</label>
               </div>
               <div className="check-form-box">
                 <input
@@ -231,7 +322,7 @@ export default function AuthorityProgramTree({
                   onChange={(e) =>
                     handlePermissionChange(node.program_id, 'can_create_delete', e.target.checked)
                   }
-                  disabled={!node.can_read || node.max_can_create_delete === false}
+                  disabled={isLoading || !node.can_read || node.max_can_create_delete === false}
                 />
                 <label htmlFor={`create-delete-${node.program_id}`}>Create, Delete</label>
               </div>
@@ -241,7 +332,7 @@ export default function AuthorityProgramTree({
                   id={`update-${node.program_id}`}
                   checked={node.can_update ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_update', e.target.checked)}
-                  disabled={!node.can_read || node.max_can_update === false}
+                  disabled={isLoading || !node.can_read || node.max_can_update === false}
                 />
                 <label htmlFor={`update-${node.program_id}`}>Update</label>
               </div>

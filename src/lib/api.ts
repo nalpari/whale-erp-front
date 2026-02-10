@@ -68,6 +68,19 @@ export async function putWithSchema<T>(
   return validateApiResponse(schema, response.data);
 }
 
+/**
+ * 스키마 검증이 포함된 PATCH 요청
+ */
+export async function patchWithSchema<T>(
+  url: string,
+  data: unknown,
+  schema: z.ZodType<T>,
+  config?: Parameters<typeof api.patch>[2]
+): Promise<T> {
+  const response = await api.patch(url, data, config);
+  return validateApiResponse(schema, response.data);
+}
+
 // 요청 인터셉터 - 토큰 자동 첨부
 api.interceptors.request.use((config) => {
   const url = config.url || '';
