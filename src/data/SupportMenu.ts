@@ -29,6 +29,6 @@ export const SupportMenu: SupportMenuItem[] = [
     id: 4,
     name: '문의하기',
     icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon04.svg',
-    link: '#',
+    link: '/customer/contact',
   },
 ]
