@@ -17,8 +17,8 @@ import {
  * 권한 목록 조회
  * @param params - 검색 조건
  * @param params.owner_group - 권한 그룹 (PRGRP_001: 플랫폼, PRGRP_002: BP)
- * @param params.head_office_code - 본사 코드 (선택)
- * @param params.franchisee_code - 가맹점 코드 (선택)
+ * @param params.head_office_id - 본사 ID (선택)
+ * @param params.franchisee_id - 가맹점 ID (선택)
  * @param params.name - 권한명 (선택)
  * @param params.is_used - 운영여부 (선택)
  * @param params.page - 페이지 번호 (기본값: 1)
@@ -33,8 +33,8 @@ export async function fetchAuthorities(
   const response = await getWithSchema('/api/system/authorities', authorityListResponseSchema, {
     params: {
       owner_group: params.owner_group,
-      head_office_code: params.head_office_code,
-      franchisee_code: params.franchisee_code,
+      head_office_id: params.head_office_id,
+      franchisee_id: params.franchisee_id,
       name: params.name,
       is_used: params.is_used,
       page: params.page || 1,

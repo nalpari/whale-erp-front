@@ -43,16 +43,16 @@ export default function AuthoritySearch({
     setLocalParams({
       ...localParams,
       owner_group: value,
-      head_office_code: undefined,
-      franchisee_code: undefined,
+      head_office_id: undefined,
+      franchisee_id: undefined,
     })
   }
 
   const handleBpSelectChange = (value: { head_office: number | null; franchise: number | null; store: number | null }) => {
     setLocalParams({
       ...localParams,
-      head_office_code: value.head_office ? String(value.head_office) : undefined,
-      franchisee_code: value.franchise ? String(value.franchise) : undefined,
+      head_office_id: value.head_office ?? undefined,
+      franchisee_id: value.franchise ?? undefined,
     })
   }
 
@@ -124,8 +124,8 @@ export default function AuthoritySearch({
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
                   fields={['office', 'franchise']}
-                  officeId={localParams.head_office_code ? Number(localParams.head_office_code) : null}
-                  franchiseId={localParams.franchisee_code ? Number(localParams.franchisee_code) : null}
+                  officeId={localParams.head_office_id ?? null}
+                  franchiseId={localParams.franchisee_id ?? null}
                   storeId={null}
                   onChange={handleBpSelectChange}
                   isDisabled={isBpDisabled}

@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react'
 
-import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
 import { RadioButtonGroup } from '@/components/common/ui'
+import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest } from '@/lib/schemas/authority'
 
 interface AuthorityFormProps {
@@ -29,14 +29,11 @@ export default function AuthorityForm({
   children,
   errors = {},
 }: AuthorityFormProps) {
-  // BP 트리 조회 (본사/가맹점 옵션)
-  const { data: bpTree } = useBpHeadOfficeTree()
-
   // 현재 폼 데이터
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
-    head_office_code: initialData.head_office_code,
-    franchisee_code: initialData.franchisee_code,
+    head_office_id: initialData.head_office_id,
+    franchisee_id: initialData.franchisee_id,
     name: initialData.name || '',
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
@@ -45,35 +42,22 @@ export default function AuthorityForm({
   // owner_code에 따라 본사/가맹점 선택 활성화
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
   const showFranchise = formData.owner_code === 'PRGRP_002_002'
-
-  // 선택된 본사의 가맹점 목록
-  const selectedHeadOffice = bpTree?.find(
-    (office) => office.organizationCode === formData.head_office_code
-  )
-  const franchiseList = selectedHeadOffice?.franchises || []
+  const isBpDisabled = mode === 'edit'
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
-      head_office_code: undefined,
-      franchisee_code: undefined,
+      head_office_id: undefined,
+      franchisee_id: undefined,
     }
     onChange(newData)
   }
 
-  const handleHeadOfficeChange = (value: string) => {
-    const newData: Partial<AuthorityCreateRequest> = {
-      head_office_code: value || undefined,
-      franchisee_code: undefined,
-    }
-    onChange(newData)
-  }
-
-  const handleFranchiseChange = (value: string) => {
-    const newData: Partial<AuthorityCreateRequest> = {
-      franchisee_code: value || undefined,
-    }
-    onChange(newData)
+  const handleBpSelectChange = (value: { head_office: number | null; franchise: number | null; store: number | null }) => {
+    onChange({
+      head_office_id: value.head_office ?? undefined,
+      franchisee_id: value.franchise ?? undefined,
+    })
   }
 
   const handleNameChange = (value: string) => {
@@ -145,46 +129,34 @@ export default function AuthorityForm({
                     본사/가맹점 선택 <span className="red">*</span>
                   </th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="mx-500">
-                        <select
-                          className={`select-form ${errors.head_office_code ? 'err' : ''}`}
-                          value={formData.head_office_code || ''}
-                          onChange={(e) => handleHeadOfficeChange(e.target.value)}
-                          disabled={mode === 'edit'}
-                        >
-                          <option value="">본사 선택</option>
-                          {bpTree?.map((office) => (
-                            <option key={office.id} value={office.organizationCode}>
-                              {office.name}
-                            </option>
-                          ))}
-                        </select>
-                        {errors.head_office_code && (
-                          <div className="warning-txt mt5" role="alert">* {errors.head_office_code}</div>
-                        )}
-                      </div>
-                      {showFranchise && (
-                        <div className="mx-500">
-                          <select
-                            className={`select-form ${errors.franchisee_code ? 'err' : ''}`}
-                            value={formData.franchisee_code || ''}
-                            onChange={(e) => handleFranchiseChange(e.target.value)}
-                            disabled={mode === 'edit' || !formData.head_office_code}
-                          >
-                            <option value="">가맹점 선택</option>
-                            {franchiseList.map((franchise) => (
-                              <option key={franchise.id} value={franchise.organizationCode}>
-                                {franchise.name}
-                              </option>
-                            ))}
-                          </select>
-                          {errors.franchisee_code && (
-                            <div className="warning-txt mt5" role="alert">* {errors.franchisee_code}</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <table className="default-table">
+                      <colgroup>
+                        <col width="120px" />
+                        <col />
+                        {showFranchise && <col width="120px" />}
+                        {showFranchise && <col />}
+                      </colgroup>
+                      <tbody>
+                        <tr>
+                          <HeadOfficeFranchiseStoreSelect
+                            isHeadOfficeRequired={true}
+                            showHeadOfficeError={!!errors.head_office_id}
+                            fields={showFranchise ? ['office', 'franchise'] : ['office']}
+                            officeId={formData.head_office_id ?? null}
+                            franchiseId={formData.franchisee_id ?? null}
+                            storeId={null}
+                            onChange={handleBpSelectChange}
+                            isDisabled={isBpDisabled}
+                          />
+                        </tr>
+                      </tbody>
+                    </table>
+                    {errors.head_office_id && (
+                      <div className="warning-txt mt5" role="alert">* {errors.head_office_id}</div>
+                    )}
+                    {errors.franchisee_id && (
+                      <div className="warning-txt mt5" role="alert">* {errors.franchisee_id}</div>
+                    )}
                   </td>
                 </tr>
               )}

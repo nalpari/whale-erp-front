@@ -223,8 +223,8 @@ export const holidayKeys = {
 
 export interface AuthorityListParams {
   owner_group: string
-  head_office_code?: string
-  franchisee_code?: string
+  head_office_id?: number
+  franchisee_id?: number
   name?: string
   is_used?: boolean
   page?: number

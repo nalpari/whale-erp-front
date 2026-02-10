@@ -35,8 +35,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     if (mode === 'edit' && initialAuthority) {
       return {
         owner_code: initialAuthority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
-        head_office_code: initialAuthority.head_office_code || undefined,
-        franchisee_code: initialAuthority.franchisee_code || undefined,
+        head_office_id: initialAuthority.head_office_id ?? undefined,
+        franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
@@ -129,8 +129,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     if (mode === 'edit' && initialAuthority) {
       setFormData({
         owner_code: initialAuthority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
-        head_office_code: initialAuthority.head_office_code || undefined,
-        franchisee_code: initialAuthority.franchisee_code || undefined,
+        head_office_id: initialAuthority.head_office_id ?? undefined,
+        franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
@@ -207,18 +207,18 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
       newErrors.is_used = '운영여부를 선택해주세요'
     }
 
-    // 본사 권한인 경우 본사 코드 필수
-    if (formData.owner_code === 'PRGRP_002_001' && !formData.head_office_code) {
-      newErrors.head_office_code = '본사를 선택해주세요'
+    // 본사 권한인 경우 본사 ID 필수
+    if (formData.owner_code === 'PRGRP_002_001' && !formData.head_office_id) {
+      newErrors.head_office_id = '본사를 선택해주세요'
     }
 
-    // 가맹점 권한인 경우 본사/가맹점 코드 필수
+    // 가맹점 권한인 경우 본사/가맹점 ID 필수
     if (formData.owner_code === 'PRGRP_002_002') {
-      if (!formData.head_office_code) {
-        newErrors.head_office_code = '본사를 선택해주세요'
+      if (!formData.head_office_id) {
+        newErrors.head_office_id = '본사를 선택해주세요'
       }
-      if (!formData.franchisee_code) {
-        newErrors.franchisee_code = '가맹점을 선택해주세요'
+      if (!formData.franchisee_id) {
+        newErrors.franchisee_id = '가맹점을 선택해주세요'
       }
     }
 
@@ -274,8 +274,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         // 생성 모드
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code!,
-          head_office_code: formData.head_office_code,
-          franchisee_code: formData.franchisee_code,
+          head_office_id: formData.head_office_id,
+          franchisee_id: formData.franchisee_id,
           name: formData.name!,
           is_used: formData.is_used!,
           description: formData.description,

@@ -77,8 +77,8 @@ export default function AuthorityEditPage() {
           mode="edit"
           initialData={{
             owner_code: authority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
-            head_office_code: authority.head_office_code || undefined,
-            franchisee_code: authority.franchisee_code || undefined,
+            head_office_id: authority.head_office_id ?? undefined,
+            franchisee_id: authority.franchisee_id ?? undefined,
             ...formData,
           }}
           onChange={handleFormChange}

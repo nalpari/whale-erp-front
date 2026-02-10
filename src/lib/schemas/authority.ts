@@ -39,8 +39,8 @@ export type AuthorityFilterType = 'read' | 'create_delete' | 'update' | null
  */
 export interface AuthoritySearchParams {
   owner_group: string // PRGRP_001 | PRGRP_002
-  head_office_code?: string
-  franchisee_code?: string
+  head_office_id?: number
+  franchisee_id?: number
   name?: string
   is_used?: boolean
   page?: number
@@ -54,8 +54,10 @@ export interface AuthorityListItem {
   id: number
   owner_code: string
   owner_group: string
+  head_office_id: number | null
   head_office_code: string | null
   head_office_name: string | null
+  franchisee_id: number | null
   franchisee_code: string | null
   franchisee_name: string | null
   name: string
@@ -81,8 +83,8 @@ export const authorityCreateSchema = z.object({
   owner_code: z.enum(['PRGRP_001_001', 'PRGRP_002_001', 'PRGRP_002_002'], {
     message: '권한 소유를 선택해주세요',
   }),
-  head_office_code: z.string().optional(),
-  franchisee_code: z.string().optional(),
+  head_office_id: z.number().optional(),
+  franchisee_id: z.number().optional(),
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_used: z.boolean(),
   description: z.string().optional(),
@@ -94,22 +96,22 @@ export const authorityCreateSchema = z.object({
   })).optional(),
 }).refine(
   (data) => {
-    // 본사 권한인 경우 head_office_code 필수
+    // 본사 권한인 경우 head_office_id 필수
     if (data.owner_code === 'PRGRP_002_001') {
-      return !!data.head_office_code
+      return !!data.head_office_id
     }
     return true
   },
-  { message: '본사를 선택해주세요', path: ['head_office_code'] }
+  { message: '본사를 선택해주세요', path: ['head_office_id'] }
 ).refine(
   (data) => {
-    // 가맹점 권한인 경우 head_office_code, franchisee_code 필수
+    // 가맹점 권한인 경우 head_office_id, franchisee_id 필수
     if (data.owner_code === 'PRGRP_002_002') {
-      return !!data.head_office_code && !!data.franchisee_code
+      return !!data.head_office_id && !!data.franchisee_id
     }
     return true
   },
-  { message: '본사와 가맹점을 선택해주세요', path: ['franchisee_code'] }
+  { message: '본사와 가맹점을 선택해주세요', path: ['franchisee_id'] }
 )
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
@@ -148,8 +150,10 @@ export const authorityListItemSchema = z.object({
   id: z.number(),
   owner_code: z.string(),
   owner_group: z.string(),
+  head_office_id: z.number().nullable(),
   head_office_code: z.string().nullable(),
   head_office_name: z.string().nullable(),
+  franchisee_id: z.number().nullable(),
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
