@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+
+import { getErrorMessage } from '@/lib/api'
+import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
+import { formatZodError } from '@/lib/zod-utils'
 import {
   useCreateAuthority,
   useUpdateAuthority,
-  useUpdateProgramAuthority,
 } from '@/hooks/queries/use-authority-queries'
 import { useProgramList } from '@/hooks/queries/use-program-queries'
-import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
-import { formatZodError } from '@/lib/zod-utils'
 import { useAuthStore } from '@/stores/auth-store'
 import type {
   AuthorityCreateRequest,
@@ -67,7 +68,6 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
   // Mutations
   const { mutateAsync: createAuthority } = useCreateAuthority()
   const { mutateAsync: updateAuthority } = useUpdateAuthority()
-  const { mutateAsync: updateProgramAuthority } = useUpdateProgramAuthority()
 
   // 생성 모드: 프로그램 목록을 트리 구조로 변환
   useEffect(() => {
@@ -320,8 +320,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
       if (error instanceof z.ZodError) {
         alert(`입력값 검증 실패:\n${formatZodError(error)}`)
       } else {
-        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
-        alert(`권한 ${mode === 'create' ? '등록' : '수정'} 실패: ${errorMessage}`)
+        alert(`권한 ${mode === 'create' ? '등록' : '수정'} 실패: ${getErrorMessage(error)}`)
       }
       console.error(`권한 ${mode === 'create' ? '등록' : '수정'} 실패:`, error)
     }

@@ -1,9 +1,9 @@
 'use client'
 
+import { useAuthorityForm } from '@/hooks/use-authority-form'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
-import { useAuthorityForm } from '@/hooks/use-authority-form'
 
 /**
  * 권한 등록 페이지

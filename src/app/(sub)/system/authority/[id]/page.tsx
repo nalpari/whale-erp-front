@@ -1,6 +1,8 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
+
+import { getErrorMessage } from '@/lib/api'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
@@ -49,8 +51,7 @@ export default function AuthorityEditPage() {
       alert('권한이 삭제되었습니다.')
       router.push('/system/authority')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
-      alert(`권한 삭제 실패: ${errorMessage}`)
+      alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
       console.error('권한 삭제 실패:', error)
     }
   }
