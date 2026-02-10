@@ -19,7 +19,7 @@ const defaultListParams: PlansListParams = {
 export default function Plans() {
     const [filters, setFilters] = useState<PlansListParams>(defaultListParams)
     const [page, setPage] = useState(0)
-    const [pageSize, setPageSize] = useState(10)
+    const [pageSize, _setPageSize] = useState(10)
 
     const listParams: PlansListParams = useMemo(
         () => ({

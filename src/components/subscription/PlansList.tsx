@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { ColDef, RowClassParams, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
+import PlansComparisonPop from '@/components/subscription/PlansComparisonPop'
 import { PlansListItem } from '@/types/plans'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 export default function PlansList({
     rows,
@@ -16,6 +17,7 @@ export default function PlansList({
     loading: boolean
 }) {
     const router = useRouter()
+    const [isComparisonOpen, setIsComparisonOpen] = useState(false)
 
     // 행 클릭 시 상세 페이지로 이동
     const handleRowClick = (event: RowClickedEvent<PlansListItem>) => {
@@ -64,7 +66,7 @@ export default function PlansList({
                 <div className="data-header-left">
                 </div>
                 <div className="data-header-right">
-                    <button className="btn-form basic" type="button">요금제 비교</button>
+                    <button className="btn-form basic" type="button" onClick={() => setIsComparisonOpen(true)}>요금제 비교</button>
                 </div>
             </div>
             <div className="data-list-bx">
@@ -84,6 +86,11 @@ export default function PlansList({
                     />
                 )}
             </div>
+            <PlansComparisonPop
+                isOpen={isComparisonOpen}
+                onClose={() => setIsComparisonOpen(false)}
+                plans={rows}
+            />
         </div>
     )
 }

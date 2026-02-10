@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
-import DatePicker from '@/components/ui/common/DatePicker'
-import { Input } from '@/components/common/ui'
+import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
+import { Input, useAlert } from '@/components/common/ui'
 import { useState } from 'react'
 import { useCheckPlanPricingDuplicate, useCreatePlanPricing, useUpdatePlanPricing } from '@/hooks/queries/use-plans-queries'
 import type { CreatePlanPricingRequest, PlanPricing } from '@/types/plans'
@@ -33,6 +33,7 @@ interface ValidationErrors {
 
 export default function PlanPricingForm({ planId, planTypeName, mode, initialData, pricingId }: PlanPricingFormProps) {
     const router = useRouter()
+    const { alert, confirm } = useAlert()
 
     // 상태 계산 (진행 중인지 확인)
     const getStatus = (): '대기' | '진행' | '종료' | null => {
@@ -146,8 +147,12 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
         }
 
         // 기간 중복 체크 검증
-        if (fromDate && toDate && !showDateSuccess) {
-            newErrors.dateCheck = '기간 중복 확인을 해주세요.'
+        if (fromDate && toDate) {
+            if (showDateError) {
+                newErrors.dateCheck = dateCheckMessage ?? '기간이 중복됩니다.'
+            } else if (!showDateSuccess) {
+                newErrors.dateCheck = '기간 중복 확인이 필요합니다.'
+            }
         }
 
         // 1개월 요금 검증
@@ -191,6 +196,9 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
         if (!validate()) {
             return
         }
+
+        const result = await confirm(`${mode === 'create' ? '등록' : '수정'}하시겠습니까?`)
+        if (!result) return
 
         // 6개월 할인 필드 설정 (배타적)
         let sixMonthDiscountRate: number | null = null
@@ -236,23 +244,23 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
             router.push(`/subscription/${planId}`)
         } catch (error) {
             console.error('가격 정책 저장 실패:', error)
-            alert(`가격 정책 ${mode === 'create' ? '등록' : '수정'}에 실패했습니다. 다시 시도해주세요.`)
+            await alert(`가격 정책 ${mode === 'create' ? '등록' : '수정'}에 실패했습니다. 다시 시도해주세요.`)
         }
     }
 
-    const handleDuplicateCheck = async () => {
-        if (!fromDate || !toDate) {
-            setShowDateError(true)
-            setShowDateSuccess(false)
-            setDateCheckMessage('기간을 선택해주세요.')
+    const handleDuplicateCheck = async (start?: Date | null, end?: Date | null) => {
+        const checkFrom = start ?? fromDate
+        const checkTo = end ?? toDate
+
+        if (!checkFrom || !checkTo) {
             return
         }
 
         try {
             const result = await checkDuplicate({
                 planId,
-                activeFrom: format(fromDate, 'yyyy-MM-dd'),
-                activeUntil: format(toDate, 'yyyy-MM-dd'),
+                activeFrom: format(checkFrom, 'yyyy-MM-dd'),
+                activeUntil: format(checkTo, 'yyyy-MM-dd'),
                 excludePricingId: mode === 'edit' ? pricingId : undefined,
             })
 
@@ -463,28 +471,16 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
                                             <th>기간 <span className="red">*</span></th>
                                             <td>
                                                 <div className="filed-flx">
-                                                    <div className="date-picker-wrap">
-                                                        <DatePicker
-                                                            value={fromDate}
-                                                            onChange={(date) => {
-                                                                setShowDateError(false)
-                                                                setShowDateSuccess(false)
-                                                                setFromDate(date)
-                                                                if (errors.fromDate || errors.dateCheck) {
-                                                                    setErrors(prev => ({ ...prev, fromDate: undefined, dateCheck: undefined }))
-                                                                }
-                                                            }}
-                                                            disabled={isInProgress}
-                                                        />
-                                                        <span>~</span>
-                                                        <DatePicker
-                                                            value={toDate}
-                                                            onChange={(date) => {
-                                                                // 진행 중인 경우 오늘 이전 날짜 선택 불가
-                                                                if (isInProgress && date) {
+                                                    <RangeDatePicker
+                                                        startDate={fromDate}
+                                                        endDate={toDate}
+                                                        onChange={(range: DateRange) => {
+                                                            // 진행 중인 경우 종료일만 변경 가능
+                                                            if (isInProgress) {
+                                                                if (range.endDate) {
                                                                     const today = new Date()
                                                                     today.setHours(0, 0, 0, 0)
-                                                                    const selectedDate = new Date(date)
+                                                                    const selectedDate = new Date(range.endDate)
                                                                     selectedDate.setHours(0, 0, 0, 0)
 
                                                                     if (selectedDate < today) {
@@ -492,39 +488,37 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
                                                                         return
                                                                     }
                                                                 }
-                                                                setShowDateError(false)
-                                                                setShowDateSuccess(false)
-                                                                setToDate(date)
-                                                                if (errors.toDate || errors.dateCheck) {
-                                                                    setErrors(prev => ({ ...prev, toDate: undefined, dateCheck: undefined }))
+                                                                setToDate(range.endDate)
+                                                                // 시작일은 기존 값 유지, 종료일이 변경되면 자동 중복 확인
+                                                                if (fromDate && range.endDate) {
+                                                                    handleDuplicateCheck(fromDate, range.endDate)
                                                                 }
-                                                            }}
-                                                            minDate={isInProgress ? new Date() : undefined}
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        className="btn-form basic"
-                                                        onClick={handleDuplicateCheck}
-                                                        disabled={isChecking}
-                                                    >
-                                                        {isChecking ? '확인중...' : '중복확인'}
-                                                    </button>
-                                                    {showDateError && (
-                                                        <span className="form-helper error">
-                                                            {dateCheckMessage}
-                                                        </span>
-                                                    )}
-                                                    {showDateSuccess && (
-                                                        <span className="form-helper" style={{ color: '#22c55e' }}>
-                                                            {dateCheckMessage}
-                                                        </span>
-                                                    )}
-                                                    {(errors.fromDate || errors.toDate || errors.dateCheck) && (
-                                                        <span className="form-helper error">
-                                                            {errors.fromDate || errors.toDate || errors.dateCheck}
-                                                        </span>
-                                                    )}
+                                                            } else {
+                                                                setFromDate(range.startDate)
+                                                                setToDate(range.endDate)
+                                                                // 두 날짜 모두 선택되면 자동 중복 확인
+                                                                if (range.startDate && range.endDate) {
+                                                                    handleDuplicateCheck(range.startDate, range.endDate)
+                                                                }
+                                                            }
+                                                            setShowDateError(false)
+                                                            setShowDateSuccess(false)
+                                                            if (errors.fromDate || errors.toDate || errors.dateCheck) {
+                                                                setErrors(prev => ({ ...prev, fromDate: undefined, toDate: undefined, dateCheck: undefined }))
+                                                            }
+                                                        }}
+                                                        minDate={isInProgress ? new Date() : undefined}
+                                                        error={showDateError || !!(errors.fromDate || errors.toDate || errors.dateCheck)}
+                                                        helpText={
+                                                            isChecking
+                                                                ? '중복 확인 중...'
+                                                                : showDateError
+                                                                    ? dateCheckMessage ?? undefined
+                                                                    : showDateSuccess
+                                                                        ? dateCheckMessage ?? undefined
+                                                                        : errors.fromDate || errors.toDate || errors.dateCheck
+                                                        }
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

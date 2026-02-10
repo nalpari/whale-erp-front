@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query"
+import { useQuery, useQueries, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import api from "@/lib/api"
 import { plansKeys, type PlansListParams } from "./query-keys"
 import { PlansListResponse, PlanDetailResponse, UpdatePlanHeaderRequest, PlanPricing, CreatePlanPricingRequest, CreatePlanPricingResponse, UpdatePlanPricingRequest } from '@/types/plans'
@@ -17,6 +17,22 @@ export const usePlansList = (params: PlansListParams, enabled = true) => {
         },
         enabled,
         placeholderData: keepPreviousData,
+    })
+}
+
+// 비교 팝업용 전체 요금제 상세 병렬 조회
+export const usePlansComparison = (planIds: number[], enabled = true) => {
+    return useQueries({
+        queries: planIds.map(id => ({
+            queryKey: plansKeys.detail(id),
+            queryFn: async () => {
+                const response = await api.get<ApiResponse<PlanDetailResponse>>(
+                    `/api/v1/subscription/plans/${id}`
+                )
+                return response.data.data
+            },
+            enabled: enabled && id > 0,
+        })),
     })
 }
 
@@ -48,6 +64,7 @@ export const useUpdatePlanHeader = () => {
         },
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: plansKeys.detail(id) })
+            queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
 }
@@ -66,13 +83,16 @@ export const useCheckPlanPricingDuplicate = () => {
             activeUntil: string
             excludePricingId?: number  // 수정 시 자기 자신 제외
         }) => {
-            const response = await api.get<ApiResponse<PlanPricing[]>>(
+            const response = await api.get<ApiResponse<{ content: PlanPricing[] }>>(
                 `/api/v1/subscription/plans/${planId}/pricings`,
                 { params: { activeFrom, activeUntil, excludePricingId } }
             )
+            const filtered = excludePricingId
+                ? response.data.data.content.filter(p => p.id !== excludePricingId)
+                : response.data.data.content
             return {
-                isDuplicate: response.data.data.length >= 1,
-                duplicates: response.data.data,
+                isDuplicate: filtered.length >= 1,
+                duplicates: filtered,
             }
         },
     })
@@ -98,6 +118,7 @@ export const useCreatePlanPricing = () => {
         },
         onSuccess: (_, { planId }) => {
             queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+            queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
 }
@@ -124,6 +145,7 @@ export const useUpdatePlanPricing = () => {
         },
         onSuccess: (_, { planId }) => {
             queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+            queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
 }
@@ -134,10 +156,14 @@ export const useDeletePlanPricing = () => {
 
     return useMutation({
         mutationFn: async ({ planId, pricingId }: { planId: number; pricingId: number }) => {
-            await api.delete(`/api/v1/subscription/plans/${planId}/pricings/${pricingId}`)
+            const response = await api.delete<ApiResponse<PlanPricing[]>>(
+                `/api/v1/subscription/plans/${planId}/pricings/${pricingId}`
+            )
+            return response.data.data
         },
         onSuccess: (_, { planId }) => {
             queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+            queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
 }

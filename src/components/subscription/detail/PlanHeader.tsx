@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import Location from '@/components/ui/Location'
-import { Input } from '@/components/common/ui'
+import { Input, useAlert } from '@/components/common/ui'
 import { usePlanDetail, useUpdatePlanHeader } from '@/hooks/queries'
 import { PlanDetailResponse, UpdatePlanHeaderRequest } from '@/types/plans'
 import { useCommonCode } from '@/hooks/useCommonCode'
@@ -17,6 +17,7 @@ interface PlanHeaderProps {
 
 export default function PlanHeader({ planId }: PlanHeaderProps) {
     const router = useRouter()
+    const { alert } = useAlert()
     const { data: plan, isPending, error } = usePlanDetail(planId)
     const updateMutation = useUpdatePlanHeader()
     const { children: planFeatures, loading: planFeaturesLoading } = useCommonCode('PLANFT')
@@ -31,6 +32,7 @@ export default function PlanHeader({ planId }: PlanHeaderProps) {
             router.push(`/subscription/${planId}`)
         } catch (err) {
             console.error('저장 실패:', err)
+            await alert('저장에 실패했습니다. 다시 시도해주세요.')
         }
     }
 
@@ -105,6 +107,7 @@ interface PlanHeaderFormProps {
 }
 
 function PlanHeaderForm({ plan, planFeatures, onCancel, onSave, isSaving }: PlanHeaderFormProps) {
+    const { confirm } = useAlert()
     const [slideboxOpen, setSlideboxOpen] = useState(true)
     const [storeLimit, setStoreLimit] = useState<number | null | undefined>(plan.storeLimit)
     const [employeeLimit, setEmployeeLimit] = useState<number | null | undefined>(plan.employeeLimit)
@@ -164,15 +167,18 @@ function PlanHeaderForm({ plan, planFeatures, onCancel, onSave, isSaving }: Plan
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSave = () => {
-        if (validate()) {
-            const payload: UpdatePlanHeaderRequest = {
-                storeLimit: storeLimit === undefined ? null : storeLimit,
-                employeeLimit: employeeLimit === undefined ? null : employeeLimit,
-                features: features.map(f => ({ featureCode: f.featureCode, enabled: f.enabled })),
-            }
-            onSave(payload)
+    const handleSave = async () => {
+        if (!validate()) return
+
+        const result = await confirm('수정하시겠습니까?')
+        if (!result) return
+
+        const payload: UpdatePlanHeaderRequest = {
+            storeLimit: storeLimit === undefined ? null : storeLimit,
+            employeeLimit: employeeLimit === undefined ? null : employeeLimit,
+            features: features.map(f => ({ featureCode: f.featureCode, enabled: f.enabled })),
         }
+        onSave(payload)
     }
 
     return (

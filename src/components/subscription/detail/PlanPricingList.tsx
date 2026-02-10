@@ -5,6 +5,7 @@ import { ColDef, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import { PlanPricing } from '@/types/plans'
 import { useDeletePlanPricing } from '@/hooks/queries/use-plans-queries'
+import { useAlert } from '@/components/common/ui'
 
 interface PlanPricingListProps {
     planId: number
@@ -14,6 +15,7 @@ interface PlanPricingListProps {
 
 export default function PlanPricingList({ planId, planTypeName, pricingList }: PlanPricingListProps) {
     const router = useRouter()
+    const { alert, confirm } = useAlert()
     const { mutate: deletePricing, isPending: isDeleting } = useDeletePlanPricing()
 
     const handleAddPricing = () => {
@@ -39,6 +41,10 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
     }
 
     const handleRowClicked = (event: RowClickedEvent<PlanPricing>) => {
+        if (event.event?.target instanceof HTMLElement && event.event.target.closest('button')) {
+            return
+        }
+
         const data = event.data
         if (!data) return
 
@@ -49,8 +55,9 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
         }
     }
 
-    const handleDelete = (pricingId: number, title: string) => {
-        if (confirm(`[${title}] 가격 정책을 삭제하시겠습니까?`)) {
+    const handleDelete = async (pricingId: number, title: string) => {
+        const result = await confirm(`[${title}] 가격 정책을 삭제하시겠습니까?`)
+        if (result) {
             deletePricing(
                 { planId, pricingId },
                 {
@@ -112,7 +119,7 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
         {
             headerName: '',
             width: 100,
-            cellRenderer: (params: any) => {
+            cellRenderer: (params: { data: PlanPricing }) => {
                 const status = getStatus(params.data)
                 if (status === '대기') {
                     return (
