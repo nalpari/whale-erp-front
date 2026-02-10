@@ -60,25 +60,29 @@ export default function PartTimePayrollPage() {
     endDate: searchParams.endDate
   })
 
-  // React 19: derived state - API 응답의 employeeClassificationName 사용
-  const payrolls = (payrollData?.content || []).map(payroll => ({
-    id: payroll.id,
-    rowNumber: 0, // PartTimePayrollList에서 재계산됨
-    workStatus: payroll.workStatus || '',
-    headOffice: payroll.headOfficeName || '',
-    franchise: payroll.franchiseName || '',
-    store: payroll.storeName || '',
-    employeeName: payroll.memberName,
-    employeeClassification: payroll.employeeClassificationName
+  // React 19: derived state - 응답 데이터를 컴포넌트 데이터로 변환
+  const payrolls = (payrollData?.content || []).map(payroll => {
+    const classificationName = payroll.employeeClassificationName
       || (payroll.employeeClassification ? classificationMap.get(payroll.employeeClassification) : undefined)
       || payroll.employeeClassification
-      || '',
-    workDays: formatWorkDays(payroll.workDays),
-    payrollDate: payroll.paymentDate,
-    registrationDate: payroll.createdAt?.split('T')[0] || '',
-    emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
-  }))
+      || ''
 
+    return {
+      id: payroll.id,
+      rowNumber: 0, // PartTimePayrollList에서 재계산됨
+      workStatus: payroll.workStatus || '',
+      headOffice: payroll.headOfficeName || '',
+      franchise: payroll.franchiseName || '',
+      store: payroll.storeName || '',
+      employeeName: payroll.memberName,
+      employeeClassification: classificationName,
+      workDays: formatWorkDays(payroll.workDays),
+      payrollDate: payroll.paymentDate,
+      registrationDate: payroll.createdAt?.split('T')[0] || '',
+      emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
+    }
+  })
+  
   const totalCount = payrollData?.totalElements || 0
   const totalPages = payrollData?.totalPages || 0
 
