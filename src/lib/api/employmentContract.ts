@@ -99,6 +99,8 @@ export interface EmploymentContractResponse {
   }
   createdAt: string
   updatedAt: string
+  createdByName?: string
+  updatedByName?: string
 }
 
 // 근로 계약 목록 응답 타입
