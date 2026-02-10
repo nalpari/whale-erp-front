@@ -1288,6 +1288,10 @@
       visibility: visible;
     }
   }
+  &.filter {
+    background-color: #e8edf5;
+    border: 1px solid #d5e1f3;
+  }
   .order-btn {
     display: block;
     width: 24px;
@@ -1512,6 +1516,7 @@
     @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
     color: #222;
     margin-top: 8px;
+    height: 48px;
     word-break: keep-all;
   }
 }

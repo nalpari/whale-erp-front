@@ -9,6 +9,7 @@ interface AuthStore extends AuthState {
   setAuthority: (authority: Record<string, unknown>) => void;
   setAffiliationId: (id: string | null) => void;
   setSubscriptionPlan: (plan: number) => void;
+  setUserInfo: (loginId: string, name: string, mobilePhone: string) => void;
   clearAuth: () => void;
 }
 
@@ -19,6 +20,9 @@ export const useAuthStore = create<AuthStore>()(
       refreshToken: null,
       authority: null,
       affiliationId: null,
+      loginId: null,
+      name: null,
+      mobilePhone: null,
       subscriptionPlan: 0,
       setTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken }),
@@ -26,7 +30,9 @@ export const useAuthStore = create<AuthStore>()(
       setAuthority: (authority) => set({ authority }),
       setAffiliationId: (id) => set({ affiliationId: id }),
       setSubscriptionPlan: (plan) => set({ subscriptionPlan: plan }),
-      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, subscriptionPlan: 0 }),
+      setUserInfo: (loginId, name, mobilePhone) =>
+        set({ loginId, name, mobilePhone }),
+      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, loginId: null, name: null, mobilePhone: null, subscriptionPlan: 0 }),
     }),
     {
       name: 'auth-storage',
