@@ -339,7 +339,7 @@ export default function EmployeeList({
         <div className="data-header-left"></div>
         <div className="data-header-right">
           <button className="btn-form basic" onClick={() => setIsPopupOpen(true)} type="button">
-            등록
+            직원 초대하기
           </button>
           <div className="data-count-select">
             <SearchSelect
