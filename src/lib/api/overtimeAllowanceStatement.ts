@@ -52,6 +52,9 @@ export interface OvertimeAllowanceStatementDetailResponse {
   paymentDate?: string
   remarks?: string
   details: OvertimeAllowanceItemDto[]
+  headOfficeName?: string
+  franchiseName?: string
+  storeName?: string
   isEmailSend?: boolean
   createdAt?: string
   updatedAt?: string

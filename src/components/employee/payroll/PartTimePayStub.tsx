@@ -148,16 +148,16 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     if (existingStatement && !isNewMode && !payrollMonth) {
       if (existingStatement.payrollYearMonth) {
         const yearMonth = existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
-         
+
         setPayrollMonth(yearMonth)
       }
-       
+
       if (existingStatement.settlementStartDate) setStartDate(existingStatement.settlementStartDate)
-       
+
       if (existingStatement.settlementEndDate) setEndDate(existingStatement.settlementEndDate)
-       
+
       if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
-       
+
       if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
     }
   }, [existingStatement, isNewMode, payrollMonth])
@@ -623,41 +623,47 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <td>
                   <div className="filed-flx">
                     <div className="block">
-                      <SearchSelect
-                        options={headquarterOptions}
-                        value={headquarterOptions.find(o => o.value === selectedHeadquarter) || null}
-                        onChange={(opt) => {
-                          setSelectedHeadquarter(opt?.value || '')
-                          setSelectedFranchise('')
-                          setSelectedStore('')
-                          setEmployeeInfoId(null)
-                          setPayrollMonth('')
-                          setStartDate('')
-                          setEndDate('')
-                          setPaymentDate('')
-                          setIsSearched(false)
-                        }}
-                        placeholder="본사 선택"
-                        isDisabled={!isEditMode}
-                      />
+                      {isEditMode ? (
+                        <SearchSelect
+                          options={headquarterOptions}
+                          value={headquarterOptions.find(o => o.value === selectedHeadquarter) || null}
+                          onChange={(opt) => {
+                            setSelectedHeadquarter(opt?.value || '')
+                            setSelectedFranchise('')
+                            setSelectedStore('')
+                            setEmployeeInfoId(null)
+                            setPayrollMonth('')
+                            setStartDate('')
+                            setEndDate('')
+                            setPaymentDate('')
+                            setIsSearched(false)
+                          }}
+                          placeholder="본사 선택"
+                        />
+                      ) : (
+                        <input type="text" className="input-frame" value={existingStatement?.headOfficeName || ''} readOnly />
+                      )}
                     </div>
                     <div className="block">
-                      <SearchSelect
-                        options={franchiseOptions}
-                        value={franchiseOptions.find(o => o.value === selectedFranchise) || null}
-                        onChange={(opt) => {
-                          setSelectedFranchise(opt?.value || '')
-                          setSelectedStore('')
-                          setEmployeeInfoId(null)
-                          setPayrollMonth('')
-                          setStartDate('')
-                          setEndDate('')
-                          setPaymentDate('')
-                          setIsSearched(false)
-                        }}
-                        placeholder="가맹점 선택"
-                        isDisabled={!isEditMode}
-                      />
+                      {isEditMode ? (
+                        <SearchSelect
+                          options={franchiseOptions}
+                          value={franchiseOptions.find(o => o.value === selectedFranchise) || null}
+                          onChange={(opt) => {
+                            setSelectedFranchise(opt?.value || '')
+                            setSelectedStore('')
+                            setEmployeeInfoId(null)
+                            setPayrollMonth('')
+                            setStartDate('')
+                            setEndDate('')
+                            setPaymentDate('')
+                            setIsSearched(false)
+                          }}
+                          placeholder="가맹점 선택"
+                        />
+                      ) : (
+                        <input type="text" className="input-frame" value={existingStatement?.franchiseName || ''} readOnly />
+                      )}
                     </div>
                   </div>
                 </td>
@@ -666,21 +672,24 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <th>점포 선택</th>
                 <td>
                   <div className="block">
-                    <SearchSelect
-                      options={storeOptions}
-                      value={storeOptions.find(o => o.value === selectedStore) || null}
-                      onChange={(opt) => {
-                        setSelectedStore(opt?.value || '')
-                        setEmployeeInfoId(null)
-                        setPayrollMonth('')
-                        setStartDate('')
-                        setEndDate('')
-                        setPaymentDate('')
-                        setIsSearched(false)
-                      }}
-                      placeholder="점포 선택"
-                      isDisabled={!isEditMode}
-                    />
+                    {isEditMode ? (
+                      <SearchSelect
+                        options={storeOptions}
+                        value={storeOptions.find(o => o.value === selectedStore) || null}
+                        onChange={(opt) => {
+                          setSelectedStore(opt?.value || '')
+                          setEmployeeInfoId(null)
+                          setPayrollMonth('')
+                          setStartDate('')
+                          setEndDate('')
+                          setPaymentDate('')
+                          setIsSearched(false)
+                        }}
+                        placeholder="점포 선택"
+                      />
+                    ) : (
+                      <input type="text" className="input-frame" value={existingStatement?.storeName || ''} readOnly />
+                    )}
                   </div>
                 </td>
               </tr>

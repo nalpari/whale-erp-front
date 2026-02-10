@@ -62,6 +62,9 @@ export interface PartTimerPayrollStatementResponse {
   isEmailSend: boolean
   paymentItems: PartTimerPaymentItemResponse[]
   weeklyPaidHolidayAllowances: WeeklyPaidHolidayAllowanceResponse[]
+  headOfficeName?: string
+  franchiseName?: string
+  storeName?: string
   createdAt?: string
   updatedAt?: string
   createdByName?: string
