@@ -28,6 +28,7 @@ export interface OvertimeAllowanceStatementResponse {
   franchiseName?: string
   storeName?: string
   employeeClassification?: string
+  employeeClassificationName?: string
   workDays?: string
   allowanceYearMonth: string
   paymentDate?: string
