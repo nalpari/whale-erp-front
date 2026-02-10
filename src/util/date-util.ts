@@ -35,13 +35,7 @@ export const formatDateDot = (value?: string | Date | null, fallback = '-') => {
 export const formatDateTime = (value?: string | Date | null, fallback = '-') => {
   const date = toDate(value)
   if (!date) return fallback
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())} ${padTwo(date.getHours())}:${padTwo(date.getMinutes())}`
 }
 
 /**
@@ -53,12 +47,5 @@ export const formatDateTime = (value?: string | Date | null, fallback = '-') => 
 export const formatDateTimeWithSeconds = (value?: string | Date | null, fallback = '-') => {
   const date = toDate(value)
   if (!date) return fallback
-  return date.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())} ${padTwo(date.getHours())}:${padTwo(date.getMinutes())}:${padTwo(date.getSeconds())}`
 }
