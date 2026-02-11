@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
-import { useStoreList, useStoreOptions, type StoreListParams } from '@/hooks/queries'
+import { useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListParams } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useStoreSearchStore } from '@/stores/store-search-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
+import { useAlert } from '@/components/common/ui/Alert'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
@@ -24,6 +25,9 @@ export default function StoreInfo() {
   const setPage = useStoreSearchStore((state) => state.setPage)
   const setPageSize = useStoreSearchStore((state) => state.setPageSize)
   const resetFilters = useStoreSearchStore((state) => state.resetFilters)
+
+  const { alert } = useAlert()
+  const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
 
   const storeParams: StoreListParams = useMemo(
     () => ({
@@ -65,8 +69,24 @@ export default function StoreInfo() {
     resetFilters()
   }
 
-  // 등록 페이지로 이동 전에 현재 검색 상태 저장
-  const handleRegister = () => {
+  // 등록 페이지로 이동 전에 구독 플랜 점포 등록 가능 여부 확인
+  const handleRegister = async () => {
+    const { data, isError } = await checkSubscribePlan()
+
+    if (isError || !data) {
+      await alert('구독 플랜 확인 중 오류가 발생했습니다.')
+      return
+    }
+
+    if (!data.canSave) {
+      await alert(
+        data.planName
+          ? `${data.planName} 플랜의 점포 등록 한도에 도달했습니다. 점포를 추가하려면 플랜 업그레이드가 필요합니다.`
+          : '점포를 등록하기 위해서는 회원 등급 업그레이드가 필요합니다.'
+      )
+      return
+    }
+
     router.push('/store/info/detail')
   }
 
@@ -112,6 +132,7 @@ export default function StoreInfo() {
           setPage(0)
         }}
         onRegister={handleRegister}
+        registerDisabled={checking}
         onOpenDetail={handleOpenDetail}
       />
     </div>
