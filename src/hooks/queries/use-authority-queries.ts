@@ -21,6 +21,7 @@ export function useAuthorityList(params: AuthorityListParams) {
   return useQuery({
     queryKey: authorityKeys.list(params),
     queryFn: ({ signal }) => fetchAuthorities(params, signal),
+    enabled: !!params.owner_group,
   })
 }
 

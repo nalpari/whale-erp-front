@@ -71,15 +71,11 @@ export default function AuthorityProgramTree({
   const ownerGroup = currentOwnerCode?.split('_').slice(0, 2).join('_')
 
   // 권한 목록 조회 (복사용 - 현재 owner_code와 동일한 권한만)
-  const { data: authorityListData } = useAuthorityList(
-    ownerGroup
-      ? {
-          owner_group: ownerGroup,
-          page: 1,
-          size: 100,
-        }
-      : { owner_group: '', page: 1, size: 100 }
-  )
+  const { data: authorityListData } = useAuthorityList({
+    owner_group: ownerGroup || '',
+    page: 1,
+    size: 100,
+  })
 
   // 선택된 권한 상세 조회 (복사용)
   const { data: selectedAuthority } = useAuthorityDetail(copyAuthorityId || 0)
@@ -274,6 +270,7 @@ export default function AuthorityProgramTree({
     if (!selectedAuthority?.details) return
 
     onChange(selectedAuthority.details)
+    setOpenItems(new Set(collectAllProgramIds(selectedAuthority.details)))
   }
 
   // 트리 노드 렌더링
