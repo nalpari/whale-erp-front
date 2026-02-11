@@ -608,7 +608,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                             min={1}
                             max={31}
                           />
-                          <span style={{ marginLeft: '4px' }}>일</span>
                         </div>
                       </div>
                     </td>
