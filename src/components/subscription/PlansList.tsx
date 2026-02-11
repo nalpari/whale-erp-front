@@ -3,9 +3,40 @@
 import { useRouter } from 'next/navigation'
 import { ColDef, RowClassParams, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
-import PlansComparisonPop from '@/components/subscription/PlansComparisonPop'
+import dynamic from 'next/dynamic'
+
+const PlansComparisonPop = dynamic(
+    () => import('@/components/subscription/PlansComparisonPop'),
+    { ssr: false }
+)
 import { PlansListItem } from '@/types/plans'
 import { useMemo, useState } from 'react'
+
+const COLUMN_DEFS: ColDef<PlansListItem>[] = [
+    { field: 'planTypeName', headerName: '요금제명', flex: 1 },
+    {
+        field: 'storeLimit',
+        headerName: '점포 *',
+        flex: 1,
+        valueFormatter: (params) => params.value === null ? '제한없음' : params.value,
+    },
+    {
+        field: 'employeeLimit',
+        headerName: '직원  *',
+        flex: 1,
+        valueFormatter: (params) => params.value === null ? '제한없음' : params.value,
+    },
+    { field: 'featureCount', headerName: '포함기능 *', flex: 1 },
+    { field: 'monthlyPrice', headerName: '1개월 요금 *', flex: 1 },
+    { field: 'sixMonthDiscountPrice', headerName: '6개월 요금', flex: 1 },
+    { field: 'yearlyDiscountPrice', headerName: '12개월 요금', flex: 1 },
+    { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => params.value?.toLocaleString() },
+    { field: 'updater', headerName: '수정자', flex: 1 },
+]
+
+const ROW_CLASS_RULES = {
+    'ag-no-data': (params: RowClassParams<PlansListItem>) => params.data?.monthlyPrice === null,
+}
 
 export default function PlansList({
     rows,
@@ -21,46 +52,10 @@ export default function PlansList({
 
     // 행 클릭 시 상세 페이지로 이동
     const handleRowClick = (event: RowClickedEvent<PlansListItem>) => {
-        console.log(event.data)
         if (event.data) {
             router.push(`/subscription/${event.data.planTypeId}`)
         }
     }
-
-    const rowClassRules = useMemo(() => {
-        return {
-            // data.price가 null이면 'ag-no-data' 클래스 적용
-            'ag-no-data': (params: RowClassParams<PlansListItem>) => params.data?.monthlyPrice === null
-        };
-    }, []);
-
-    const columnDefs: ColDef<PlansListItem>[] = [
-        {
-            field: 'planTypeName',
-            headerName: '요금제명',
-            flex: 1,
-        },
-        {
-            field: 'storeLimit',
-            headerName: '점포 *',
-            flex: 1,
-            valueFormatter: (params) =>
-                params.value === null ? '제한없음' : params.value,
-        },
-        {
-            field: 'employeeLimit',
-            headerName: '직원  *',
-            flex: 1,
-            valueFormatter: (params) =>
-                params.value === null ? '제한없음' : params.value,
-        },
-        { field: 'featureCount', headerName: '포함기능 *', flex: 1 },
-        { field: 'monthlyPrice', headerName: '1개월 요금 *', flex: 1 },
-        { field: 'sixMonthDiscountPrice', headerName: '6개월 요금', flex: 1 },
-        { field: 'yearlyDiscountPrice', headerName: '12개월 요금', flex: 1 },
-        { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => params.value?.toLocaleString() },
-        { field: 'updater', headerName: '수정자', flex: 1 },
-    ]
     return (
         <div className="data-list-wrap">
             <div className="data-list-header">
@@ -73,7 +68,7 @@ export default function PlansList({
             <div className="data-list-bx">
                 {error && <div className="form-helper error">{error}</div>}
                 {loading ? (
-                    <div></div>
+                    <div className="empty-wrap"><div className="empty-data">로딩중입니다</div></div>
                 ) : rows.length === 0 ? (
                     <div className="empty-wrap">
                         <div className="empty-data">검색 결과가 없습니다.</div>
@@ -81,8 +76,8 @@ export default function PlansList({
                 ) : (
                     <AgGrid
                         rowData={rows}
-                        columnDefs={columnDefs}
-                        rowClassRules={rowClassRules}
+                        columnDefs={COLUMN_DEFS}
+                        rowClassRules={ROW_CLASS_RULES}
                         onRowClicked={handleRowClick}
                     />
                 )}

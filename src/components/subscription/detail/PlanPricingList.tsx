@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ColDef, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
@@ -14,6 +15,23 @@ interface PlanPricingListProps {
     pricingList: PlanPricing[]
 }
 
+const getStatus = (data: PlanPricing) => {
+    if (!data?.startDate || !data?.endDate) return '-'
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const start = new Date(data.startDate)
+    start.setHours(0, 0, 0, 0)
+
+    const end = new Date(data.endDate)
+    end.setHours(0, 0, 0, 0)
+
+    if (today < start) return '대기'
+    if (today > end) return '종료'
+    return '진행'
+}
+
 export default function PlanPricingList({ planId, planTypeId, planTypeName, pricingList }: PlanPricingListProps) {
     const router = useRouter()
     const { alert, confirm } = useAlert()
@@ -22,23 +40,6 @@ export default function PlanPricingList({ planId, planTypeId, planTypeName, pric
     const handleAddPricing = () => {
         const params = new URLSearchParams({ planTypeName })
         router.push(`/subscription/${planTypeId}/pricing/create?${params.toString()}`)
-    }
-
-    const getStatus = (data: PlanPricing) => {
-        if (!data?.startDate || !data?.endDate) return '-'
-
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
-        const start = new Date(data.startDate)
-        start.setHours(0, 0, 0, 0)
-
-        const end = new Date(data.endDate)
-        end.setHours(0, 0, 0, 0)
-
-        if (today < start) return '대기'
-        if (today > end) return '종료'
-        return '진행'
     }
 
     const handleRowClicked = (event: RowClickedEvent<PlanPricing>) => {
@@ -56,7 +57,7 @@ export default function PlanPricingList({ planId, planTypeId, planTypeName, pric
         }
     }
 
-    const handleDelete = async (pricingId: number, title: string) => {
+    const handleDelete = useCallback(async (pricingId: number, title: string) => {
         const result = await confirm(`[${title}] 가격 정책을 삭제하시겠습니까?`)
         if (result) {
             deletePricing(
@@ -72,9 +73,9 @@ export default function PlanPricingList({ planId, planTypeId, planTypeName, pric
                 },
             )
         }
-    }
+    }, [confirm, deletePricing, alert, planId, planTypeId])
 
-    const columnDefs: ColDef<PlanPricing>[] = [
+    const columnDefs: ColDef<PlanPricing>[] = useMemo(() => [
         {
             field: 'title',
             headerName: '제목',
@@ -142,7 +143,7 @@ export default function PlanPricingList({ planId, planTypeId, planTypeName, pric
                 return null
             },
         },
-    ]
+    ], [isDeleting, handleDelete])
 
     return (
         <div className="data-list-wrap">

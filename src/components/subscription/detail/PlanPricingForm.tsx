@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import { Input, useAlert } from '@/components/common/ui'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useCheckPlanPricingDuplicate, useCreatePlanPricing, useUpdatePlanPricing } from '@/hooks/queries/use-plans-queries'
 import type { CreatePlanPricingRequest, PlanPricing } from '@/types/plans'
 import { format } from 'date-fns'
@@ -30,6 +30,18 @@ interface ValidationErrors {
     sixMonthDiscount?: string
     twelveMonthPrice?: string
     twelveMonthDiscount?: string
+}
+
+interface PeriodPricing {
+    price: number | undefined
+    discountEnabled: boolean
+    discountType: 'rate' | 'amount'
+    discountValue: number | undefined
+    discountResult: {
+        totalPrice: number
+        discountAmount: number
+        finalPrice: number
+    } | null
 }
 
 export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode, initialData, pricingId }: PlanPricingFormProps) {
@@ -74,39 +86,23 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
     const [tempSixMonth, setTempSixMonth] = useState(false)
     const [tempTwelveMonth, setTempTwelveMonth] = useState(false)
 
-    // 6개월 요금 상태
-    const [sixMonthPrice, setSixMonthPrice] = useState<number | undefined>(initialData?.sixMonthPrice ?? undefined)
-    const [sixMonthDiscountEnabled, setSixMonthDiscountEnabled] = useState(
-        initialData?.sixMonthDiscountRate != null || initialData?.sixMonthDiscountPrice != null
-    )
-    const [sixMonthDiscountType, setSixMonthDiscountType] = useState<'rate' | 'amount'>(
-        initialData?.sixMonthDiscountPrice != null ? 'amount' : 'rate'
-    )
-    const [sixMonthDiscountValue, setSixMonthDiscountValue] = useState<number | undefined>(
-        initialData?.sixMonthDiscountRate ?? initialData?.sixMonthDiscountPrice ?? undefined
-    )
-    const [sixMonthDiscountResult, setSixMonthDiscountResult] = useState<{
-        totalPrice: number
-        discountAmount: number
-        finalPrice: number
-    } | null>(null)
+    // 6개월 요금 상태 (그룹)
+    const [sixMonth, setSixMonth] = useState<PeriodPricing>(() => ({
+        price: initialData?.sixMonthPrice ?? undefined,
+        discountEnabled: initialData?.sixMonthDiscountRate != null || initialData?.sixMonthDiscountPrice != null,
+        discountType: initialData?.sixMonthDiscountPrice != null ? 'amount' : 'rate',
+        discountValue: initialData?.sixMonthDiscountRate ?? initialData?.sixMonthDiscountPrice ?? undefined,
+        discountResult: null,
+    }))
 
-    // 12개월 요금 상태
-    const [twelveMonthPrice, setTwelveMonthPrice] = useState<number | undefined>(initialData?.yearlyPrice ?? undefined)
-    const [twelveMonthDiscountEnabled, setTwelveMonthDiscountEnabled] = useState(
-        initialData?.yearlyDiscountRate != null || initialData?.yearlyDiscountPrice != null
-    )
-    const [twelveMonthDiscountType, setTwelveMonthDiscountType] = useState<'rate' | 'amount'>(
-        initialData?.yearlyDiscountPrice != null ? 'amount' : 'rate'
-    )
-    const [twelveMonthDiscountValue, setTwelveMonthDiscountValue] = useState<number | undefined>(
-        initialData?.yearlyDiscountRate ?? initialData?.yearlyDiscountPrice ?? undefined
-    )
-    const [twelveMonthDiscountResult, setTwelveMonthDiscountResult] = useState<{
-        totalPrice: number
-        discountAmount: number
-        finalPrice: number
-    } | null>(null)
+    // 12개월 요금 상태 (그룹)
+    const [twelveMonth, setTwelveMonth] = useState<PeriodPricing>(() => ({
+        price: initialData?.yearlyPrice ?? undefined,
+        discountEnabled: initialData?.yearlyDiscountRate != null || initialData?.yearlyDiscountPrice != null,
+        discountType: initialData?.yearlyDiscountPrice != null ? 'amount' : 'rate',
+        discountValue: initialData?.yearlyDiscountRate ?? initialData?.yearlyDiscountPrice ?? undefined,
+        discountResult: null,
+    }))
 
     const { mutateAsync: checkDuplicate, isPending: isChecking } = useCheckPlanPricingDuplicate()
     const { mutateAsync: createPricing, isPending: isCreating } = useCreatePlanPricing()
@@ -163,13 +159,13 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
 
         // 6개월 요금 검증
         if (enableSixMonth) {
-            if (sixMonthPrice === undefined) {
+            if (sixMonth.price === undefined) {
                 newErrors.sixMonthPrice = '6개월 요금을 입력해주세요.'
             }
-            if (sixMonthDiscountEnabled) {
-                if (sixMonthDiscountValue === undefined) {
+            if (sixMonth.discountEnabled) {
+                if (sixMonth.discountValue === undefined) {
                     newErrors.sixMonthDiscount = '6개월 할인 값을 입력해주세요.'
-                } else if (sixMonthDiscountResult && sixMonthDiscountResult.finalPrice <= 0) {
+                } else if (sixMonth.discountResult && sixMonth.discountResult.finalPrice <= 0) {
                     newErrors.sixMonthDiscount = '할인 금액이 총액보다 크거나 같습니다. 할인 값을 조정해주세요.'
                 }
             }
@@ -177,13 +173,13 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
 
         // 12개월 요금 검증
         if (enableTwelveMonth) {
-            if (twelveMonthPrice === undefined) {
+            if (twelveMonth.price === undefined) {
                 newErrors.twelveMonthPrice = '12개월 요금을 입력해주세요.'
             }
-            if (twelveMonthDiscountEnabled) {
-                if (twelveMonthDiscountValue === undefined) {
+            if (twelveMonth.discountEnabled) {
+                if (twelveMonth.discountValue === undefined) {
                     newErrors.twelveMonthDiscount = '12개월 할인 값을 입력해주세요.'
-                } else if (twelveMonthDiscountResult && twelveMonthDiscountResult.finalPrice <= 0) {
+                } else if (twelveMonth.discountResult && twelveMonth.discountResult.finalPrice <= 0) {
                     newErrors.twelveMonthDiscount = '할인 금액이 총액보다 크거나 같습니다. 할인 값을 조정해주세요.'
                 }
             }
@@ -204,22 +200,22 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
         // 6개월 할인 필드 설정 (배타적)
         let sixMonthDiscountRate: number | null = null
         let sixMonthDiscountPrice: number | null = null
-        if (enableSixMonth && sixMonthDiscountEnabled && sixMonthDiscountValue) {
-            if (sixMonthDiscountType === 'rate') {
-                sixMonthDiscountRate = sixMonthDiscountValue
+        if (enableSixMonth && sixMonth.discountEnabled && sixMonth.discountValue) {
+            if (sixMonth.discountType === 'rate') {
+                sixMonthDiscountRate = sixMonth.discountValue
             } else {
-                sixMonthDiscountPrice = sixMonthDiscountValue
+                sixMonthDiscountPrice = sixMonth.discountValue
             }
         }
 
         // 12개월 할인 필드 설정 (배타적)
         let yearlyDiscountRate: number | null = null
         let yearlyDiscountPrice: number | null = null
-        if (enableTwelveMonth && twelveMonthDiscountEnabled && twelveMonthDiscountValue) {
-            if (twelveMonthDiscountType === 'rate') {
-                yearlyDiscountRate = twelveMonthDiscountValue
+        if (enableTwelveMonth && twelveMonth.discountEnabled && twelveMonth.discountValue) {
+            if (twelveMonth.discountType === 'rate') {
+                yearlyDiscountRate = twelveMonth.discountValue
             } else {
-                yearlyDiscountPrice = twelveMonthDiscountValue
+                yearlyDiscountPrice = twelveMonth.discountValue
             }
         }
 
@@ -228,10 +224,10 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
             startDate: format(fromDate!, 'yyyy-MM-dd'),
             endDate: format(toDate!, 'yyyy-MM-dd'),
             monthlyPrice: monthlyPrice!,
-            sixMonthPrice: enableSixMonth ? sixMonthPrice! : null,
+            sixMonthPrice: enableSixMonth ? sixMonth.price! : null,
             sixMonthDiscountRate,
             sixMonthDiscountPrice,
-            yearlyPrice: enableTwelveMonth ? twelveMonthPrice! : null,
+            yearlyPrice: enableTwelveMonth ? twelveMonth.price! : null,
             yearlyDiscountRate,
             yearlyDiscountPrice,
         }
@@ -249,7 +245,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
         }
     }
 
-    const handleDuplicateCheck = async (start?: Date | null, end?: Date | null) => {
+    const handleDuplicateCheck = useCallback(async (start?: Date | null, end?: Date | null) => {
         const checkFrom = start ?? fromDate
         const checkTo = end ?? toDate
 
@@ -283,11 +279,41 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
             setShowDateSuccess(false)
             setDateCheckMessage('중복 확인 중 오류가 발생했습니다.')
         }
-    }
+    }, [checkDuplicate, planId, mode, pricingId, fromDate, toDate, errors.dateCheck])
+
+    const handleDateRangeChange = useCallback((range: DateRange) => {
+        // 진행 중인 경우 종료일만 변경 가능
+        if (isInProgress) {
+            if (range.endDate) {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const selectedDate = new Date(range.endDate)
+                selectedDate.setHours(0, 0, 0, 0)
+
+                if (selectedDate < today) {
+                    setErrors(prev => ({ ...prev, toDate: '종료일은 오늘 이후여야 합니다.' }))
+                    return
+                }
+            }
+            setToDate(range.endDate)
+            if (fromDate && range.endDate) {
+                handleDuplicateCheck(fromDate, range.endDate)
+            }
+        } else {
+            setFromDate(range.startDate)
+            setToDate(range.endDate)
+            if (range.startDate && range.endDate) {
+                handleDuplicateCheck(range.startDate, range.endDate)
+            }
+        }
+        setShowDateError(false)
+        setShowDateSuccess(false)
+        setErrors(prev => ({ ...prev, fromDate: undefined, toDate: undefined, dateCheck: undefined }))
+    }, [isInProgress, fromDate, handleDuplicateCheck])
 
     const handleNumberInput = (
         value: string,
-        setter: React.Dispatch<React.SetStateAction<number | undefined>>,
+        setter: (val: number | undefined) => void,
     ) => {
         const filtered = value.replace(/[^0-9]/g, '')
         if (filtered === '') {
@@ -299,92 +325,76 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
 
     // 6개월 할인 계산
     const calculateSixMonthDiscount = () => {
-        if (!sixMonthDiscountValue) {
+        if (!sixMonth.discountValue) {
             setErrors(prev => ({ ...prev, sixMonthDiscount: '할인 값을 입력해주세요.' }))
-            setSixMonthDiscountResult(null)
+            setSixMonth(prev => ({ ...prev, discountResult: null }))
             return
         }
 
-        if (!sixMonthPrice) {
+        if (!sixMonth.price) {
             setErrors(prev => ({ ...prev, sixMonthPrice: '6개월 요금을 입력해주세요.' }))
-            setSixMonthDiscountResult(null)
+            setSixMonth(prev => ({ ...prev, discountResult: null }))
             return
         }
 
-        const totalPrice = sixMonthPrice * 6
+        const totalPrice = sixMonth.price * 6
         let discountAmount: number
 
-        if (sixMonthDiscountType === 'rate') {
-            discountAmount = Math.floor(totalPrice * (sixMonthDiscountValue / 100))
+        if (sixMonth.discountType === 'rate') {
+            discountAmount = Math.floor(totalPrice * (sixMonth.discountValue / 100))
         } else {
-            discountAmount = sixMonthDiscountValue
+            discountAmount = sixMonth.discountValue
         }
 
         const finalPrice = totalPrice - discountAmount
 
         if (finalPrice <= 0) {
             setErrors(prev => ({ ...prev, sixMonthDiscount: '할인 금액이 총액보다 크거나 같습니다. 할인 값을 조정해주세요.' }))
-            setSixMonthDiscountResult({
-                totalPrice,
-                discountAmount,
-                finalPrice: 0,
-            })
+            setSixMonth(prev => ({ ...prev, discountResult: { totalPrice, discountAmount, finalPrice: 0 } }))
             return
         }
 
         // 에러 초기화
         setErrors(prev => ({ ...prev, sixMonthDiscount: undefined }))
 
-        setSixMonthDiscountResult({
-            totalPrice,
-            discountAmount,
-            finalPrice,
-        })
+        setSixMonth(prev => ({ ...prev, discountResult: { totalPrice, discountAmount, finalPrice } }))
     }
 
     // 12개월 할인 계산
     const calculateTwelveMonthDiscount = () => {
-        if (!twelveMonthDiscountValue) {
+        if (!twelveMonth.discountValue) {
             setErrors(prev => ({ ...prev, twelveMonthDiscount: '할인 값을 입력해주세요.' }))
-            setTwelveMonthDiscountResult(null)
+            setTwelveMonth(prev => ({ ...prev, discountResult: null }))
             return
         }
 
-        if (!twelveMonthPrice) {
+        if (!twelveMonth.price) {
             setErrors(prev => ({ ...prev, twelveMonthPrice: '12개월 요금을 입력해주세요.' }))
-            setTwelveMonthDiscountResult(null)
+            setTwelveMonth(prev => ({ ...prev, discountResult: null }))
             return
         }
 
-        const totalPrice = twelveMonthPrice * 12
+        const totalPrice = twelveMonth.price * 12
         let discountAmount: number
 
-        if (twelveMonthDiscountType === 'rate') {
-            discountAmount = Math.floor(totalPrice * (twelveMonthDiscountValue / 100))
+        if (twelveMonth.discountType === 'rate') {
+            discountAmount = Math.floor(totalPrice * (twelveMonth.discountValue / 100))
         } else {
-            discountAmount = twelveMonthDiscountValue
+            discountAmount = twelveMonth.discountValue
         }
 
         const finalPrice = totalPrice - discountAmount
 
         if (finalPrice <= 0) {
             setErrors(prev => ({ ...prev, twelveMonthDiscount: '할인 금액이 총액보다 크거나 같습니다. 할인 값을 조정해주세요.' }))
-            setTwelveMonthDiscountResult({
-                totalPrice,
-                discountAmount,
-                finalPrice: 0,
-            })
+            setTwelveMonth(prev => ({ ...prev, discountResult: { totalPrice, discountAmount, finalPrice: 0 } }))
             return
         }
 
         // 에러 초기화
         setErrors(prev => ({ ...prev, twelveMonthDiscount: undefined }))
 
-        setTwelveMonthDiscountResult({
-            totalPrice,
-            discountAmount,
-            finalPrice,
-        })
+        setTwelveMonth(prev => ({ ...prev, discountResult: { totalPrice, discountAmount, finalPrice } }))
     }
 
     // 팝업 열기
@@ -403,20 +413,12 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
     const handleConfirmAddPrice = () => {
         // 6개월이 비활성화되면 데이터 초기화
         if (enableSixMonth && !tempSixMonth) {
-            setSixMonthPrice(undefined)
-            setSixMonthDiscountEnabled(false)
-            setSixMonthDiscountType('rate')
-            setSixMonthDiscountValue(undefined)
-            setSixMonthDiscountResult(null)
+            setSixMonth({ price: undefined, discountEnabled: false, discountType: 'rate', discountValue: undefined, discountResult: null })
         }
 
         // 12개월이 비활성화되면 데이터 초기화
         if (enableTwelveMonth && !tempTwelveMonth) {
-            setTwelveMonthPrice(undefined)
-            setTwelveMonthDiscountEnabled(false)
-            setTwelveMonthDiscountType('rate')
-            setTwelveMonthDiscountValue(undefined)
-            setTwelveMonthDiscountResult(null)
+            setTwelveMonth({ price: undefined, discountEnabled: false, discountType: 'rate', discountValue: undefined, discountResult: null })
         }
 
         setEnableSixMonth(tempSixMonth)
@@ -475,39 +477,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                     <RangeDatePicker
                                                         startDate={fromDate}
                                                         endDate={toDate}
-                                                        onChange={(range: DateRange) => {
-                                                            // 진행 중인 경우 종료일만 변경 가능
-                                                            if (isInProgress) {
-                                                                if (range.endDate) {
-                                                                    const today = new Date()
-                                                                    today.setHours(0, 0, 0, 0)
-                                                                    const selectedDate = new Date(range.endDate)
-                                                                    selectedDate.setHours(0, 0, 0, 0)
-
-                                                                    if (selectedDate < today) {
-                                                                        setErrors(prev => ({ ...prev, toDate: '종료일은 오늘 이후여야 합니다.' }))
-                                                                        return
-                                                                    }
-                                                                }
-                                                                setToDate(range.endDate)
-                                                                // 시작일은 기존 값 유지, 종료일이 변경되면 자동 중복 확인
-                                                                if (fromDate && range.endDate) {
-                                                                    handleDuplicateCheck(fromDate, range.endDate)
-                                                                }
-                                                            } else {
-                                                                setFromDate(range.startDate)
-                                                                setToDate(range.endDate)
-                                                                // 두 날짜 모두 선택되면 자동 중복 확인
-                                                                if (range.startDate && range.endDate) {
-                                                                    handleDuplicateCheck(range.startDate, range.endDate)
-                                                                }
-                                                            }
-                                                            setShowDateError(false)
-                                                            setShowDateSuccess(false)
-                                                            if (errors.fromDate || errors.toDate || errors.dateCheck) {
-                                                                setErrors(prev => ({ ...prev, fromDate: undefined, toDate: undefined, dateCheck: undefined }))
-                                                            }
-                                                        }}
+                                                        onChange={handleDateRangeChange}
                                                         minDate={isInProgress ? new Date() : undefined}
                                                         error={showDateError || !!(errors.fromDate || errors.toDate || errors.dateCheck)}
                                                         helpText={
@@ -566,9 +536,9 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 <Input
                                                     type="text"
                                                     inputMode="numeric"
-                                                    value={sixMonthPrice ?? ''}
+                                                    value={sixMonth.price ?? ''}
                                                     onChange={(e) => {
-                                                        handleNumberInput(e.target.value, setSixMonthPrice)
+                                                        handleNumberInput(e.target.value, (v) => setSixMonth(prev => ({ ...prev, price: v })))
                                                         if (errors.sixMonthPrice) {
                                                             setErrors(prev => ({ ...prev, sixMonthPrice: undefined }))
                                                         }
@@ -580,7 +550,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                         <>
                                                             <Input
                                                                 type="text"
-                                                                value={sixMonthPrice ? (sixMonthPrice * 6).toLocaleString() : ''}
+                                                                value={sixMonth.price ? (sixMonth.price * 6).toLocaleString() : ''}
                                                                 readOnly
                                                             />
                                                             <div className="toggle-wrap">
@@ -589,16 +559,15 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                                     <input
                                                                         type="checkbox"
                                                                         id="toggle-btn-six"
-                                                                        checked={sixMonthDiscountEnabled}
+                                                                        checked={sixMonth.discountEnabled}
                                                                         onChange={(e) => {
-                                                                            setSixMonthDiscountEnabled(e.target.checked)
                                                                             if (!e.target.checked) {
-                                                                                setSixMonthDiscountType('rate')
-                                                                                setSixMonthDiscountValue(undefined)
-                                                                                setSixMonthDiscountResult(null)
+                                                                                setSixMonth(prev => ({ ...prev, discountEnabled: false, discountType: 'rate', discountValue: undefined, discountResult: null }))
                                                                                 if (errors.sixMonthDiscount) {
                                                                                     setErrors(prev => ({ ...prev, sixMonthDiscount: undefined }))
                                                                                 }
+                                                                            } else {
+                                                                                setSixMonth(prev => ({ ...prev, discountEnabled: true }))
                                                                             }
                                                                         }}
                                                                     />
@@ -610,29 +579,29 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 />
                                             </td>
                                         </tr>
-                                        {sixMonthDiscountEnabled && (
+                                        {sixMonth.discountEnabled && (
                                             <tr>
                                                 <th>요금할인 <span className="red">*</span></th>
                                                 <td>
                                                     <Input
                                                         type="text"
                                                         inputMode="numeric"
-                                                        value={sixMonthDiscountValue ?? ''}
+                                                        value={sixMonth.discountValue ?? ''}
                                                         onChange={(e) => {
-                                                            handleNumberInput(e.target.value, setSixMonthDiscountValue)
+                                                            handleNumberInput(e.target.value, (v) => setSixMonth(prev => ({ ...prev, discountValue: v })))
                                                             if (errors.sixMonthDiscount) {
                                                                 setErrors(prev => ({ ...prev, sixMonthDiscount: undefined }))
                                                             }
                                                         }}
                                                         placeholder="숫자를 입력하세요"
                                                         error={!!errors.sixMonthDiscount}
-                                                        helpText={errors.sixMonthDiscount || (sixMonthDiscountResult ? `${sixMonthDiscountResult.totalPrice.toLocaleString()} – (할인) ${sixMonthDiscountResult.discountAmount.toLocaleString()}원 = ${sixMonthDiscountResult.finalPrice.toLocaleString()}원` : undefined)}
+                                                        helpText={errors.sixMonthDiscount || (sixMonth.discountResult ? `${sixMonth.discountResult.totalPrice.toLocaleString()} – (할인) ${sixMonth.discountResult.discountAmount.toLocaleString()}원 = ${sixMonth.discountResult.finalPrice.toLocaleString()}원` : undefined)}
                                                         startAdornment={
                                                             <div className="mx-300">
                                                                 <select
                                                                     className="select-form"
-                                                                    value={sixMonthDiscountType}
-                                                                    onChange={(e) => setSixMonthDiscountType(e.target.value as 'rate' | 'amount')}
+                                                                    value={sixMonth.discountType}
+                                                                    onChange={(e) => setSixMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount' }))}
                                                                 >
                                                                     <option value="rate">할인율</option>
                                                                     <option value="amount">할인금액</option>
@@ -674,9 +643,9 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 <Input
                                                     type="text"
                                                     inputMode="numeric"
-                                                    value={twelveMonthPrice ?? ''}
+                                                    value={twelveMonth.price ?? ''}
                                                     onChange={(e) => {
-                                                        handleNumberInput(e.target.value, setTwelveMonthPrice)
+                                                        handleNumberInput(e.target.value, (v) => setTwelveMonth(prev => ({ ...prev, price: v })))
                                                         if (errors.twelveMonthPrice) {
                                                             setErrors(prev => ({ ...prev, twelveMonthPrice: undefined }))
                                                         }
@@ -688,7 +657,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                         <>
                                                             <Input
                                                                 type="text"
-                                                                value={twelveMonthPrice ? (twelveMonthPrice * 12).toLocaleString() : ''}
+                                                                value={twelveMonth.price ? (twelveMonth.price * 12).toLocaleString() : ''}
                                                                 readOnly
                                                             />
                                                             <div className="toggle-wrap">
@@ -697,16 +666,15 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                                     <input
                                                                         type="checkbox"
                                                                         id="toggle-btn-twelve"
-                                                                        checked={twelveMonthDiscountEnabled}
+                                                                        checked={twelveMonth.discountEnabled}
                                                                         onChange={(e) => {
-                                                                            setTwelveMonthDiscountEnabled(e.target.checked)
                                                                             if (!e.target.checked) {
-                                                                                setTwelveMonthDiscountType('rate')
-                                                                                setTwelveMonthDiscountValue(undefined)
-                                                                                setTwelveMonthDiscountResult(null)
+                                                                                setTwelveMonth(prev => ({ ...prev, discountEnabled: false, discountType: 'rate', discountValue: undefined, discountResult: null }))
                                                                                 if (errors.twelveMonthDiscount) {
                                                                                     setErrors(prev => ({ ...prev, twelveMonthDiscount: undefined }))
                                                                                 }
+                                                                            } else {
+                                                                                setTwelveMonth(prev => ({ ...prev, discountEnabled: true }))
                                                                             }
                                                                         }}
                                                                     />
@@ -718,29 +686,29 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 />
                                             </td>
                                         </tr>
-                                        {twelveMonthDiscountEnabled && (
+                                        {twelveMonth.discountEnabled && (
                                             <tr>
                                                 <th>요금할인 <span className="red">*</span></th>
                                                 <td>
                                                     <Input
                                                         type="text"
                                                         inputMode="numeric"
-                                                        value={twelveMonthDiscountValue ?? ''}
+                                                        value={twelveMonth.discountValue ?? ''}
                                                         onChange={(e) => {
-                                                            handleNumberInput(e.target.value, setTwelveMonthDiscountValue)
+                                                            handleNumberInput(e.target.value, (v) => setTwelveMonth(prev => ({ ...prev, discountValue: v })))
                                                             if (errors.twelveMonthDiscount) {
                                                                 setErrors(prev => ({ ...prev, twelveMonthDiscount: undefined }))
                                                             }
                                                         }}
                                                         placeholder="숫자를 입력하세요"
                                                         error={!!errors.twelveMonthDiscount}
-                                                        helpText={errors.twelveMonthDiscount || (twelveMonthDiscountResult ? `${twelveMonthDiscountResult.totalPrice.toLocaleString()} – (할인) ${twelveMonthDiscountResult.discountAmount.toLocaleString()}원 = ${twelveMonthDiscountResult.finalPrice.toLocaleString()}원` : undefined)}
+                                                        helpText={errors.twelveMonthDiscount || (twelveMonth.discountResult ? `${twelveMonth.discountResult.totalPrice.toLocaleString()} – (할인) ${twelveMonth.discountResult.discountAmount.toLocaleString()}원 = ${twelveMonth.discountResult.finalPrice.toLocaleString()}원` : undefined)}
                                                         startAdornment={
                                                             <div className="mx-300">
                                                                 <select
                                                                     className="select-form"
-                                                                    value={twelveMonthDiscountType}
-                                                                    onChange={(e) => setTwelveMonthDiscountType(e.target.value as 'rate' | 'amount')}
+                                                                    value={twelveMonth.discountType}
+                                                                    onChange={(e) => setTwelveMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount' }))}
                                                                 >
                                                                     <option value="rate">할인율</option>
                                                                     <option value="amount">할인금액</option>

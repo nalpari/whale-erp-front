@@ -27,8 +27,6 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
         isOpen
     )
 
-    console.log(detailQueries)
-
     // planTypeCode → PlanDetailResponse 매핑
     const planDetailMap = useMemo(() => {
         const map = new Map<string, PlanDetailResponse>()
@@ -152,9 +150,9 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
                                                 <td className="al-l">{feature.name}</td>
                                                 {planTypes.map(type => (
                                                     <td key={type.code}>
-                                                        {isFeatureEnabled(type.code, feature.code) && (
+                                                        {isFeatureEnabled(type.code, feature.code) ? (
                                                             <i className="comparison-check"></i>
-                                                        )}
+                                                        ) : null}
                                                     </td>
                                                 ))}
                                             </tr>

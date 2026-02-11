@@ -98,10 +98,10 @@ export default function PlanDetail({ planTypeId }: PlanDetailProps) {
                                             <tr>
                                                 <th>포함 기능</th>
                                                 <td>
-                                                    {plan.features
-                                                        .filter((feature) => feature.enabled)
-                                                        .map((feature) => feature.featureName)
-                                                        .join(' | ')}
+                                                    {plan.features.reduce<string[]>((acc, feature) => {
+                                                        if (feature.enabled) acc.push(feature.featureName)
+                                                        return acc
+                                                    }, []).join(' | ')}
                                                 </td>
                                             </tr>
 

@@ -48,14 +48,14 @@ export interface PlanPricing {
     startDate: Date
     endDate: Date
     monthlyPrice: number
-    sixMonthPrice: number
-    sixMonthDiscountRate: number
-    sixMonthDiscountPrice: number
-    sixMonthDiscount: number
-    yearlyPrice: number
-    yearlyDiscountRate: number
-    yearlyDiscountPrice: number
-    yearlyDiscount: number
+    sixMonthPrice: number | null
+    sixMonthDiscountRate: number | null
+    sixMonthDiscountPrice: number | null
+    sixMonthDiscount: number | null
+    yearlyPrice: number | null
+    yearlyDiscountRate: number | null
+    yearlyDiscountPrice: number | null
+    yearlyDiscount: number | null
 }
 export interface PlansListResponse {
     content: PlansListItem[] // 요금제 목록 데이터
