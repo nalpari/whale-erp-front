@@ -1,0 +1,393 @@
+/* Editor Component Styles */
+
+/* 컨테이너 */
+.editor-container {
+  width: 100%;
+}
+
+/* 에디터 래퍼 */
+.editor-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editor-wrapper:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.editor-wrapper.editor-error {
+  border-color: #ef4444;
+}
+
+.editor-wrapper.editor-error:focus-within {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.editor-wrapper.editor-disabled {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+}
+
+.editor-wrapper.editor-readonly {
+  background-color: #f9fafb;
+}
+
+/* 툴바 */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.editor-toolbar.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* 툴바 버튼 */
+.editor-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editor-toolbar-btn:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.editor-toolbar-btn:active:not(:disabled) {
+  background-color: #cbd5e1;
+}
+
+.editor-toolbar-btn.active {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+.editor-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.editor-toolbar-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* 툴바 구분선 */
+.editor-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 6px;
+  background-color: #e2e8f0;
+}
+
+/* 에디터 콘텐츠 영역 */
+.editor-content-area {
+  padding: 16px;
+  outline: none;
+  overflow-y: auto;
+}
+
+/* 에디터 기본 텍스트 스타일 */
+.editor-wrapper .tiptap {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1e293b;
+}
+
+/* 단락 */
+.editor-wrapper .tiptap p {
+  margin: 0 0 0.75em;
+}
+
+.editor-wrapper .tiptap p:last-child {
+  margin-bottom: 0;
+}
+
+/* 제목 */
+.editor-wrapper .tiptap h1,
+.editor-wrapper .tiptap h2,
+.editor-wrapper .tiptap h3 {
+  margin: 1.5em 0 0.5em;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+}
+
+.editor-wrapper .tiptap h1:first-child,
+.editor-wrapper .tiptap h2:first-child,
+.editor-wrapper .tiptap h3:first-child {
+  margin-top: 0;
+}
+
+.editor-wrapper .tiptap h1 {
+  font-size: 1.875em;
+}
+
+.editor-wrapper .tiptap h2 {
+  font-size: 1.5em;
+}
+
+.editor-wrapper .tiptap h3 {
+  font-size: 1.25em;
+}
+
+/* 굵은 텍스트 */
+.editor-wrapper .tiptap strong {
+  font-weight: 600;
+}
+
+/* 기울임 */
+.editor-wrapper .tiptap em {
+  font-style: italic;
+}
+
+/* 취소선 */
+.editor-wrapper .tiptap s {
+  text-decoration: line-through;
+}
+
+/* 인라인 코드 */
+.editor-wrapper .tiptap code {
+  padding: 0.2em 0.4em;
+  margin: 0 0.1em;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.875em;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  color: #e11d48;
+}
+
+/* 리스트 */
+.editor-wrapper .tiptap ul,
+.editor-wrapper .tiptap ol {
+  margin: 0.75em 0;
+  padding-left: 1.5em;
+}
+
+.editor-wrapper .tiptap ul {
+  list-style-type: disc;
+}
+
+.editor-wrapper .tiptap ol {
+  list-style-type: decimal;
+}
+
+.editor-wrapper .tiptap li {
+  margin: 0.25em 0;
+}
+
+.editor-wrapper .tiptap li p {
+  margin: 0;
+}
+
+/* 인용구 */
+.editor-wrapper .tiptap blockquote {
+  margin: 1em 0;
+  padding: 0.5em 0 0.5em 1em;
+  border-left: 4px solid #6366f1;
+  background-color: #f8fafc;
+  color: #475569;
+}
+
+.editor-wrapper .tiptap blockquote p {
+  margin: 0;
+}
+
+/* 코드 블록 */
+.editor-wrapper .tiptap pre {
+  margin: 1em 0;
+  padding: 1em;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 0.875em;
+  line-height: 1.5;
+  background-color: #1e293b;
+  border-radius: 8px;
+  color: #e2e8f0;
+  overflow-x: auto;
+}
+
+.editor-wrapper .tiptap pre code {
+  padding: 0;
+  margin: 0;
+  background-color: transparent;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* 가로줄 */
+.editor-wrapper .tiptap hr {
+  margin: 1.5em 0;
+  border: none;
+  border-top: 2px solid #e2e8f0;
+}
+
+/* 이미지 */
+.editor-wrapper .tiptap img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.editor-wrapper .tiptap img.ProseMirror-selectednode {
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Placeholder */
+.editor-wrapper .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+/* 드래그 오버 효과 */
+.editor-wrapper .tiptap.ProseMirror-focused {
+  outline: none;
+}
+
+/* 선택 스타일 */
+.editor-wrapper .tiptap ::selection {
+  background-color: #c7d2fe;
+}
+
+/* 링크 */
+.editor-wrapper .tiptap a {
+  color: #6366f1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.editor-wrapper .tiptap a:hover {
+  color: #4f46e5;
+}
+
+/* 툴바 없는 에디터 */
+.editor-wrapper.editor-no-toolbar .editor-content-area {
+  border-radius: 8px;
+}
+
+/* ===================== */
+/* 슬래시 명령어 스타일 */
+/* ===================== */
+
+/* 팝업 컨테이너 */
+.slash-command-popup {
+  position: absolute;
+  z-index: 9999;
+}
+
+/* 메뉴 */
+.slash-command-menu {
+  min-width: 280px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 빈 결과 */
+.slash-command-empty {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* 아이템 */
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s ease;
+}
+
+.slash-command-item:hover,
+.slash-command-item.selected {
+  background-color: #f1f5f9;
+}
+
+.slash-command-item.selected {
+  background-color: #e0e7ff;
+}
+
+/* 아이콘 */
+.slash-command-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.slash-command-item.selected .slash-command-icon {
+  background-color: #c7d2fe;
+  color: #4f46e5;
+}
+
+/* 콘텐츠 */
+.slash-command-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 제목 */
+.slash-command-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+/* 설명 */
+.slash-command-description {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

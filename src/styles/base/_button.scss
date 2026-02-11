@@ -1,16 +1,5 @@
 @use '../abstracts' as *;
 
-// 의미 없음
-.icon {
-  width: 24px;
-  height: 24px;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
-  background-image: url(/assets/images/common/btn_icon.svg);
-  margin-right: 8px;
-}
-
 /******************** btn-color 모음 *****************/
 .basic {
   background-color: $normal-back-color;
@@ -25,6 +14,63 @@
   }
   &:disabled {
     background-color: $normal-d-back-color;
+  }
+}
+.navy {
+  background-color: #32455d;
+  color: #fff;
+  &.hover,
+  &:hover {
+    background-color: #26374e;
+  }
+  &.active,
+  &:active {
+    background-color: #26374e;
+  }
+  &:disabled {
+    background-color: $normal-d-back-color;
+  }
+}
+.brd-blue {
+  background-color: $out-back-color;
+  color: #5e8ce9;
+  border: 1px solid #5e8ce9;
+  &.hover,
+  &:hover {
+    background-color: #5e8ce9;
+    color: #fff;
+    border-color: $out-h-back-color;
+  }
+  &:disabled {
+    background-color: $out-d-back-color;
+    color: $out-d-font-color;
+    border-color: $out-d-border-color;
+  }
+  &.act {
+    background-color: #5e8ce9;
+    color: #fff;
+    border-color: $out-h-back-color;
+  }
+}
+.brd-red {
+  background-color: $out-back-color;
+  color: #ff797b;
+  border: 1px solid #ffd9d9;
+  &.hover,
+  &:hover {
+    background-color: #ff797b;
+    color: #fff;
+    border-color: $out-h-back-color;
+  }
+  &:disabled {
+    background-color: $out-d-back-color;
+    color: $out-d-font-color;
+    border-color: $out-d-border-color;
+  }
+  &.act {
+    background-color: #ffd9d9;
+    color: #fff;
+    border-color: $out-h-back-color;
   }
 }
 .outline {
@@ -102,13 +148,20 @@
     @include btn-frame(32px, 18px, $font-ds-15, 24px);
   }
 }
+
+.s-btn {
+  @include btn-frame(35px, 12px, $font-ds-15, 24px);
+}
+
 .btn-log-frame {
-  @include btn-frame(56px, 10px, $n-btn-font, 24px);
-  background-color: #212121;
+  @include btn-frame(56px, 10px, 16px, 24px);
   font-weight: 600;
-  color: #fff;
-  &:hover {
-    background-color: #323232;
+  &.basic {
+    background-color: #77828d;
+  }
+  &.gray {
+    background-color: #ebedee;
+    color: #77828d;
   }
 }
 
@@ -145,4 +198,13 @@
   background-repeat: no-repeat;
   background-size: 10px 2px;
   background-position: center;
+}
+.down {
+  width: 16px;
+  height: 16px;
+  background-image: url(/assets/images/popup/down.svg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  margin-left: 4px;
 }

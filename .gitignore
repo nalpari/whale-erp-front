@@ -44,3 +44,24 @@ next-env.d.ts
 # Claude
 .claude
 .mcp.json
+
+# TestSprite
+/testsprite_tests
+
+# Dev Docs
+/docs
+
+# Auto Claude data directory
+.auto-claude/
+
+# Codex
+AGENTS.md
+
+# zenflow
+.zenflow
+
+# Interllij
+.idea
+
+# Playwright
+/.playwright-mcp

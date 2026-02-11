@@ -78,6 +78,49 @@
       text-decoration: underline;
     }
   }
+  .file-sumnail-list {
+    @include flex(25px);
+    overflow-x: auto;
+    padding-right: 5px;
+    padding-bottom: 10px;
+    &::-webkit-scrollbar {
+      height: 7px;
+    }
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: #a5a5a5;
+      border-radius: 50px;
+    }
+    &::-webkit-scrollbar-button {
+      display: none;
+    }
+  }
+  .file-sumnail-btn {
+    .sumnail-img {
+      position: relative;
+      border: 1px solid #ebebeb;
+      border-radius: 6px;
+      width: 200px;
+      height: 200px;
+    }
+    .sumnail-info {
+      @include flex(5px);
+      margin-top: 10px;
+      padding-left: 8px;
+      .sumnail-info-tit {
+        @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+        color: #366fe3;
+        text-decoration: underline;
+        @include ellipsis(2);
+      }
+      .file-delete {
+        flex: none;
+        margin-left: auto;
+      }
+    }
+  }
 }
 .default-txt {
   flex: none;
@@ -1171,6 +1214,9 @@
 }
 
 // 프로그램 계층 관리
+.hierarchy-select {
+  width: 200px;
+}
 .hierarchy-wrap {
   padding: 16px;
   border: 1px solid #ebebeb;
@@ -1236,10 +1282,15 @@
   transition: all 0.15s ease-in-out;
   &:hover {
     background-color: #f3f5f8;
+    .authority-check,
     .depth-btn-wrap {
       opacity: 1;
       visibility: visible;
     }
+  }
+  &.filter {
+    background-color: #e8edf5;
+    border: 1px solid #d5e1f3;
   }
   .order-btn {
     display: block;
@@ -1334,6 +1385,14 @@
       }
     }
   }
+  .authority-check {
+    @include flex(12px);
+    align-items: center;
+    justify-content: flex-end;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.15s ease-in-out;
+  }
 }
 
 // 메뉴 정보 공통코드
@@ -1365,5 +1424,268 @@
     display: block;
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-160);
     color: #333;
+  }
+}
+
+// 과금관리
+.pricing-check-wrap {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  .pricing-btn {
+    display: block;
+    width: 100%;
+    height: 42px;
+    padding: 0 5px;
+    border-radius: 6px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #9ba7ba;
+    transition: all 0.15s ease-in-out;
+    &:hover,
+    &.act {
+      background-color: #e5e9ed;
+      color: #5d748f;
+      border-color: #5d748f;
+    }
+  }
+}
+
+// bp 회원가입
+.subscrip-tit {
+  margin-bottom: 30px;
+  p {
+    @include fontDefinition($font-ds-20, $font-w-500, $line-h-140);
+    color: #222;
+  }
+}
+.subscrip-txt {
+  @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
+  color: #505050;
+  margin-bottom: 18px;
+}
+.subscrip-guide {
+  margin-top: 30px;
+  margin-bottom: 18px;
+  .subscrip-guide-tit {
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+    color: #222;
+    margin-bottom: 15px;
+  }
+  .subscrip-guide-cont {
+    p {
+      @include fontDefinition($font-ds-15, $font-w-400, $line-h-160);
+      color: #505050;
+    }
+  }
+}
+.subscrip-guide-link {
+  a {
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #366fe3;
+    text-decoration: underline;
+  }
+}
+.subscrip-form-footer {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.rate-plan-wrap {
+  @include flex(15px);
+  .rate-plan-item {
+    flex: 1;
+    padding: 34px 32px;
+    border: 1px solid #eee;
+    border-radius: 15px;
+    &.use {
+      border: 1px solid #366fe3;
+      background-color: #f5f8fd;
+    }
+  }
+}
+.rate-plan-header {
+  .plan-grade {
+    @include fontDefinition($font-ds-32, $font-w-700, $line-h-150);
+    color: #222;
+  }
+  .plan-function {
+    @include fontDefinition($font-ds-18, $font-w-600, $line-h-150);
+    color: #222;
+  }
+  .plan-explain {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #222;
+    margin-top: 8px;
+    height: 48px;
+    word-break: keep-all;
+  }
+}
+.rate-plan-cost {
+  margin-top: 34px;
+  .plan-btn-wrap {
+    margin-top: 16px;
+  }
+}
+.plan-cost-wrap {
+  @include flex(5px);
+  align-items: flex-end;
+  .plan-cost {
+    @include fontDefinition($font-ds-32, $font-w-700, 100%);
+    color: #222;
+  }
+  span {
+    @include fontDefinition($font-ds-15, $font-w-700, 100%);
+    color: #222;
+  }
+}
+
+.plan-list {
+  margin-top: 24px;
+  .plan-list-tit {
+    @include fontDefinition($font-ds-18, $font-w-700, $line-h-150);
+    color: #222;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eee;
+  }
+}
+.plan-item-list {
+  margin-top: 6px;
+  .plan-list-item {
+    position: relative;
+    margin-top: 12px;
+    padding-left: 28px;
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-150);
+    color: #222;
+    &:before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0;
+      width: 19px;
+      height: 19px;
+      background: url('/assets/images/contents/normal_plan.svg') no-repeat center;
+      background-size: cover;
+    }
+  }
+  &.additional {
+    .plan-list-item {
+      &:before {
+        background: url('/assets/images/contents/additional_plan.svg') no-repeat center;
+      }
+    }
+  }
+}
+// 공지사항
+
+.notice-list-wrap {
+  border-top: 2px solid #222;
+}
+
+.notice-list-btn {
+  width: 100%;
+  @include flex(0px);
+  align-items: center;
+  padding: 25px 8px;
+  border-bottom: 1px solid #eee;
+  transition: all 0.15s ease-in-out;
+  span {
+    display: block;
+  }
+  .notice-tit {
+    @include fontDefinition($font-ds-18, $font-w-400, $line-h-140);
+    color: #222;
+    transition: all 0.15s ease-in-out;
+  }
+  .notice-date {
+    margin-left: auto;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #505050;
+  }
+  &:hover {
+    background-color: #f9fbfe;
+    .notice-tit {
+      color: #366fe3;
+    }
+  }
+}
+.notice-empty {
+  padding: 45px 0;
+  text-align: center;
+  @include fontDefinition($font-ds-18, $font-w-400, $line-h-150);
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+// 문의하기
+.contact-wrap {
+  border-top: 2px solid #222;
+}
+.contact-filed {
+  margin-top: 32px;
+  .filed-item {
+    flex: 1;
+    .filed-tit {
+      @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
+      color: #222;
+      margin-bottom: 8px;
+      .s {
+        font-weight: $font-w-400;
+        color: #505050;
+      }
+    }
+    .filed-error {
+      @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+      color: #f00;
+    }
+  }
+  .textarea-form {
+    height: 240px;
+  }
+}
+
+.contact-filed-flx {
+  @include flex(10px);
+  align-items: flex-start;
+}
+
+.contact-check-wrap {
+  @include flex(8px);
+  align-items: center;
+  .contact-btn {
+    min-width: 120px;
+    height: 42px;
+    padding: 0 5px;
+    border-radius: 6px;
+    @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+    color: #9ba7ba;
+    transition: all 0.15s ease-in-out;
+    &:hover,
+    &.act {
+      background-color: #e5e9ed;
+      color: #5d748f;
+      border-color: #5d748f;
+    }
+  }
+}
+
+.contact-btn-wrap {
+  @include flex(8px);
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+// 계약 이력
+.contract-history-wrap {
+  .contract-history-header {
+    margin-bottom: 12px;
+    h2 {
+      @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
+      color: #222;
+    }
+  }
+  .contract-history-body {
+    border-bottom: 1px solid #ebebeb;
   }
 }

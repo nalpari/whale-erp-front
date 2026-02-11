@@ -37,7 +37,7 @@ header {
       content: '';
       position: absolute;
       top: 50%;
-      transform: translateY(-50%) rotate(180deg);
+      transform: translateY(-50%) rotate(90deg);
       right: 8px;
       width: 32px;
       height: 32px;
@@ -49,14 +49,6 @@ header {
       background-position: center center;
       background-size: 12px 7px;
       cursor: pointer;
-      transition: all 0.2s ease-in-out;
-    }
-  }
-  &.act {
-    .fulldown-menu-tit {
-      &::before {
-        transform: translateY(-50%) rotate(0deg);
-      }
     }
   }
 }
@@ -124,8 +116,12 @@ header {
       margin-bottom: 4px;
     }
     .data-name {
-      @include fontDefinition($font-ds-15, $font-w-500, $line-h-140);
+      @include fontDefinition($font-ds-15, $font-w-600, $line-h-140);
       color: #222;
+      span {
+        font-weight: $font-w-500;
+        color: #8f8f8f;
+      }
     }
     cursor: default;
   }
@@ -145,15 +141,15 @@ header {
     cursor: pointer;
   }
 }
-
-.my-data-list {
+.my-data-list-wrap {
   position: absolute;
   top: calc(100% + 14px);
   left: 0;
+  width: 100%;
   background-color: #fff;
   border: 1px solid #ebebeb;
   border-radius: 28px;
-  padding: 20px 24px;
+  padding: 18px 24px;
   &:before {
     content: '';
     position: absolute;
@@ -166,14 +162,20 @@ header {
     border-top: 1px solid #ebebeb;
     background-color: #fff;
   }
-  .my-data-item {
-    padding: 4px 0;
-  }
+}
+.my-data-list-tit {
+  @include fontDefinition($font-ds-18, $font-w-600, $line-h-140);
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.my-data-list {
+  padding-top: 20px;
   .my-data-item-btn {
     display: block;
     width: 100%;
     text-align: left;
-    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-200);
     color: #666;
     transition: all 0.15s ease-in-out;
     &.red {
@@ -181,10 +183,12 @@ header {
       font-weight: $font-w-600;
       &:hover {
         color: #e93737;
+        font-weight: $font-w-600;
       }
     }
     &:hover {
-      color: #222;
+      color: #111;
+      font-weight: $font-w-500;
     }
   }
 }
@@ -228,12 +232,6 @@ header {
       }
       &.icon02 {
         background-image: url('/assets/images/common/service_icon02.svg');
-      }
-      &.icon03 {
-        background-image: url('/assets/images/common/service_icon03.svg');
-      }
-      &.icon04 {
-        background-image: url('/assets/images/common/service_icon04.svg');
       }
       &.service-tab {
         background-image: url('/assets/images/common/service_tab.svg');

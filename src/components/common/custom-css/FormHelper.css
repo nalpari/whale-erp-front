@@ -1,0 +1,15 @@
+/* FormHelper Component Styles
+
+미구현 컴포넌트 스타일의 예시로 작성되었습니다.
+추후 퍼블리싱이 완료 된 이후 삭제 예정입니다.
+
+*/
+
+.form-helper {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 140%;
+  color: #777;
+}

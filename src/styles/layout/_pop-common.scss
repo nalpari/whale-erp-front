@@ -23,11 +23,43 @@
     &.small {
       max-width: 352px;
     }
+    &.medium {
+      max-width: 512px;
+    }
     &.large {
       max-width: 832px;
     }
     &.xl {
       max-width: 1032px;
+    }
+    &.mypage {
+      max-width: 1232px;
+      .modal-content {
+        border-radius: 30px;
+      }
+    }
+    &.notice {
+      max-width: 632px;
+      .modal-content {
+        .modal-header {
+          border-bottom: none;
+        }
+        .modal-body {
+          padding: 0 24px 24px;
+        }
+      }
+    }
+    &.contact {
+      max-width: 492px;
+      .modal-content {
+        border-radius: 30px;
+        .modal-header {
+          border-bottom: none;
+        }
+        .modal-body {
+          padding: 0 24px 42px;
+        }
+      }
     }
     .modal-content {
       flex: 1;
@@ -38,6 +70,9 @@
       outline: 0 none;
       pointer-events: auto;
       border-radius: 8px;
+      &.mypage-sub {
+        border-radius: 30px;
+      }
       .modal-header {
         display: flex;
         align-items: center;

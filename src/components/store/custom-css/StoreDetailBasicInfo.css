@@ -1,0 +1,55 @@
+/* StoreDetailBasicInfo Component Styles 
+
+미구현 컴포넌트 스타일의 예시로 작성되었습니다.
+추후 퍼블리싱이 완료 된 이후 삭제 예정입니다.
+
+*/
+
+.store-basic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-select-fixed {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.store-tooltip-fixed {
+  flex-shrink: 0;
+}
+
+.store-business-guide {
+  margin-bottom: 10px;
+}
+
+.store-business-guide-text {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.input-inline-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.store-name-input {
+  min-width: 240px;
+}
+
+.input-helper-inline {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.address-row {
+  display: flex;
+  align-items: center;
+}

@@ -1,7 +1,7 @@
 // HeaderMenu 타입 정의
 
 export interface HeaderMenuItem {
-  id: string
+  id: number
   name: string
   icon?: string
   link: string
@@ -10,226 +10,165 @@ export interface HeaderMenuItem {
 
 export const HeaderMenu: HeaderMenuItem[] = [
   {
-    id: 'master',
+    id: 1,
+    name: 'Home',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon00.svg',
+    link: '/',
+  },
+  {
+    id: 2,
     name: 'Master data 관리',
-    icon: 'lnb_menu_icon01.svg',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon01.svg',
     link: '#',
     children: [
       {
-        id: 'master-01',
-        name: 'Business Partner Master',
+        id: 10,
+        name: '파트너 정보 관리',
         link: '/',
       },
       {
-        id: 'master-02',
-        name: '회원 Master',
+        id: 11,
+        name: '메뉴 정보 관리',
         link: '/',
-      },
-      {
-        id: 'master-03',
-        name: '재료 Master',
-        link: '/',
-      },
-      {
-        id: 'master-04',
-        name: '메뉴 Master',
-        link: '#',
         children: [
           {
-            id: 'master-04-01',
-            name: '마스터용 메뉴 관리',
+            id: 35,
+            name: '마스터용 메뉴 Master',
             link: '/',
           },
           {
-            id: 'master-04-02',
-            name: '점포용 메뉴 관리',
+            id: 36,
+            name: '점포용 메뉴 Master',
             link: '/',
           },
         ],
       },
       {
-        id: 'master-05',
+        id: 12,
         name: '가격 Master',
         link: '#',
         children: [
           {
-            id: 'master-05-01',
+            id: 37,
             name: '마스터용 가격 관리',
             link: '/',
           },
           {
-            id: 'master-05-02',
-            name: '점포용 가격 관리',
-            link: '/',
-          },
-          {
-            id: 'master-05-03',
+            id: 38,
             name: '점포용 프로모션 가격 관리',
             link: '/',
           },
         ],
       },
       {
-        id: 'master-06',
+        id: 13,
         name: '카테고리 Master',
         link: '#',
         children: [
           {
-            id: 'master-06-01',
+            id: 39,
             name: '마스터용 카테고리 관리',
             link: '/',
           },
-          {
-            id: 'master-06-02',
-            name: '점포용 카테고리 관리',
-            link: '/',
-          },
         ],
       },
     ],
   },
   {
-    id: 'franchise-store',
-    name: '가맹점 밎 점포 관리',
-    icon: 'lnb_menu_icon02.svg',
+    id: 3,
+    name: '가맹점 및 점포 관리',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon02.svg',
     link: '#',
     children: [
       {
-        id: 'franchise-store-01',
-        name: '가맹점 밎 점포 관리',
+        id: 14,
+        name: '가맹점 및 점포 관리',
         link: '#',
         children: [
           {
-            id: 'franchise-store-01-01',
-            name: '계약서 템플릿 관리',
-            link: '/',
-          },
-          {
-            id: 'franchise-store-01-02',
-            name: '가맹점 계약 관리',
-            link: '/',
-          },
-          {
-            id: 'franchise-store-01-03',
+            id: 40,
             name: '점포 정보 관리',
-            link: '/',
-          },
-        ],
-      },
-      {
-        id: 'franchise-store-02',
-        name: '시설물 및 장비 관리',
-        link: '#',
-        children: [
-          {
-            id: 'franchise-store-02-01',
-            name: '시설물 및 장비 정보 관리',
-            link: '/',
-          },
-          {
-            id: 'franchise-store-02-02',
-            name: '시설물 및 장비 수리 이력',
-            link: '/',
-          },
-          {
-            id: 'franchise-store-02-03',
-            name: '시설물 및 장비 환경 설정',
-            link: '/',
-          },
-        ],
-      },
-      {
-        id: 'franchise-store-03',
-        name: '점검 관리',
-        link: '#',
-        children: [
-          {
-            id: 'franchise-store-03-01',
-            name: '점검표 템플릿 관리',
-            link: '/',
-          },
-          {
-            id: 'franchise-store-03-02',
-            name: '점검 결과 관리',
-            link: '/',
+            link: '/store/info',
           },
         ],
       },
     ],
   },
   {
-    id: 'employee',
+    id: 4,
     name: '직원 관리',
-    icon: 'lnb_menu_icon03.svg',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon03.svg',
     link: '#',
     children: [
       {
-        id: 'employee-01',
+        id: 15,
         name: '직원 관리',
         link: '#',
         children: [
           {
-            id: 'employee-01-01',
+            id: 41,
             name: '직원 정보 관리',
-            link: '/',
+            link: '/employee/info',
           },
           {
-            id: 'employee-01-02',
+            id: 42,
             name: '근로 계약 관리',
-            link: '/',
-          },
-          {
-            id: 'employee-01-03',
-            name: '직원 정보 환경 설정',
-            link: '/',
+            link: '/employee/contract',
           },
         ],
       },
       {
-        id: 'employee-02',
+        id: 16,
         name: '급여 명세서',
         link: '#',
         children: [
           {
-            id: 'employee-02-01',
+            id: 43,
             name: '정직원 급여명세서',
-            link: '/',
+            link: '/employee/payroll/regular',
           },
           {
-            id: 'employee-02-02',
+            id: 44,
             name: '파트타이머 급여명세서',
-            link: '/',
+            link: '/employee/payroll/parttime',
           },
           {
-            id: 'employee-02-03',
+            id: 45,
             name: '연장근무 수당명세서',
-            link: '/',
-          },
-          {
-            id: 'employee-02-04',
-            name: '급여명세서 환경 설정',
-            link: '/',
+            link: '/employee/payroll/overtime',
           },
         ],
       },
       {
-        id: 'employee-03',
+        id: 17,
         name: '근무 현황',
         link: '#',
         children: [
           {
-            id: 'employee-03-01',
+            id: 46,
             name: '출퇴근 현황',
-            link: '/',
+            link: '/employee/attendance',
           },
           {
-            id: 'employee-03-02',
+            id: 47,
             name: '매장별 근무 계획표',
-            link: '/',
+            link: '/employee/schedule/view',
           },
           {
-            id: 'employee-03-03',
+            id: 48,
             name: '매장별 근무 계획 수립',
+            link: '/employee/schedule/plan',
+          },
+        ],
+      },
+      {
+        id: 18,
+        name: '직원별 TO-DO 관리',
+        link: '#',
+        children: [
+          {
+            id: 49,
+            name: 'TO-DO 관리',
             link: '/',
           },
         ],
@@ -237,100 +176,138 @@ export const HeaderMenu: HeaderMenuItem[] = [
     ],
   },
   {
-    id: 'finance',
-    name: '재무 관리',
-    icon: 'lnb_menu_icon04.svg',
-    link: '#',
+    id: 5,
+    name: '신용카드 매출조회',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon04.svg',
+    link: '',
     children: [
       {
-        id: 'finance-01',
-        name: '재무 현황',
-        link: '/',
+        id: 19,
+        name: '일별 승인집계 조회',
+        link: '#',
       },
       {
-        id: 'finance-02',
-        name: '계정별 현황',
-        link: '/',
+        id: 20,
+        name: '기간별 승인집계 조회',
+        link: '#',
       },
       {
-        id: 'finance-03',
-        name: '매출/매입 거래 등록',
-        link: '/',
+        id: 21,
+        name: '월별 승인집계 조회',
+        link: '#',
       },
     ],
   },
   {
-    id: 'work',
-    name: '업무 관리',
-    icon: 'lnb_menu_icon05.svg',
+    id: 6,
+    name: '환경 설정',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon05.svg',
     link: '#',
     children: [
       {
-        id: 'work-01',
-        name: '조직도 관리',
-        link: '/',
-      },
-      {
-        id: 'work-02',
-        name: '업무 관리',
-        link: '/',
-      },
-      {
-        id: 'work-03',
-        name: '결재 관리',
-        link: '/',
-      },
-      {
-        id: 'work-04',
-        name: '보고서 관리',
-        link: '/',
-      },
-      {
-        id: 'work-05',
-        name: '일정표 관리',
-        link: '/',
-      },
-      {
-        id: 'work-06',
-        name: '커뮤니티',
-        link: '/',
-      },
-      {
-        id: 'work-07',
-        name: '공용 폴더',
-        link: '/',
-      },
-    ],
-  },
-  {
-    id: 'system',
-    name: '시스템 관리',
-    icon: 'lnb_menu_icon06.svg',
-    link: '#',
-    children: [
-      {
-        id: 'system-01',
-        name: '관리자 관리',
-        link: '/',
-      },
-      {
-        id: 'system-02',
-        name: '프로그램 관리',
-        link: '/',
-      },
-      {
-        id: 'system-03',
+        id: 22,
         name: '권한 관리',
         link: '/',
       },
       {
-        id: 'system-04',
-        name: '공통 코드 관리',
+        id: 23,
+        name: '공통코드 관리',
+        link: '#',
+      },
+      {
+        id: 24,
+        name: '휴일 관리',
+        link: '/system/holiday',
+      },
+      {
+        id: 52,
+        name: '법정공휴일 관리',
+        link: '/system/holiday/legal',
+      },
+    ],
+  },
+  {
+    id: 7,
+    name: '시스템 관리',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon06.svg',
+    link: '#',
+    children: [
+      {
+        id: 25,
+        name: '관리자 관리',
         link: '/',
       },
       {
-        id: 'system-05',
+        id: 26,
+        name: '프로그램 관리',
+        link: '/',
+      },
+      {
+        id: 27,
+        name: '권한 관리',
+        link: '/',
+      },
+      {
+        id: 28,
+        name: '공통코드 관리',
+        link: '/',
+        children: [
+          {
+            id: 50,
+            name: '공통코드 관리',
+            link: '/',
+          },
+          {
+            id: 51,
+            name: '공통 데이터 관리',
+            link: '/',
+          },
+        ],
+      },
+      {
+        id: 29,
         name: '휴일 관리',
+        link: '/system/holiday',
+      },
+      {
+        id: 30,
+        name: '이메일 템플릿 관리',
+        link: '/',
+      },
+    ],
+  },
+  {
+    id: 8,
+    name: '과금 관리',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon07.svg',
+    link: '#',
+    children: [
+      {
+        id: 31,
+        name: 'ERP 요금제 관리',
+        link: '/subscription',
+      },
+      {
+        id: 32,
+        name: '부가서비스 요금제관리',
+        link: '/',
+      },
+      {
+        id: 33,
+        name: '결제현황',
+        link: '/',
+      },
+    ],
+  },
+  {
+    id: 9,
+    name: '서비스 관리',
+    icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon08.svg',
+    link: '#',
+    children: [
+      {
+        id: 34,
+        name: '부가서비스 셋팅',
         link: '/',
       },
     ],

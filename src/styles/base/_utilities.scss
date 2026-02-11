@@ -1,3 +1,5 @@
+@use '../abstracts' as *;
+
 /* align */
 .al-c {
   text-align: center !important;
@@ -155,6 +157,11 @@
   width: 100%;
   max-width: 300px;
 }
+.mx-200 {
+  flex: none;
+  width: 100%;
+  max-width: 200px;
+}
 .mx-160 {
   flex: none;
   width: 100%;
@@ -174,4 +181,41 @@
 }
 .g8 {
   gap: 8px !important;
+}
+
+.badge {
+  display: inline-block;
+  min-width: 60px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 3px;
+  text-align: center;
+  @include fontDefinition($font-ds-15, $font-w-600, 30px);
+  &.s {
+    min-width: auto;
+    padding: 0 8px;
+    height: 24px;
+    @include fontDefinition($font-ds-14, $font-w-600, 23px);
+  }
+  &.blue {
+    background-color: #f2f6ff;
+    color: #366fe3;
+  }
+  &.green {
+    background-color: #e7f7f1;
+    color: #11b076;
+  }
+  &.red {
+    background-color: #ffefef;
+    color: #e57173;
+  }
+  &.brown {
+    background-color: #f3f0eb;
+    color: #886436;
+  }
+  &.brd-org {
+    background-color: #fff;
+    border: 1px solid #fbe0c9;
+    color: #e0914a;
+  }
 }

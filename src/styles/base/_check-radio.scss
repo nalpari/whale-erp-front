@@ -17,7 +17,7 @@
   position: relative;
   display: inline-block;
   margin-bottom: 0;
-  line-height: $line-h-150;
+  line-height: $line-h-140;
   font-size: $check-ds-font;
   color: #999;
 
@@ -249,5 +249,65 @@
   .toggle-txt {
     @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
     color: #222;
+  }
+}
+
+// 버튼 라디오
+.radio-wrap {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #ebebeb;
+  border-radius: 6px;
+  overflow: hidden;
+  .radio-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    @include fontDefinition($font-ds-15, $font-w-600, 42px);
+    color: #999;
+    height: 42px;
+    background-color: #fff;
+    border-right: 1px solid #ebebeb;
+    padding: 0 18px;
+    transition: all 0.2s ease-in-out;
+    &:before {
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      background-color: #fff;
+      border: 1px solid #999;
+      border-radius: 50%;
+      transition: all 0.2s ease-in-out;
+    }
+    &:after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 23px;
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: transparent;
+      border-radius: 50%;
+      transition: all 0.2s ease-in-out;
+    }
+    &:last-child {
+      border-right: none;
+    }
+    &:hover,
+    &.act {
+      background-color: #092c4c;
+      color: #fff;
+      &:before {
+        background-color: #092c4c;
+        border-color: #fff;
+      }
+      &:after {
+        background-color: #fff;
+      }
+    }
   }
 }

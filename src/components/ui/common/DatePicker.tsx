@@ -1,11 +1,12 @@
-'use client'
-import { useState } from 'react'
+﻿'use client'
+
+import { useState, useId, useCallback } from 'react'
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker'
 import * as DateFNS from 'date-fns'
 
 import 'react-datepicker/dist/react-datepicker.css'
 
-const { getYear, getMonth } = DateFNS
+const { getYear, getMonth, isSameDay } = DateFNS
 
 const MONTHS = [
   'January',
@@ -22,7 +23,6 @@ const MONTHS = [
   'December',
 ] as const
 
-// range 함수 구현 (lodash의 range와 동일)
 const range = (start: number, end: number, step: number = 1): number[] => {
   const result: number[] = []
   for (let i = start; i < end; i += step) {
@@ -79,18 +79,64 @@ const CustomHeader = ({
   </div>
 )
 
-export default function DatePicker() {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
+interface DatePickerProps {
+  value?: Date | null
+  onChange?: (date: Date | null) => void
+  placeholder?: string
+  /** 에러 상태 여부 - true면 빨간 테두리 */
+  error?: boolean
+  /** 에러 메시지 또는 도움말 텍스트 */
+  helpText?: string
+}
+
+export default function DatePicker({ value, onChange, placeholder, error = false, helpText }: DatePickerProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? new Date())
+  const isControlled = value !== undefined
+  const currentValue = isControlled ? value : selectedDate
+  const inputId = useId()
+
+  const handleChange = (date: Date | null) => {
+    if (!isControlled) {
+      setSelectedDate(date)
+    }
+    onChange?.(date)
+  }
+
+  const getDayClassName = useCallback(
+    (date: Date) => {
+      if (currentValue && isSameDay(date, currentValue)) {
+        return 'react-datepicker__day--keyboard-selected'
+      }
+      return ''
+    },
+    [currentValue]
+  )
 
   return (
-    <div className="date-picker-custom">
-      <ReactDatePicker
-        className="date-picker-input"
-        renderCustomHeader={CustomHeader}
-        selected={selectedDate}
-        onChange={setSelectedDate}
-        dateFormat="yyyy-MM-dd"
-      />
+    <div>
+      <div className={`date-picker-custom${error ? ' err' : ''}`}>
+        <ReactDatePicker
+          className={`date-picker-input${error ? ' border-red-500' : ''}`}
+          renderCustomHeader={(props) => <CustomHeader {...props} />}
+          selected={currentValue}
+          onChange={(date: Date | null) => handleChange(date)}
+          placeholderText={placeholder}
+          dateFormat="yyyy-MM-dd"
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={helpText ? `${inputId}-help` : undefined}
+          dayClassName={getDayClassName}
+        />
+      </div>
+      {helpText && (
+        <div
+          id={`${inputId}-help`}
+          className={`${error ? 'warning-txt' : 'form-helper'} mt5`}
+          role={error ? 'alert' : undefined}
+        >
+          {error && '* '}
+          {helpText}
+        </div>
+      )}
     </div>
   )
 }
