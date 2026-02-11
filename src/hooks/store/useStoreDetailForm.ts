@@ -639,8 +639,13 @@ export const useStoreDetailForm = ({
         return { ...prev, storeOwner: owner, organizationId: prev.officeId }
       }
       // FRANCHISE 선택 시 가맹점이 1개이면 자동 선택
+      // setState 콜백 내에서 bpTree로부터 직접 가맹점 목록을 조회하여
+      // prev.officeId 기준의 최신 목록을 사용한다 (stale closure 방지).
+      const currentFranchises = prev.officeId
+        ? bpTree.find((office) => office.id === prev.officeId)?.franchises ?? []
+        : bpTree.flatMap((office) => office.franchises)
       const franchiseId =
-        prev.franchiseId ?? (franchiseOptions.length === 1 ? franchiseOptions[0].id : null)
+        prev.franchiseId ?? (currentFranchises.length === 1 ? currentFranchises[0].id : null)
       return {
         ...prev,
         storeOwner: owner,

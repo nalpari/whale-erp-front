@@ -47,6 +47,8 @@ export default function StoreInfo() {
     [appliedFilters, page, pageSize]
   )
 
+  // HeadOfficeFranchiseStoreSelect 내부에서 동일 쿼리 키로 useStoreOptions를 호출하므로
+  // 캐시 워밍 역할 — 본사/가맹점 변경 시 점포 옵션을 미리 가져와 드롭다운 지연을 줄인다.
   useStoreOptions(filters.officeId, filters.franchiseId)
   // bpTree auto-apply로 filters.officeId가 세팅되었는데
   // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.

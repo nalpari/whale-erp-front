@@ -32,7 +32,9 @@ export default function AttendanceRecord() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
-  // bpTree 자동 적용 시 appliedFilters도 동기화
+  // bpTree auto-apply로 filters.officeId가 세팅되었는데
+  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
+  // (렌더 중 조건부 setState — 조건 해소 후 루프 종료)
   if (filters.officeId != null && appliedFilters.officeId == null) {
     setAppliedFilters(filters)
   }
