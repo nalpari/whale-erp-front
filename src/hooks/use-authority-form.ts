@@ -17,6 +17,23 @@ import type {
   AuthorityDetailNode,
   AuthorityResponse,
 } from '@/lib/schemas/authority'
+import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
+
+/**
+ * 로그인 시 저장된 권한 데이터를 권한 폼에서 사용하는 형식으로 변환
+ */
+function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDetailNode[] {
+  return programs.map((program) => ({
+    program_id: program.id,
+    program_name: program.name,
+    can_read: program.can_read ?? undefined,
+    can_create_delete: program.can_create_delete ?? undefined,
+    can_update: program.can_update ?? undefined,
+    children: program.children.length > 0
+      ? toAuthorityDetailNodes(program.children)
+      : undefined,
+  }))
+}
 
 interface UseAuthorityFormOptions {
   mode: 'create' | 'edit'
@@ -59,8 +76,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     return []
   })
 
-  // 로그인 유저의 권한 정보
-  const currentAuthority = useAuthStore((state) => state.authority) as AuthorityResponse | null
+  // 로그인 유저의 권한 정보 → 폼에서 사용하는 형식으로 변환
+  const loginAuthority = useAuthStore((state) => state.authority)
+  const myPermissions = loginAuthority ? toAuthorityDetailNodes(loginAuthority) : null
 
   // 프로그램 목록 조회 (생성 모드에서만)
   const { data: programList } = useProgramList('MNKND_001')
@@ -71,7 +89,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
 
   // 본인의 프로그램별 권한 찾기
   const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
-    if (!currentAuthority?.details) return undefined
+    if (!myPermissions) return undefined
 
     const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
       for (const node of nodes) {
@@ -84,11 +102,11 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
       return undefined
     }
 
-    return findInTree(currentAuthority.details)
+    return findInTree(myPermissions)
   }
 
-  // 슈퍼 관리자 체크 (details가 비어있으면 슈퍼 관리자)
-  const isAdmin = !currentAuthority?.details || currentAuthority.details.length === 0
+  // 슈퍼 관리자 체크 (권한 데이터가 비어있으면 슈퍼 관리자)
+  const isAdmin = !myPermissions || myPermissions.length === 0
 
   // 생성 모드: 프로그램 목록을 트리 구조로 변환
   useEffect(() => {
@@ -122,9 +140,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
 
       setProgramTree(convertToTree(programList))
     }
-  }, [mode, programList, programTree.length, currentAuthority])
+  }, [mode, programList, programTree.length, loginAuthority])
 
-  // 수정 모드: authority 변경 시 상태 업데이트
+  // 수정 모드: initialAuthority 변경 시 폼 데이터 초기화
   useEffect(() => {
     if (mode === 'edit' && initialAuthority) {
       setFormData({
@@ -135,8 +153,12 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
       })
+    }
+  }, [mode, initialAuthority])
 
-      // max_can_* 필드 추가
+  // 수정 모드: 프로그램 트리에 max_can_* 권한 적용
+  useEffect(() => {
+    if (mode === 'edit' && initialAuthority) {
       const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
         return nodes.map((node) => {
           const myPermission = findMyPermission(node.program_id)
@@ -153,7 +175,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
 
       setProgramTree(addMaxPermissions(initialAuthority.details || []))
     }
-  }, [mode, initialAuthority, currentAuthority])
+  }, [mode, initialAuthority, loginAuthority])
 
   // 폼 데이터 변경 핸들러
   const handleFormChange = (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => {
