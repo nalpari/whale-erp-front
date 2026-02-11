@@ -224,9 +224,9 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   // 월간 총 근무시간 계산 (주당 근무시간, 야간근무, 휴일근무 제외)
   const totalMonthlyWorkHours = monthlyBasicHours + monthlyOvertimeHours + monthlyExtraHolidayHours
 
-  // 주 52시간 초과 여부 확인 (월간 총 근무시간 / 4.345 > 52, 반올림 없이 소수점 비교)
-  const weeklyWorkHoursFromMonthly = totalMonthlyWorkHours / 4.345
-  const isOver52Hours = weeklyWorkHoursFromMonthly > 52
+  // 주 52시간 초과 여부 확인 (주휴시간 제외한 실제 근무시간 기준)
+  const weeklyTotalWorkHours = weeklyWorkHours + (monthlyOvertimeHours + monthlyExtraHolidayHours) / 4.345
+  const isOver52Hours = weeklyTotalWorkHours > 52
 
   // 월 급여 총액 계산 (주당 근무시간 금액 제외 + 급여에 포함된 수당 추가)
   const monthlyTotalSalary =
