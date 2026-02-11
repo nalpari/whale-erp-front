@@ -20,7 +20,7 @@ import type {
 export function useAuthorityList(params: AuthorityListParams) {
   return useQuery({
     queryKey: authorityKeys.list(params),
-    queryFn: () => fetchAuthorities(params),
+    queryFn: ({ signal }) => fetchAuthorities(params, signal),
   })
 }
 
@@ -30,7 +30,7 @@ export function useAuthorityList(params: AuthorityListParams) {
 export function useAuthorityDetail(id: number) {
   return useQuery({
     queryKey: authorityKeys.detail(id),
-    queryFn: () => fetchAuthorityDetail(id),
+    queryFn: ({ signal }) => fetchAuthorityDetail(id, signal),
     enabled: !!id,
   })
 }

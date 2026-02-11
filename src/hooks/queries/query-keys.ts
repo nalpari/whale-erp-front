@@ -221,15 +221,9 @@ export const holidayKeys = {
   legalByYear: (year: number) => [...holidayKeys.legal(), year] as const,
 }
 
-export interface AuthorityListParams {
-  owner_group: string
-  head_office_id?: number
-  franchisee_id?: number
-  name?: string
-  is_used?: boolean
-  page?: number
-  size?: number
-}
+import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+
+export type AuthorityListParams = AuthoritySearchParams
 
 export const authorityKeys = {
   all: ['authorities'] as const,

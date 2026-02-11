@@ -9,7 +9,7 @@ import type { AuthorityCreateRequest, AuthorityUpdateRequest } from '@/lib/schem
 interface AuthorityFormProps {
   mode: 'create' | 'edit'
   initialData?: Partial<AuthorityCreateRequest>
-  onChange: (data: Partial<AuthorityCreateRequest | AuthorityUpdateRequest>) => void
+  onChange: (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => void
   onList?: () => void
   onDelete?: () => void
   onSave?: () => void
@@ -100,9 +100,9 @@ export default function AuthorityForm({
         <div className="content-wrap">
           <table className="default-table">
             <colgroup>
-              <col width="180px" />
+              <col style={{ width: '180px' }} />
               <col />
-              {showFranchise && <col width="120px" />}
+              {showFranchise && <col style={{ width: '120px' }} />}
               {showFranchise && <col />}
             </colgroup>
             <tbody>

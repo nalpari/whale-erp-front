@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import { useAuthorityList, useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
-import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
+import type { AuthorityDetailNode, AuthorityFilterType, AuthorityListItem } from '@/lib/schemas/authority'
 
 /**
  * 권한별 프로그램 트리 컴포넌트
@@ -370,10 +370,10 @@ export default function AuthorityProgramTree({
             >
               <option value="">권한 선택</option>
               {authorityListData?.content
-                ?.filter((auth: { id: number; name: string; owner_code: string }) =>
+                ?.filter((auth: AuthorityListItem) =>
                   auth.owner_code === currentOwnerCode
                 )
-                .map((auth: { id: number; name: string; owner_code: string }) => (
+                .map((auth: AuthorityListItem) => (
                   <option key={auth.id} value={auth.id}>
                     {auth.name}
                   </option>

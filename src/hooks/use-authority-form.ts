@@ -69,6 +69,27 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
   const { mutateAsync: createAuthority } = useCreateAuthority()
   const { mutateAsync: updateAuthority } = useUpdateAuthority()
 
+  // 본인의 프로그램별 권한 찾기
+  const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
+    if (!currentAuthority?.details) return undefined
+
+    const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
+      for (const node of nodes) {
+        if (node.program_id === programId) return node
+        if (node.children) {
+          const found = findInTree(node.children)
+          if (found) return found
+        }
+      }
+      return undefined
+    }
+
+    return findInTree(currentAuthority.details)
+  }
+
+  // 슈퍼 관리자 체크 (details가 비어있으면 슈퍼 관리자)
+  const isAdmin = !currentAuthority?.details || currentAuthority.details.length === 0
+
   // 생성 모드: 프로그램 목록을 트리 구조로 변환
   useEffect(() => {
     if (mode === 'create' && programList && programTree.length === 0) {
@@ -78,28 +99,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         children?: ProgramNode[]
       }
 
-      // 본인의 프로그램별 권한 찾기
-      const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
-        if (!currentAuthority?.details) return undefined
-
-        const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
-          for (const node of nodes) {
-            if (node.program_id === programId) return node
-            if (node.children) {
-              const found = findInTree(node.children)
-              if (found) return found
-            }
-          }
-          return undefined
-        }
-
-        return findInTree(currentAuthority.details)
-      }
-
       const convertToTree = (programs: ProgramNode[]): AuthorityDetailNode[] => {
-        // 슈퍼 관리자 체크 (details가 비어있으면 슈퍼 관리자)
-        const isAdmin = !currentAuthority?.details || currentAuthority.details.length === 0
-
         return programs
           .filter((program): program is ProgramNode & { id: number } => program.id !== null)
           .map((program) => {
@@ -136,29 +136,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         description: initialAuthority.description || undefined,
       })
 
-      // 본인의 프로그램별 권한 찾기
-      const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
-        if (!currentAuthority?.details) return undefined
-
-        const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
-          for (const node of nodes) {
-            if (node.program_id === programId) return node
-            if (node.children) {
-              const found = findInTree(node.children)
-              if (found) return found
-            }
-          }
-          return undefined
-        }
-
-        return findInTree(currentAuthority.details)
-      }
-
       // max_can_* 필드 추가
       const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
-        // 슈퍼 관리자 체크 (details가 비어있으면 슈퍼 관리자)
-        const isAdmin = !currentAuthority?.details || currentAuthority.details.length === 0
-
         return nodes.map((node) => {
           const myPermission = findMyPermission(node.program_id)
 
@@ -177,7 +156,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
   }, [mode, initialAuthority, currentAuthority])
 
   // 폼 데이터 변경 핸들러
-  const handleFormChange = (data: Partial<AuthorityCreateRequest | AuthorityUpdateRequest>) => {
+  const handleFormChange = (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => {
     setFormData((prev) => ({ ...prev, ...data }))
   }
 
@@ -265,9 +244,6 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     if (!validateForm()) {
       return
     }
-
-    // 에러 초기화
-    setErrors({})
 
     try {
       if (mode === 'create') {

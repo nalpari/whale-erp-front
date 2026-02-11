@@ -47,32 +47,7 @@ export interface AuthoritySearchParams {
   size?: number
 }
 
-/**
- * 권한 목록 아이템
- */
-export interface AuthorityListItem {
-  id: number
-  owner_code: string
-  owner_group: string
-  head_office_id: number | null
-  head_office_code: string | null
-  head_office_name: string | null
-  franchisee_id: number | null
-  franchisee_code: string | null
-  franchisee_name: string | null
-  name: string
-  is_used: boolean
-  description: string | null
-  created_at: string
-  updated_at: string
-}
-
-/**
- * 권한 상세 응답 (프로그램 트리 포함)
- */
-export interface AuthorityResponse extends AuthorityListItem {
-  details: AuthorityDetailNode[]
-}
+// AuthorityListItem, AuthorityResponse 타입은 Zod 스키마에서 추론 (하단 참조)
 
 // ============================================
 // Zod 스키마
@@ -163,9 +138,13 @@ export const authorityListItemSchema = z.object({
   updated_at: z.string(),
 })
 
+export type AuthorityListItem = z.infer<typeof authorityListItemSchema>
+
 export const authorityResponseSchema = authorityListItemSchema.extend({
   details: z.array(authorityDetailNodeSchema),
 })
+
+export type AuthorityResponse = z.infer<typeof authorityResponseSchema>
 
 export const authorityListResponseSchema = pagedApiResponseSchema(authorityListItemSchema)
 
