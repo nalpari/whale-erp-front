@@ -13,7 +13,6 @@ const defaultListParams: PlansListParams = {
     updater: undefined,
     page: 0,
     size: 50,
-    sort: 'createdAt,desc',
 }
 
 export default function Plans() {
@@ -26,7 +25,6 @@ export default function Plans() {
             ...filters,
             page,
             size: pageSize,
-            sort: undefined,
         }),
         [filters, page, pageSize]
     )
