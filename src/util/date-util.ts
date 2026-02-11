@@ -19,6 +19,13 @@ export const formatDateYmdOrUndefined = (value?: string | Date | null) => {
   return formatted === '' ? undefined : formatted
 }
 
+// YYYY-MM-DD HH:mm format for datetime display.
+export const formatDateTimeYmdHm = (value?: string | Date | null, fallback = '-') => {
+  const date = toDate(value)
+  if (!date) return fallback
+  return `${date.getFullYear()}-${padTwo(date.getMonth() + 1)}-${padTwo(date.getDate())} ${padTwo(date.getHours())}:${padTwo(date.getMinutes())}`
+}
+
 // YYYY.MM.DD format for display purposes.
 export const formatDateDot = (value?: string | Date | null, fallback = '-') => {
   const date = toDate(value)

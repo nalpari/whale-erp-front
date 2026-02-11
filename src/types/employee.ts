@@ -120,6 +120,8 @@ export interface EmployeeInfoDetailResponse {
   emailSendDate?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+  createdByName?: string | null
+  updatedByName?: string | null
 }
 export type EmployeeInfoListResponse = {
   employeeInfoId: number

@@ -1675,3 +1675,17 @@
   justify-content: center;
   margin-top: 16px;
 }
+
+// 계약 이력
+.contract-history-wrap {
+  .contract-history-header {
+    margin-bottom: 12px;
+    h2 {
+      @include fontDefinition($font-ds-18, $font-w-500, $line-h-140);
+      color: #222;
+    }
+  }
+  .contract-history-body {
+    border-bottom: 1px solid #ebebeb;
+  }
+}

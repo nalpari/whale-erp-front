@@ -1,5 +1,4 @@
 import api from '../api'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID, DEFAULT_STORE_ID } from '../constants/organization'
 
 // 지급 항목 타입
 export interface PaymentItemDto {
@@ -94,15 +93,9 @@ export interface GetPayrollStatementParams {
 
 // 급여 명세서 목록 조회
 export async function getPayrollStatements(params?: GetPayrollStatementParams): Promise<PayrollStatementListResponse> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<{ data: PayrollStatementListResponse }>(
     '/api/employee/payroll/regular',
-    { params: defaultParams }
+    { params }
   )
 
   // API 응답이 없는 경우 빈 응답 반환

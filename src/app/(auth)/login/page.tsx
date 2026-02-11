@@ -21,6 +21,7 @@ export default function LoginPage() {
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
+  const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
 
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -73,7 +74,7 @@ export default function LoginPage() {
       const response = await api.post("/api/auth/login", validation.data);
       console.log("Login success:", response.data);
 
-      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone } = response.data.data;
+      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, subscriptionPlanId } = response.data.data;
 
       console.log("authority:", authority);
       console.log("companies:", companies);
@@ -97,6 +98,7 @@ export default function LoginPage() {
 
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
 
         // 아이디 저장 처리
         if (rememberMe) {
@@ -116,6 +118,7 @@ export default function LoginPage() {
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
         setShowAuthorityModal(true);
       } else {
         // authority와 companies 모두 없는 경우
