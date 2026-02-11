@@ -8,6 +8,7 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
 import { useEmployeeInfoList } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
+import { formatDateYmd } from '@/util/date-util';
 
 type WorkScheduleSearchProps = {
   resultCount: number;
@@ -27,15 +28,13 @@ type WorkScheduleSearchProps = {
   onReset: () => void;
 };
 
-const buildDateInput = (date: Date) => date.toISOString().slice(0, 10);
-
 const getDefaultRange = () => {
   const today = new Date();
   const from = new Date(today);
   from.setDate(today.getDate() - 6);
   return {
-    from: buildDateInput(from),
-    to: buildDateInput(today),
+    from: formatDateYmd(from, ''),
+    to: formatDateYmd(today, ''),
   };
 };
 
@@ -305,8 +304,8 @@ export default function WorkScheduleSearch({
                       setShowPeriodError(false);
                       setForm((prev) => ({
                         ...prev,
-                        from: range.startDate ? buildDateInput(range.startDate) : '',
-                        to: range.endDate ? buildDateInput(range.endDate) : '',
+                        from: range.startDate ? formatDateYmd(range.startDate) : '',
+                        to: range.endDate ? formatDateYmd(range.endDate) : '',
                       }));
                     }}
                     startDatePlaceholder="시작일"

@@ -4,6 +4,7 @@ import { ICellRendererParams, ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import { StoreListItem } from '@/types/store'
+import { formatDateYmd } from '@/util/date-util'
 
 // 점포 목록 테이블 컴포넌트 props
 interface StoreListProps {
@@ -17,14 +18,10 @@ interface StoreListProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onRegister: () => void
+  registerDisabled?: boolean
   onOpenDetail: (storeId: number) => void
 }
 
-// ISO 날짜 문자열을 화면 표시용으로 변환
-const formatDate = (value?: string) => {
-  if (!value) return '-'
-  return value.split('T')[0]
-}
 
 // 점포 목록 테이블 + 페이징 UI
 export default function StoreList({
@@ -38,6 +35,7 @@ export default function StoreList({
   onPageChange,
   onPageSizeChange,
   onRegister,
+  registerDisabled,
   onOpenDetail,
 }: StoreListProps) {
   // 그리드 컬럼 정의(표시 순서/렌더링 규칙 포함)
@@ -74,7 +72,7 @@ export default function StoreList({
     {
       field: 'createdAt',
       headerName: '등록일',
-      valueGetter: (params) => formatDate(params.data?.createdAt),
+      valueGetter: (params) => formatDateYmd(params.data?.createdAt),
     },
   ]
 
@@ -84,7 +82,7 @@ export default function StoreList({
         <div className="data-header-left">
         </div>
         <div className="data-header-right">
-          <button className="btn-form basic" onClick={onRegister} type="button">
+          <button className="btn-form basic" onClick={onRegister} type="button" disabled={registerDisabled}>
             등록
           </button>
           <div className="data-count-select">

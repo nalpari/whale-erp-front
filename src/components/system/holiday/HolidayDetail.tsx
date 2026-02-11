@@ -16,6 +16,7 @@ import type {
   ApplyChildType,
   ParentHolidayOperatingSetting,
 } from '@/types/holiday'
+import { formatDateYmd } from '@/util/date-util'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리', '휴일 상세']
 
@@ -45,13 +46,7 @@ interface EditableHolidayRow {
   isInherited: boolean
 }
 
-function toDateString(date: Date | null): string {
-  if (!date) return ''
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+const toDateString = (date: Date | null): string => formatDateYmd(date, '')
 
 function parseDate(str: string): Date | null {
   if (!str) return null
