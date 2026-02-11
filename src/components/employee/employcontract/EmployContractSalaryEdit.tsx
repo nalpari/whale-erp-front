@@ -36,13 +36,19 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
   const [salaryInfoOpen, _setSalaryInfoOpen] = useState(true)
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
 
-  // TanStack Query - 상여금 종류 조회
-  const { data: bonusTypes = [] } = useBonusTypes()
-
   // TanStack Query - 계약 상세 조회
   const { data: contractDetail, isPending: _isLoading, refetch: refetchContract } = useContractDetail(
     contractId ?? 0,
     !!contractId
+  )
+
+  // TanStack Query - 상여금 종류 조회 (계약 상세의 본사/가맹점 ID 사용)
+  const { data: bonusTypes = [] } = useBonusTypes(
+    {
+      headOfficeId: contractDetail?.headOfficeOrganizationId ?? undefined,
+      franchiseId: contractDetail?.franchiseOrganizationId ?? undefined,
+    },
+    !!contractDetail?.headOfficeOrganizationId
   )
 
   // TanStack Query - Mutations
