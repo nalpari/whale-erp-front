@@ -29,7 +29,7 @@ function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDet
     can_read: program.can_read ?? undefined,
     can_create_delete: program.can_create_delete ?? undefined,
     can_update: program.can_update ?? undefined,
-    children: program.children.length > 0
+    children: program.children && program.children.length > 0
       ? toAuthorityDetailNodes(program.children)
       : undefined,
   }))

@@ -60,7 +60,7 @@ export interface LoginAuthorityProgram {
   can_read: boolean | null
   can_create_delete: boolean | null
   can_update: boolean | null
-  children: LoginAuthorityProgram[]
+  children: LoginAuthorityProgram[] | null
 }
 
 /**
