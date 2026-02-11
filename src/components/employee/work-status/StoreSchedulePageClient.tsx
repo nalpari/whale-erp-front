@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
 import WorkScheduleSearch from '@/components/employee/work-status/WorkScheduleSearch';
@@ -15,26 +15,40 @@ import {
   useStoreScheduleValidateExcel,
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
-import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
-import type { ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
+import type { DayType, ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
+
+const parseNumberParam = (value: string | null): number | null => {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { alert } = useAlert();
   const queryClient = useQueryClient();
-  const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
-  const filters = useStoreScheduleViewStore((state) => state.filters);
-  const hydrated = useStoreScheduleViewStore((state) => state.hydrated);
-  const isUploadOpen = useStoreScheduleViewStore((state) => state.isUploadOpen);
-  const setLastQuery = useStoreScheduleViewStore((state) => state.setLastQuery);
-  const setFilters = useStoreScheduleViewStore((state) => state.setFilters);
-  const setUploadOpen = useStoreScheduleViewStore((state) => state.setUploadOpen);
-  const resetFilters = useStoreScheduleViewStore((state) => state.resetFilters);
+
+  // URL 파라미터에서 초기 검색 조건 파싱
+  const initialQuery = useMemo(() => ({
+    officeId: parseNumberParam(searchParams.get('officeId')),
+    franchiseId: parseNumberParam(searchParams.get('franchiseId')),
+    storeId: parseNumberParam(searchParams.get('storeId')),
+    employeeName: searchParams.get('employeeName') ?? '',
+    dayType: (searchParams.get('dayType') as DayType | '') ?? '',
+    from: searchParams.get('from') ?? undefined,
+    to: searchParams.get('to') ?? undefined,
+  }), [searchParams]);
+
+  // 로컬 상태 (sessionStorage 저장 없음)
+  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  const [isUploadOpen, setUploadOpen] = useState(false);
   const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
-  const scheduleQuery = useStoreScheduleList(lastQuery, hydrated);
+
+  const scheduleQuery = useStoreScheduleList(lastQuery, lastQuery !== null);
   const validateMutation = useStoreScheduleValidateExcel();
   const upsertMutation = useStoreScheduleUpsert();
   const downloadMutation = useStoreScheduleDownloadExcel();
@@ -56,16 +70,15 @@ export default function StoreSchedulePageClient() {
 
   const handleSearch = async (query: StoreScheduleQuery) => {
     setLastQuery(query);
-    setFilters(query);
     if (query.storeId) {
       setShowStoreError(false);
     }
     await queryClient.invalidateQueries({ queryKey: storeScheduleKeys.list(query) });
   };
 
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (lastQuery 변경 안 함)
   const handleReset = () => {
     setShowStoreError(false);
-    resetFilters();
   };
 
   const handleDownloadExcel = async () => {
@@ -164,7 +177,7 @@ export default function StoreSchedulePageClient() {
   };
 
   const handlePlan = () => {
-    const params = buildStoreScheduleParams(lastQuery ?? filters);
+    const params = buildStoreScheduleParams(lastQuery);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
@@ -173,7 +186,7 @@ export default function StoreSchedulePageClient() {
       from: date,
       to: date,
       date,
-      storeId: storeId ?? lastQuery?.storeId ?? filters.storeId,
+      storeId: storeId ?? lastQuery?.storeId,
     });
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
@@ -189,7 +202,7 @@ export default function StoreSchedulePageClient() {
         isLoading={isLoading}
         showStoreError={showStoreError}
         onStoreErrorChange={setShowStoreError}
-        initialQuery={filters}
+        initialQuery={initialQuery}
         onSearch={handleSearch}
         onReset={handleReset}
       />

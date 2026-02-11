@@ -1,30 +1,33 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
-import StoreSearch from '@/components/store/manage/StoreSearch'
+import StoreSearch, { type StoreSearchFilters } from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
 import { useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListParams } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
-import { useStoreSearchStore } from '@/stores/store-search-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
+const DEFAULT_FILTERS: StoreSearchFilters = {
+  officeId: null,
+  franchiseId: null,
+  storeId: null,
+  status: 'ALL',
+  from: null,
+  to: null,
+}
+
 export default function StoreInfo() {
   const router = useRouter()
-  const filters = useStoreSearchStore((state) => state.filters)
-  const appliedFilters = useStoreSearchStore((state) => state.appliedFilters)
-  const page = useStoreSearchStore((state) => state.page)
-  const pageSize = useStoreSearchStore((state) => state.pageSize)
-  const hydrated = useStoreSearchStore((state) => state.hydrated)
-  const setFilters = useStoreSearchStore((state) => state.setFilters)
-  const setAppliedFilters = useStoreSearchStore((state) => state.setAppliedFilters)
-  const setPage = useStoreSearchStore((state) => state.setPage)
-  const setPageSize = useStoreSearchStore((state) => state.setPageSize)
-  const resetFilters = useStoreSearchStore((state) => state.resetFilters)
+
+  const [filters, setFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(50)
 
   const { alert } = useAlert()
   const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
@@ -44,19 +47,17 @@ export default function StoreInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  const { data: storeOptionList = [] } = useStoreOptions(filters.officeId, filters.franchiseId)
-  const { data: response, isPending: loading, error } = useStoreList(storeParams, hydrated)
-  const { children: statusChildren } = useCommonCode('STOPR', hydrated)
+  useStoreOptions(filters.officeId, filters.franchiseId)
+  // bpTree auto-apply로 filters.officeId가 세팅되었는데
+  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
+  // (렌더 중 조건부 setState — 조건 해소 후 루프 종료)
+  if (filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
 
-  // 선택된 storeId가 옵션 목록에서 사라졌으면 필터에서 제거
-  useEffect(() => {
-    const targetStoreId = filters.storeId ?? appliedFilters.storeId
-    if (!targetStoreId) return
-    const isValid = storeOptionList.some((option) => option.id === targetStoreId)
-    if (isValid) return
-    setFilters({ ...filters, storeId: null })
-    setAppliedFilters({ ...appliedFilters, storeId: null })
-  }, [appliedFilters, filters, setAppliedFilters, setFilters, storeOptionList])
+  const canFetchList = appliedFilters.officeId != null
+  const { data: response, isPending: loading, error } = useStoreList(storeParams, canFetchList)
+  const { children: statusChildren } = useCommonCode('STOPR', true)
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
   const handleSearch = () => {
@@ -64,9 +65,10 @@ export default function StoreInfo() {
     setPage(0)
   }
 
-  // 초기화: 입력값만 기본값으로 복원 (적용값은 사용자가 다시 검색할 때 변경)
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
+  // bpTree auto-apply가 filters에 고정값을 다시 세팅한다.
   const handleReset = () => {
-    resetFilters()
+    setFilters(DEFAULT_FILTERS)
   }
 
   // 등록 페이지로 이동 전에 구독 플랜 점포 등록 가능 여부 확인
@@ -90,7 +92,6 @@ export default function StoreInfo() {
     router.push('/store/info/detail')
   }
 
-  // 상세 페이지로 이동 전에 현재 검색 상태 저장
   const handleOpenDetail = (storeId: number) => {
     router.push(`/store/info/header?id=${storeId}`)
   }

@@ -12,7 +12,6 @@ import {
   storeScheduleKeys,
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
-import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tooltip } from 'react-tooltip';
 import EmployeeSearch from '../popup/EmployeeSearch';
@@ -242,8 +241,7 @@ export default function WorkSchedulePlan() {
   const { alert, confirm } = useAlert();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
-  const setLastQuery = useStoreScheduleViewStore((state) => state.setLastQuery);
+  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
   const upsertMutation = useStoreScheduleUpsert();
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
