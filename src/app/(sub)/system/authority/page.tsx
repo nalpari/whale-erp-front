@@ -38,15 +38,6 @@ export default function AuthorityPage() {
     setPage(1) // 검색 시 첫 페이지로
   }
 
-  // 초기화 핸들러
-  const handleReset = () => {
-    const resetParams: AuthoritySearchParams = {
-      owner_group: 'PRGRP_001',
-    }
-    setSearchParams(resetParams)
-    setPage(1)
-  }
-
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1) // AG Grid는 0-based, API는 1-based
@@ -69,7 +60,6 @@ export default function AuthorityPage() {
       <AuthoritySearch
         params={searchParams}
         onSearch={handleSearch}
-        onReset={handleReset}
         resultCount={data?.totalElements || 0}
       />
       <AuthorityList

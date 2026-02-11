@@ -14,20 +14,17 @@ import type { AuthoritySearchParams } from '@/lib/schemas/authority'
  *
  * @param params - 현재 검색 파라미터
  * @param onSearch - 검색 버튼 클릭 시 실행할 함수
- * @param onReset - 초기화 버튼 클릭 시 실행할 함수
  * @param resultCount - 검색 결과 개수
  */
 interface AuthoritySearchProps {
   params: AuthoritySearchParams
   onSearch: (params: AuthoritySearchParams) => void
-  onReset: () => void
   resultCount?: number
 }
 
 export default function AuthoritySearch({
   params,
   onSearch,
-  onReset: _onReset,
   resultCount = 0,
 }: AuthoritySearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
