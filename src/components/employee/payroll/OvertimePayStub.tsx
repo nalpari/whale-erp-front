@@ -19,7 +19,7 @@ import type {
   PostOvertimeAllowanceStatementRequest,
 } from '@/lib/api/overtimeAllowanceStatement'
 import { OvertimeWorkTimeEditData, EditableOvertimeRecord, EditableWeeklySubtotal } from './OvertimeWorkTimeEdit'
-import { useBp } from '@/hooks/useBp'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -76,7 +76,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree = [] } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // 점포 옵션 조회
   const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null

@@ -39,9 +39,8 @@
 'use client'
 
 import './custom-css/FormHelper.css'
-import { useEffect, useMemo, useRef } from 'react'
-import { useBp } from '@/hooks/useBp'
-import { useStoreOptions } from '@/hooks/queries'
+import { useEffect, useMemo } from 'react'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
@@ -94,7 +93,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
-    const { data: bpTree, loading: bpLoading } = useBp(isReady)
+    const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
     // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
     // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
@@ -104,11 +103,10 @@ export default function HeadOfficeFranchiseStoreSelect({
     const isOfficeFixed = bpTree.length === 1
     const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
 
-    // bpTree 로드 후 본사/가맹점이 1개면 자동 선택
-    const bpAutoAppliedRef = useRef(false)
+    // bpTree 본사/가맹점이 1개면 자동 선택
+    // officeId가 null일 때마다 실행되므로 초기화 버튼 후에도 고정값이 복원된다.
     useEffect(() => {
-        if (bpAutoAppliedRef.current || bpLoading || bpTree.length !== 1) return
-        bpAutoAppliedRef.current = true
+        if (bpLoading || bpTree.length !== 1 || officeId !== null) return
 
         const office = bpTree[0]
         const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
@@ -118,7 +116,7 @@ export default function HeadOfficeFranchiseStoreSelect({
             franchise: autoFranchiseId,
             store: null,
         })
-    }, [bpLoading, bpTree, onChange])
+    }, [bpLoading, bpTree, officeId, onChange])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

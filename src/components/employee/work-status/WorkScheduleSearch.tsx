@@ -62,6 +62,18 @@ export default function WorkScheduleSearch({
   const [showOfficeError, setShowOfficeError] = useState(false);
   const [showPeriodError, setShowPeriodError] = useState(false);
   const defaultRange = useMemo(() => getDefaultRange(), []);
+  const defaultForm = useMemo(
+    () => ({
+      officeId: null as number | null,
+      franchiseId: null as number | null,
+      storeId: null as number | null,
+      employeeName: '',
+      dayType: '' as DayType | '',
+      from: defaultRange.from,
+      to: defaultRange.to,
+    }),
+    [defaultRange.from, defaultRange.to]
+  );
   const autoSearchKey = useMemo(() => {
     if (!initialQuery?.officeId || !initialQuery.from || !initialQuery.to) return '';
     return [
@@ -73,15 +85,7 @@ export default function WorkScheduleSearch({
       initialQuery.from,
       initialQuery.to,
     ].join('|');
-  }, [
-    initialQuery?.dayType,
-    initialQuery?.employeeName,
-    initialQuery?.franchiseId,
-    initialQuery?.officeId,
-    initialQuery?.storeId,
-    initialQuery?.from,
-    initialQuery?.to,
-  ]);
+  }, [initialQuery]);
   const autoSearchRef = useRef<string>('');
   const initialForm = useMemo(
     () => ({
@@ -93,17 +97,7 @@ export default function WorkScheduleSearch({
       from: initialQuery?.from ?? defaultRange.from,
       to: initialQuery?.to ?? defaultRange.to,
     }),
-    [
-      defaultRange.from,
-      defaultRange.to,
-      initialQuery?.dayType,
-      initialQuery?.employeeName,
-      initialQuery?.franchiseId,
-      initialQuery?.officeId,
-      initialQuery?.storeId,
-      initialQuery?.from,
-      initialQuery?.to,
-    ]
+    [defaultRange.from, defaultRange.to, initialQuery]
   );
   const [form, setForm] = useState(initialForm);
 
@@ -136,18 +130,25 @@ export default function WorkScheduleSearch({
       ? '직원 정보를 조회중입니다.'
       : '전체';
 
-  useEffect(() => {
+  // render-time setState: initialForm이 실제로 변경될 때만 form 동기화
+  // (마운트 시 실행 방지 — bpTree auto-apply 값을 덮어쓰지 않음)
+  const [prevInitialForm, setPrevInitialForm] = useState(initialForm);
+  if (initialForm !== prevInitialForm) {
+    setPrevInitialForm(initialForm);
     setForm(initialForm);
-  }, [initialForm]);
+  }
 
-  // employeeOptions 변경 시 현재 선택된 employeeName이 유효한지 체크
-  useEffect(() => {
-    if (!form.employeeName) return
-    const isValid = employeeOptions.some((opt) => opt.value === form.employeeName)
-    if (!isValid) {
-      setForm((prev) => ({ ...prev, employeeName: '' }))
+  // render-time: employeeOptions 변경 시 현재 선택된 employeeName이 유효한지 체크
+  const [prevEmployeeOptions, setPrevEmployeeOptions] = useState(employeeOptions);
+  if (employeeOptions !== prevEmployeeOptions) {
+    setPrevEmployeeOptions(employeeOptions);
+    if (form.employeeName) {
+      const isValid = employeeOptions.some((opt) => opt.value === form.employeeName);
+      if (!isValid) {
+        setForm((prev) => ({ ...prev, employeeName: '' }));
+      }
     }
-  }, [employeeOptions, form.employeeName]);
+  }
 
   useEffect(() => {
     if (!autoSearchKey || autoSearchRef.current === autoSearchKey) return;
@@ -198,7 +199,7 @@ export default function WorkScheduleSearch({
   };
 
   const handleReset = () => {
-    setForm(initialForm);
+    setForm(defaultForm);
     setShowOfficeError(false);
     setShowPeriodError(false);
     onStoreErrorChange?.(false);

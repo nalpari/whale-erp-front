@@ -4,8 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input, useAlert } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
-import { useStoreDetail, useCreateStore, useUpdateStore } from '@/hooks/queries'
-import { useBp } from '@/hooks/useBp'
+import { useStoreDetail, useCreateStore, useUpdateStore, useBpHeadOfficeTree, getBpDetail } from '@/hooks/queries'
 import type { StoreDetailResponse, FieldErrors, StoreFormState } from '@/types/store'
 import { StoreDetailBasicInfo } from '@/components/store/manage/StoreDetailBasicInfo'
 import { StoreDetailOperatingHours } from '@/components/store/manage/StoreDetailOperatingHours'
@@ -62,7 +61,7 @@ interface StoreDetailFormProps {
 // 상세 폼(저장/검증/입력 포함) 본체
 function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDetailFormProps) {
   const { alert, confirm } = useAlert()
-  const { data: bpTree, loading: bpLoading, getBpDetail } = useBp()
+  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
 
   const {
     formState,

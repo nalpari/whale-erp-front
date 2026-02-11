@@ -21,7 +21,7 @@ import type {
   PartTimerPaymentItemRequest,
 } from '@/lib/api/partTimerPayrollStatement'
 import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
-import { useBp } from '@/hooks/useBp'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -83,7 +83,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // 점포 옵션 조회
   const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null

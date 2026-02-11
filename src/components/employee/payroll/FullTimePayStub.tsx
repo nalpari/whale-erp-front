@@ -18,7 +18,7 @@ import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import { useContractsByEmployee } from '@/hooks/queries/use-contract-queries'
 import { useFileInfo, useFileDownloadUrl } from '@/hooks/queries/use-file-queries'
 import { getOvertimeAllowanceStatements, getOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
-import { useBp } from '@/hooks/useBp'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type {
@@ -177,7 +177,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree = [] } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // 점포 옵션 조회
   const { data: storeOptionList = [] } = useStoreOptions(selectedHeadOfficeId, selectedFranchiseStoreId)

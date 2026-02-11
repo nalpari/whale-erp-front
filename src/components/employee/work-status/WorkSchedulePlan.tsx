@@ -288,6 +288,10 @@ export default function WorkSchedulePlan() {
     };
   }, [searchParams]);
 
+  // 목록 페이지의 원래 검색 기간 (목록 복귀 시 사용)
+  const listFrom = searchParams.get('listFrom') ?? undefined;
+  const listTo = searchParams.get('listTo') ?? undefined;
+
   const handleSearch = useCallback(
     async (query: StoreScheduleQuery) => {
       setIsFetching(true);
@@ -324,13 +328,8 @@ export default function WorkSchedulePlan() {
   );
 
   const handleReset = useCallback(() => {
-    setPlans([]);
-    setPendingDeletes({});
-    initialWorkersRef.current = new Map();
-    dirtyWorkersRef.current = new Set();
     setShowStoreError(false);
-    setLastQuery(null);
-  }, [setLastQuery]);
+  }, []);
 
   const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
     setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });
@@ -490,9 +489,12 @@ export default function WorkSchedulePlan() {
     }
     const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
       lastQuery ?? initialQuery ?? null;
-    const params = buildStoreScheduleParams(source);
+    const params = buildStoreScheduleParams(source, {
+      from: listFrom ?? source?.from,
+      to: listTo ?? source?.to,
+    });
     router.push(`/employee/schedule/view${toQueryString(params)}`);
-  }, [alert, confirm, initialQuery, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
+  }, [alert, confirm, initialQuery, isLoading, lastQuery, listFrom, listTo, pendingDeletes, plans, router, upsertMutation]);
 
   const renderedPlans = useMemo(() => plans, [plans]);
   const resultCount = useMemo(
@@ -614,11 +616,14 @@ export default function WorkSchedulePlan() {
                   }
                   const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
                     lastQuery ?? initialQuery ?? null;
-                  const params = buildStoreScheduleParams(source);
+                  const params = buildStoreScheduleParams(source, {
+                    from: listFrom ?? source?.from,
+                    to: listTo ?? source?.to,
+                  });
                   router.push(`/employee/schedule/view${toQueryString(params)}`);
                 }}
               >
-                취소
+                목록
               </button>
               <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
                 저장

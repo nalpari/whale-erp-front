@@ -4,8 +4,7 @@ import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-import { useBp } from '@/hooks/useBp'
-import { useStoreOptions } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
@@ -353,7 +352,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   // BP 트리 기반 동적 옵션 (검색 영역과 동일한 로직)
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree, loading: bpLoading } = useBp(isReady)
+  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
   const headOfficeOptions: SelectOption[] = useMemo(() =>
     bpTree.map((office) => ({ value: String(office.id), label: office.name })),

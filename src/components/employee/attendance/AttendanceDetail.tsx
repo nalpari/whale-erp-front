@@ -7,7 +7,6 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 import Location from '@/components/ui/Location'
 import { useAttendanceRecords } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { useAttendanceSearchStore } from '@/stores/attendance-search-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { AttendanceRecordItem, AttendanceRecordParams } from '@/types/attendance'
 
@@ -30,10 +29,6 @@ export default function AttendanceDetail() {
   const searchParams = useSearchParams()
   const { accessToken, affiliationId } = useAuthStore()
   const hydrated = Boolean(accessToken && affiliationId)
-
-  // Store에서 페이지 정보 가져오기
-  const page = useAttendanceSearchStore((state) => state.page)
-  const pageSize = useAttendanceSearchStore((state) => state.pageSize)
 
   const officeId = parseNumberParam(searchParams.get('officeId'))
   const franchiseId = parseNumberParam(searchParams.get('franchiseId'))
@@ -105,13 +100,7 @@ export default function AttendanceDetail() {
   }
 
   const handleBackToList = () => {
-    // 저장된 페이지 정보로 목록으로 돌아가기
-    const params = new URLSearchParams()
-    if (page > 0) params.set('page', String(page))
-    params.set('size', String(pageSize))
-    const query = params.toString()
-    const url = query ? `/employee/attendance?${query}` : '/employee/attendance'
-    router.push(url)
+    router.push('/employee/attendance')
   }
 
   if (!officeId || !employeeId) {

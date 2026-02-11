@@ -15,7 +15,7 @@ import {
 } from '@/hooks/queries/use-contract-queries'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHeaderRequest } from '@/lib/api/employmentContract'
-import { useBp } from '@/hooks/useBp'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -51,7 +51,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // 파일 input refs
   const laborContractFileRef = useRef<HTMLInputElement>(null)

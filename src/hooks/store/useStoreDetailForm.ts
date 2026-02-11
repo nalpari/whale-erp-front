@@ -439,6 +439,9 @@ export const useStoreDetailForm = ({
 
   // 로그인 사용자 권한에 따른 본사/가맹점 자동 선택 (렌더링 시점 동기화)
   // bpTree가 1개면 해당 본사 자동 선택, 가맹점이 1개면 가맹점도 자동 선택
+  // NOTE: useEffect 내 setState는 react-hooks/set-state-in-effect 린트 에러가 발생하므로
+  //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
+  //       호출해야 하므로 useRef+useEffect 패턴을 사용)
   // TODO: auth-store에 소속 조직 타입이 저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
   //       - FRANCHISE: storeOwner를 FRANCHISE로 고정 + officeId/franchiseId 자동 선택
   const [bpAutoApplied, setBpAutoApplied] = useState(false)

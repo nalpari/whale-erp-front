@@ -178,6 +178,9 @@ export default function StoreSchedulePageClient() {
 
   const handlePlan = () => {
     const params = buildStoreScheduleParams(lastQuery);
+    // 원래 검색 기간을 보존하여 수립→목록 복귀 시 사용
+    if (lastQuery?.from) params.set('listFrom', lastQuery.from);
+    if (lastQuery?.to) params.set('listTo', lastQuery.to);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
@@ -188,6 +191,9 @@ export default function StoreSchedulePageClient() {
       date,
       storeId: storeId ?? lastQuery?.storeId,
     });
+    // 원래 검색 기간을 보존하여 수립→목록 복귀 시 사용
+    if (lastQuery?.from) params.set('listFrom', lastQuery.from);
+    if (lastQuery?.to) params.set('listTo', lastQuery.to);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
