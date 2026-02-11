@@ -661,6 +661,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           </div>
                         </div>
                       </div>
+                      {(formErrors.contractStartDate || formErrors.contractEndDate) && (
+                        <div className="warning-txt mt5" role="alert">* {formErrors.contractStartDate || formErrors.contractEndDate}</div>
+                      )}
                     </td>
                   </tr>
                   <tr>
