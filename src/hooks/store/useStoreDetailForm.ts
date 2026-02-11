@@ -437,6 +437,42 @@ export const useStoreDetailForm = ({
     return selectedOffice?.franchises ?? []
   }, [bpTree, formState.officeId])
 
+  // 로그인 사용자 권한에 따른 본사/가맹점 자동 선택 (렌더링 시점 동기화)
+  // bpTree가 1개면 해당 본사 자동 선택, 가맹점이 1개면 가맹점도 자동 선택
+  // TODO: auth-store에 소속 조직 타입이 저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
+  //       - FRANCHISE: storeOwner를 FRANCHISE로 고정 + officeId/franchiseId 자동 선택
+  const [bpAutoApplied, setBpAutoApplied] = useState(false)
+  if (!bpAutoApplied && bpTree.length === 1 && !(isEditMode && detail)) {
+    setBpAutoApplied(true)
+    const office = bpTree[0]
+
+    if (office.franchises.length === 0) {
+      // 가맹점이 없으면 본사 소유 고정
+      setFormState((prev) => ({
+        ...prev,
+        officeId: office.id,
+        storeOwner: 'HEAD_OFFICE',
+        organizationId: office.id,
+      }))
+    } else if (office.franchises.length === 1) {
+      // 가맹점이 1개면 본사 + 가맹점 자동 선택 (storeOwner는 사용자가 선택)
+      const franchise = office.franchises[0]
+      setFormState((prev) => ({
+        ...prev,
+        officeId: office.id,
+        franchiseId: franchise.id,
+        organizationId: office.id,
+      }))
+    } else {
+      // 가맹점이 여러 개면 본사만 자동 선택
+      setFormState((prev) => ({
+        ...prev,
+        officeId: office.id,
+        organizationId: office.id,
+      }))
+    }
+  }
+
   // 본사 선택 시 가맹점/조직Id 동기화
   const handleOfficeChange = (nextOfficeId: number | null) => {
     setFormState((prev: StoreFormState) => {
@@ -595,11 +631,20 @@ export const useStoreDetailForm = ({
 
   // 점포 소유(본사/가맹점) 변경 시 조직Id 동기화
   const handleStoreOwnerChange = (owner: StoreFormState['storeOwner']) => {
-    setFormState((prev) => ({
-      ...prev,
-      storeOwner: owner,
-      organizationId: owner === 'HEAD_OFFICE' ? prev.officeId : prev.franchiseId,
-    }))
+    setFormState((prev) => {
+      if (owner === 'HEAD_OFFICE') {
+        return { ...prev, storeOwner: owner, organizationId: prev.officeId }
+      }
+      // FRANCHISE 선택 시 가맹점이 1개이면 자동 선택
+      const franchiseId =
+        prev.franchiseId ?? (franchiseOptions.length === 1 ? franchiseOptions[0].id : null)
+      return {
+        ...prev,
+        storeOwner: owner,
+        franchiseId,
+        organizationId: franchiseId,
+      }
+    })
   }
 
   return {

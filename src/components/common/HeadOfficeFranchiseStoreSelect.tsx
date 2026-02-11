@@ -39,7 +39,7 @@
 'use client'
 
 import './custom-css/FormHelper.css'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useBp } from '@/hooks/useBp'
 import { useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -95,6 +95,31 @@ export default function HeadOfficeFranchiseStoreSelect({
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree, loading: bpLoading } = useBp(isReady)
+
+    // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
+    // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
+    //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
+    //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false
+    //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true
+    const isOfficeFixed = bpTree.length === 1
+    const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
+
+    // bpTree 로드 후 본사/가맹점이 1개면 자동 선택
+    const bpAutoAppliedRef = useRef(false)
+    useEffect(() => {
+        if (bpAutoAppliedRef.current || bpLoading || bpTree.length !== 1) return
+        bpAutoAppliedRef.current = true
+
+        const office = bpTree[0]
+        const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
+
+        onChange({
+            head_office: office.id,
+            franchise: autoFranchiseId,
+            store: null,
+        })
+    }, [bpLoading, bpTree, onChange])
+
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
     const franchiseOptions = useMemo(() => buildFranchiseOptions(bpTree, officeId), [bpTree, officeId])
@@ -120,7 +145,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null}
                                 options={officeOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading}
+                                isDisabled={bpLoading || isOfficeFixed}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -156,7 +181,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading}
+                                isDisabled={bpLoading || isFranchiseFixed}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {

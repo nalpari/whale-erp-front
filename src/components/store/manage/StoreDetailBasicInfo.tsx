@@ -142,6 +142,15 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
+  // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
+  // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
+  //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
+  //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false, isOwnerFixed=false
+  //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true, isOwnerFixed=true (FRANCHISE 고정)
+  const isOfficeFixed = bpTree.length === 1
+  const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
+  const isOwnerFixed = isOfficeFixed && bpTree[0]?.franchises.length === 0
+
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
   const businessFiles = useMemo<FileItem[]>(() => {
     const files: FileItem[] = []
@@ -283,6 +292,7 @@ export const StoreDetailBasicInfo = ({
                     options={storeOwnerOptions}
                     value={formState.storeOwner}
                     onChange={(nextValue) => onStoreOwnerChange(nextValue)}
+                    disabled={isOwnerFixed}
                   />
                 </td>
               </tr>
@@ -295,7 +305,7 @@ export const StoreDetailBasicInfo = ({
                       value={formState.officeId !== null ? officeOptions.find((opt) => opt.value === String(formState.officeId)) || null : null}
                       options={officeOptions}
                       placeholder="본사 선택"
-                      isDisabled={bpLoading}
+                      isDisabled={bpLoading || isOfficeFixed}
                       isSearchable={false}
                       isClearable={false}
                       onChange={(option) => onOfficeChange(option ? Number(option.value) : null)}
@@ -306,7 +316,7 @@ export const StoreDetailBasicInfo = ({
                         value={formState.franchiseId !== null ? franchiseSelectOptions.find((opt) => opt.value === String(formState.franchiseId)) || null : null}
                         options={franchiseSelectOptions}
                         placeholder="가맹점 선택"
-                        isDisabled={bpLoading}
+                        isDisabled={bpLoading || isFranchiseFixed}
                         isSearchable={false}
                         isClearable={false}
                         onChange={(option) => onFranchiseChange(option ? Number(option.value) : null)}
@@ -426,7 +436,7 @@ export const StoreDetailBasicInfo = ({
                       zonecode: formState.postalCode,
                     }}
                     onChange={onAddressChange}
-                      detailInputRef={addressDetailRef}
+                    detailInputRef={addressDetailRef}
                     error={!!fieldErrors.storeAddress}
                     helpText={fieldErrors.storeAddress}
                     addressPlaceholder="주소를 선택하세요"
