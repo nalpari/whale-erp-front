@@ -13,9 +13,10 @@ export default function AuthorityEditPage() {
   const router = useRouter()
   const params = useParams()
   const authorityId = Number(params.id)
+  const isValidId = !Number.isNaN(authorityId) && authorityId > 0
 
   // 권한 상세 조회
-  const { data: authority, isLoading } = useAuthorityDetail(authorityId)
+  const { data: authority, isLoading } = useAuthorityDetail(isValidId ? authorityId : 0)
 
   // 권한 삭제 mutation
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
@@ -56,6 +57,15 @@ export default function AuthorityEditPage() {
     }
   }
 
+  if (!isValidId) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <div className="contents-wrap">잘못된 권한 ID입니다.</div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return <div></div>
   }
@@ -76,10 +86,10 @@ export default function AuthorityEditPage() {
         <AuthorityForm
           mode="edit"
           initialData={{
+            ...formData,
             owner_code: authority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
             head_office_id: authority.head_office_id ?? undefined,
             franchisee_id: authority.franchisee_id ?? undefined,
-            ...formData,
           }}
           onChange={handleFormChange}
           onList={handleList}
