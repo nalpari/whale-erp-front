@@ -66,8 +66,7 @@ export default function PlanPricingList({ planId, planTypeId, planTypeName, pric
                     onSuccess: () => {
                         alert('삭제되었습니다.')
                     },
-                    onError: (error) => {
-                        console.error('삭제 실패:', error)
+                    onError: () => {
                         alert('삭제에 실패했습니다. 다시 시도해주세요.')
                     },
                 },

@@ -239,8 +239,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                 await updatePricing({ planId, planTypeId, pricingId: pricingId!, data: requestData })
             }
             router.push(`/subscription/${planTypeId}`)
-        } catch (error) {
-            console.error('가격 정책 저장 실패:', error)
+        } catch {
             await alert(`가격 정책 ${mode === 'create' ? '등록' : '수정'}에 실패했습니다. 다시 시도해주세요.`)
         }
     }

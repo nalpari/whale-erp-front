@@ -30,8 +30,7 @@ export default function PlanHeader({ planTypeId }: PlanHeaderProps) {
         try {
             await updateMutation.mutateAsync({ id: planTypeId, data })
             router.push(`/subscription/${planTypeId}`)
-        } catch (err) {
-            console.error('저장 실패:', err)
+        } catch {
             await alert('저장에 실패했습니다. 다시 시도해주세요.')
         }
     }

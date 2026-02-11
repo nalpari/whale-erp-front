@@ -10,7 +10,8 @@ const PlansComparisonPop = dynamic(
     { ssr: false }
 )
 import { PlansListItem } from '@/types/plans'
-import { useMemo, useState } from 'react'
+import { formatDateTimeYmdHm } from '@/util/date-util'
+import { useState } from 'react'
 
 const COLUMN_DEFS: ColDef<PlansListItem>[] = [
     { field: 'planTypeName', headerName: '요금제명', flex: 1 },
@@ -30,7 +31,7 @@ const COLUMN_DEFS: ColDef<PlansListItem>[] = [
     { field: 'monthlyPrice', headerName: '1개월 요금 *', flex: 1 },
     { field: 'sixMonthDiscountPrice', headerName: '6개월 요금', flex: 1 },
     { field: 'yearlyDiscountPrice', headerName: '12개월 요금', flex: 1 },
-    { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => params.value?.toLocaleString() },
+    { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => formatDateTimeYmdHm(params.value, '') },
     { field: 'updater', headerName: '수정자', flex: 1 },
 ]
 
