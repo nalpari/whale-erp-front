@@ -11,6 +11,8 @@ import {
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useStoreOptions } from '@/hooks/queries'
+import { useBp } from '@/hooks/useBp'
+import { useAuthStore } from '@/stores/auth-store'
 import { getDownloadUrl } from '@/lib/api/file'
 import { Input, AddressSearch, type AddressData, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -120,11 +122,11 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     }
   }
 
-  // 폼 데이터 상태 - 본사/가맹점/점포는 고정값 1, 2, 1
+  // 폼 데이터 상태
   const [formData, setFormData] = useState({
-    headOfficeOrganizationId: '1',
-    franchiseOrganizationId: '2',
-    storeId: '1',
+    headOfficeOrganizationId: '',
+    franchiseOrganizationId: '',
+    storeId: '',
     employeeName: '',
     employeeCode: '',
     employeeNumber: '',
@@ -175,9 +177,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     // formData 설정
     setFormData(prev => ({
       ...prev,
-      headOfficeOrganizationId: employee.headOfficeOrganizationId?.toString() || '1',
-      franchiseOrganizationId: employee.franchiseOrganizationId?.toString() || '2',
-      storeId: employee.storeId?.toString() || '1',
+      headOfficeOrganizationId: employee.headOfficeOrganizationId?.toString() || '',
+      franchiseOrganizationId: employee.franchiseOrganizationId?.toString() || '',
+      storeId: employee.storeId?.toString() || '',
       employeeName: employee.employeeName || '',
       employeeNumber: employee.employeeNumber || '',
       birthDate: employee.birthDate || '',
@@ -336,37 +338,43 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   }, [])
 
   // TanStack Query로 직원분류/직급/직책 설정 조회
-  const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : 1
-  const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : 2
+  const headOfficeId = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : null
+  const franchiseId = formData.franchiseOrganizationId ? parseInt(formData.franchiseOrganizationId) : null
 
   const { data: settingsData } = useEmployeeInfoSettings(
-    headOfficeId && franchiseId
-      ? { headOfficeId, franchiseId }
+    headOfficeId
+      ? { headOfficeId, franchiseId: franchiseId ?? undefined }
       : undefined,
-    !!(headOfficeId && franchiseId)
+    !!headOfficeId
   )
 
   // 점포 옵션 조회
   const { data: storeOptionList = [] } = useStoreOptions(headOfficeId, franchiseId)
 
-  // Select 옵션 생성
-  const headOfficeSelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '본사 선택' },
-    { value: '1', label: '따름인' }
-  ], [])
+  // BP 트리 기반 동적 옵션
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree } = useBp(isReady)
 
-  const franchiseSelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '가맹점 선택' },
-    { value: '1', label: '을지로3가점' }
-  ], [])
+  const headOfficeSelectOptions: SelectOption[] = useMemo(() =>
+    bpTree.map((office) => ({ value: String(office.id), label: office.name })),
+    [bpTree]
+  )
 
-  const storeSelectOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: '점포 선택' },
-    ...storeOptionList.map(store => ({
+  const franchiseSelectOptions: SelectOption[] = useMemo(() => {
+    const officeIdNum = formData.headOfficeOrganizationId ? parseInt(formData.headOfficeOrganizationId) : null
+    if (!officeIdNum) return []
+    const office = bpTree.find((o) => o.id === officeIdNum)
+    return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
+  }, [bpTree, formData.headOfficeOrganizationId])
+
+  const storeSelectOptions: SelectOption[] = useMemo(() =>
+    storeOptionList.map(store => ({
       value: store.id.toString(),
       label: store.storeName
-    }))
-  ], [storeOptionList])
+    })),
+    [storeOptionList]
+  )
 
   const employeeClassSelectOptions: SelectOption[] = useMemo(() => {
     const employeeClassificationOptions: ClassificationItem[] = settingsData?.codeMemoContent?.EMPLOYEE || []
@@ -628,7 +636,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                 <col />
               </colgroup>
               <tbody>
-                {/* 근무처 선택 */}
+                {/* 근무처 선택 (수정 불가) */}
                 <tr>
                   <th>
                     근무처 선택 <span className="red">*</span>
@@ -638,7 +646,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                       <button
                         type="button"
                         className={`btn-form ${workplaceType === 'headquarters' ? 'basic' : 'outline'}`}
-                        onClick={() => setWorkplaceType('headquarters')}
+                        disabled
                         style={{ minWidth: '80px' }}
                       >
                         본사
@@ -646,7 +654,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                       <button
                         type="button"
                         className={`btn-form ${workplaceType === 'franchise' ? 'basic' : 'outline'}`}
-                        onClick={() => setWorkplaceType('franchise')}
+                        disabled
                         style={{ minWidth: '80px' }}
                       >
                         가맹점
@@ -655,10 +663,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   </td>
                 </tr>
 
-                {/* 본사/가맹점 */}
+                {/* 본사/가맹점 (수정 불가) */}
                 <tr>
                   <th>
-                    본사/가맹점 <span className="red">*</span>
+                    {workplaceType === 'franchise' ? '본사/가맹점' : '본사'} <span className="red">*</span>
                   </th>
                   <td>
                     <div className="filed-flx">
@@ -666,23 +674,27 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                         <SearchSelect
                           options={headOfficeSelectOptions}
                           value={headOfficeSelectOptions.find(opt => opt.value === formData.headOfficeOrganizationId) || null}
-                          onChange={(opt) => handleInputChange('headOfficeOrganizationId', opt?.value || '')}
+                          onChange={() => {}}
                           placeholder="본사 선택"
+                          isDisabled={true}
                         />
                       </div>
-                      <div className="mx-300">
-                        <SearchSelect
-                          options={franchiseSelectOptions}
-                          value={franchiseSelectOptions.find(opt => opt.value === formData.franchiseOrganizationId) || null}
-                          onChange={(opt) => handleInputChange('franchiseOrganizationId', opt?.value || '')}
-                          placeholder="가맹점 선택"
-                        />
-                      </div>
+                      {workplaceType === 'franchise' && (
+                        <div className="mx-300">
+                          <SearchSelect
+                            options={franchiseSelectOptions}
+                            value={franchiseSelectOptions.find(opt => opt.value === formData.franchiseOrganizationId) || null}
+                            onChange={() => {}}
+                            placeholder="가맹점 선택"
+                            isDisabled={true}
+                          />
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
 
-                {/* 점포 선택 */}
+                {/* 점포 선택 (수정 불가) */}
                 <tr>
                   <th>점포 선택</th>
                   <td>
@@ -690,8 +702,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                       <SearchSelect
                         options={storeSelectOptions}
                         value={storeSelectOptions.find(opt => opt.value === formData.storeId) || null}
-                        onChange={(opt) => handleInputChange('storeId', opt?.value || '')}
-                        placeholder="#힘이나는커피생활 을지로3가점"
+                        onChange={() => {}}
+                        placeholder="점포"
+                        isDisabled={true}
                       />
                     </div>
                   </td>

@@ -1,5 +1,4 @@
 import api from '../api'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID, DEFAULT_STORE_ID } from '../constants/organization'
 
 // 파트타이머 지급 항목 응답 타입
 export interface PartTimerPaymentItemResponse {
@@ -39,6 +38,7 @@ export interface PartTimerPayrollStatementListItem {
   franchiseName?: string
   storeName?: string
   employeeClassification?: string
+  employeeClassificationName?: string
   payrollYearMonth: string
   paymentDate: string
   workDays?: string
@@ -62,6 +62,9 @@ export interface PartTimerPayrollStatementResponse {
   isEmailSend: boolean
   paymentItems: PartTimerPaymentItemResponse[]
   weeklyPaidHolidayAllowances: WeeklyPaidHolidayAllowanceResponse[]
+  headOfficeName?: string
+  franchiseName?: string
+  storeName?: string
   createdAt?: string
   updatedAt?: string
   createdByName?: string
@@ -98,15 +101,9 @@ export interface GetPartTimerPayrollStatementParams {
 
 // 파트타이머 급여 명세서 목록 조회
 export async function getPartTimerPayrollStatements(params?: GetPartTimerPayrollStatementParams): Promise<PartTimerPayrollStatementListResponse> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<{ data: PartTimerPayrollStatementListResponse }>(
     '/api/employee/payroll/parttime',
-    { params: defaultParams }
+    { params }
   )
 
   if (!response.data?.data) {
@@ -236,15 +233,9 @@ export interface GetDailyWorkHoursParams {
 
 // 일별 근무 시간 조회
 export async function getDailyWorkHours(params: GetDailyWorkHoursParams): Promise<DailyWorkHoursSummaryResponse | null> {
-  const defaultParams = {
-    headOfficeId: DEFAULT_HEAD_OFFICE_ID,
-    franchiseStoreId: DEFAULT_FRANCHISE_ID,
-    storeId: DEFAULT_STORE_ID,
-    ...params
-  }
   const response = await api.get<{ data: DailyWorkHoursSummaryResponse }>(
     '/api/employee/payroll/parttime/daily-work-hours',
-    { params: defaultParams }
+    { params }
   )
 
   if (!response.data?.data) {

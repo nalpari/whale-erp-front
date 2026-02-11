@@ -518,6 +518,53 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
           </div>
         </AnimateHeight>
       </div>
+
+      {/* 등록 및 수정 이력 */}
+      <div className="content-wrap">
+        <div className="slidebox-wrap">
+          <div className="slidebox-header">
+            <h2>등록 및 수정 이력</h2>
+          </div>
+          <div className="slidebox-body">
+            <div className="detail-data-wrap">
+              <table className="detail-data-table">
+                <colgroup>
+                  <col width="200px" />
+                  <col />
+                </colgroup>
+                <tbody>
+                  <tr>
+                    <th>등록자/등록일</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{contractData?.createdByName || '-'}</span>
+                        </li>
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{contractData?.createdAt?.split('T')[0] || '-'}</span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>최근수정자/최근수정일</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{contractData?.updatedByName || '-'}</span>
+                        </li>
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">{contractData?.updatedAt?.split('T')[0] || '-'}</span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
