@@ -13,6 +13,7 @@ const BREADCRUMBS = ['과금관리', 'ERP 요금제 관리', 'ERP요금제 정�
 
 interface PlanPricingFormProps {
     planId: number
+    planTypeId: number
     planTypeName: string
     mode: 'create' | 'edit'
     initialData?: PlanPricing
@@ -31,7 +32,7 @@ interface ValidationErrors {
     twelveMonthDiscount?: string
 }
 
-export default function PlanPricingForm({ planId, planTypeName, mode, initialData, pricingId }: PlanPricingFormProps) {
+export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode, initialData, pricingId }: PlanPricingFormProps) {
     const router = useRouter()
     const { alert, confirm } = useAlert()
 
@@ -115,7 +116,7 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
     const pageTitle = mode === 'create' ? '가격 정보 등록' : '가격 정보 수정'
 
     const handleCancel = () => {
-        router.push(`/subscription/${planId}`)
+        router.push(`/subscription/${planTypeId}`)
     }
 
     const validate = (): boolean => {
@@ -237,11 +238,11 @@ export default function PlanPricingForm({ planId, planTypeName, mode, initialDat
 
         try {
             if (mode === 'create') {
-                await createPricing({ planId, data: requestData })
+                await createPricing({ planId, planTypeId, data: requestData })
             } else {
-                await updatePricing({ planId, pricingId: pricingId!, data: requestData })
+                await updatePricing({ planId, planTypeId, pricingId: pricingId!, data: requestData })
             }
-            router.push(`/subscription/${planId}`)
+            router.push(`/subscription/${planTypeId}`)
         } catch (error) {
             console.error('가격 정책 저장 실패:', error)
             await alert(`가격 정책 ${mode === 'create' ? '등록' : '수정'}에 실패했습니다. 다시 시도해주세요.`)

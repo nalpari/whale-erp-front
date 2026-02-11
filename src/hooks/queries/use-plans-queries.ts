@@ -21,17 +21,17 @@ export const usePlansList = (params: PlansListParams, enabled = true) => {
 }
 
 // 비교 팝업용 전체 요금제 상세 병렬 조회
-export const usePlansComparison = (planIds: number[], enabled = true) => {
+export const usePlansComparison = (planTypeIds: number[], enabled = true) => {
     return useQueries({
-        queries: planIds.map(id => ({
-            queryKey: plansKeys.detail(id),
+        queries: planTypeIds.map(planTypeId => ({
+            queryKey: plansKeys.detail(planTypeId),
             queryFn: async () => {
                 const response = await api.get<ApiResponse<PlanDetailResponse>>(
-                    `/api/v1/subscription/plans/${id}`
+                    `/api/v1/subscription/plans/${planTypeId}`
                 )
                 return response.data.data
             },
-            enabled: enabled && id > 0,
+            enabled: enabled && planTypeId > 0,
         })),
     })
 }
@@ -108,6 +108,7 @@ export const useCreatePlanPricing = () => {
             data,
         }: {
             planId: number
+            planTypeId: number
             data: CreatePlanPricingRequest
         }) => {
             const response = await api.post<ApiResponse<CreatePlanPricingResponse>>(
@@ -116,8 +117,8 @@ export const useCreatePlanPricing = () => {
             )
             return response.data.data
         },
-        onSuccess: (_, { planId }) => {
-            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+        onSuccess: (_, { planTypeId }) => {
+            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planTypeId) })
             queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
@@ -134,6 +135,7 @@ export const useUpdatePlanPricing = () => {
             data,
         }: {
             planId: number
+            planTypeId: number
             pricingId: number
             data: UpdatePlanPricingRequest
         }) => {
@@ -143,8 +145,8 @@ export const useUpdatePlanPricing = () => {
             )
             return response.data.data
         },
-        onSuccess: (_, { planId }) => {
-            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+        onSuccess: (_, { planTypeId }) => {
+            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planTypeId) })
             queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
@@ -155,14 +157,14 @@ export const useDeletePlanPricing = () => {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async ({ planId, pricingId }: { planId: number; pricingId: number }) => {
+        mutationFn: async ({ planId, pricingId }: { planId: number; planTypeId: number; pricingId: number }) => {
             const response = await api.delete<ApiResponse<PlanPricing[]>>(
                 `/api/v1/subscription/plans/${planId}/pricings/${pricingId}`
             )
             return response.data.data
         },
-        onSuccess: (_, { planId }) => {
-            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planId) })
+        onSuccess: (_, { planTypeId }) => {
+            queryClient.invalidateQueries({ queryKey: plansKeys.detail(planTypeId) })
             queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })

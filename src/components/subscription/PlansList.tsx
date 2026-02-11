@@ -21,8 +21,9 @@ export default function PlansList({
 
     // 행 클릭 시 상세 페이지로 이동
     const handleRowClick = (event: RowClickedEvent<PlansListItem>) => {
+        console.log(event.data)
         if (event.data) {
-            router.push(`/subscription/${event.data.planId}`)
+            router.push(`/subscription/${event.data.planTypeId}`)
         }
     }
 

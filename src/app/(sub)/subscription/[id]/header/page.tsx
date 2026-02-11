@@ -6,9 +6,9 @@ interface PageProps {
 
 export default async function PlanHeaderPage({ params }: PageProps) {
     const { id } = await params
-    const planId = Number(id)
+    const planTypeId = Number(id)
 
-    if (isNaN(planId) || planId <= 0) {
+    if (isNaN(planTypeId) || planTypeId <= 0) {
         return (
             <div className="data-wrap">
                 <div className="error-wrap">
@@ -18,5 +18,5 @@ export default async function PlanHeaderPage({ params }: PageProps) {
         )
     }
 
-    return <PlanHeader planId={planId} />
+    return <PlanHeader planTypeId={planTypeId} />
 }

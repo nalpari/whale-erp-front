@@ -12,24 +12,24 @@ import { useCommonCode } from '@/hooks/useCommonCode'
 const BREADCRUMBS = ['과금관리', 'ERP 요금제 관리', 'ERP요금제 헤더 수정']
 
 interface PlanHeaderProps {
-    planId: number
+    planTypeId: number
 }
 
-export default function PlanHeader({ planId }: PlanHeaderProps) {
+export default function PlanHeader({ planTypeId }: PlanHeaderProps) {
     const router = useRouter()
     const { alert } = useAlert()
-    const { data: plan, isPending, error } = usePlanDetail(planId)
+    const { data: plan, isPending, error } = usePlanDetail(planTypeId)
     const updateMutation = useUpdatePlanHeader()
     const { children: planFeatures, loading: planFeaturesLoading } = useCommonCode('PLANFT')
 
     const handleCancel = () => {
-        router.push(`/subscription/${planId}`)
+        router.push(`/subscription/${planTypeId}`)
     }
 
     const handleSave = async (data: UpdatePlanHeaderRequest) => {
         try {
-            await updateMutation.mutateAsync({ id: planId, data })
-            router.push(`/subscription/${planId}`)
+            await updateMutation.mutateAsync({ id: planTypeId, data })
+            router.push(`/subscription/${planTypeId}`)
         } catch (err) {
             console.error('저장 실패:', err)
             await alert('저장에 실패했습니다. 다시 시도해주세요.')

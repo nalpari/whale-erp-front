@@ -23,9 +23,11 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
 
     // 각 요금제 상세: 병렬 조회
     const detailQueries = usePlansComparison(
-        plans.map(p => p.planId),
+        plans.map(p => p.planTypeId),
         isOpen
     )
+
+    console.log(detailQueries)
 
     // planTypeCode → PlanDetailResponse 매핑
     const planDetailMap = useMemo(() => {
@@ -53,7 +55,7 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
     const handleEdit = (planTypeCode: string) => {
         const plan = planListMap.get(planTypeCode)
         if (plan) {
-            router.push(`/subscription/${plan.planId}/header`)
+            router.push(`/subscription/${plan.planTypeId}/header`)
             onClose()
         }
     }
@@ -61,7 +63,7 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
     // 기능 활성화 여부 확인
     const isFeatureEnabled = (planTypeCode: string, featureCode: string): boolean => {
         const detail = planDetailMap.get(planTypeCode)
-        if (!detail) return false
+        if (!detail || !detail.planId) return false
         return detail.features.some(f => f.featureCode === featureCode && f.enabled)
     }
 
@@ -116,7 +118,7 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
                                                 const detail = planDetailMap.get(type.code)
                                                 return (
                                                     <td key={type.code}>
-                                                        {detail ? formatLimit(detail.storeLimit) : ''}
+                                                        {detail?.planId ? formatLimit(detail.storeLimit) : ''}
                                                     </td>
                                                 )
                                             })}
@@ -127,7 +129,7 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
                                                 const detail = planDetailMap.get(type.code)
                                                 return (
                                                     <td key={type.code}>
-                                                        {detail ? formatLimit(detail.employeeLimit) : ''}
+                                                        {detail?.planId ? formatLimit(detail.employeeLimit) : ''}
                                                     </td>
                                                 )
                                             })}
@@ -138,7 +140,7 @@ export default function PlansComparisonPop({ isOpen, onClose, plans }: PlansComp
                                                 const detail = planDetailMap.get(type.code)
                                                 return (
                                                     <td key={type.code}>
-                                                        {detail
+                                                        {detail?.planId
                                                             ? detail.features.filter(f => f.enabled).length
                                                             : ''}
                                                     </td>

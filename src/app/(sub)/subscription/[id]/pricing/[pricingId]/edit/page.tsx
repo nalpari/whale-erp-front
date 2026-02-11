@@ -13,12 +13,12 @@ interface PageProps {
 export default function PlanPricingEditPage({ params, searchParams }: PageProps) {
     const { id, pricingId } = use(params)
     const { planTypeName } = use(searchParams)
-    const planId = Number(id)
+    const planTypeId = Number(id)
     const pricingIdNum = Number(pricingId)
 
-    const { data: plan, isPending, isError } = usePlanDetail(planId)
+    const { data: plan, isPending, isError } = usePlanDetail(planTypeId)
 
-    if (isNaN(planId) || planId <= 0 || isNaN(pricingIdNum) || pricingIdNum <= 0) {
+    if (isNaN(planTypeId) || planTypeId <= 0 || isNaN(pricingIdNum) || pricingIdNum <= 0) {
         return (
             <div className="data-wrap">
                 <div className="error-wrap">
@@ -53,7 +53,8 @@ export default function PlanPricingEditPage({ params, searchParams }: PageProps)
 
     return (
         <PlanPricingForm
-            planId={planId}
+            planId={plan.planId}
+            planTypeId={planTypeId}
             planTypeName={planTypeName ?? plan.planTypeName}
             mode="edit"
             initialData={pricing}

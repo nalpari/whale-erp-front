@@ -10,17 +10,17 @@ import AnimateHeight from 'react-animate-height'
 const BREADCRUMBS = ['과금관리', 'ERP 요금제 관리', 'ERP요금제 정보 관리']
 
 interface PlanDetailProps {
-    planId: number
+    planTypeId: number
 }
 
-export default function PlanDetail({ planId }: PlanDetailProps) {
+export default function PlanDetail({ planTypeId }: PlanDetailProps) {
     const router = useRouter()
-    const { data: plan, isPending, error } = usePlanDetail(planId)
+    const { data: plan, isPending, error } = usePlanDetail(planTypeId)
     const [slideboxOpen, setSlideboxOpen] = useState(true)
 
 
     const onUpdateHeader = () => {
-        router.push(`/subscription/${planId}/header`)
+        router.push(`/subscription/${planTypeId}/header`)
     }
 
     if (isPending) {
@@ -86,13 +86,13 @@ export default function PlanDetail({ planId }: PlanDetailProps) {
                                             <tr>
                                                 <th>점포</th>
                                                 <td>
-                                                    {plan.storeLimit === null ? '제한없음' : plan.storeLimit}
+                                                    {plan.planId ? (plan.storeLimit === null ? '제한없음' : plan.storeLimit) : ''}
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <th>직원</th>
                                                 <td>
-                                                    {plan.employeeLimit === null ? '제한없음' : plan.employeeLimit}
+                                                    {plan.planId ? (plan.employeeLimit === null ? '제한없음' : plan.employeeLimit) : ''}
                                                 </td>
                                             </tr>
                                             <tr>
@@ -113,7 +113,8 @@ export default function PlanDetail({ planId }: PlanDetailProps) {
                     </div>
                     <div className="content-wrap">
                         <PlanPricingList
-                            planId={planId}
+                            planId={plan.planId}
+                            planTypeId={planTypeId}
                             planTypeName={plan.planTypeName}
                             pricingList={plan.pricings}
                         />

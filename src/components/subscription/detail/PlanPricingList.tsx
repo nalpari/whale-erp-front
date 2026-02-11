@@ -9,18 +9,19 @@ import { useAlert } from '@/components/common/ui'
 
 interface PlanPricingListProps {
     planId: number
+    planTypeId: number
     planTypeName: string
     pricingList: PlanPricing[]
 }
 
-export default function PlanPricingList({ planId, planTypeName, pricingList }: PlanPricingListProps) {
+export default function PlanPricingList({ planId, planTypeId, planTypeName, pricingList }: PlanPricingListProps) {
     const router = useRouter()
     const { alert, confirm } = useAlert()
     const { mutate: deletePricing, isPending: isDeleting } = useDeletePlanPricing()
 
     const handleAddPricing = () => {
         const params = new URLSearchParams({ planTypeName })
-        router.push(`/subscription/${planId}/pricing/create?${params.toString()}`)
+        router.push(`/subscription/${planTypeId}/pricing/create?${params.toString()}`)
     }
 
     const getStatus = (data: PlanPricing) => {
@@ -51,7 +52,7 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
         const status = getStatus(data)
         if (status !== '종료') {
             const params = new URLSearchParams({ planTypeName })
-            router.push(`/subscription/${planId}/pricing/${data.id}/edit?${params.toString()}`)
+            router.push(`/subscription/${planTypeId}/pricing/${data.id}/edit?${params.toString()}`)
         }
     }
 
@@ -59,7 +60,7 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
         const result = await confirm(`[${title}] 가격 정책을 삭제하시겠습니까?`)
         if (result) {
             deletePricing(
-                { planId, pricingId },
+                { planId, planTypeId, pricingId },
                 {
                     onSuccess: () => {
                         alert('삭제되었습니다.')
@@ -147,7 +148,7 @@ export default function PlanPricingList({ planId, planTypeName, pricingList }: P
         <div className="data-list-wrap">
             <div className="data-list-header">
                 <div className="data-header-right">
-                    <button className="btn-form basic" type="button" onClick={handleAddPricing}>가격 추가</button>
+                    <button className="btn-form basic" type="button" disabled={!planId} onClick={handleAddPricing}>가격 추가</button>
                 </div>
             </div>
             <div className="data-list-bx">
