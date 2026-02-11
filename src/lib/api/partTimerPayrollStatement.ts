@@ -13,6 +13,16 @@ export interface PartTimerPaymentItemResponse {
   remarks?: string
 }
 
+// 파트타이머 공제 항목 응답 타입
+export interface PartTimerDeductionItemResponse {
+  id: number
+  itemCode: string
+  itemOrder: number
+  amount: number
+  remarks?: string
+  displayName?: string
+}
+
 // 주휴수당 항목 응답 타입
 export interface WeeklyPaidHolidayAllowanceResponse {
   id: number
@@ -61,6 +71,7 @@ export interface PartTimerPayrollStatementResponse {
   remarks?: string
   isEmailSend: boolean
   paymentItems: PartTimerPaymentItemResponse[]
+  deductionItems: PartTimerDeductionItemResponse[]
   weeklyPaidHolidayAllowances: WeeklyPaidHolidayAllowanceResponse[]
   headOfficeName?: string
   franchiseName?: string
@@ -304,4 +315,23 @@ export async function createPartTimerPayrollStatement(
     request
   )
   return response.data.data
+}
+
+// 파트타이머 급여 명세서 수정 요청 타입
+export interface UpdatePartTimerPayrollStatementRequest {
+  payrollYearMonth: string // YYYYMM
+  settlementStartDate: string // YYYY-MM-DD
+  settlementEndDate: string // YYYY-MM-DD
+  paymentDate: string // YYYY-MM-DD
+  remarks?: string
+  paymentItems: PartTimerPaymentItemRequest[]
+  deductionItems?: PartTimerDeductionItemRequest[]
+}
+
+// 파트타이머 급여 명세서 수정
+export async function updatePartTimerPayrollStatement(
+  id: number,
+  request: UpdatePartTimerPayrollStatementRequest
+): Promise<void> {
+  await api.put(`/api/employee/payroll/parttime/${id}`, request)
 }

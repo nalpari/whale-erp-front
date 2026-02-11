@@ -25,10 +25,12 @@ import {
 import {
   getPartTimerPayrollStatements,
   getPartTimerPayrollStatement,
+  updatePartTimerPayrollStatement,
   deletePartTimerPayrollStatement,
   sendPartTimerPayrollEmail,
   downloadPartTimerPayrollExcel,
   getDailyWorkHours,
+  type UpdatePartTimerPayrollStatementRequest,
   type GetDailyWorkHoursParams,
 } from '@/lib/api/partTimerPayrollStatement'
 
@@ -185,6 +187,19 @@ export const useDailyWorkHours = (
     }),
     queryFn: () => getDailyWorkHours(params),
     enabled,
+  })
+}
+
+export const useUpdatePartTimePayroll = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, request }: { id: number; request: UpdatePartTimerPayrollStatementRequest }) =>
+      updatePartTimerPayrollStatement(id, request),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.partTime.detail(id) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.partTime.lists() })
+    },
   })
 }
 
