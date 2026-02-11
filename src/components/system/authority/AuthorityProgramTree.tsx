@@ -271,6 +271,7 @@ export default function AuthorityProgramTree({
 
     onChange(selectedAuthority.details)
     setOpenItems(new Set(collectAllProgramIds(selectedAuthority.details)))
+    setActiveFilter(null)
   }
 
   // 트리 노드 렌더링
