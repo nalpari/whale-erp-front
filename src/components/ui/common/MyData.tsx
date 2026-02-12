@@ -13,7 +13,8 @@ export default function MyData() {
 
   const handleLogout = () => {
     clearAuth()
-    router.push('/login')
+    document.cookie = 'auth-token=; path=/; max-age=0'
+    router.push('/')
   }
 
   const handleMenuClick = (tabIndex: number) => {
