@@ -184,9 +184,11 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
   // TanStack Query hooks
   const { data: existingPayrollData, isPending: isDetailLoading } = useFullTimePayrollDetail(statementId)
+  const settingsHeadOfficeId = selectedHeadOfficeId ?? existingPayrollData?.headOfficeId ?? null
+  const settingsFranchiseId = selectedFranchiseStoreId ?? existingPayrollData?.franchiseId ?? undefined
   const { data: payrollSettings } = usePayrollStatementSettings(
-    { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined },
-    !!selectedHeadOfficeId
+    { headOfficeId: settingsHeadOfficeId ?? 0, franchiseId: settingsFranchiseId },
+    !!settingsHeadOfficeId
   )
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined, employeeType: 'FULL_TIME' },
@@ -213,8 +215,9 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const [deductionCommonCodes, setDeductionCommonCodes] = useState<CommonCodeNode[]>([])
   const [additionalDeductionCodes, setAdditionalDeductionCodes] = useState<CommonCodeNode[]>([])
 
-  // 직원 계약 정보 조회
-  const { data: employeeContracts = [] } = useContractsByEmployee(selectedEmployeeId ?? 0, !!selectedEmployeeId)
+  // 직원 계약 정보 조회 (신규 모드: 선택된 직원, 상세 모드: 기존 데이터의 직원)
+  const contractEmployeeId = selectedEmployeeId ?? existingPayrollData?.employeeInfoId ?? null
+  const { data: employeeContracts = [] } = useContractsByEmployee(contractEmployeeId ?? 0, !!contractEmployeeId)
   const employeeContract = employeeContracts[0] ?? null
 
   // 이전 employeeContract ID 추적 (salaryInfo 맵핑 중복 실행 방지)
@@ -998,28 +1001,36 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       }
 
       try {
+        // 상여금 항목을 지급 항목으로 병합 (payroll_payment_items에 저장)
+        const bonusAsPaymentItems = (payrollData.bonuses || [])
+          .filter(b => b.amount > 0)
+          .map((bonus, idx) => ({
+            itemCode: bonus.bonusCode || bonus.bonusType,
+            itemOrder: payrollData.paymentItems.length + idx + 1,
+            amount: bonus.amount,
+            remarks: bonus.memo
+          }))
+
         const request: CreatePayrollStatementRequest = {
           employeeInfoId: selectedEmployeeId,
           payrollYearMonth: formData.payrollYearMonth,
           settlementStartDate: formData.settlementStartDate,
           settlementEndDate: formData.settlementEndDate,
           paymentDate: formData.paymentDate,
-          paymentItems: payrollData.paymentItems.map(item => ({
-            itemCode: item.itemCode,
-            itemOrder: item.itemOrder,
-            amount: item.amount,
-            remarks: item.remarks
-          })),
+          paymentItems: [
+            ...payrollData.paymentItems.map(item => ({
+              itemCode: item.itemCode,
+              itemOrder: item.itemOrder,
+              amount: item.amount,
+              remarks: item.remarks
+            })),
+            ...bonusAsPaymentItems
+          ],
           deductionItems: payrollData.deductionItems.map(item => ({
             itemCode: item.itemCode,
             itemOrder: item.itemOrder,
             amount: item.amount,
             remarks: item.remarks
-          })),
-          bonuses: payrollData.bonuses?.map(bonus => ({
-            bonusType: bonus.bonusType,
-            amount: bonus.amount,
-            memo: bonus.memo
           }))
         }
 
@@ -1041,6 +1052,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     if (!statementId || !payrollData) return
 
     try {
+      // 상여금 항목을 지급 항목으로 병합 (payroll_payment_items에 저장)
+      const bonusAsPaymentItems = (payrollData.bonuses || [])
+        .filter(b => b.amount > 0)
+        .map((bonus, idx) => ({
+          itemCode: bonus.bonusCode || bonus.bonusType,
+          itemOrder: payrollData.paymentItems.length + idx + 1,
+          amount: bonus.amount,
+          remarks: bonus.memo
+        }))
+
       const request: UpdatePayrollStatementRequest = {
         payrollYearMonth: formData.payrollYearMonth,
         settlementStartDate: formData.settlementStartDate,
@@ -1048,22 +1069,20 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         paymentDate: formData.paymentDate,
         attachmentFileId: payrollData.attachmentFileId || undefined,
         remarks: payrollData.remarks || undefined,
-        paymentItems: payrollData.paymentItems.map(item => ({
-          itemCode: item.itemCode,
-          itemOrder: item.itemOrder,
-          amount: item.amount,
-          remarks: item.remarks
-        })),
+        paymentItems: [
+          ...payrollData.paymentItems.map(item => ({
+            itemCode: item.itemCode,
+            itemOrder: item.itemOrder,
+            amount: item.amount,
+            remarks: item.remarks
+          })),
+          ...bonusAsPaymentItems
+        ],
         deductionItems: payrollData.deductionItems.map(item => ({
           itemCode: item.itemCode,
           itemOrder: item.itemOrder,
           amount: item.amount,
           remarks: item.remarks
-        })),
-        bonuses: payrollData.bonuses?.map(bonus => ({
-          bonusType: bonus.bonusType,
-          amount: bonus.amount,
-          memo: bonus.memo
         }))
       }
 
@@ -1288,24 +1307,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
               </tr>
               <tr>
                 <th>
-                  급여 지급월 {isEditMode && <span className="red">*</span>}
+                  급여 지급월 <span className="red">*</span>
                 </th>
                 <td>
                   <div className="block">
-                    {isEditMode ? (
-                      <SearchSelect
-                        options={payrollMonthSelectOptions}
-                        value={payrollMonthSelectOptions.find(opt => opt.value === formData.payrollYearMonth) || null}
-                        onChange={(opt) => handlePayrollYearMonthChange(opt?.value || '')}
-                        placeholder="선택"
-                      />
-                    ) : (
-                      <span>
-                        {formData.payrollYearMonth
-                          ? `${formData.payrollYearMonth.substring(0, 4)}년 ${parseInt(formData.payrollYearMonth.substring(4, 6))}월`
-                          : '-'}
-                      </span>
-                    )}
+                    <SearchSelect
+                      options={payrollMonthSelectOptions}
+                      value={payrollMonthSelectOptions.find(opt => opt.value === formData.payrollYearMonth) || null}
+                      onChange={(opt) => handlePayrollYearMonthChange(opt?.value || '')}
+                      placeholder="선택"
+                    />
                   </div>
                 </td>
                 <th>지급일</th>
@@ -1325,17 +1336,24 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   정산 기간 <span className="red">*</span>
                 </th>
                 <td className="val-top">
-                  <div className="date-picker-wrap">
-                    <input
-                      type="text"
-                      className="input-frame"
-                      value={formData.settlementStartDate && formData.settlementEndDate
-                        ? `${formData.settlementStartDate} ~ ${formData.settlementEndDate}`
-                        : isEditMode ? '급여 지급월을 선택하세요' : ''
-                      }
-                      readOnly
-                      placeholder={isEditMode ? '급여 지급월 선택 시 자동 설정됩니다' : ''}
-                    />
+                  <div className="filed-flx">
+                    <div className="block">
+                      <input
+                        type="date"
+                        className="input-frame"
+                        value={formData.settlementStartDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, settlementStartDate: e.target.value }))}
+                      />
+                    </div>
+                    <span className="explain">~</span>
+                    <div className="block">
+                      <input
+                        type="date"
+                        className="input-frame"
+                        value={formData.settlementEndDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, settlementEndDate: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 </td>
                 <th>파일로 대체</th>
@@ -1570,12 +1588,73 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                   <th>산출식/산출방법 및 지급액</th>
                   <td>
                     <div className="paystub-guide">
-                      <span>기본급 : 월간 기본근무 시간 (209시간) × 통상시급 (10,000원) = {formatNumber(formData.baseSalary)}</span>
-                      <span>연장수당 : 연장 근무 시간(2시간) × 통상시급 × 1.5 (15,000원) = {formatNumber(formData.overtimeAllowance)}</span>
-                      <span>야간수당 : 야간 근무 시간(2시간) × 통상시급 × 0.5 (5,000원) = {formatNumber(formData.nightAllowance)}</span>
-                      <span>월간 휴일 근무 수당 : 월간 휴일 근무 시간(2시간) × 통상시급 × 0.5 (5,000원) = {formatNumber(formData.holidayAllowance)}</span>
-                      <span>추가근무수당 : 추가 근무 시간(2시간) × 통상시급 × 1.5 (15,000원) = {formatNumber(formData.extraWorkAllowance)}</span>
-                      <span>만근상여 : 근무 기간 중 지각, 조퇴, 결근이 없는 경우 지급 = {formatNumber(formData.positionBonus)}</span>
+                      {(() => {
+                        const si = employeeContract?.salaryInfo
+                        const monthlyTime = si?.monthlyTime || 0
+                        const hourlyWage = si?.timelySalary || 0
+                        return (
+                          <>
+                            <span>기본급 : 월간 기본근무 시간({formatNumber(monthlyTime)}시간) × 통상시급({formatNumber(hourlyWage)}원) = {formatNumber(formData.baseSalary)}원</span>
+                            {formData.overtimeAllowance > 0 && (
+                              <span>연장수당 : 연장 근무 시간({si?.monthlyOvertimeAllowanceTime || 0}시간) × 통상시급 × 1.5 = {formatNumber(formData.overtimeAllowance)}원</span>
+                            )}
+                            {formData.nightAllowance > 0 && (
+                              <span>야간수당 : 야간 근무 시간({si?.monthlyNightAllowanceTime || 0}시간) × 통상시급 × 0.5 = {formatNumber(formData.nightAllowance)}원</span>
+                            )}
+                            {formData.holidayAllowance > 0 && (
+                              <span>휴일근무수당 : 휴일 근무 시간({si?.monthlyHolidayAllowanceTime || 0}시간) × 통상시급 × 0.5 = {formatNumber(formData.holidayAllowance)}원</span>
+                            )}
+                            {formData.extraWorkAllowance > 0 && (
+                              <span>추가근무수당 : 추가 근무 시간({si?.monthlyAddHolidayAllowanceTime || 0}시간) × 통상시급 × 1.5 = {formatNumber(formData.extraWorkAllowance)}원</span>
+                            )}
+                            {/* 상여금: paymentItems + bonuses에서 bonusCategories(common-code)와 매칭 */}
+                            {(() => {
+                              const bonusCodes = new Set(bonusCategories.map(bc => bc.code))
+                              const displayed = new Set<string>()
+                              const bonusItems: { code: string; name: string; remark: string; amount: number }[] = []
+
+                              // 1. paymentItems에서 상여금 항목 찾기 (저장된 데이터)
+                              payrollData?.paymentItems
+                                .filter(item => item.amount > 0 && bonusCodes.has(item.itemCode))
+                                .forEach(item => {
+                                  const matched = bonusCategories.find(bc => bc.code === item.itemCode)
+                                  if (matched && !displayed.has(item.itemCode)) {
+                                    displayed.add(item.itemCode)
+                                    bonusItems.push({
+                                      code: item.itemCode,
+                                      name: matched.name,
+                                      remark: matched.remark,
+                                      amount: item.amount,
+                                    })
+                                  }
+                                })
+
+                              // 2. bonuses에서 아직 표시되지 않은 항목 추가 (신규 모드)
+                              payrollData?.bonuses
+                                ?.filter(b => b.amount > 0)
+                                .forEach(bonus => {
+                                  const code = bonus.bonusCode || bonus.bonusType
+                                  if (!displayed.has(code)) {
+                                    const matched = bonusCategories.find(bc => bc.code === code)
+                                    displayed.add(code)
+                                    bonusItems.push({
+                                      code,
+                                      name: matched?.name || bonus.memo || bonus.bonusType,
+                                      remark: matched?.remark || '',
+                                      amount: bonus.amount,
+                                    })
+                                  }
+                                })
+
+                              return bonusItems.map((item, idx) => (
+                                <span key={`bonus-${idx}`}>
+                                  {item.name} : {item.remark ? `${item.remark} = ` : ''}{formatNumber(item.amount)}원
+                                </span>
+                              ))
+                            })()}
+                          </>
+                        )
+                      })()}
                     </div>
                   </td>
                 </tr>

@@ -608,7 +608,6 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                             min={1}
                             max={31}
                           />
-                          <span style={{ marginLeft: '4px' }}>일</span>
                         </div>
                       </div>
                     </td>
@@ -662,6 +661,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           </div>
                         </div>
                       </div>
+                      {(formErrors.contractStartDate || formErrors.contractEndDate) && (
+                        <div className="warning-txt mt5" role="alert">* {formErrors.contractStartDate || formErrors.contractEndDate}</div>
+                      )}
                     </td>
                   </tr>
                   <tr>

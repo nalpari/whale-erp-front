@@ -50,12 +50,26 @@ export const authorityDetailSchema = z.object({
 export const authorityDetailResponseSchema = apiResponseSchema(authorityDetailSchema);
 
 /**
+ * 로그인 시 저장되는 프로그램별 권한 노드 (LoginAuthorityDetailResponse)
+ */
+export interface LoginAuthorityProgram {
+  id: number
+  name: string
+  path: string
+  level: number
+  can_read: boolean | null
+  can_create_delete: boolean | null
+  can_update: boolean | null
+  children: LoginAuthorityProgram[] | null
+}
+
+/**
  * Auth Store 상태 스키마
  */
 export const authStateSchema = z.object({
   accessToken: z.string().nullable(),
   refreshToken: z.string().nullable(),
-  authority: z.record(z.string(), z.unknown()).nullable(),
+  authority: z.custom<LoginAuthorityProgram[]>().nullable(),
   affiliationId: z.string().nullable(),
   loginId: z.string().nullable(),
   name: z.string().nullable(),

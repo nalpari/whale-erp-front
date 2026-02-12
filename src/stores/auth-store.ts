@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type AuthState } from '@/lib/schemas/auth';
+import { type AuthState, type LoginAuthorityProgram } from '@/lib/schemas/auth';
 
 interface AuthStore extends AuthState {
   subscriptionPlan: number;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setAccessToken: (token: string | null) => void;
-  setAuthority: (authority: Record<string, unknown>) => void;
+  setAuthority: (authority: LoginAuthorityProgram[]) => void;
   setAffiliationId: (id: string | null) => void;
   setSubscriptionPlan: (plan: number) => void;
   setUserInfo: (loginId: string, name: string, mobilePhone: string) => void;
