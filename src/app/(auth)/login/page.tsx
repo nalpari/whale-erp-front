@@ -4,13 +4,13 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   loginRequestSchema,
   type Authority,
 } from "@/lib/schemas/auth";
 import { formatZodFieldErrors } from "@/lib/zod-utils";
+import { useLoginMutation, useAuthoritySelectMutation } from "@/hooks/queries/use-login-mutation";
 import FindIdPw from "@/components/login/FindIdPw";
 import "./login.css";
 
@@ -24,11 +24,13 @@ export default function LoginPage() {
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
 
+  const loginMutation = useLoginMutation();
+  const authoritySelectMutation = useAuthoritySelectMutation();
+
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 모달 관련 상태
@@ -69,34 +71,21 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const response = await api.post("/api/auth/login", validation.data);
-      console.log("Login success:", response.data);
+      const data = await loginMutation.mutateAsync(validation.data);
 
-      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, subscriptionPlanId } = response.data.data;
-
-      console.log("authority:", authority);
-      console.log("companies:", companies);
+      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, subscriptionPlanId } = data;
 
       // 권한 처리
       if (authority) {
-        // 권한이 1개인 경우: authority에 programs 포함되어 있음
-        console.log("Processing single authority...");
-
         // programs 데이터 검증
         if (!authority.programs) {
           alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
           return;
         }
 
-        // zustand에 authority programs 저장
         setAuthority(authority.programs);
-
-        // affiliation header 설정을 위한 id 저장
         setAffiliationId(String(authority.authority_id));
-
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
@@ -108,14 +97,9 @@ export default function LoginPage() {
           localStorage.removeItem(SAVED_LOGIN_ID_KEY);
         }
 
-        // 미들웨어 인증용 쿠키 설정
         document.cookie = 'auth-token=true; path=/'
-
-        // 로그인 성공 후 메인 페이지로 이동
         router.push("/logined-main");
       } else if (companies && companies.length > 0) {
-        // 권한이 여러 개인 경우: 회사 선택 모달
-        console.log("Multiple companies found:", companies);
         setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
           id: String(c.authority_id),
           name: c.company_name || c.brand_name || `회사 ${c.authority_id}`,
@@ -125,17 +109,13 @@ export default function LoginPage() {
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
         setShowAuthorityModal(true);
       } else {
-        // authority와 companies 모두 없는 경우
         alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
       }
     } catch (error: unknown) {
-      console.log("Login failed:", error);
       const axiosError = error as { response?: { data?: { message?: string } } };
       const message =
         axiosError.response?.data?.message ?? "알 수 없는 오류가 발생했습니다.";
       alert(message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -146,51 +126,36 @@ export default function LoginPage() {
     setSelectedAuthorityId(authority.id);
 
     try {
-      const authoritiesResponse = await api.post(
-        `/api/auth/authority`,
-        { authority_id: Number(authority.id) },
-        {
-          headers: {
-            Authorization: `Bearer ${pendingTokens.accessToken}`,
-          },
-        }
-      );
-      console.log("Selected Authority:", authoritiesResponse.data);
+      const data = await authoritySelectMutation.mutateAsync({
+        authorityId: Number(authority.id),
+        accessToken: pendingTokens.accessToken,
+      });
 
-      // zustand에 authority programs 저장
-      if (authoritiesResponse.data?.data?.authority?.programs) {
-        setAuthority(authoritiesResponse.data.data.authority.programs);
+      if (data?.authority?.programs) {
+        setAuthority(data.authority.programs);
       } else {
-        // programs 데이터가 없는 경우
         setSelectedAuthorityId(null);
         alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
         return;
       }
 
-      // affiliation header 설정을 위한 id 저장
       setAffiliationId(authority.id);
-
       setTokens(pendingTokens.accessToken, pendingTokens.refreshToken);
 
-      // 아이디 저장 처리
       if (rememberMe) {
         localStorage.setItem(SAVED_LOGIN_ID_KEY, loginId);
       } else {
         localStorage.removeItem(SAVED_LOGIN_ID_KEY);
       }
 
-      // 미들웨어 인증용 쿠키 설정
       document.cookie = 'auth-token=true; path=/'
 
-      // 모달 닫기 및 상태 초기화
       setShowAuthorityModal(false);
       setPendingTokens(null);
       setSelectedAuthorityId(null);
 
-      // 로그인 성공 후 메인 페이지로 이동
       router.push("/logined-main");
-    } catch (error) {
-      console.error("Failed to fetch authority details:", error);
+    } catch {
       setSelectedAuthorityId(null);
       alert("권한 정보를 가져오는데 실패했습니다.");
     }
@@ -268,10 +233,10 @@ export default function LoginPage() {
           <div className="login-form-btn">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loginMutation.isPending}
               className="btn-log-frame basic block"
             >
-              {isLoading ? "로그인 중..." : "LOGIN"}
+              {loginMutation.isPending ? "로그인 중..." : "LOGIN"}
             </button>
           </div>
 
