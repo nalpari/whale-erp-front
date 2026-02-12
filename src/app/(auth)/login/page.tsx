@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -107,8 +108,11 @@ export default function LoginPage() {
           localStorage.removeItem(SAVED_LOGIN_ID_KEY);
         }
 
+        // 미들웨어 인증용 쿠키 설정
+        document.cookie = 'auth-token=true; path=/'
+
         // 로그인 성공 후 메인 페이지로 이동
-        router.push("/");
+        router.push("/logined-main");
       } else if (companies && companies.length > 0) {
         // 권한이 여러 개인 경우: 회사 선택 모달
         console.log("Multiple companies found:", companies);
@@ -175,13 +179,16 @@ export default function LoginPage() {
         localStorage.removeItem(SAVED_LOGIN_ID_KEY);
       }
 
+      // 미들웨어 인증용 쿠키 설정
+      document.cookie = 'auth-token=true; path=/'
+
       // 모달 닫기 및 상태 초기화
       setShowAuthorityModal(false);
       setPendingTokens(null);
       setSelectedAuthorityId(null);
 
       // 로그인 성공 후 메인 페이지로 이동
-      router.push("/");
+      router.push("/logined-main");
     } catch (error) {
       console.error("Failed to fetch authority details:", error);
       setSelectedAuthorityId(null);
@@ -194,14 +201,14 @@ export default function LoginPage() {
       <div className="login-inner">
         {/* Header */}
         <div className="login_header">
-          <div className="logo">
+          <Link href="/" className="logo">
             <Image
               src="/assets/images/contents/login_logo.svg"
               alt="logo"
               width={100}
               height={100}
             />
-          </div>
+          </Link>
           <div className="login_title">
             <span>WHALE ERP</span>
             <span>PARTNER OFFICE</span>
