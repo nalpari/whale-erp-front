@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { AgGridReact } from 'ag-grid-react'
-import { ModuleRegistry, AllCommunityModule, ColDef, RowClickedEvent } from 'ag-grid-community'
+import { ModuleRegistry, AllCommunityModule, ColDef, RowClickedEvent, RowClassRules } from 'ag-grid-community'
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -12,6 +12,7 @@ interface AgGridProps<T extends object> {
   rowSelection?: 'single' | 'multiple'
   suppressRowClickSelection?: boolean
   onRowClicked?: (event: RowClickedEvent<T>) => void
+  rowClassRules?: RowClassRules<T>
 }
 
 export default function AgGrid<T extends object>({
@@ -21,6 +22,7 @@ export default function AgGrid<T extends object>({
   rowSelection,
   suppressRowClickSelection,
   onRowClicked,
+  rowClassRules,
 }: AgGridProps<T>) {
   const resolvedRowData = rowData ?? ([] as T[])
   const resolvedColumnDefs = columnDefs ?? ([] as ColDef<T>[])
@@ -42,6 +44,7 @@ export default function AgGrid<T extends object>({
         rowSelection={rowSelection}
         suppressRowClickSelection={suppressRowClickSelection}
         onRowClicked={onRowClicked}
+        rowClassRules={rowClassRules}
       />
     </div>
   )

@@ -232,3 +232,19 @@ export const authorityKeys = {
   details: () => [...authorityKeys.all, 'detail'] as const,
   detail: (id: number) => [...authorityKeys.details(), id] as const,
 }
+
+export interface PlansListParams {
+  planType?: string | null
+  updater?: string | null
+  page?: number
+  size?: number
+  sort?: string
+}
+
+export const plansKeys = {
+  all: ['plans'] as const,
+  lists: () => [...plansKeys.all, 'list'] as const,
+  list: (params: PlansListParams) => [...plansKeys.lists(), params] as const,
+  details: () => [...plansKeys.all, 'detail'] as const,
+  detail: (id: number) => [...plansKeys.details(), id] as const,
+}
