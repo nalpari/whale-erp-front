@@ -58,6 +58,7 @@ type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
+    isFranchiseRequired?: boolean
     isStoreRequired?: boolean
     showStoreError?: boolean
     officeId: number | null // 본사 선택 값(id)
@@ -65,6 +66,7 @@ type HeadOfficeFranchiseStoreSelectProps = {
     storeId: number | null // 점포 선택 값(id)
     fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
+    isDisabled?: boolean // 전체 비활성화 여부
 }
 
 const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
@@ -82,6 +84,7 @@ const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | nu
 export default function HeadOfficeFranchiseStoreSelect({
     isHeadOfficeRequired = true,
     showHeadOfficeError = false,
+    isFranchiseRequired = false,
     isStoreRequired = false,
     showStoreError = false,
     officeId,
@@ -89,6 +92,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     storeId,
     fields,
     onChange,
+    isDisabled = false,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
@@ -149,7 +153,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null}
                                 options={officeOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading || isOfficeFixed}
+                                isDisabled={isDisabled || bpLoading || isOfficeFixed}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -178,14 +182,14 @@ export default function HeadOfficeFranchiseStoreSelect({
             )}
             {visibleFields.includes('franchise') && (
                 <>
-                    <th>가맹점</th>
+                    <th>가맹점 {isFranchiseRequired && <span className="red">*</span>}</th>
                     <td>
                         <div className="data-filed">
                             <SearchSelect
                                 value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={bpLoading || isFranchiseFixed}
+                                isDisabled={isDisabled || bpLoading || isFranchiseFixed || officeId === null}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -210,7 +214,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={storeId !== null ? storeOptions.find((opt) => opt.value === String(storeId)) || null : null}
                                 options={storeOptions}
                                 placeholder="전체"
-                                isDisabled={storeLoading}
+                                isDisabled={isDisabled || storeLoading}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {

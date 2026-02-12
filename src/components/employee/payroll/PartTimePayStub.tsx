@@ -7,6 +7,7 @@ import { useAlert } from '@/components/common/ui'
 import {
   usePartTimePayrollDetail,
   useDailyWorkHours,
+  useUpdatePartTimePayroll,
   useDeletePartTimePayroll,
   useSendPartTimePayrollEmail,
   useDownloadPartTimePayrollExcel,
@@ -19,6 +20,8 @@ import type {
   WeeklyPaidHolidayAllowanceResponse,
   CreatePartTimerPayrollStatementRequest,
   PartTimerPaymentItemRequest,
+  UpdatePartTimerPayrollStatementRequest,
+  PartTimerDeductionItemRequest,
 } from '@/lib/api/partTimerPayrollStatement'
 import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
@@ -102,6 +105,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   )
 
   // Mutations
+  const updateMutation = useUpdatePartTimePayroll()
   const deleteMutation = useDeletePartTimePayroll()
   const sendEmailMutation = useSendPartTimePayrollEmail()
   const downloadExcelMutation = useDownloadPartTimePayrollExcel()
@@ -159,6 +163,24 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
 
       if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
+
+      // 공제 항목에서 4대보험 값 로드 (콤마 포맷팅)
+      // 먼저 초기화하여 이전 명세서의 잔여값 방지
+      setNationalPension('')
+      setHealthInsurance('')
+      setEmploymentInsurance('')
+      setLongTermCareInsurance('')
+      if (existingStatement.deductionItems?.length > 0) {
+        existingStatement.deductionItems.forEach(item => {
+          const val = (item.amount || 0).toLocaleString()
+          switch (item.itemCode) {
+            case 'NATIONAL_PENSION': setNationalPension(val); break
+            case 'HEALTH_INSURANCE': setHealthInsurance(val); break
+            case 'EMPLOYMENT_INSURANCE': setEmploymentInsurance(val); break
+            case 'LONG_TERM_CARE_INSURANCE': setLongTermCareInsurance(val); break
+          }
+        })
+      }
     }
   }, [existingStatement, isNewMode, payrollMonth])
 
@@ -446,9 +468,72 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
   }
 
+  // 상세 모드에서 수정 핸들러
+  const handleUpdate = async () => {
+    if (!statementId || !existingStatement) return
+
+    if (!payrollMonth || !startDate || !endDate) {
+      await alert('급여지급월과 기간을 설정해주세요.')
+      return
+    }
+
+    // 기존 paymentItems 유지
+    const paymentItems: PartTimerPaymentItemRequest[] = existingStatement.paymentItems.map(item => ({
+      workDay: item.workDay,
+      workHour: item.workHour,
+      breakTimeHour: item.breakTimeHour,
+      contractTimelyAmount: item.contractTimelyAmount,
+      applyTimelyAmount: item.applyTimelyAmount,
+      totalAmount: item.totalAmount,
+      deductionAmount: item.deductionAmount,
+      remarks: item.remarks,
+    }))
+
+    // 4대보험 공제 항목 구성
+    const deductionItems: PartTimerDeductionItemRequest[] = []
+    const parseAmount = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+    let order = 1
+
+    if (parseAmount(nationalPension) > 0) {
+      deductionItems.push({ itemCode: 'NATIONAL_PENSION', itemOrder: order++, amount: parseAmount(nationalPension), remarks: '국민연금' })
+    }
+    if (parseAmount(healthInsurance) > 0) {
+      deductionItems.push({ itemCode: 'HEALTH_INSURANCE', itemOrder: order++, amount: parseAmount(healthInsurance), remarks: '건강보험' })
+    }
+    if (parseAmount(employmentInsurance) > 0) {
+      deductionItems.push({ itemCode: 'EMPLOYMENT_INSURANCE', itemOrder: order++, amount: parseAmount(employmentInsurance), remarks: '고용보험' })
+    }
+    if (parseAmount(longTermCareInsurance) > 0) {
+      deductionItems.push({ itemCode: 'LONG_TERM_CARE_INSURANCE', itemOrder: order++, amount: parseAmount(longTermCareInsurance), remarks: '장기요양보험' })
+    }
+
+    const request: UpdatePartTimerPayrollStatementRequest = {
+      payrollYearMonth: payrollMonth.replace('-', ''),
+      settlementStartDate: startDate,
+      settlementEndDate: endDate,
+      paymentDate,
+      paymentItems,
+      deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
+    }
+
+    try {
+      await updateMutation.mutateAsync({ id: statementId, request })
+      await alert('수정되었습니다.')
+    } catch (error) {
+      console.error('수정 실패:', error)
+      await alert('수정 중 오류가 발생했습니다.')
+    }
+  }
+
   const formatNumber = (num: number | null | undefined) => {
     if (num === null || num === undefined) return ''
     return num.toLocaleString()
+  }
+
+  // 보험료 입력: 숫자만 허용 + 콤마 포맷팅
+  const handleInsuranceChange = (setter: (val: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '')
+    setter(raw ? parseInt(raw).toLocaleString() : '0')
   }
 
   const getDayOfWeekKorean = (dateStr: string) => {
@@ -582,6 +667,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <button className="btn-form outline s" onClick={handleSendEmail} disabled={sendEmailMutation.isPending}>이메일 전송</button>
             <button className="btn-form outline s" onClick={handleDownloadExcel} disabled={downloadExcelMutation.isPending}>다운로드</button>
             <button className="btn-form gray" onClick={handleDelete} disabled={deleteMutation.isPending}>삭제</button>
+            <button className="btn-form basic" onClick={handleUpdate} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? '수정 중...' : '수정'}
+            </button>
           </>
         )}
         {isEditMode && (
@@ -734,7 +822,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         value={monthOptions.find(o => o.value === payrollMonth)}
                         onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
                         placeholder="선택"
-                        isDisabled={!isEditMode}
                       />
                     </div>
                     {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>급여 지급일 : {paymentDate}</span>}
@@ -750,12 +837,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="date-picker-wrap">
                       <DatePicker
                         value={parseStringToDate(startDate)}
-                        onChange={(date) => isEditMode && setStartDate(formatDateToString(date))}
+                        onChange={(date) => setStartDate(formatDateToString(date))}
                       />
                       <span>~</span>
                       <DatePicker
                         value={parseStringToDate(endDate)}
-                        onChange={(date) => isEditMode && setEndDate(formatDateToString(date))}
+                        onChange={(date) => setEndDate(formatDateToString(date))}
                       />
                     </div>
                     {isEditMode && (
@@ -777,8 +864,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         type="text"
                         className="input-frame al-r"
                         value={nationalPension || '0'}
-                        onChange={(e) => isEditMode && setNationalPension(e.target.value)}
-                        readOnly={!isEditMode}
+                        onChange={handleInsuranceChange(setNationalPension)}
                       />
                     </div>
                     <span className="label-text" style={{ width: '90px', marginLeft: '20px' }}>건강보험</span>
@@ -788,8 +874,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         type="text"
                         className="input-frame al-r"
                         value={healthInsurance || '0'}
-                        onChange={(e) => isEditMode && setHealthInsurance(e.target.value)}
-                        readOnly={!isEditMode}
+                        onChange={handleInsuranceChange(setHealthInsurance)}
                       />
                     </div>
                   </div>
@@ -801,8 +886,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         type="text"
                         className="input-frame al-r"
                         value={employmentInsurance || '0'}
-                        onChange={(e) => isEditMode && setEmploymentInsurance(e.target.value)}
-                        readOnly={!isEditMode}
+                        onChange={handleInsuranceChange(setEmploymentInsurance)}
                       />
                     </div>
                     <span className="label-text" style={{ width: '90px', marginLeft: '20px' }}>장기요양보험</span>
@@ -812,8 +896,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         type="text"
                         className="input-frame al-r"
                         value={longTermCareInsurance || '0'}
-                        onChange={(e) => isEditMode && setLongTermCareInsurance(e.target.value)}
-                        readOnly={!isEditMode}
+                        onChange={handleInsuranceChange(setLongTermCareInsurance)}
                       />
                     </div>
                   </div>

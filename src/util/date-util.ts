@@ -32,3 +32,4 @@ export const formatDateDot = (value?: string | Date | null, fallback = '-') => {
   if (!date) return fallback
   return `${date.getFullYear()}.${padTwo(date.getMonth() + 1)}.${padTwo(date.getDate())}`
 }
+

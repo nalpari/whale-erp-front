@@ -21,6 +21,7 @@ export interface DeductionItemDto {
 // 상여금 타입
 export interface PayrollBonusDto {
   id?: number
+  bonusCode?: string
   bonusType: string
   amount: number
   memo?: string
@@ -31,6 +32,10 @@ export interface PayrollStatementResponse {
   id: number
   memberId: number
   memberName: string
+  employeeInfoId?: number
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
   payrollYearMonth: string
   settlementStartDate: string
   settlementEndDate: string
