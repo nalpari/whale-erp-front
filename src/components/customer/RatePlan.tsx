@@ -98,7 +98,7 @@ export default function RatePlan() {
   const { data: plansData } = usePlansList({ size: 100 })
 
   const subscribedPlanId = useMemo(() => {
-    if (!subscriptionPlan || !plansData?.content) return null
+    if (subscriptionPlan === 0 || !plansData?.content) return null
     const matched = plansData.content.find((p) => p.planId === subscriptionPlan)
     return matched ? PLAN_TYPE_CODE_MAP[matched.planTypeCode] ?? null : null
   }, [subscriptionPlan, plansData?.content])

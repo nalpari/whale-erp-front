@@ -28,7 +28,15 @@ export default function NoticePop({ notice, onClose }: NoticePopProps) {
                 <ul className="notice-file-list">
                   {notice.files.map((file) => (
                     <li className="notice-file-item" key={file.id}>
-                      <button type="button" className="notice-file-btn" onClick={() => window.open(file.downloadUrl)}>
+                      <button
+                        type="button"
+                        className="notice-file-btn"
+                        onClick={() => {
+                          if (file.downloadUrl && /^https?:\/\//i.test(file.downloadUrl)) {
+                            window.open(file.downloadUrl, '_blank', 'noopener,noreferrer')
+                          }
+                        }}
+                      >
                         {file.name}
                       </button>
                     </li>

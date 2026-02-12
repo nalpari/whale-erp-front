@@ -28,8 +28,7 @@ function SubscribeButton() {
         <button
           type="button"
           className="service-btn block"
-          onClick={(e) => e.preventDefault()}
-          aria-disabled="true"
+          disabled
         >
           구독 하기
           <i className="icon-subscribe" />
@@ -55,7 +54,7 @@ export default function AfterService() {
             </div>
             <div className="after-service-header">
               <div className="after-service-tit-wrap">
-                <div className="after-service-tit">{service.name}</div>
+                <div className="after-service-tit" role="heading" aria-level={3}>{service.name}</div>
                 <div className="badge brown">준비중</div>
               </div>
               <div className="after-service-desc">{service.description}</div>

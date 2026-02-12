@@ -157,8 +157,7 @@ export default function Contact() {
                     placeholder={storeName ? undefined : '이름을 입력해 주세요.'}
                     value={form.name}
                     disabled={!!storeName}
-                    readOnly={!!storeName}
-                    onChange={storeName ? undefined : (e) => handleChange('name', e.target.value)}
+                    onChange={(e) => handleChange('name', e.target.value)}
                     aria-label={storeName ? '이름 (로그인 정보)' : '이름'}
                   />
                 </div>
@@ -176,9 +175,8 @@ export default function Contact() {
                   inputMode="numeric"
                   placeholder="숫자만 입력해 주세요."
                   value={form.phone}
-                  onChange={storeMobilePhone ? undefined : (e) => handleChange('phone', formatPhone(e.target.value))}
+                  onChange={(e) => handleChange('phone', formatPhone(e.target.value))}
                   disabled={!!storeMobilePhone || isSubmitting}
-                  readOnly={!!storeMobilePhone}
                   aria-label={storeMobilePhone ? '휴대전화 (로그인 정보)' : '휴대전화 번호'}
                 />
                 {form.phone && !storeMobilePhone ? (
