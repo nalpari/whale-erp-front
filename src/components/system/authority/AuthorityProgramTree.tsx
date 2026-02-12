@@ -352,6 +352,8 @@ export default function AuthorityProgramTree({
     <div className="content-wrap">
       <div className="authority-table-wrap">
         <div className="authority-table-header">
+          {/* TODO: 다른 권한 COPY 기능 - 기획 확정 후 2차 개발 예정 */}
+          {/*
           <button className="tooltip-btn">
             <span className="tooltip-icon" id="tooltip-btn-anchor"></span>
             <Tooltip className="tooltip-txt" anchorSelect="#tooltip-btn-anchor" opacity={1}>
@@ -381,6 +383,7 @@ export default function AuthorityProgramTree({
           <button className="btn-form basic" onClick={handleApplyCopy} disabled={!copyAuthorityId}>
             적용하기
           </button>
+          */}
           <button
             className={`btn-form ${activeFilter === 'read' ? 'basic' : 'gray'}`}
             onClick={() => handleFilterToggle('read')}
