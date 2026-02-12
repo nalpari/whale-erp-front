@@ -165,6 +165,11 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
 
       // 공제 항목에서 4대보험 값 로드 (콤마 포맷팅)
+      // 먼저 초기화하여 이전 명세서의 잔여값 방지
+      setNationalPension('')
+      setHealthInsurance('')
+      setEmploymentInsurance('')
+      setLongTermCareInsurance('')
       if (existingStatement.deductionItems?.length > 0) {
         existingStatement.deductionItems.forEach(item => {
           const val = (item.amount || 0).toLocaleString()
