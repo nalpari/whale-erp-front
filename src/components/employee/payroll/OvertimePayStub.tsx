@@ -177,9 +177,11 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleSendEmail = async () => {
     if (!existingStatement?.id) return
 
+    if (!(await confirm('수당명세서를 이메일로 전송하시겠습니까?'))) return
+
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
-      await alert('이메일 전송이 요청되었습니다.')
+      await alert('이메일 전송이 완료되었습니다.')
     } catch (error) {
       console.error('이메일 전송 실패:', error)
       await alert('이메일 전송 중 오류가 발생했습니다.')
