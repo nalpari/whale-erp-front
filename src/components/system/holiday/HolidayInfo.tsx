@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
 import Location from '@/components/ui/Location'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useBpHeadOfficeTree, useHolidayList } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
@@ -22,6 +23,7 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 
 export default function HolidayInfo() {
   const router = useRouter()
+  const [isNavigating, startTransition] = useTransition()
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
@@ -74,27 +76,29 @@ export default function HolidayInfo() {
 
   const handleOpenDetail = useCallback(
     (row: HolidayListItem) => {
-      if (row.holidayType === 'LEGAL') {
-        router.push(`/system/holiday/legal?year=${row.year}`)
-        return
-      }
+      startTransition(() => {
+        if (row.holidayType === 'LEGAL') {
+          router.push(`/system/holiday/legal?year=${row.year}`)
+          return
+        }
 
-      const searchParams = new URLSearchParams()
-      searchParams.set('year', String(row.year))
+        const searchParams = new URLSearchParams()
+        searchParams.set('year', String(row.year))
 
-      if (row.headOfficeId) {
-        searchParams.set('headOfficeId', String(row.headOfficeId))
-      }
-      if (row.franchiseId) {
-        searchParams.set('franchiseId', String(row.franchiseId))
-      }
-      if (row.storeId) {
-        searchParams.set('storeId', String(row.storeId))
-      }
+        if (row.headOfficeId) {
+          searchParams.set('headOfficeId', String(row.headOfficeId))
+        }
+        if (row.franchiseId) {
+          searchParams.set('franchiseId', String(row.franchiseId))
+        }
+        if (row.storeId) {
+          searchParams.set('storeId', String(row.storeId))
+        }
 
-      router.push(`/system/holiday/detail?${searchParams.toString()}`)
+        router.push(`/system/holiday/detail?${searchParams.toString()}`)
+      })
     },
-    [router]
+    [router, startTransition]
   )
 
   const listData = response?.content ?? []
@@ -103,6 +107,11 @@ export default function HolidayInfo() {
 
   return (
     <div className="data-wrap">
+      {isNavigating && (
+        <div className="cube-loader-overlay">
+          <CubeLoader />
+        </div>
+      )}
       <Location title="휴일 관리" list={BREADCRUMBS} />
       <HolidaySearch
         filters={filters}

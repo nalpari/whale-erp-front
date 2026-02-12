@@ -6,6 +6,7 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import type { HolidayListItem, HolidayListType } from '@/types/holiday'
 import { formatDateYmd } from '@/util/date-util'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 interface HolidayListProps {
   rows: HolidayListItem[]
@@ -93,7 +94,7 @@ export default function HolidayList({
       <div className="data-list-bx">
         {error && <div className="warning-txt">{error}</div>}
         {loading ? (
-          <div></div>
+          <div className="cube-loader-overlay"><CubeLoader /></div>
         ) : rows.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">검색 결과가 없습니다.</div>
