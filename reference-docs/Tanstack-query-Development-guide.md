@@ -1062,6 +1062,44 @@ if (isPending) return <Skeleton />
 
 ---
 
+## 11. 글로벌 로딩 스피너 (Mutation 전용)
+
+프로젝트에는 **Mutation(생성/수정/삭제) 요청 시 자동으로 전체 화면 로딩 오버레이를 표시**하는 `GlobalMutationSpinner`가 적용되어 있습니다.
+
+### 동작 방식
+
+- `useIsMutating()` 훅으로 진행 중인 mutation 수를 감지
+- 1개 이상이면 CubeLoader 오버레이를 전체 화면에 표시
+- 모든 mutation이 완료되면 자동으로 숨김
+
+### Query vs Mutation 로딩 전략
+
+| 구분 | 로딩 방식 | 구현 방법 |
+|------|----------|----------|
+| Query (조회) | 개별 컴포넌트에서 처리 | `isPending` 사용 |
+| Mutation (변경) | 글로벌 스피너 자동 | `useMutation` 사용만으로 적용 |
+
+### 개발 시 적용
+
+`useMutation`을 사용하기만 하면 글로벌 스피너가 **자동 적용**됩니다.
+
+```typescript
+// 이렇게 mutation 훅을 작성하면 글로벌 스피너가 자동 동작
+export function useCreateOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/api/v1/orders', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
+    },
+  })
+}
+```
+
+> 상세 가이드: [Global-Loading-Spinner-guide.md](./Global-Loading-Spinner-guide.md)
+
+---
+
 ## 부록: 유용한 링크
 
 - [TanStack Query 공식 문서](https://tanstack.com/query/latest)
@@ -1076,3 +1114,4 @@ if (isPending) return <Skeleton />
 |------|------|----------|
 | 2026-01-28 | 1.0 | 초기 문서 작성 |
 | 2026-01-28 | 1.1 | BP 및 공통코드 TanStack Query 마이그레이션 예제 추가 (useBpHeadOfficeTree, useCommonCodeHierarchy, 래퍼 훅, 캐시 유틸) |
+| 2026-02-12 | 1.2 | 글로벌 로딩 스피너 (GlobalMutationSpinner) 섹션 추가 |

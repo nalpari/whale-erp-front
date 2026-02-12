@@ -487,6 +487,23 @@ interface HeaderMenuItem {
 - `staleTime`을 데이터 특성에 맞게 설정
 - 의존성 있는 쿼리는 `enabled` 옵션 활용
 
+### 글로벌 로딩 스피너
+
+`useMutation` 사용 시 **자동으로** 전체 화면 CubeLoader 오버레이가 표시됩니다.
+
+| 구분 | 로딩 방식 | 구현 |
+|------|----------|------|
+| Query (조회) | 각 컴포넌트에서 개별 처리 | `isPending`으로 스켈레톤/로딩 UI |
+| Mutation (변경) | 글로벌 스피너 자동 표시 | `useMutation` 사용만으로 적용 |
+
+```typescript
+// mutation 훅 작성 시 글로벌 스피너 자동 적용 (별도 코드 불필요)
+const { mutateAsync } = useCreateStore()
+await mutateAsync(data)  // 호출 중 CubeLoader 오버레이 자동 표시
+```
+
+> 상세 가이드: [reference-docs/Global-Loading-Spinner-guide.md](./reference-docs/Global-Loading-Spinner-guide.md)
+
 ### Zustand 사용 시 주의사항
 
 - 서버 데이터는 TanStack Query 사용 (Zustand 사용 금지)
@@ -507,3 +524,4 @@ interface HeaderMenuItem {
   - Conventions.md
   - Tanstack-query-Development-guide.md
   - Zustand-Development-guide.md
+  - Global-Loading-Spinner-guide.md

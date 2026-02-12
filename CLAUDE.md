@@ -123,7 +123,7 @@ import type { LoginRequest } from '@/lib/schemas/auth';
   - `staleTime: 5분` (적극적 캐싱)
   - `gcTime: 10분` (가비지 컬렉션 시간)
   - `refetchOnWindowFocus: false` (ERP 특성상 비활성화)
-- **`src/providers/query-provider.tsx`**: QueryClientProvider 래퍼 (DevTools 포함)
+- **`src/providers/query-provider.tsx`**: QueryClientProvider 래퍼 (GlobalMutationSpinner + DevTools 포함)
 - **`src/hooks/queries/`**: 쿼리 훅 모음
   - `query-keys.ts` — 쿼리 키 팩토리 (계층 구조)
   - `use-store-queries.ts` — 점포 CRUD
@@ -261,6 +261,10 @@ Dual styling system:
 - `query-keys.ts`에 쿼리 키 팩토리 패턴으로 정의
 - 계층적 키 사용으로 캐시 무효화 관리
 - 의존적 쿼리는 `enabled` 옵션 사용
+- **글로벌 로딩 스피너**: `useMutation` 사용 시 `GlobalMutationSpinner`가 자동으로 CubeLoader 오버레이 표시
+  - Query(조회): 각 컴포넌트에서 `isPending`으로 개별 로딩 처리
+  - Mutation(변경): 글로벌 스피너 자동 적용 (별도 코드 불필요)
+  - 상세: `reference-docs/Global-Loading-Spinner-guide.md`
 
 ### Code Quality
 - 커밋 전 `pnpm lint` 실행
