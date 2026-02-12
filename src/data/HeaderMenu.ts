@@ -207,7 +207,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 22,
         name: '권한 관리',
-        link: '/',
+        link: '/system/authority',
       },
       {
         id: 23,
@@ -240,12 +240,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 26,
         name: '프로그램 관리',
-        link: '/',
+        link: '/system/program',
       },
       {
         id: 27,
         name: '권한 관리',
-        link: '/',
+        link: '/system/authority',
       },
       {
         id: 28,
