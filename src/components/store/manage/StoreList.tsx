@@ -82,8 +82,15 @@ export default function StoreList({
         <div className="data-header-left">
         </div>
         <div className="data-header-right">
-          <button className="btn-form basic" onClick={onRegister} type="button" disabled={registerDisabled}>
-            등록
+          <button
+            className="btn-form basic"
+            onClick={onRegister}
+            type="button"
+            disabled={registerDisabled}
+            title={registerDisabled ? '플랜 확인 중...' : undefined}
+            aria-label={registerDisabled ? '플랜 확인 중입니다' : '점포 등록'}
+          >
+            {registerDisabled ? '확인 중...' : '등록'}
           </button>
           <div className="data-count-select">
             <select

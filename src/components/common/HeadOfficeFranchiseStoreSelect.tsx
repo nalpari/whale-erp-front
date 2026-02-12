@@ -39,7 +39,7 @@
 'use client'
 
 import './custom-css/FormHelper.css'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
@@ -95,6 +95,12 @@ export default function HeadOfficeFranchiseStoreSelect({
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
+    // onChange를 ref로 감싸서 useEffect 의존성에서 제외 (불필요한 effect 재실행 방지)
+    const onChangeRef = useRef(onChange)
+    useEffect(() => {
+        onChangeRef.current = onChange
+    }, [onChange])
+
     // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
     // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
     //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
@@ -111,12 +117,12 @@ export default function HeadOfficeFranchiseStoreSelect({
         const office = bpTree[0]
         const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
 
-        onChange({
+        onChangeRef.current({
             head_office: office.id,
             franchise: autoFranchiseId,
             store: null,
         })
-    }, [bpLoading, bpTree, officeId, onChange])
+    }, [bpLoading, bpTree, officeId])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

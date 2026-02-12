@@ -42,7 +42,7 @@ export default function HolidayInfo() {
 
   // bpTree auto-apply로 filters.officeId가 세팅되었는데
   // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
-  // (렌더 중 조건부 setState — 조건 해소 후 루프 종료)
+  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
   if (filters.officeId != null && appliedFilters.officeId == null) {
     setAppliedFilters(filters)
   }
@@ -55,9 +55,11 @@ export default function HolidayInfo() {
     setPage(0)
   }, [filters])
 
-  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
+  // 초기화: 검색 폼과 적용 필터 모두 초기화
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS)
+    setAppliedFilters(DEFAULT_FILTERS)
+    setPage(0)
   }, [])
 
   const handleFilterChange = useCallback(

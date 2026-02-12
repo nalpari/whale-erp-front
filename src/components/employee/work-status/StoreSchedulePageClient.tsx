@@ -17,13 +17,8 @@ import {
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
+import { parseNumberParam } from '@/util/param-util';
 import type { DayType, ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
-
-const parseNumberParam = (value: string | null): number | null => {
-  if (!value) return null;
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? null : parsed;
-};
 
 export default function StoreSchedulePageClient() {
   const router = useRouter();
@@ -177,23 +172,25 @@ export default function StoreSchedulePageClient() {
   };
 
   const handlePlan = () => {
+    if (!lastQuery) return;
     const params = buildStoreScheduleParams(lastQuery);
     // 원래 검색 기간을 보존하여 수립→목록 복귀 시 사용
-    if (lastQuery?.from) params.set('listFrom', lastQuery.from);
-    if (lastQuery?.to) params.set('listTo', lastQuery.to);
+    if (lastQuery.from) params.set('listFrom', lastQuery.from);
+    if (lastQuery.to) params.set('listTo', lastQuery.to);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 
   const handleSelectDate = (date: string, storeId?: number | null) => {
+    if (!lastQuery) return;
     const params = buildStoreScheduleParams(lastQuery, {
       from: date,
       to: date,
       date,
-      storeId: storeId ?? lastQuery?.storeId,
+      storeId: storeId ?? lastQuery.storeId,
     });
     // 원래 검색 기간을 보존하여 수립→목록 복귀 시 사용
-    if (lastQuery?.from) params.set('listFrom', lastQuery.from);
-    if (lastQuery?.to) params.set('listTo', lastQuery.to);
+    if (lastQuery.from) params.set('listFrom', lastQuery.from);
+    if (lastQuery.to) params.set('listTo', lastQuery.to);
     router.push(`/employee/schedule/plan${toQueryString(params)}`);
   };
 

@@ -18,6 +18,7 @@ import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHea
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { formatDateYmd } from '@/util/date-util'
 
 interface EmployContractEditProps {
   contractId?: number
@@ -31,14 +32,8 @@ const parseStringToDate = (dateStr: string | null | undefined): Date | null => {
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
-// Date 객체를 YYYY-MM-DD 문자열로 변환하는 유틸리티
-const formatDateToString = (date: Date | null): string => {
-  if (!date) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+// Date 객체를 YYYY-MM-DD 문자열로 변환 (공유 유틸리티 활용)
+const formatDateToString = (date: Date | null): string => formatDateYmd(date, '')
 
 export default function EmployContractEdit({ contractId, id }: EmployContractEditProps) {
   const isCreateMode = id === 'new'
