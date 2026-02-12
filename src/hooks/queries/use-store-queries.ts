@@ -7,6 +7,7 @@ import type {
   StoreDetailResponse,
   StoreOption,
   StoreHeaderRequest,
+  SubscribePlanCheckResponse,
 } from '@/types/store'
 
 /**
@@ -109,6 +110,23 @@ export const useStoreOptions = (
       return response.data.data
     },
     enabled,
+  })
+}
+
+/**
+ * 구독 플랜 점포 등록 가능 여부 확인 훅.
+ * - enabled: false로 설정하여 버튼 클릭 시 refetch로 수동 호출한다.
+ */
+export const useSubscribePlanCheck = () => {
+  return useQuery({
+    queryKey: storeKeys.subscribePlanCheck(),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<SubscribePlanCheckResponse>>(
+        '/api/v1/stores/subscribe'
+      )
+      return response.data.data
+    },
+    enabled: false,
   })
 }
 

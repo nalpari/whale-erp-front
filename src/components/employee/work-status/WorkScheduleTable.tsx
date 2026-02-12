@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { WorkerResponse, ScheduleResponse } from '@/types/work-schedule';
 import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker';
+import { formatDateDot } from '@/util/date-util';
 
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
@@ -38,7 +39,7 @@ const parseTimeToMinutes = (value?: string | null) => {
 };
 
 const formatDateLabel = (date: string, day?: string) => {
-  const normalized = date.replace(/-/g, '.');
+  const normalized = formatDateDot(date, date);
   return day ? `${normalized} (${day})` : normalized;
 };
 

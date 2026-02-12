@@ -5,6 +5,7 @@ import { ColDef } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import type { HolidayListItem, HolidayListType } from '@/types/holiday'
+import { formatDateYmd } from '@/util/date-util'
 
 interface HolidayListProps {
   rows: HolidayListItem[]
@@ -23,10 +24,6 @@ const HOLIDAY_TYPE_MAP: Record<HolidayListType, string> = {
   PARTNER: 'Partner 휴일',
 }
 
-const formatDate = (value?: string) => {
-  if (!value) return '-'
-  return value.split('T')[0]
-}
 
 export default function HolidayList({
   rows,
@@ -69,7 +66,7 @@ export default function HolidayList({
       field: 'updatedAt',
       headerName: '최종수정일',
       width: 140,
-      valueGetter: (params) => formatDate(params.data?.updatedAt),
+      valueGetter: (params) => formatDateYmd(params.data?.updatedAt),
     },
   ]
 

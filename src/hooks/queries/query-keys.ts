@@ -20,6 +20,7 @@ export const storeKeys = {
   detail: (id: number) => [...storeKeys.details(), id] as const,
   options: (officeId?: number | null, franchiseId?: number | null) =>
     [...storeKeys.all, 'options', { officeId, franchiseId }] as const,
+  subscribePlanCheck: () => [...storeKeys.all, 'subscribe-plan-check'] as const,
 }
 
 export const fileKeys = {

@@ -15,6 +15,7 @@ import {
 } from '@/hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import type { LegalHolidayResponse, LegalHolidayRequest } from '@/types/holiday'
+import { formatDateYmd } from '@/util/date-util'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리', '법정공휴일 관리']
 
@@ -30,13 +31,7 @@ interface EditableLegalRow {
   endDate: string
 }
 
-function toDateString(date: Date | null): string {
-  if (!date) return ''
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+const toDateString = (date: Date | null): string => formatDateYmd(date, '')
 
 function parseDate(str: string): Date | null {
   if (!str) return null

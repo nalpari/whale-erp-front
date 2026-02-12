@@ -12,11 +12,11 @@ import {
   storeScheduleKeys,
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
-import { useStoreScheduleViewStore } from '@/stores/store-schedule-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tooltip } from 'react-tooltip';
 import EmployeeSearch from '../popup/EmployeeSearch';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
+import { parseNumberParam } from '@/util/param-util';
 
 type WorkerPlan = {
   id: string;
@@ -242,8 +242,7 @@ export default function WorkSchedulePlan() {
   const { alert, confirm } = useAlert();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const lastQuery = useStoreScheduleViewStore((state) => state.lastQuery);
-  const setLastQuery = useStoreScheduleViewStore((state) => state.setLastQuery);
+  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
   const upsertMutation = useStoreScheduleUpsert();
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -266,15 +265,9 @@ export default function WorkSchedulePlan() {
   const isLoading = isFetching || upsertMutation.isPending;
 
   const initialQuery = useMemo(() => {
-    const getNumberParam = (key: string) => {
-      const value = searchParams.get(key);
-      if (!value) return null;
-      const parsed = Number(value);
-      return Number.isNaN(parsed) ? null : parsed;
-    };
-    const officeId = getNumberParam('officeId') ?? undefined;
-    const franchiseId = getNumberParam('franchiseId') ?? undefined;
-    const storeId = getNumberParam('storeId') ?? undefined;
+    const officeId = parseNumberParam(searchParams.get('officeId')) ?? undefined;
+    const franchiseId = parseNumberParam(searchParams.get('franchiseId')) ?? undefined;
+    const storeId = parseNumberParam(searchParams.get('storeId')) ?? undefined;
     const from = searchParams.get('from') ?? undefined;
     const to = searchParams.get('to') ?? undefined;
     const employeeName = searchParams.get('employeeName') ?? undefined;
@@ -289,6 +282,20 @@ export default function WorkSchedulePlan() {
       dayType,
     };
   }, [searchParams]);
+
+  // 목록 페이지의 원래 검색 기간 (목록 복귀 시 사용)
+  const listFrom = searchParams.get('listFrom') ?? undefined;
+  const listTo = searchParams.get('listTo') ?? undefined;
+
+  // 목록 복귀 시 사용하는 URL 파라미터 빌더 (handleSave, 목록 버튼에서 공용)
+  const buildListNavParams = useCallback(() => {
+    const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
+      lastQuery ?? initialQuery ?? null;
+    return buildStoreScheduleParams(source, {
+      from: listFrom ?? source?.from,
+      to: listTo ?? source?.to,
+    });
+  }, [initialQuery, lastQuery, listFrom, listTo]);
 
   const handleSearch = useCallback(
     async (query: StoreScheduleQuery) => {
@@ -326,13 +333,8 @@ export default function WorkSchedulePlan() {
   );
 
   const handleReset = useCallback(() => {
-    setPlans([]);
-    setPendingDeletes({});
-    initialWorkersRef.current = new Map();
-    dirtyWorkersRef.current = new Set();
     setShowStoreError(false);
-    setLastQuery(null);
-  }, [setLastQuery]);
+  }, []);
 
   const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
     setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });
@@ -490,11 +492,8 @@ export default function WorkSchedulePlan() {
       await alert(message);
       return;
     }
-    const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
-      lastQuery ?? initialQuery ?? null;
-    const params = buildStoreScheduleParams(source);
-    router.push(`/employee/schedule/view${toQueryString(params)}`);
-  }, [alert, confirm, initialQuery, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
+    router.push(`/employee/schedule/view${toQueryString(buildListNavParams())}`);
+  }, [alert, buildListNavParams, confirm, isLoading, lastQuery, pendingDeletes, plans, router, upsertMutation]);
 
   const renderedPlans = useMemo(() => plans, [plans]);
   const resultCount = useMemo(
@@ -614,13 +613,10 @@ export default function WorkSchedulePlan() {
                   if (!confirmed) {
                     return;
                   }
-                  const source: StoreScheduleQuery | (Partial<StoreScheduleQuery> & { from?: string; to?: string }) | null =
-                    lastQuery ?? initialQuery ?? null;
-                  const params = buildStoreScheduleParams(source);
-                  router.push(`/employee/schedule/view${toQueryString(params)}`);
+                  router.push(`/employee/schedule/view${toQueryString(buildListNavParams())}`);
                 }}
               >
-                취소
+                목록
               </button>
               <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
                 저장
