@@ -29,27 +29,36 @@ export default function Notice() {
   return (
     <div className="content-wrap">
       <div className="notice-list-wrap">
-        {isPending ? (
-          <div className="notice-empty">공지사항을 불러오는 중입니다.</div>
-        ) : error ? (
-          <div className="notice-empty">
-            {error instanceof Error ? error.message : '공지사항 조회에 실패했습니다.'}
-          </div>
-        ) : pagedNotices.length === 0 ? (
-          <div className="notice-empty">등록된 공지사항이 없습니다.</div>
-        ) : (
-          pagedNotices.map((notice) => (
-            <button
-              key={notice.id}
-              type="button"
-              className="notice-list-btn"
-              onClick={() => setActiveNoticeId(notice.id)}
-            >
-              <span className="notice-tit">{notice.title}</span>
-              <span className="notice-date">{formatDateDot(notice.createdAt)}</span>
-            </button>
-          ))
-        )}
+        <ul className="notice-list">
+          {isPending ? (
+            <li className="notice-list-item">
+              <div className="notice-empty">공지사항을 불러오는 중입니다.</div>
+            </li>
+          ) : error ? (
+            <li className="notice-list-item">
+              <div className="notice-empty">
+                {error instanceof Error ? error.message : '공지사항 조회에 실패했습니다.'}
+              </div>
+            </li>
+          ) : pagedNotices.length === 0 ? (
+            <li className="notice-list-item">
+              <div className="notice-empty">등록된 공지사항이 없습니다.</div>
+            </li>
+          ) : (
+            pagedNotices.map((notice) => (
+              <li key={notice.id} className="notice-list-item">
+                <button
+                  type="button"
+                  className="notice-list-btn"
+                  onClick={() => setActiveNoticeId(notice.id)}
+                >
+                  <span className="notice-tit">{notice.title}</span>
+                  <span className="notice-date">{formatDateDot(notice.createdAt)}</span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

@@ -23,19 +23,18 @@ const AFTER_SERVICES: AfterServiceItem[] = [
 /** 구독하기 버튼 (퍼블과 동일: 기본 남색+흰글씨, 호버 시 연한회색 배경+회색 글씨) */
 function SubscribeButton() {
   return (
-    <button
-      type="button"
-      className="service-btn"
-      onClick={(e) => e.preventDefault()}
-      aria-disabled="true"
-      style={{ width: '100%', height: 48, borderRadius: 6, marginTop: 18 }}
-    >
-      구독 하기
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-        <path d="M12 7v10M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </button>
+    <div className="after-service-content">
+      <div className="service-footer">
+        <button
+          type="button"
+          className="service-btn block"
+          disabled
+        >
+          구독 하기
+          <i className="icon-subscribe" />
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -49,27 +48,25 @@ export default function AfterService() {
               <img
                 src={`/assets/images/main/service_icon${String(index + 1).padStart(2, '0')}.png`}
                 alt=""
-                width={88}
+                width={82}
                 height={88}
               />
             </div>
             <div className="after-service-header">
               <div className="after-service-tit-wrap">
-                <h3 className="after-service-tit">{service.name}</h3>
-                <span className="mypage-info-badge">
-                  <span className="badge grey">준비중</span>
-                </span>
+                <div className="after-service-tit" role="heading" aria-level={3}>{service.name}</div>
+                <div className="badge brown">준비중</div>
               </div>
-              <p className="after-service-desc">{service.description}</p>
+              <div className="after-service-desc">{service.description}</div>
             </div>
             <SubscribeButton />
           </div>
         ))}
         <div className="after-service-item">
-          <p className="after-service-empty">서비스 추가 예정</p>
+          <div className="after-service-empty">서비스 추가 예정</div>
         </div>
         <div className="after-service-item">
-          <p className="after-service-empty">서비스 추가 예정</p>
+          <div className="after-service-empty">서비스 추가 예정</div>
         </div>
       </div>
     </div>
