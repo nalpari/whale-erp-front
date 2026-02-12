@@ -61,14 +61,14 @@ export default function EmployContractPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  // 검색 파라미터
-  const [searchParams, setSearchParams] = useState<ContractSearchParams>({})
+  // 검색 버튼 클릭 시에만 반영되는 파라미터 (초기화 시 API 호출 방지)
+  const [appliedParams, setAppliedParams] = useState<ContractSearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
   // TanStack Query로 목록 조회
   const { data: response, isPending: isLoading } = useContractList({
-    ...searchParams,
+    ...appliedParams,
     page: currentPage,
     size: pageSize
   })
@@ -85,14 +85,13 @@ export default function EmployContractPage() {
 
     // 기존 목록 캐시 무효화
     queryClient.invalidateQueries({ queryKey: contractKeys.lists() })
-    setSearchParams(searchParamsOnly as ContractSearchParams)
+    setAppliedParams(searchParamsOnly as ContractSearchParams)
     setCurrentPage(0)
   }, [queryClient])
 
-  // 초기화
+  // 초기화 — appliedParams를 변경하지 않아 불필요한 API 호출 방지
   const handleReset = () => {
-    setSearchParams({})
-    setCurrentPage(0)
+    // 검색 컴포넌트가 자체 formData를 리셋하므로 여기서는 목록 유지
   }
 
   // 페이지 변경
