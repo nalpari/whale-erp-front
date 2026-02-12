@@ -1,3 +1,5 @@
+import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+
 export interface StoreListParams {
   office?: number
   franchise?: number
@@ -220,8 +222,6 @@ export const holidayKeys = {
   legal: () => [...holidayKeys.all, 'legal'] as const,
   legalByYear: (year: number) => [...holidayKeys.legal(), year] as const,
 }
-
-import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 
 export type AuthorityListParams = AuthoritySearchParams
 
