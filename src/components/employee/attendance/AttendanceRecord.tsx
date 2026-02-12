@@ -87,8 +87,6 @@ export default function AttendanceRecord() {
 
   const handleReset = () => {
     setFilters(DEFAULT_ATTENDANCE_FILTERS)
-    setAppliedFilters(DEFAULT_ATTENDANCE_FILTERS)
-    setPage(0)
   }
 
   const listData = response?.content ?? []
