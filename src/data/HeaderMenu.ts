@@ -284,8 +284,8 @@ export const HeaderMenu: HeaderMenuItem[] = [
     children: [
       {
         id: 31,
-        name: 'ERP 요금제관리',
-        link: '/',
+        name: 'ERP 요금제 관리',
+        link: '/subscription',
       },
       {
         id: 32,
