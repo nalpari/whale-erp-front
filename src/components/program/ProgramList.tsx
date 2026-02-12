@@ -43,12 +43,13 @@ export default function ProgramList() {
     findProgramParents,
   } = useProgram()
 
-  // 초기 로드시 트리 전체 열기
+  // 초기 로드 또는 메뉴 구분 변경 시 트리 전체 열기
   useEffect(() => {
-    if (programs.length > 0 && openItems.size === 0) {
+    if (programs.length > 0) {
       expandAll()
     }
-  }, [programs.length, openItems.size, expandAll])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- expandAll은 매 렌더마다 새로 생성되므로 제외
+  }, [selectedMenuKind, programs.length])
 
   // 검색 키워드 하이라이트 (대소문자 구분 없음)
   const highlightKeyword = (text: string, keyword: string) => {
