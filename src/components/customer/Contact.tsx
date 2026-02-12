@@ -1,7 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCreateInquiry } from '@/hooks/queries'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
@@ -85,24 +85,17 @@ export default function Contact() {
   const storeName = useAuthStore((s) => s.name ?? null)
   const storeMobilePhone = useAuthStore((s) => s.mobilePhone ?? null)
 
-  const [form, setForm] = useState<ContactFormState>(createInitialForm)
+  const [form, setForm] = useState<ContactFormState>(() => ({
+    ...createInitialForm(),
+    ...(storeName && { name: storeName }),
+    ...(storeMobilePhone && { phone: formatPhone(storeMobilePhone) }),
+  }))
   const [errors, setErrors] = useState<ContactFormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successName, setSuccessName] = useState<string | null>(null)
 
   const { data: inquiryTypes = [], isPending: isTypesLoading } = useCommonCodeHierarchy('INQTYP')
   const { mutateAsync, isPending: isSubmitting } = useCreateInquiry()
-
-  // 로그인 사용자 정보 연동 (store → 폼 이름/휴대전화)
-  useEffect(() => {
-    if (storeName || storeMobilePhone) {
-      setForm((prev) => ({
-        ...prev,
-        ...(storeName && { name: storeName }),
-        ...(storeMobilePhone && { phone: formatPhone(storeMobilePhone) }),
-      }))
-    }
-  }, [storeName, storeMobilePhone])
 
   const handleChange = (field: keyof ContactFormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -155,24 +148,27 @@ export default function Contact() {
           <div className="contact-filed contact-filed-flx">
             <div className="filed-item">
               <div className="filed-tit">
-                이름 {!storeName && <span className="required">*</span>}
+                이름
               </div>
-              <input
-                type="text"
-                className={`input-frame ${errors.name ? 'err' : ''}`}
-                placeholder={storeName ? undefined : '이름을 입력해 주세요.'}
-                value={form.name}
-                disabled={!!storeName}
-                readOnly={!!storeName}
-                onChange={storeName ? undefined : (e) => handleChange('name', e.target.value)}
-                aria-label={storeName ? '이름 (로그인 정보)' : '이름'}
-              />
-              {errors.name && <div className="filed-error">※ {errors.name}</div>}
+              <div className="filed-input">
+                <div className={`input-icon-frame ${errors.name ? 'err' : ''}`}>
+                  <input
+                    type="text"
+                    placeholder={storeName ? undefined : '이름을 입력해 주세요.'}
+                    value={form.name}
+                    disabled={!!storeName}
+                    readOnly={!!storeName}
+                    onChange={storeName ? undefined : (e) => handleChange('name', e.target.value)}
+                    aria-label={storeName ? '이름 (로그인 정보)' : '이름'}
+                  />
+                </div>
+              </div>
+              {errors.name && <div className="filed-error mt5">※ {errors.name}</div>}
             </div>
 
             <div className="filed-item">
               <div className="filed-tit">
-                휴대전화 번호 {!storeMobilePhone && <span className="required">*</span>}
+                휴대전화 번호 <span className="red">*</span>
               </div>
               <div className={`input-icon-frame ${errors.phone ? 'err' : ''}`}>
                 <input
@@ -194,12 +190,12 @@ export default function Contact() {
                   />
                 ) : null}
               </div>
-              {errors.phone && <div className="filed-error">※ {errors.phone}</div>}
+              {errors.phone && <div className="filed-error mt5">※ {errors.phone}</div>}
             </div>
 
             <div className="filed-item">
               <div className="filed-tit">
-                이메일 <span className="required">*</span>
+                이메일 <span className="red">*</span>
               </div>
               <div className={`input-icon-frame ${errors.email ? 'err' : ''}`}>
                 <input
@@ -218,47 +214,39 @@ export default function Contact() {
                   />
                 ) : null}
               </div>
-              {errors.email && <div className="filed-error">※ {errors.email}</div>}
+              {errors.email && <div className="filed-error mt5">※ {errors.email}</div>}
             </div>
           </div>
 
           {/* 문의유형 — 퍼블(https://pub.whaleerp.co.kr/contact)과 동일: 한 줄, 왼쪽 정렬 버튼 */}
-          <div className="contact-filed contact-filed-inquiry-type">
+          <div className="contact-filed">
             <div className="filed-item">
               <div className="filed-tit">
                 문의유형 <span className="s">(유형중 1개만 선택해 주세요 )</span>{' '}
-                <span className="required">*</span>
+                <span className="red">*</span>
               </div>
-              <div
-                className="contact-check-wrap"
-                style={{ justifyContent: 'flex-start', flexWrap: 'nowrap' }}
-              >
-                {isTypesLoading ? (
-                  <span>불러오는 중...</span>
-                ) : (
-                  inquiryTypes
-                    .filter((item) => item.isActive)
-                    .map((item) => (
-                      <label
-                        key={item.code}
-                        className={`contact-btn cursor-pointer ${form.inquiryType === item.code ? 'act' : ''}`}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <input
-                          type="radio"
-                          name="inquiryType"
-                          value={item.code}
-                          checked={form.inquiryType === item.code}
-                          onChange={(e) => handleChange('inquiryType', e.target.value)}
+              <div className="filed-input">
+                <div className="contact-check-wrap">
+                  {isTypesLoading ? (
+                    <span>불러오는 중...</span>
+                  ) : (
+                    inquiryTypes
+                      .filter((item) => item.isActive)
+                      .map((item) => (
+                        <button
+                          key={item.code}
+                          type="button"
+                          className={`contact-btn outline ${form.inquiryType === item.code ? 'act' : ''}`}
+                          onClick={() => handleChange('inquiryType', item.code)}
                           disabled={isSubmitting}
-                          className="sr-only"
-                        />
-                        <span>{item.name}</span>
-                      </label>
-                    ))
-                )}
+                        >
+                          {item.name}
+                        </button>
+                      ))
+                  )}
+                </div>
               </div>
-              {errors.inquiryType && <div className="filed-error">※ {errors.inquiryType}</div>}
+              {errors.inquiryType && <div className="filed-error mt5">※ {errors.inquiryType}</div>}
             </div>
           </div>
 
@@ -266,20 +254,20 @@ export default function Contact() {
           <div className="contact-filed">
             <div className="filed-item">
               <div className="filed-tit">
-                문의내용<span className="required">*</span>
+                문의내용 <span className="red">*</span>
               </div>
               <textarea
                 className={`textarea-form ${errors.content ? 'err' : ''}`}
-                placeholder="문의내용을 입력해 주세요."
+                placeholder="궁금하신 내용을 입력해 주세요."
                 value={form.content}
                 onChange={(e) => handleChange('content', e.target.value)}
                 disabled={isSubmitting}
               />
-              {errors.content && <div className="filed-error">※ {errors.content}</div>}
+              {errors.content && <div className="filed-error mt5">※ {errors.content}</div>}
             </div>
           </div>
 
-          {submitError && <div className="filed-error">※ {submitError}</div>}
+          {submitError && <div className="filed-error mt5">※ {submitError}</div>}
 
           {/* 버튼 */}
           <div className="contact-btn-wrap">
