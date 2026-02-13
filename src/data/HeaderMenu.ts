@@ -68,7 +68,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 39,
             name: '마스터용 카테고리 관리',
-            link: '/',
+            link: '/master/category/master',
           },
         ],
       },
