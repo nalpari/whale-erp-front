@@ -17,8 +17,7 @@ interface SearchParams {
 }
 
 export default function FullTimePayrollPage() {
-  // 검색 버튼 클릭 시에만 반영되는 파라미터 (초기화 시 API 호출 방지)
-  const [appliedParams, setAppliedParams] = useState<SearchParams>({})
+  const [searchParams, setSearchParams] = useState<SearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -26,14 +25,14 @@ export default function FullTimePayrollPage() {
   const { data: payrollData, isPending: isLoading, refetch } = useFullTimePayrollList({
     page: currentPage,
     size: pageSize,
-    headOfficeId: appliedParams.headOfficeId,
-    franchiseStoreId: appliedParams.franchiseId,
-    storeId: appliedParams.storeId,
-    workStatus: appliedParams.workStatus || undefined,
-    memberName: appliedParams.employeeName,
-    contractClassification: appliedParams.employeeClassification,
-    paymentStartDate: appliedParams.startDate,
-    paymentEndDate: appliedParams.endDate
+    headOfficeId: searchParams.headOfficeId,
+    franchiseStoreId: searchParams.franchiseId,
+    storeId: searchParams.storeId,
+    workStatus: searchParams.workStatus || undefined,
+    memberName: searchParams.employeeName,
+    contractClassification: searchParams.employeeClassification,
+    paymentStartDate: searchParams.startDate,
+    paymentEndDate: searchParams.endDate
   })
 
   // React 19: derived state - API 응답의 employeeClassificationName 사용
@@ -56,13 +55,13 @@ export default function FullTimePayrollPage() {
   const totalPages = payrollData?.totalPages || 0
 
   const handleSearch = useCallback((params: SearchParams) => {
-    setAppliedParams(params)
+    setSearchParams(params)
     setCurrentPage(0)
   }, [])
 
-  // 초기화 — appliedParams를 변경하지 않아 불필요한 API 호출 방지
   const handleReset = useCallback(() => {
-    // 검색 컴포넌트가 자체 formData를 리셋하므로 여기서는 목록 유지
+    setSearchParams({})
+    setCurrentPage(0)
   }, [])
 
   const handlePageChange = (page: number) => {

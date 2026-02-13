@@ -12,8 +12,8 @@ import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 type CodeNameMap = Record<string, string>
 
 export default function EmployeePage() {
-  // 검색 버튼 클릭 시에만 반영되는 파라미터 (초기화 시 API 호출 방지)
-  const [appliedParams, setAppliedParams] = useState<EmployeeSearchParams>({
+  // 검색 파라미터
+  const [searchParams, setSearchParams] = useState<EmployeeSearchParams>({
     page: 0,
     size: 50
   })
@@ -23,7 +23,7 @@ export default function EmployeePage() {
     data: employeeData,
     isPending: isLoading,
     refetch
-  } = useEmployeeInfoList(appliedParams)
+  } = useEmployeeInfoList(searchParams)
 
   // TanStack Query로 직원 분류 공통코드 조회
   const { data: settingsData } = useEmployeeInfoSettings()
@@ -46,23 +46,23 @@ export default function EmployeePage() {
 
   // 검색 실행
   const handleSearch = (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => {
-    const newParams = { ...params, page: 0, size: appliedParams.size }
-    setAppliedParams(newParams)
+    const newParams = { ...params, page: 0, size: searchParams.size }
+    setSearchParams(newParams)
   }
 
   // 페이지 변경
   const handlePageChange = (page: number) => {
-    setAppliedParams(prev => ({ ...prev, page }))
+    setSearchParams(prev => ({ ...prev, page }))
   }
 
   // 페이지 사이즈 변경
   const handlePageSizeChange = (size: number) => {
-    setAppliedParams(prev => ({ ...prev, page: 0, size }))
+    setSearchParams(prev => ({ ...prev, page: 0, size }))
   }
 
-  // 초기화 — appliedParams를 변경하지 않아 불필요한 API 호출 방지
+  // 초기화
   const handleReset = () => {
-    // 검색 컴포넌트가 자체 formData를 리셋하므로 여기서는 목록 유지
+    setSearchParams({ page: 0, size: searchParams.size })
   }
 
   // 코드를 이름으로 변환한 직원 목록
@@ -90,7 +90,7 @@ export default function EmployeePage() {
         isLoading={isLoading}
         currentPage={employeeData?.number ?? 0}
         totalPages={employeeData?.totalPages ?? 0}
-        pageSize={appliedParams.size || 50}
+        pageSize={searchParams.size || 50}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         onRefresh={() => refetch()}

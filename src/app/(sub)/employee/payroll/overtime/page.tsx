@@ -44,8 +44,7 @@ function formatWorkDays(workDays: string | null | undefined): string {
 }
 
 export default function OvertimePayrollPage() {
-  // 검색 버튼 클릭 시에만 반영되는 파라미터 (초기화 시 API 호출 방지)
-  const [appliedParams, setAppliedParams] = useState<SearchParams>({})
+  const [searchParams, setSearchParams] = useState<SearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -59,15 +58,15 @@ export default function OvertimePayrollPage() {
   const { data: payrollData, isPending: isLoading, refetch } = useOvertimePayrollList({
     page: currentPage,
     size: pageSize,
-    headOfficeId: appliedParams.headOfficeId,
-    franchiseStoreId: appliedParams.franchiseId,
-    storeId: appliedParams.storeId,
-    workStatus: appliedParams.workStatus || undefined,
-    memberName: appliedParams.employeeName,
-    workDays: appliedParams.workDays,
-    contractClassification: appliedParams.employeeClassification,
-    paymentStartDate: appliedParams.startDate,
-    paymentEndDate: appliedParams.endDate
+    headOfficeId: searchParams.headOfficeId,
+    franchiseStoreId: searchParams.franchiseId,
+    storeId: searchParams.storeId,
+    workStatus: searchParams.workStatus || undefined,
+    memberName: searchParams.employeeName,
+    workDays: searchParams.workDays,
+    contractClassification: searchParams.employeeClassification,
+    paymentStartDate: searchParams.startDate,
+    paymentEndDate: searchParams.endDate
   })
 
   // React 19: derived state - 응답 데이터를 컴포넌트 데이터로 변환
@@ -97,13 +96,13 @@ export default function OvertimePayrollPage() {
   const totalPages = payrollData?.totalPages || 0
 
   const handleSearch = (params: SearchParams) => {
-    setAppliedParams(params)
+    setSearchParams(params)
     setCurrentPage(0)
   }
 
-  // 초기화 — appliedParams를 변경하지 않아 불필요한 API 호출 방지
   const handleReset = () => {
-    // 검색 컴포넌트가 자체 formData를 리셋하므로 여기서는 목록 유지
+    setSearchParams({})
+    setCurrentPage(0)
   }
 
   const handlePageChange = (page: number) => {
