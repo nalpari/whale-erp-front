@@ -53,7 +53,6 @@ export default function CategoryManage() {
     parentId: number | null,
     data: CategoryFormData,
     bpId: number,
-    franchiseId: number | null,
   ) => {
     let maxSortOrder = 0
     if (parentId) {
@@ -117,7 +116,7 @@ export default function CategoryManage() {
     }
   }
 
-  const handleReorder = (parentId: number | null, reorderedItems: Category[]) => {
+  const handleReorder = async (parentId: number | null, reorderedItems: Category[]) => {
     const bpId = filters.officeId
     if (!bpId) return
 
@@ -129,7 +128,11 @@ export default function CategoryManage() {
         sortOrder: index + 1,
       }))
 
-    reorderMutation.mutate(sortOrders)
+    try {
+      await reorderMutation.mutateAsync(sortOrders)
+    } catch (error) {
+      alert(getErrorMessage(error, '카테고리 순서 변경에 실패했습니다.'))
+    }
   }
 
   // 전체 카테고리 수 계산 (대분류 + 소분류)
@@ -162,7 +165,6 @@ export default function CategoryManage() {
               onToggleActive={handleToggleActive}
               onReorder={handleReorder}
               bpId={filters.officeId ?? null}
-              franchiseId={null}
             />
           )
         ) : (

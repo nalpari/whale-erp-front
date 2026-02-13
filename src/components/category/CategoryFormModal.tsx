@@ -44,6 +44,29 @@ export default function CategoryFormModal({
 
   const [formData, setFormData] = useState<CategoryFormData>(initialData)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [prevEditData, setPrevEditData] = useState(editData)
+
+  if (isOpen !== prevIsOpen || editData !== prevEditData) {
+    setPrevIsOpen(isOpen)
+    setPrevEditData(editData)
+    if (isOpen) {
+      setFormData(
+        mode === 'edit' && editData
+          ? {
+              categoryName: editData.categoryName,
+              isActive: editData.isActive,
+              isFixed: true,
+            }
+          : {
+              categoryName: '',
+              isActive: true,
+              isFixed: true,
+            },
+      )
+      setFieldErrors({})
+    }
+  }
 
   const handleSubmit = () => {
     const result = categoryFormSchema.safeParse(formData)

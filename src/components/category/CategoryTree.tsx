@@ -8,13 +8,12 @@ import type { CategoryFormData } from '@/lib/schemas/category'
 
 interface CategoryTreeProps {
   categories: Category[]
-  onCreateCategory: (parentId: number | null, data: CategoryFormData, bpId: number, franchiseId: number | null) => void
+  onCreateCategory: (parentId: number | null, data: CategoryFormData, bpId: number) => void
   onUpdateCategory: (id: number, data: CategoryFormData) => void
   onDeleteCategory: (id: number, categoryName: string) => void
   onToggleActive: (categoryIds: number[], isActive: boolean) => void
   onReorder: (parentId: number | null, reorderedItems: Category[]) => void
   bpId: number | null
-  franchiseId: number | null
 }
 
 function buildActiveMap(categories: Category[]): Map<number, boolean> {
@@ -36,7 +35,6 @@ export default function CategoryTree({
   onToggleActive,
   onReorder,
   bpId,
-  franchiseId,
 }: CategoryTreeProps) {
   const [openItems, setOpenItems] = useState<Set<number>>(() => {
     const ids = new Set<number>()
@@ -47,6 +45,19 @@ export default function CategoryTree({
   })
 
   const [activeMap, setActiveMap] = useState<Map<number, boolean>>(() => buildActiveMap(categories))
+  const [prevCategories, setPrevCategories] = useState(categories)
+
+  if (categories !== prevCategories) {
+    setPrevCategories(categories)
+    setActiveMap(buildActiveMap(categories))
+    setOpenItems((prev) => {
+      const next = new Set(prev)
+      for (const cat of categories) {
+        if (cat.id !== null) next.add(cat.id)
+      }
+      return next
+    })
+  }
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
@@ -77,8 +88,12 @@ export default function CategoryTree({
 
   const handleSubmit = (data: CategoryFormData) => {
     if (modalMode === 'create') {
+      if (bpId === null) {
+        alert('본사를 선택해주세요.')
+        return
+      }
       const parentId = modalCategory?.id ?? null
-      onCreateCategory(parentId, data, bpId!, franchiseId ?? null)
+      onCreateCategory(parentId, data, bpId)
     } else if (modalMode === 'edit' && modalCategory?.id !== null && modalCategory?.id !== undefined) {
       onUpdateCategory(modalCategory.id, data)
     }
