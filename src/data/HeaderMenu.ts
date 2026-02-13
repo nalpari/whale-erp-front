@@ -24,22 +24,22 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 10,
         name: '파트너 정보 관리',
-        link: '/',
+        link: '#',
       },
       {
         id: 11,
         name: '메뉴 정보 관리',
-        link: '/',
+        link: '#',
         children: [
           {
             id: 35,
             name: '마스터용 메뉴 Master',
-            link: '/',
+            link: '#',
           },
           {
             id: 36,
             name: '점포용 메뉴 Master',
-            link: '/',
+            link: '#',
           },
         ],
       },
@@ -51,12 +51,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 37,
             name: '마스터용 가격 관리',
-            link: '/',
+            link: '#',
           },
           {
             id: 38,
             name: '점포용 프로모션 가격 관리',
-            link: '/',
+            link: '#',
           },
         ],
       },
@@ -169,7 +169,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 49,
             name: 'TO-DO 관리',
-            link: '/',
+            link: '#',
           },
         ],
       },
@@ -235,7 +235,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 25,
         name: '관리자 관리',
-        link: '/',
+        link: '#',
       },
       {
         id: 26,
@@ -250,17 +250,17 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 28,
         name: '공통코드 관리',
-        link: '/',
+        link: '#',
         children: [
           {
             id: 50,
             name: '공통코드 관리',
-            link: '/',
+            link: '#',
           },
           {
             id: 51,
             name: '공통 데이터 관리',
-            link: '/',
+            link: '#',
           },
         ],
       },
@@ -272,7 +272,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 30,
         name: '이메일 템플릿 관리',
-        link: '/',
+        link: '#',
       },
     ],
   },
@@ -290,12 +290,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 32,
         name: '부가서비스 요금제관리',
-        link: '/',
+        link: '#',
       },
       {
         id: 33,
         name: '결제현황',
-        link: '/',
+        link: '#',
       },
     ],
   },
@@ -308,7 +308,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 34,
         name: '부가서비스 셋팅',
-        link: '/',
+        link: '#',
       },
     ],
   },
