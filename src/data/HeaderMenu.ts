@@ -13,7 +13,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
     id: 1,
     name: 'Home',
     icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon00.svg',
-    link: '/',
+    link: '/logined-main',
   },
   {
     id: 2,
