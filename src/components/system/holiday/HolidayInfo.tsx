@@ -1,11 +1,13 @@
 'use client'
 
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
 import Location from '@/components/ui/Location'
-import { useHolidayList } from '@/hooks/queries'
+import CubeLoader from '@/components/common/ui/CubeLoader'
+import { useBpHeadOfficeTree, useHolidayList } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
@@ -21,11 +23,23 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 
 export default function HolidayInfo() {
   const router = useRouter()
+  const [isNavigating, startTransition] = useTransition()
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+  const isSingleOrg = bpTree.length === 1
 
   const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  // 단일 조직(사용자 소속): auto-select된 본사/가맹점 값을 appliedFilters에 자동 반영
+  // 다중 조직(admin): 검색 버튼 클릭 시에만 반영
+  // 렌더 중 setState: 조건이 자기종결적(appliedFilters.officeId 설정 후 false)이므로 무한 렌더 없음
+  if (isSingleOrg && filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
 
   const params: HolidayListParams = useMemo(
     () => ({
@@ -40,14 +54,8 @@ export default function HolidayInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  // bpTree auto-apply로 filters.officeId가 세팅되었는데
-  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
-  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
-  if (filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
-
-  const canFetchList = !!appliedFilters.year && appliedFilters.officeId != null
+  // 휴일 관리는 본사 필수가 아니므로 연도만 있으면 목록 조회 가능
+  const canFetchList = !!appliedFilters.year
   const { data: response, isPending: loading, error } = useHolidayList(params, canFetchList)
 
   const handleSearch = useCallback(() => {
@@ -55,11 +63,9 @@ export default function HolidayInfo() {
     setPage(0)
   }, [filters])
 
-  // 초기화: 검색 폼과 적용 필터 모두 초기화
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (appliedFilters 변경 안 함)
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS)
-    setAppliedFilters(DEFAULT_FILTERS)
-    setPage(0)
   }, [])
 
   const handleFilterChange = useCallback(
@@ -71,25 +77,27 @@ export default function HolidayInfo() {
 
   const handleOpenDetail = useCallback(
     (row: HolidayListItem) => {
-      if (row.holidayType === 'LEGAL') {
-        router.push(`/system/holiday/legal?year=${row.year}`)
-        return
-      }
+      startTransition(() => {
+        if (row.holidayType === 'LEGAL') {
+          router.push(`/system/holiday/legal?year=${row.year}`)
+          return
+        }
 
-      const searchParams = new URLSearchParams()
-      searchParams.set('year', String(row.year))
+        const searchParams = new URLSearchParams()
+        searchParams.set('year', String(row.year))
 
-      if (row.headOfficeId) {
-        searchParams.set('headOfficeId', String(row.headOfficeId))
-      }
-      if (row.franchiseId) {
-        searchParams.set('franchiseId', String(row.franchiseId))
-      }
-      if (row.storeId) {
-        searchParams.set('storeId', String(row.storeId))
-      }
+        if (row.headOfficeId != null) {
+          searchParams.set('headOfficeId', String(row.headOfficeId))
+        }
+        if (row.franchiseId != null) {
+          searchParams.set('franchiseId', String(row.franchiseId))
+        }
+        if (row.storeId != null) {
+          searchParams.set('storeId', String(row.storeId))
+        }
 
-      router.push(`/system/holiday/detail?${searchParams.toString()}`)
+        router.push(`/system/holiday/detail?${searchParams.toString()}`)
+      })
     },
     [router]
   )
@@ -100,6 +108,11 @@ export default function HolidayInfo() {
 
   return (
     <div className="data-wrap">
+      {isNavigating && (
+        <div className="cube-loader-overlay">
+          <CubeLoader />
+        </div>
+      )}
       <Location title="휴일 관리" list={BREADCRUMBS} />
       <HolidaySearch
         filters={filters}

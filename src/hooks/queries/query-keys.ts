@@ -249,3 +249,12 @@ export const plansKeys = {
   details: () => [...plansKeys.all, 'detail'] as const,
   detail: (id: number) => [...plansKeys.details(), id] as const,
 }
+
+export const categoryKeys = {
+  all: ['categories'] as const,
+  lists: () => [...categoryKeys.all, 'list'] as const,
+  list: (params: CategorySearchParams) => [...categoryKeys.lists(), params] as const,
+}
+
+export type { CategorySearchParams } from '@/types/category'
+import type { CategorySearchParams } from '@/types/category'

@@ -13,6 +13,7 @@ import {
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
+import CubeLoader from '@/components/common/ui/CubeLoader';
 import { Tooltip } from 'react-tooltip';
 import EmployeeSearch from '../popup/EmployeeSearch';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
@@ -623,9 +624,7 @@ export default function WorkSchedulePlan() {
               </button>
             </div>
             {isLoading ? (
-              <div className="empty-wrap">
-                <div className="empty-data">데이터를 불러오는 중입니다.</div>
-              </div>
+              <div className="cube-loader-overlay"><CubeLoader /></div>
             ) : renderedPlans.length === 0 ? (
               <div className="empty-wrap">
                 <div className="empty-data">조회된 근무 계획표가 없습니다.</div>
