@@ -199,10 +199,12 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 다중 본사일 때 초기 자동 선택 완료 여부 추적.
     // true가 되면 officeId가 null로 초기화되어도 첫 번째 본사를 재자동선택하지 않음.
     // bpTree가 새로 로드되면 리셋하여 최초 자동 선택이 다시 동작할 수 있게 함.
+    // bpTreeKey: 배열 참조가 아닌 실제 id 목록 기반으로 비교하여 백그라운드 리페치 시 불필요한 리셋 방지
     const multiAutoSelectedRef = useRef(false)
+    const bpTreeKey = useMemo(() => bpTree.map((o) => o.id).join(','), [bpTree])
     useEffect(() => {
         multiAutoSelectedRef.current = false
-    }, [bpTree])
+    }, [bpTreeKey])
 
     // 본사/가맹점 자동 선택 및 고정 로직
     // - 단일 본사(사용자 소속): 필수 시 고정, 초기화해도 값 유지 (req 1, 4)

@@ -36,6 +36,7 @@ export default function HolidayInfo() {
 
   // 단일 조직(사용자 소속): auto-select된 본사/가맹점 값을 appliedFilters에 자동 반영
   // 다중 조직(admin): 검색 버튼 클릭 시에만 반영
+  // 렌더 중 setState: 조건이 자기종결적(appliedFilters.officeId 설정 후 false)이므로 무한 렌더 없음
   if (isSingleOrg && filters.officeId != null && appliedFilters.officeId == null) {
     setAppliedFilters(filters)
   }
