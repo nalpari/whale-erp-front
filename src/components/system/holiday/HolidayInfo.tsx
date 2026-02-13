@@ -86,20 +86,20 @@ export default function HolidayInfo() {
         const searchParams = new URLSearchParams()
         searchParams.set('year', String(row.year))
 
-        if (row.headOfficeId) {
+        if (row.headOfficeId != null) {
           searchParams.set('headOfficeId', String(row.headOfficeId))
         }
-        if (row.franchiseId) {
+        if (row.franchiseId != null) {
           searchParams.set('franchiseId', String(row.franchiseId))
         }
-        if (row.storeId) {
+        if (row.storeId != null) {
           searchParams.set('storeId', String(row.storeId))
         }
 
         router.push(`/system/holiday/detail?${searchParams.toString()}`)
       })
     },
-    [router, startTransition]
+    [router]
   )
 
   const listData = response?.content ?? []

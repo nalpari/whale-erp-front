@@ -156,7 +156,7 @@ const buildOfficeOptions = (bpTree: BpHeadOfficeNode[]) =>
  * - officeId가 있으면 해당 본사 하위 가맹점만 필터하여 표시
  */
 const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | null) =>
-    officeId
+    officeId !== null
         ? bpTree
             .find((office) => office.id === officeId)
             ?.franchises.map((franchise) => ({ value: String(franchise.id), label: franchise.name })) ?? []
@@ -289,12 +289,11 @@ export default function HeadOfficeFranchiseStoreSelect({
                                     // 본사 변경 → 새 본사의 가맹점 목록에 기존 가맹점이 없으면 가맹점 초기화
                                     // 점포는 본사 변경 시 항상 초기화
                                     const nextOfficeId = option ? Number(option.value) : null
-                                    const nextFranchiseOptions = nextOfficeId
+                                    const nextFranchiseOptions = nextOfficeId !== null
                                         ? bpTree.find((office) => office.id === nextOfficeId)?.franchises ?? []
                                         : bpTree.flatMap((office) => office.franchises)
                                     const shouldClearFranchise =
                                         franchiseId !== null &&
-                                        franchiseId !== undefined &&
                                         !nextFranchiseOptions.some((franchise) => franchise.id === franchiseId)
 
                                     onChange({
