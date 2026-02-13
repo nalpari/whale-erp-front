@@ -1,7 +1,24 @@
+'use client'
+
+import { useState } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
+import NoticePop from '@/components/customer/NoticePop'
+import { useNotices, useNoticeDetail } from '@/hooks/queries/use-notice-queries'
+import { formatDateDot } from '@/util/date-util'
+
+const PAGE_SIZE = 10
 
 export default function BeforeNoticeList() {
+  const [page, setPage] = useState(0)
+  const [selectedNoticeId, setSelectedNoticeId] = useState<number | null>(null)
+
+  const { data: notices = [], isLoading } = useNotices()
+  const { data: noticeDetail } = useNoticeDetail(selectedNoticeId)
+
+  const totalPages = Math.max(1, Math.ceil(notices.length / PAGE_SIZE))
+  const pagedNotices = notices.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
   return (
     <div className="sub-wrap">
       <div className="sub-wrap-inner">
@@ -17,37 +34,45 @@ export default function BeforeNoticeList() {
         </div>
         <div className="before-notice-wrap">
           <ul className="before-notice-list">
-            <li className="before-notice-item">
-              <button className="before-notice-btn">
-                <div className="notice-tit">서버 교체 및 버전 업그레이드 작업 사전 안내</div>
-                <div className="notice-date">2026.01.20</div>
-              </button>
-            </li>
-            <li className="before-notice-item">
-              <button className="before-notice-btn">
-                <div className="notice-tit">원활한 서비스 이용을 위한 서버 교체 및 시스템 개선 작업 안내</div>
-                <div className="notice-date">2026.01.20</div>
-              </button>
-            </li>
-            <li className="before-notice-item act">
-              <button className="before-notice-btn">
-                <div className="notice-tit">시스템 성능 개선을 위한 서버 교체·버전 업그레이드 안내</div>
-                <div className="notice-date">2026.01.20</div>
-              </button>
-            </li>
-            <li className="before-notice-item">
-              <button className="before-notice-btn">
-                <div className="notice-tit">안정적인 서비스 운영을 위한 서버 교체 및 시스템 업그레이드 사전 안내</div>
-                <div className="notice-date">2026.01.20</div>
-              </button>
-            </li>
-            <li className="before-notice-item">
-              <div className="before-notice-empty">등록된 공지사항이 없습니다.</div>
-            </li>
+            {isLoading ? (
+              <li className="before-notice-item">
+                <div className="before-notice-empty">불러오는 중...</div>
+              </li>
+            ) : pagedNotices.length === 0 ? (
+              <li className="before-notice-item">
+                <div className="before-notice-empty">등록된 공지사항이 없습니다.</div>
+              </li>
+            ) : (
+              pagedNotices.map((notice) => (
+                <li
+                  key={notice.id}
+                  className={`before-notice-item ${selectedNoticeId === notice.id ? 'act' : ''}`}
+                >
+                  <button
+                    className="before-notice-btn"
+                    onClick={() => setSelectedNoticeId(notice.id)}
+                  >
+                    <div className="notice-tit">{notice.title}</div>
+                    <div className="notice-date">{formatDateDot(notice.createdAt)}</div>
+                  </button>
+                </li>
+              ))
+            )}
           </ul>
-          <Pagination />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       </div>
+
+      {noticeDetail && selectedNoticeId !== null && (
+        <NoticePop
+          notice={noticeDetail}
+          onClose={() => setSelectedNoticeId(null)}
+        />
+      )}
     </div>
   )
 }
