@@ -19,3 +19,6 @@ export * from './menu';
 
 // 프로그램 스키마
 export * from './program';
+
+// 도입문의 스키마
+export * from './introduction';

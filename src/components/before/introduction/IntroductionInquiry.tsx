@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { introductionFormSchema } from '@/lib/schemas/introduction'
+import type { IntroductionFormState } from '@/lib/schemas/introduction'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
 
 /** BPTYP 공통코드 기반 업종 목록 (인증 불필요 상수) */
 const BUSINESS_TYPE_OPTIONS = [
@@ -14,61 +15,9 @@ const BUSINESS_TYPE_OPTIONS = [
   { code: 'BPTYP_005', name: '유흥주점' },
 ] as const
 
-export interface IntroductionFormState {
-  name: string
-  businessType: string
-  phone: string
-  mainMenu: string
-  email: string
-  interestedServices: string[]
-  content: string
-  privacyAgreed: boolean
-}
-
-interface IntroductionFormErrors {
-  name?: string
-  phone?: string
-  mainMenu?: string
-  email?: string
-  interestedServices?: string
-  content?: string
-  privacyAgreed?: string
-}
-
 const SERVICE_OPTIONS = ['매장운영', '재무관리', '프랜차이즈', '기타']
 
-function validateForm(form: IntroductionFormState): IntroductionFormErrors {
-  const errors: IntroductionFormErrors = {}
-
-  if (!form.name.trim()) {
-    errors.name = '이름을 입력해 주세요.'
-  }
-  const phoneDigits = form.phone.replace(/\D/g, '')
-  if (!phoneDigits) {
-    errors.phone = '휴대전화번호를 입력해 주세요.'
-  } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-    errors.phone = '휴대전화번호는 10~11자리로 입력해 주세요.'
-  }
-  if (!form.mainMenu.trim()) {
-    errors.mainMenu = '주력메뉴를 입력해 주세요.'
-  }
-  if (!form.email.trim()) {
-    errors.email = '이메일을 입력해 주세요.'
-  } else if (!EMAIL_REGEX.test(form.email.trim())) {
-    errors.email = '올바른 이메일 형식이 아닙니다.'
-  }
-  if (form.interestedServices.length === 0) {
-    errors.interestedServices = '관심 서비스를 선택해 주세요.'
-  }
-  if (!form.content.trim()) {
-    errors.content = '문의사항을 입력해 주세요.'
-  }
-  if (!form.privacyAgreed) {
-    errors.privacyAgreed = '개인정보 수집 및 이용 동의를 동의해 주세요.'
-  }
-
-  return errors
-}
+type SingleValueField = Exclude<keyof IntroductionFormState, 'interestedServices'>
 
 export default function IntroductionInquiry({
   formState,
@@ -81,16 +30,14 @@ export default function IntroductionInquiry({
   setSuccessName: (name: string) => void
   setPersonalinformationConset: (conset: boolean) => void
 }) {
-  const [errors, setErrors] = useState<IntroductionFormErrors>({})
-
-  type SingleValueField = Exclude<keyof IntroductionFormState, 'interestedServices'>
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleChange = (field: SingleValueField, value: string | boolean) => {
     setFormState({ ...formState, [field]: value })
-    if (errors[field as keyof IntroductionFormErrors]) {
+    if (errors[field]) {
       setErrors((prev) => {
         const next = { ...prev }
-        delete next[field as keyof IntroductionFormErrors]
+        delete next[field]
         return next
       })
     }
@@ -112,10 +59,12 @@ export default function IntroductionInquiry({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const nextErrors = validateForm(formState)
-    setErrors(nextErrors)
+    const result = introductionFormSchema.safeParse(formState)
 
-    if (Object.keys(nextErrors).length > 0) return
+    if (!result.success) {
+      setErrors(formatZodFieldErrors(result.error))
+      return
+    }
 
     setSuccessName(formState.name.trim())
   }

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import IntroductionInquiry from './IntroductionInquiry'
 import IntroductionSuccess from './IntroductionSuccess'
 import PersonalinformationConset from './PersonalinformationConset'
-import type { IntroductionFormState } from './IntroductionInquiry'
+import type { IntroductionFormState } from '@/lib/schemas/introduction'
 
 const initialFormState: IntroductionFormState = {
   name: '',
