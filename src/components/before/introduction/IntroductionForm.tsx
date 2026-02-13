@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import IntroductionInquiry from './IntroductionInquiry'
 import IntroductionSuccess from './IntroductionSuccess'
@@ -22,7 +22,12 @@ export default function IntroductionForm() {
   const [personalinformationConset, setPersonalinformationConset] = useState(false)
   const [formState, setFormState] = useState<IntroductionFormState>(initialFormState)
 
+  const isInitialMount = useRef(true)
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
     window.scrollTo({ top: 0 })
   }, [successName, personalinformationConset])
 

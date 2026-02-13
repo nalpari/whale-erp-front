@@ -17,7 +17,8 @@ export default function BeforeNoticeList() {
   const { data: noticeDetail } = useNoticeDetail(selectedNoticeId)
 
   const totalPages = Math.max(1, Math.ceil(notices.length / PAGE_SIZE))
-  const pagedNotices = notices.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const safePage = Math.min(page, totalPages - 1)
+  const pagedNotices = notices.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
 
   return (
     <div className="sub-wrap">
@@ -49,6 +50,7 @@ export default function BeforeNoticeList() {
                   className={`before-notice-item ${selectedNoticeId === notice.id ? 'act' : ''}`}
                 >
                   <button
+                    type="button"
                     className="before-notice-btn"
                     onClick={() => setSelectedNoticeId(notice.id)}
                   >
@@ -60,7 +62,7 @@ export default function BeforeNoticeList() {
             )}
           </ul>
           <Pagination
-            page={page}
+            page={safePage}
             totalPages={totalPages}
             onPageChange={setPage}
           />

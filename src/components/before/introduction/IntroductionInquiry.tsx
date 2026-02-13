@@ -45,7 +45,9 @@ function validateForm(form: IntroductionFormState): IntroductionFormErrors {
   }
   const phoneDigits = form.phone.replace(/\D/g, '')
   if (!phoneDigits) {
-    errors.phone = '숫자만 입력해 주세요.'
+    errors.phone = '휴대전화번호를 입력해 주세요.'
+  } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+    errors.phone = '휴대전화번호는 10~11자리로 입력해 주세요.'
   }
   if (!form.mainMenu.trim()) {
     errors.mainMenu = '주력메뉴를 입력해 주세요.'
@@ -81,7 +83,9 @@ export default function IntroductionInquiry({
 }) {
   const [errors, setErrors] = useState<IntroductionFormErrors>({})
 
-  const handleChange = (field: keyof IntroductionFormState, value: string | boolean) => {
+  type SingleValueField = Exclude<keyof IntroductionFormState, 'interestedServices'>
+
+  const handleChange = (field: SingleValueField, value: string | boolean) => {
     setFormState({ ...formState, [field]: value })
     if (errors[field as keyof IntroductionFormErrors]) {
       setErrors((prev) => {
