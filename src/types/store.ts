@@ -105,6 +105,14 @@ export interface OperatingFormState {
   breakEndTime: string // 휴게 시간 종료 시간
 }
 
+// 구독 플랜 점포 등록 가능 여부 응답 타입
+export interface SubscribePlanCheckResponse {
+  canSave: boolean // 점포 추가 등록 가능 여부
+  storeCount: number // 현재 등록된 점포 수
+  planName: string | null // 구독 플랜명
+  organizationId: number | null // 조직 ID
+}
+
 // 필수 항목 검증 시 사용하는 필드 키
 export type FieldErrorKey =
   | 'organizationId'

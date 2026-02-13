@@ -1,30 +1,31 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
 import Location from '@/components/ui/Location'
 import { useHolidayList } from '@/hooks/queries'
-import { useHolidaySearchStore } from '@/stores/holiday-search-store'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
 
+const DEFAULT_FILTERS: HolidaySearchFilters = {
+  year: currentYear,
+  officeId: null,
+  franchiseId: null,
+  storeId: null,
+  holidayType: null,
+}
+
 export default function HolidayInfo() {
   const router = useRouter()
 
-  const filters = useHolidaySearchStore((s) => s.filters)
-  const appliedFilters = useHolidaySearchStore((s) => s.appliedFilters)
-  const page = useHolidaySearchStore((s) => s.page)
-  const pageSize = useHolidaySearchStore((s) => s.pageSize)
-  const hydrated = useHolidaySearchStore((s) => s.hydrated)
-  const setFilters = useHolidaySearchStore((s) => s.setFilters)
-  const setAppliedFilters = useHolidaySearchStore((s) => s.setAppliedFilters)
-  const setPage = useHolidaySearchStore((s) => s.setPage)
-  const setPageSize = useHolidaySearchStore((s) => s.setPageSize)
-  const resetFilters = useHolidaySearchStore((s) => s.resetFilters)
+  const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(50)
 
   const params: HolidayListParams = useMemo(
     () => ({
@@ -39,22 +40,33 @@ export default function HolidayInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  const { data: response, isPending: loading, error } = useHolidayList(params, hydrated && !!appliedFilters.year)
+  // bpTree auto-apply로 filters.officeId가 세팅되었는데
+  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
+  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
+  if (filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
+
+  const canFetchList = !!appliedFilters.year && appliedFilters.officeId != null
+  const { data: response, isPending: loading, error } = useHolidayList(params, canFetchList)
 
   const handleSearch = useCallback(() => {
     setAppliedFilters(filters)
     setPage(0)
-  }, [filters, setAppliedFilters, setPage])
+  }, [filters])
 
+  // 초기화: 검색 폼과 적용 필터 모두 초기화
   const handleReset = useCallback(() => {
-    resetFilters()
-  }, [resetFilters])
+    setFilters(DEFAULT_FILTERS)
+    setAppliedFilters(DEFAULT_FILTERS)
+    setPage(0)
+  }, [])
 
   const handleFilterChange = useCallback(
     (next: Partial<HolidaySearchFilters>) => {
-      setFilters({ ...filters, ...next })
+      setFilters((prev) => ({ ...prev, ...next }))
     },
-    [filters, setFilters]
+    []
   )
 
   const handleOpenDetail = useCallback(

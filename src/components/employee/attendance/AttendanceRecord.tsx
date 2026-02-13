@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
+import { DEFAULT_ATTENDANCE_FILTERS, type AttendanceSearchFilters } from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
 import { useAttendanceList } from '@/hooks/queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
-import { useAttendanceSearchStore } from '@/stores/attendance-search-store'
 import type { AttendanceListParams } from '@/types/attendance'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
@@ -20,81 +20,40 @@ const CONTRACT_CLASS_LABEL: Record<string, string> = {
   CNTCFWK_003: '파트타이머',
 }
 
-const PAGE_SIZE_OPTIONS = [50, 100, 200] as const
 const DEFAULT_PAGE_SIZE = 50
-
-const normalizePage = (value: string | null) => {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0
-}
-
-const normalizeSize = (value: string | null) => {
-  const parsed = Number(value)
-  return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number])
-    ? parsed
-    : DEFAULT_PAGE_SIZE
-}
 
 export default function AttendanceRecord() {
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const accessToken = useAuthStore((s) => s.accessToken)
 
-  // Zustand store에서 상태 가져오기
-  const filters = useAttendanceSearchStore((state) => state.filters)
-  const appliedFilters = useAttendanceSearchStore((state) => state.appliedFilters)
-  const page = useAttendanceSearchStore((state) => state.page)
-  const pageSize = useAttendanceSearchStore((state) => state.pageSize)
-  const hydrated = useAttendanceSearchStore((state) => state.hydrated)
-  const setFilters = useAttendanceSearchStore((state) => state.setFilters)
-  const setAppliedFilters = useAttendanceSearchStore((state) => state.setAppliedFilters)
-  const setPage = useAttendanceSearchStore((state) => state.setPage)
-  const setPageSize = useAttendanceSearchStore((state) => state.setPageSize)
-  const resetFilters = useAttendanceSearchStore((state) => state.resetFilters)
+  // 로컬 상태 (sessionStorage 저장 없음)
+  const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
+  const [appliedFilters, setAppliedFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
-  // URL 파라미터와 store 동기화 (초기 로드 시)
-  useEffect(() => {
-    if (!hydrated) return
-    const urlPage = normalizePage(searchParams.get('page'))
-    const urlSize = normalizeSize(searchParams.get('size'))
-    if (urlPage !== page) setPage(urlPage)
-    if (urlSize !== pageSize) setPageSize(urlSize)
-  }, [hydrated, searchParams, page, pageSize, setPage, setPageSize])
-
-  const syncQueryParams = (nextPage: number, nextSize: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (nextPage > 0) {
-      params.set('page', String(nextPage))
-    } else {
-      params.delete('page')
-    }
-    params.set('size', String(nextSize))
-    const query = params.toString()
-    const nextUrl = query ? `${pathname}?${query}` : pathname
-    const currentQuery = searchParams.toString()
-    const currentUrl = currentQuery ? `${pathname}?${currentQuery}` : pathname
-    if (nextUrl !== currentUrl) {
-      router.replace(nextUrl)
-    }
-    // store도 업데이트
-    setPage(nextPage)
-    setPageSize(nextSize)
+  // bpTree auto-apply로 filters.officeId가 세팅되었는데
+  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
+  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
+  if (filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
   }
 
   // 공통코드 조회: 근무여부, 계약분류
-  const { children: workStatusChildren } = useCommonCode('EMPWK', hydrated)
-  const { children: contractClassChildren } = useCommonCode('CNTCFWK', hydrated)
+  const { children: workStatusChildren } = useCommonCode('EMPWK', true)
+  const { children: contractClassChildren } = useCommonCode('CNTCFWK', true)
 
-  // 직원 분류: 본사/가맹점 기반 API 조회 (useEmployeeInfoSettings 사용)
+  // 직원 분류: 본사/가맹점 기반 API 조회
   const { data: settingsData } = useEmployeeInfoSettings(
     {
       headOfficeId: filters.officeId ?? undefined,
       franchiseId: filters.franchiseId ?? undefined,
     },
-    hydrated && !!filters.officeId
+    !!filters.officeId
   )
   const empClassList = settingsData?.codeMemoContent?.EMPLOYEE ?? []
+
+  const canFetchList = appliedFilters.officeId != null
 
   const attendanceParams: AttendanceListParams = {
     officeId: appliedFilters.officeId ?? undefined,
@@ -116,15 +75,20 @@ export default function AttendanceRecord() {
     size: pageSize,
   }
 
-  const { data: response, isPending: loading, error } = useAttendanceList(attendanceParams, hydrated && Boolean(accessToken))
+  const { data: response, isPending: loading, error } = useAttendanceList(
+    attendanceParams,
+    canFetchList && Boolean(accessToken)
+  )
 
   const handleSearch = () => {
     setAppliedFilters(filters)
-    syncQueryParams(0, pageSize)
+    setPage(0)
   }
 
   const handleReset = () => {
-    resetFilters()
+    setFilters(DEFAULT_ATTENDANCE_FILTERS)
+    setAppliedFilters(DEFAULT_ATTENDANCE_FILTERS)
+    setPage(0)
   }
 
   const listData = response?.content ?? []
@@ -158,10 +122,11 @@ export default function AttendanceRecord() {
         totalPages={totalPages}
         loading={loading}
         error={error?.message}
-        onPageChange={(nextPage) => syncQueryParams(nextPage, pageSize)}
+        onPageChange={(nextPage) => setPage(nextPage)}
         onPageSizeChange={(size) => {
           if (size === pageSize) return
-          syncQueryParams(0, size)
+          setPageSize(size)
+          setPage(0)
         }}
         onRowClick={(row) => {
           const params = new URLSearchParams()
@@ -169,8 +134,6 @@ export default function AttendanceRecord() {
           params.set('employeeId', String(row.employeeId))
           if (row.franchiseId != null) params.set('franchiseId', String(row.franchiseId))
           if (row.storeId != null) params.set('storeId', String(row.storeId))
-          params.set('page', String(page))
-          params.set('size', String(pageSize))
           router.push(`/employee/attendance/detail?${params.toString()}`)
         }}
       />

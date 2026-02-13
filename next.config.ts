@@ -5,7 +5,7 @@ const S3_HOSTNAME =
   "whale-erp-files.s3.ap-northeast-2.amazonaws.com";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'standalone',
   reactCompiler: true,
   images: {
     remotePatterns: [

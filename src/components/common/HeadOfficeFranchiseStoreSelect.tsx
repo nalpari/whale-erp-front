@@ -39,9 +39,8 @@
 'use client'
 
 import './custom-css/FormHelper.css'
-import { useMemo } from 'react'
-import { useBp } from '@/hooks/useBp'
-import { useStoreOptions } from '@/hooks/queries'
+import { useEffect, useMemo, useRef } from 'react'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
@@ -98,7 +97,37 @@ export default function HeadOfficeFranchiseStoreSelect({
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
-    const { data: bpTree, loading: bpLoading } = useBp(isReady)
+    const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
+
+    // onChange를 ref로 감싸서 useEffect 의존성에서 제외 (불필요한 effect 재실행 방지)
+    const onChangeRef = useRef(onChange)
+    useEffect(() => {
+        onChangeRef.current = onChange
+    }, [onChange])
+
+    // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
+    // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
+    //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
+    //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false
+    //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true
+    const isOfficeFixed = bpTree.length === 1
+    const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
+
+    // bpTree 본사/가맹점이 1개면 자동 선택
+    // officeId가 null일 때마다 실행되므로 초기화 버튼 후에도 고정값이 복원된다.
+    useEffect(() => {
+        if (bpLoading || bpTree.length !== 1 || officeId !== null) return
+
+        const office = bpTree[0]
+        const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
+
+        onChangeRef.current({
+            head_office: office.id,
+            franchise: autoFranchiseId,
+            store: null,
+        })
+    }, [bpLoading, bpTree, officeId])
+
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
     const franchiseOptions = useMemo(() => buildFranchiseOptions(bpTree, officeId), [bpTree, officeId])
@@ -124,7 +153,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null}
                                 options={officeOptions}
                                 placeholder="전체"
-                                isDisabled={isDisabled || bpLoading}
+                                isDisabled={isDisabled || bpLoading || isOfficeFixed}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {
@@ -160,7 +189,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 value={franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null}
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={isDisabled || bpLoading || officeId === null}
+                                isDisabled={isDisabled || bpLoading || isFranchiseFixed || officeId === null}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {

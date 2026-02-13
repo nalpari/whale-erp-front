@@ -10,8 +10,7 @@ import {
   useUpdateEmployeeWithFiles
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
-import { useStoreOptions } from '@/hooks/queries'
-import { useBp } from '@/hooks/useBp'
+import { useStoreOptions, useBpHeadOfficeTree } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { getDownloadUrl } from '@/lib/api/file'
 import { Input, AddressSearch, type AddressData, useAlert } from '@/components/common/ui'
@@ -354,7 +353,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   // BP 트리 기반 동적 옵션
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   const headOfficeSelectOptions: SelectOption[] = useMemo(() =>
     bpTree.map((office) => ({ value: String(office.id), label: office.name })),

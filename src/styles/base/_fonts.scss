@@ -1,6 +1,7 @@
 @font-face {
   font-family: 'Gmarket Sans';
-  src: url('/assets/fonts/GmarketSansTTFMedium.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/GmarketSansTTFMedium.woff2') format('woff2'),
     url('/assets/fonts/GmarketSansTTFMedium.woff') format('woff');
   font-weight: 500;
   font-style: normal;
@@ -9,7 +10,8 @@
 
 @font-face {
   font-family: 'Gmarket Sans';
-  src: url('/assets/fonts/GmarketSansTTFLight.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/GmarketSansTTFLight.woff2') format('woff2'),
     url('/assets/fonts/GmarketSansTTFLight.woff') format('woff');
   font-weight: 300;
   font-style: normal;
@@ -18,7 +20,8 @@
 
 @font-face {
   font-family: 'Gmarket Sans';
-  src: url('/assets/fonts/GmarketSansTTFBold.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/GmarketSansTTFBold.woff2') format('woff2'),
     url('/assets/fonts/GmarketSansTTFBold.woff') format('woff');
   font-weight: bold;
   font-style: normal;
@@ -28,7 +31,8 @@
 // pretendard
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-ExtraLight.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-ExtraLight.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-ExtraLight.woff') format('woff');
   font-weight: 200;
   font-style: normal;
@@ -37,7 +41,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-Light.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-Light.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-Light.woff') format('woff');
   font-weight: 300;
   font-style: normal;
@@ -46,7 +51,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-Regular.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-Regular.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
@@ -55,7 +61,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-Medium.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-Medium.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-Medium.woff') format('woff');
   font-weight: 500;
   font-style: normal;
@@ -64,7 +71,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-SemiBold.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-SemiBold.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-SemiBold.woff') format('woff');
   font-weight: 600;
   font-style: normal;
@@ -73,7 +81,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-Bold.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-Bold.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-Bold.woff') format('woff');
   font-weight: 700;
   font-style: normal;
@@ -82,7 +91,8 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-ExtraBold.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-ExtraBold.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-ExtraBold.woff') format('woff');
   font-weight: 800;
   font-style: normal;
@@ -91,9 +101,191 @@
 
 @font-face {
   font-family: 'Pretendard';
-  src: url('/assets/fonts/Pretendard-Black.woff2') format('woff2'),
+  src:
+    url('/assets/fonts/Pretendard-Black.woff2') format('woff2'),
     url('/assets/fonts/Pretendard-Black.woff') format('woff');
   font-weight: 900;
   font-style: normal;
+  font-display: swap;
+}
+
+// Inter Tight
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Thin.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Thin.woff') format('woff');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-ThinItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-ThinItalic.woff') format('woff');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-ExtraLight.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-ExtraLight.woff') format('woff');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-ExtraLightItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-ExtraLightItalic.woff') format('woff');
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Light.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-LightItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-LightItalic.woff') format('woff');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Regular.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Italic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Medium.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-MediumItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-MediumItalic.woff') format('woff');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-SemiBold.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-SemiBoldItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-SemiBoldItalic.woff') format('woff');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Bold.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-BoldItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-ExtraBold.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-ExtraBold.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-ExtraBoldItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-ExtraBoldItalic.woff') format('woff');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-Black.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-Black.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Tight';
+  src:
+    url('/assets/fonts/InterTight-BlackItalic.woff2') format('woff2'),
+    url('/assets/fonts/InterTight-BlackItalic.woff') format('woff');
+  font-weight: 900;
+  font-style: italic;
   font-display: swap;
 }

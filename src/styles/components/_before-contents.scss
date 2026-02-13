@@ -1,0 +1,316 @@
+@use '../abstracts' as *;
+
+.sub-wrap {
+  padding-top: 110px;
+}
+.sub-wrap-inner {
+  padding: 120px 0 0;
+}
+.sub-wrap-header {
+  text-align: center;
+  margin-bottom: 80px;
+  .sub-header-icon {
+    margin-bottom: 42px;
+  }
+  .sub-header-s-tit {
+    @include fontDefinition($font-ds-26, $font-w-700, $line-h-120);
+    color: #1c1c2c;
+    margin-bottom: 18px;
+  }
+  .sub-header-b-tit {
+    @include fontDefinition(52px, $font-w-300, $line-h-120);
+    color: #1c1c2c;
+    span {
+      display: block;
+      &.bold {
+        font-weight: $font-w-700;
+      }
+    }
+  }
+  .sub-header-desc {
+    @include fontDefinition($font-ds-18, $font-w-400, $line-h-150);
+    color: #1c1c2c;
+    margin-top: 15px;
+  }
+}
+.before {
+  input {
+    display: block;
+    width: 100%;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    background-color: #fff;
+    height: 60px;
+    padding: 0 16px;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #344054;
+    transition: all 0.15s ease-in-out;
+    &::placeholder {
+      color: #999;
+    }
+    &:focus {
+      border-color: #948ea5;
+    }
+  }
+  select {
+    display: block;
+    width: 100%;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    background-color: #fff;
+    height: 60px;
+    padding: 0 16px;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #344054;
+    transition: all 0.15s ease-in-out;
+    background-image: url('/assets/images/before_main/before_select_arr.svg');
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 24px 24px;
+    outline: none;
+    &::placeholder {
+      color: #999;
+    }
+    &:focus {
+      border-color: #948ea5;
+    }
+  }
+  textarea {
+    display: block;
+    width: 100%;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    background-color: #fff;
+    padding: 20px 16px;
+    height: 140px;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #344054;
+    transition: all 0.15s ease-in-out;
+    resize: none;
+    outline: none;
+    &::placeholder {
+      color: #999;
+    }
+    &:focus {
+      border-color: #948ea5;
+    }
+  }
+  .check-form-box {
+    label {
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-130);
+      color: #222;
+      span {
+        color: #2563eb;
+        margin-right: 5px;
+      }
+    }
+  }
+}
+/********************** introduction-form **********************/
+.introduction-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.introduction-form {
+  padding: 48px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  .introduction-line-wrap {
+    @include flex(32px);
+    margin-bottom: 24px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+.introduction-item {
+  flex: 1;
+  .introduction-item-tit {
+    @include fontDefinition($font-ds-16, $font-w-600, $line-h-140);
+    color: #344054;
+    margin-bottom: 6px;
+    b {
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+      color: #344054;
+    }
+  }
+  .error-message {
+    @include fontDefinition($font-ds-15, $font-w-400, $line-h-140);
+    color: #f00;
+    margin-top: 10px;
+  }
+}
+.introduction-select {
+  @include flex(8px);
+  align-items: center;
+  margin-top: 10px;
+  .introduction-select-btn {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    text-align: center;
+    padding: 0 16px;
+    background-color: #f2f2f2;
+    height: 54px;
+    @include fontDefinition($font-ds-16, $font-w-600, 54px);
+    color: #a0a0a4;
+    transition: all 0.15s ease-in-out;
+    &.checked,
+    &:hover {
+      background-color: #505058;
+      color: #fff;
+    }
+  }
+}
+.introduction-check {
+  @include flex(10px);
+  align-items: center;
+  .introduction-check-btn {
+    margin-left: auto;
+    @include fontDefinition($font-ds-16, $font-w-600, $line-h-150);
+    color: #2563eb;
+    text-decoration: underline;
+  }
+}
+
+.introduction-btn-wrap {
+  @include flex(8px);
+  align-items: center;
+  justify-content: center;
+  margin-top: 24px;
+}
+.introduction-btn {
+  border-radius: 6px;
+  background: linear-gradient(270deg, #2563eb 0%, #018fdc 100%);
+  box-shadow: 0 7px 18px 0 rgba(34, 103, 234, 0.2);
+  min-width: 103px;
+  padding: 0 24px;
+  height: 60px;
+  @include fontDefinition($font-ds-18, $font-w-700, 60px);
+  color: #fff;
+}
+
+/********************** introduction-success **********************/
+.introduction-success-wrap {
+  width: 100%;
+  background-color: #f9f9f9;
+  padding: 80px 0;
+  border-top: 1px solid #eee;
+}
+.introduction-success-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  .introduction-name {
+    @include fontDefinition($font-ds-24, $font-w-700, $line-h-150);
+    color: #2563eb;
+  }
+  .introduction-txt {
+    @include fontDefinition($font-ds-18, $font-w-400, $line-h-150);
+    color: #222;
+  }
+}
+
+/********************** before-notice-list **********************/
+.before-notice-wrap {
+  max-width: 1580px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.before-notice-list {
+  border-top: 1px solid #222;
+  .before-notice-btn {
+    @include flex(0px);
+    align-items: center;
+    width: 100%;
+    padding: 25.5px 8px;
+    background-color: #fff;
+    border-bottom: 1px solid #ebebeb;
+    .notice-tit {
+      @include fontDefinition($font-ds-18, $font-w-400, $line-h-140);
+      color: #222;
+    }
+    .notice-date {
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+      color: #505050;
+      margin-left: auto;
+    }
+  }
+  .before-notice-item {
+    &:hover,
+    &.act {
+      .before-notice-btn {
+        background-color: #f9fbfe;
+        .notice-tit {
+          color: #2563eb;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+  .before-notice-empty {
+    padding: 45px 0;
+    text-align: center;
+    @include fontDefinition($font-ds-18, $font-w-400, $line-h-150);
+    color: #666;
+    border-bottom: 1px solid #ebebeb;
+  }
+}
+
+/********************** personalinformation-wrap **********************/
+.personalinformation-wrap {
+  padding-top: 80px;
+}
+.personalinformation-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.personalinformation-tit {
+  @include fontDefinition(32px, $font-w-700, $line-h-150);
+  color: #344054;
+  text-align: center;
+  margin-bottom: 52px;
+}
+.personalinformation-content {
+  @include flex(24px);
+  flex-direction: column;
+}
+.personalinformation-content-item {
+  .personalinformation-content-item-top {
+    @include fontDefinition($font-ds-18, $font-w-400, $line-h-150);
+    color: #222;
+    span {
+      display: block;
+    }
+  }
+  .personalinformation-content-item-tit {
+    @include fontDefinition($font-ds-18, $font-w-700, $line-h-150);
+    color: #344054;
+    margin-bottom: 6px;
+  }
+  .personalinformation-content-item-desc {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #505050;
+    span {
+      display: block;
+      b {
+        font-weight: $font-w-600;
+      }
+    }
+  }
+  .personalinformation-content-item-list {
+    margin-top: 15px;
+    .personalinformation-content-item-list-item {
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+      color: #888888;
+    }
+  }
+}
+.personalinformation-btn-wrap {
+  @include flex(8px);
+  align-items: center;
+  justify-content: center;
+  margin-top: 40px;
+}

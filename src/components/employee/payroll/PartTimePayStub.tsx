@@ -24,7 +24,7 @@ import type {
   PartTimerDeductionItemRequest,
 } from '@/lib/api/partTimerPayrollStatement'
 import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
-import { useBp } from '@/hooks/useBp'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -86,7 +86,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree } = useBp(isReady)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // 점포 옵션 조회
   const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null
@@ -229,9 +229,11 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleSendEmail = async () => {
     if (!existingStatement?.id) return
 
+    if (!(await confirm('급여명세서를 이메일로 전송하시겠습니까?'))) return
+
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
-      await alert('이메일 전송이 요청되었습니다.')
+      await alert('이메일 전송이 완료되었습니다.')
     } catch (error) {
       console.error('이메일 전송 실패:', error)
       await alert('이메일 전송 중 오류가 발생했습니다.')

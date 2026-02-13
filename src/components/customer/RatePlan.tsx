@@ -1,6 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
+import { usePlansList } from '@/hooks/queries/use-plans-queries'
+
+/** planTypeCode(공통코드) → 프론트 요금제 ID 매핑 */
+const PLAN_TYPE_CODE_MAP: Record<string, string> = {
+  PLNTYP_001: 'free',
+  PLNTYP_002: 'standard',
+  PLNTYP_003: 'enterprise',
+  PLNTYP_004: 'franchise',
+}
 
 /** 퍼블(https://pub.whaleerp.co.kr/rate-plan) 기준 요금제 카드 데이터 */
 export interface RatePlanItem {
@@ -84,7 +94,17 @@ const RATE_PLANS: RatePlanItem[] = [
 ]
 
 export default function RatePlan() {
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>('standard')
+  const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
+  const { data: plansData } = usePlansList({ size: 100 })
+
+  const subscribedPlanId = useMemo(() => {
+    if (subscriptionPlan === 0 || !plansData?.content) return null
+    const matched = plansData.content.find((p) => p.planId === subscriptionPlan)
+    return matched ? PLAN_TYPE_CODE_MAP[matched.planTypeCode] ?? null : null
+  }, [subscriptionPlan, plansData?.content])
+
+  const [userSelectedPlanId, setUserSelectedPlanId] = useState<string | null>(null)
+  const selectedPlanId = userSelectedPlanId ?? subscribedPlanId
 
   return (
     <div className="content-wrap">
@@ -95,11 +115,11 @@ export default function RatePlan() {
             role="button"
             tabIndex={0}
             className={`rate-plan-item${selectedPlanId === plan.id ? ' use' : ''}`}
-            onClick={() => setSelectedPlanId(plan.id)}
+            onClick={() => setUserSelectedPlanId(plan.id)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                setSelectedPlanId(plan.id)
+                setUserSelectedPlanId(plan.id)
               }
             }}
           >
@@ -111,49 +131,29 @@ export default function RatePlan() {
             <div className="rate-plan-cost">
               <div className="plan-cost-wrap">
                 <span className="plan-cost">
-                  {plan.priceLabel.replace(/원\/월/g, '').trim()}
+                  {plan.priceLabel.replace(/\/월/g, '').trim()}
                 </span>
-                <span className="plan-cost plan-cost-unit">원</span>
-                <span className="plan-cost-suffix">/월</span>
+                <span>/월</span>
               </div>
               <div className="plan-btn-wrap">
-                <button
-                  type="button"
-                  className="service-btn"
-                  onClick={(e) => e.preventDefault()}
-                  aria-disabled="true"
-                  style={{ width: '100%', height: 48, borderRadius: 6 }}
-                >
-                  구독 하기
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden
+                {subscribedPlanId === plan.id ? (
+                  <div className="service-btn block use-plan">이용중</div>
+                ) : (
+                  <button
+                    type="button"
+                    className="service-btn block"
+                    onClick={(e) => e.preventDefault()}
+                    aria-disabled="true"
                   >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="none"
-                    />
-                    <path
-                      d="M12 7v10M7 12h10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
+                    구독 하기
+                    <i className="icon-subscribe" />
+                  </button>
+                )}
               </div>
             </div>
-            <div className="plan-list">
+            <div className="plan-list-wrap">
               {plan.subtitle && (
-                <>
+                <div className="plan-list">
                   <div className="plan-list-tit">{plan.subtitle}</div>
                   <ul className="plan-item-list">
                     {plan.basicFeatures.map((feature, idx) => (
@@ -162,10 +162,10 @@ export default function RatePlan() {
                       </li>
                     ))}
                   </ul>
-                </>
+                </div>
               )}
               {plan.additionalFeatures.length > 0 && (
-                <>
+                <div className="plan-list">
                   <div className="plan-list-tit">추가 기능</div>
                   <ul className="plan-item-list additional">
                     {plan.additionalFeatures.map((feature, idx) => (
@@ -174,7 +174,7 @@ export default function RatePlan() {
                       </li>
                     ))}
                   </ul>
-                </>
+                </div>
               )}
             </div>
           </div>

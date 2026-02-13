@@ -1,6 +1,6 @@
-'use client'
-
 import { ReactNode } from 'react'
+import BeforeHeader from '@/components/ui/common/BeforeHeader'
+import BeforeFooter from '@/components/ui/common/BeforeFooter'
 
 interface PublicLayoutProps {
   children: ReactNode
@@ -9,14 +9,10 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-
-
-      {/* Page Content */}
-      <main className="flex-1">
-        {children}
-      </main>
-
+    <div className="main-wrap">
+      <BeforeHeader />
+      <div className="container">{children}</div>
+      <BeforeFooter />
     </div>
   )
 }
