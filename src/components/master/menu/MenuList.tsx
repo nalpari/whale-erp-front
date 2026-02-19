@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { formatDateYmd } from '@/util/date-util'
-import type { MenuResponse } from '@/types/menu'
+import type { MenuResponse } from '@/lib/schemas/menu'
 
 interface MenuListProps {
   rows: MenuResponse[]

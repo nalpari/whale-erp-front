@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import api from '@/lib/api'
 import { masterMenuKeys, type MasterMenuListParams } from './query-keys'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
-import type { MenuResponse } from '@/types/menu'
+import type { MenuResponse } from '@/lib/schemas/menu'
 
 export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) => {
   return useQuery({

@@ -99,3 +99,11 @@ export const menuResponseSchema = z.object({
  * 메뉴 목록 페이징 응답 스키마
  */
 export const menuListResponseSchema = apiResponseSchema(pageResponseSchema(menuResponseSchema));
+
+/**
+ * 타입 추출
+ */
+export type MenuResponse = z.infer<typeof menuResponseSchema>;
+export type MenuCategoryResponse = z.infer<typeof menuCategoryResponseSchema>;
+export type MenuOptionSetResponse = z.infer<typeof menuOptionSetResponseSchema>;
+export type MenuImageFile = z.infer<typeof menuImageFileSchema>;
