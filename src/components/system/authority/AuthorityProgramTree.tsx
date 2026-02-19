@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
-import { Tooltip } from 'react-tooltip'
-import { useAuthorityList, useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
-import type { AuthorityDetailNode, AuthorityFilterType, AuthorityListItem } from '@/lib/schemas/authority'
+import { useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
+import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
 
 /**
  * 권한별 프로그램 트리 컴포넌트
@@ -28,7 +27,7 @@ interface AuthorityProgramTreeProps {
 export default function AuthorityProgramTree({
   programTree,
   onChange,
-  currentOwnerCode,
+  currentOwnerCode: _currentOwnerCode,
   authorityId,
 }: AuthorityProgramTreeProps) {
   const [openItems, setOpenItems] = useState<Set<number>>(new Set())
@@ -64,21 +63,11 @@ export default function AuthorityProgramTree({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when programTree changes
   }, [programTree])
 
-  // 권한 복사 관련 상태
-  const [copyAuthorityId, setCopyAuthorityId] = useState<number | null>(null)
+  // 권한 복사 관련 상태 (TODO: 2차 개발 시 활성화)
+  const [copyAuthorityId] = useState<number | null>(null)
 
-  // owner_code에서 owner_group 추출 (PRGRP_001_001 → PRGRP_001, PRGRP_002_001 → PRGRP_002)
-  const ownerGroup = currentOwnerCode?.split('_').slice(0, 2).join('_')
-
-  // 권한 목록 조회 (복사용 - 현재 owner_code와 동일한 권한만)
-  const { data: authorityListData } = useAuthorityList({
-    owner_group: ownerGroup || '',
-    page: 1,
-    size: 100,
-  })
-
-  // 선택된 권한 상세 조회 (복사용)
-  const { data: selectedAuthority } = useAuthorityDetail(copyAuthorityId || 0)
+  // 선택된 권한 상세 조회 (복사용 - TODO: 2차 개발 시 활성화)
+  const { data: _selectedAuthority } = useAuthorityDetail(copyAuthorityId || 0)
 
   // 전체 닫기
   const handleAllClose = () => {
@@ -263,15 +252,6 @@ export default function AuthorityProgramTree({
         })
       }
     }
-  }
-
-  // 권한 복사 적용
-  const handleApplyCopy = () => {
-    if (!selectedAuthority?.details) return
-
-    onChange(selectedAuthority.details)
-    setOpenItems(new Set(collectAllProgramIds(selectedAuthority.details)))
-    setActiveFilter(null)
   }
 
   // 트리 노드 렌더링
