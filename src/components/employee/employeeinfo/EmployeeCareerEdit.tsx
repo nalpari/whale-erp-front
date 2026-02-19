@@ -334,8 +334,13 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             startDate={career.startDate ? new Date(career.startDate) : null}
                             endDate={career.endDate ? new Date(career.endDate) : null}
                             onChange={(range: DateRange) => {
-                              handleCareerChange(index, 'startDate', range.startDate ? range.startDate.toISOString().split('T')[0] : null)
-                              handleCareerChange(index, 'endDate', range.endDate ? range.endDate.toISOString().split('T')[0] : null)
+                              updateCareers(prev => prev.map((c, i) =>
+                                i === index ? {
+                                  ...c,
+                                  startDate: range.startDate ? range.startDate.toISOString().split('T')[0] : '',
+                                  endDate: range.endDate ? range.endDate.toISOString().split('T')[0] : null
+                                } : c
+                              ))
                             }}
                             startDatePlaceholder="시작일"
                             endDatePlaceholder="종료일"
