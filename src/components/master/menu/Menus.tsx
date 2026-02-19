@@ -97,6 +97,7 @@ export default function Menus() {
         pageSize={pageSize}
         totalPages={response?.totalPages ?? 0}
         loading={loading}
+        bpId={filters.headOfficeOrganizationId ?? null}
         onPageChange={setPage}
         onPageSizeChange={handlePageSizeChange}
         onCheckedChange={handleCheckedChange}

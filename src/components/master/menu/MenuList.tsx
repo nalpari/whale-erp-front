@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
+import AddStoreMenuPop from '@/components/master/menu/AddStoreMenuPop'
 import { formatDateYmd } from '@/util/date-util'
 import type { MenuResponse } from '@/lib/schemas/menu'
 
@@ -13,6 +14,7 @@ interface MenuListProps {
   pageSize: number
   totalPages: number
   loading: boolean
+  bpId: number | null
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onCheckedChange: (hasChecked: boolean) => void
@@ -177,12 +179,14 @@ export default function MenuList({
   pageSize,
   totalPages,
   loading,
+  bpId,
   onPageChange,
   onPageSizeChange,
   onCheckedChange,
   onOperationStatusChange,
 }: MenuListProps) {
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
+  const [isAddStorePopOpen, setIsAddStorePopOpen] = useState(false)
   const onCheckedChangeRef = useRef(onCheckedChange)
   useEffect(() => {
     onCheckedChangeRef.current = onCheckedChange
@@ -227,7 +231,7 @@ export default function MenuList({
         <div className="data-header-left">
           <button type="button" className="btn-form basic" disabled={!hasChecked} onClick={() => handleOperationStatus('STOPR_001')}>운영</button>
           <button type="button" className="btn-form basic" disabled={!hasChecked} onClick={() => handleOperationStatus('STOPR_002')}>미운영</button>
-          <button type="button" className="btn-form basic" disabled={!hasChecked}>점포메뉴 추가</button>
+          <button type="button" className="btn-form basic" disabled={!hasChecked || !bpId} onClick={() => setIsAddStorePopOpen(true)}>점포메뉴 추가</button>
         </div>
         <div className="data-header-right">
           <button type="button" className="btn-form basic">등록</button>
@@ -270,6 +274,14 @@ export default function MenuList({
           </>
         )}
       </div>
+      {bpId && (
+        <AddStoreMenuPop
+          isOpen={isAddStorePopOpen}
+          onClose={() => setIsAddStorePopOpen(false)}
+          bpId={bpId}
+          checkedMenuIds={Array.from(checkedIds)}
+        />
+      )}
     </div>
   )
 }
