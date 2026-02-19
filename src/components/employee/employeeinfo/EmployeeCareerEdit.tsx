@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
+import { formatDateYmd } from '@/util/date-util'
 import { Input, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
@@ -337,8 +338,8 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                               updateCareers(prev => prev.map((c, i) =>
                                 i === index ? {
                                   ...c,
-                                  startDate: range.startDate ? range.startDate.toISOString().split('T')[0] : '',
-                                  endDate: range.endDate ? range.endDate.toISOString().split('T')[0] : null
+                                  startDate: formatDateYmd(range.startDate, ''),
+                                  endDate: range.endDate ? formatDateYmd(range.endDate) : null
                                 } : c
                               ))
                             }}
