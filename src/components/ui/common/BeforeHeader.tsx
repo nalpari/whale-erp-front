@@ -72,7 +72,7 @@ export default function BeforeHeader() {
         <div className="before-sub-menu">
           <ul className="before-sub-menu-list">
             <li className="before-sub-menu-item">
-              <Link className="login" href="/main">
+              <Link className="login" href="/login">
                 <i className="icon-login"></i>LOGIN
               </Link>
             </li>

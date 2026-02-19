@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,8 @@ function setAuthCookie() {
   document.cookie = 'auth-token=true; path=/'
 }
 
+const emptySubscribe = () => () => {};
+
 export default function LoginPage() {
   const router = useRouter();
   const setTokens = useAuthStore((state) => state.setTokens);
@@ -31,20 +33,22 @@ export default function LoginPage() {
   const loginMutation = useLoginMutation();
   const authoritySelectMutation = useAuthoritySelectMutation();
 
-  const [loginId, setLoginId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(SAVED_LOGIN_ID_KEY) || "";
-    }
-    return "";
-  });
+  // localStorage에서 저장된 로그인 ID를 SSR-safe하게 읽기
+  const savedLoginId = useSyncExternalStore(
+    emptySubscribe,
+    () => localStorage.getItem(SAVED_LOGIN_ID_KEY),
+    () => null
+  );
+
+  const [loginIdInput, setLoginIdInput] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !!localStorage.getItem(SAVED_LOGIN_ID_KEY);
-    }
-    return false;
-  });
+  const [rememberMeInput, setRememberMeInput] = useState<boolean | null>(null);
+
+  const loginId = loginIdInput ?? savedLoginId ?? "";
+  const rememberMe = rememberMeInput ?? (savedLoginId !== null);
+  const setLoginId = (value: string) => setLoginIdInput(value);
+  const setRememberMe = (value: boolean) => setRememberMeInput(value);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 모달 관련 상태
