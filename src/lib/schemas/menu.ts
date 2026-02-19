@@ -49,7 +49,9 @@ export const menuImageFileSchema = z.object({
  */
 export const menuCategoryResponseSchema = z.object({
   id: z.number(),
-  categoryName: z.string(),
+  menuId: z.number(),
+  name: z.string(),
+  isActive: z.boolean(),
 });
 
 /**
