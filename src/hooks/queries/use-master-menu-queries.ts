@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { masterMenuKeys, type MasterMenuListParams } from './query-keys'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
@@ -16,5 +16,27 @@ export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) 
     },
     enabled: enabled && !!params.bpId,
     placeholderData: keepPreviousData,
+  })
+}
+
+interface UpdateMenuOperationStatusRequest {
+  bpId: number
+  menuIds: number[]
+  operationStatus: string
+}
+
+export const useUpdateMenuOperationStatus = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: UpdateMenuOperationStatusRequest) => {
+      const response = await api.patch<ApiResponse<void>>(
+        '/api/master/menu/store/operation-status',
+        data
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+    },
   })
 }

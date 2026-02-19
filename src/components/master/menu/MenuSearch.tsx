@@ -26,6 +26,8 @@ interface MenuSearchProps {
   onSearch: (params: MenuSearchFormData) => void
   onReset: () => void
   totalCount: number
+  searchOpen: boolean
+  onSearchOpenChange: (open: boolean) => void
 }
 
 const operationStatusOptions = [
@@ -53,9 +55,8 @@ const INITIAL_FORM_DATA = {
   registeredDateTo: '',
 }
 
-export default function MenuSearch({ onSearch, onReset, totalCount }: MenuSearchProps) {
+export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, onSearchOpenChange }: MenuSearchProps) {
   const { alert } = useAlert()
-  const [searchOpen, setSearchOpen] = useState(true)
   const [formData, setFormData] = useState({ ...INITIAL_FORM_DATA })
 
   // 카테고리 API 조회 (본사 선택 시)
@@ -134,14 +135,14 @@ export default function MenuSearch({ onSearch, onReset, totalCount }: MenuSearch
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>{totalCount.toLocaleString()}건</span>
         </div>
         <ul className="search-result-list">
           <li></li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button className="search-filed-btn" onClick={() => onSearchOpenChange(!searchOpen)}></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -272,7 +273,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount }: MenuSearch
             </tbody>
           </table>
           <div className="btn-filed">
-            <button className="btn-form gray" onClick={() => setSearchOpen(false)}>닫기</button>
+            <button className="btn-form gray" onClick={() => onSearchOpenChange(false)}>닫기</button>
             <button className="btn-form gray" onClick={handleReset}>초기화</button>
             <button className="btn-form basic" onClick={handleSearch}>검색</button>
           </div>
