@@ -30,7 +30,7 @@ export const useUpdateMenuOperationStatus = () => {
   return useMutation({
     mutationFn: async (data: UpdateMenuOperationStatusRequest) => {
       const response = await api.patch<ApiResponse<void>>(
-        '/api/master/menu/store/operation-status',
+        '/api/master/menu/master/operation-status',
         data
       )
       return response.data
