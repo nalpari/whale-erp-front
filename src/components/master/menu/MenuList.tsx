@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
@@ -80,7 +80,7 @@ function MenuCard({ menu, checked, onCheck }: { menu: MenuResponse; checked: boo
                 id={`menu-check-${menu.id}`}
                 className="check-input"
                 checked={checked}
-                onChange={(e) => onCheck(menu.id!, e.target.checked)}
+                onChange={(e) => onCheck(menu.id, e.target.checked)}
               />
               <label htmlFor={`menu-check-${menu.id}`}></label>
             </div>
@@ -183,18 +183,25 @@ export default function MenuList({
   onOperationStatusChange,
 }: MenuListProps) {
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
+  const onCheckedChangeRef = useRef(onCheckedChange)
+  useEffect(() => {
+    onCheckedChangeRef.current = onCheckedChange
+  })
+
+  // 페이지 변경 시 체크 초기화 (렌더 중 상태 리셋 패턴)
+  const resetKey = `${page}-${pageSize}`
+  const [prevResetKey, setPrevResetKey] = useState(resetKey)
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey)
+    setCheckedIds(new Set())
+  }
 
   const hasChecked = checkedIds.size > 0
 
-  // 페이지 변경 시 체크 초기화
-  useEffect(() => {
-    setCheckedIds(new Set())
-  }, [page, pageSize])
-
   // 체크 상태 변경을 부모에 알림
   useEffect(() => {
-    onCheckedChange(checkedIds.size > 0)
-  }, [checkedIds, onCheckedChange])
+    onCheckedChangeRef.current(checkedIds.size > 0)
+  }, [checkedIds])
 
   const handleOperationStatus = async (operationStatus: string) => {
     const menuIds = Array.from(checkedIds)
@@ -254,7 +261,7 @@ export default function MenuList({
                 <MenuCard
                   key={menu.id}
                   menu={menu}
-                  checked={checkedIds.has(menu.id!)}
+                  checked={checkedIds.has(menu.id)}
                   onCheck={handleCheck}
                 />
               ))}

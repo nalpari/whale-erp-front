@@ -1,5 +1,5 @@
 export interface MenuResponse {
-  id: number | null
+  id: number
   marketingTags: string[] | null
   temperatureTags: string[] | null
   operationStatus: string
@@ -25,7 +25,7 @@ export interface MenuResponse {
   updatedBy: number | null
   createdAt: string | null
   updatedAt: string | null
-  menuImgFile: UploadFileResponse | null
+  menuImgFile: MenuImageFile | null
   masterMenuName: string | null
   masterMenuCode: string | null
 }
@@ -40,7 +40,7 @@ export interface MenuOptionSetResponse {
   optionSetName: string
 }
 
-export interface UploadFileResponse {
+export interface MenuImageFile {
   id: number
   fileName: string
   fileUrl: string
@@ -63,18 +63,4 @@ export interface CategoryResponse {
   createdAt: string | null
   updatedAt: string | null
   children: CategoryResponse[] | null
-}
-
-export interface MasterMenuListParams {
-  bpId?: number | null
-  menuName?: string
-  operationStatus?: string
-  menuType?: string
-  menuClassificationCode?: string
-  categoryId?: string
-  storeId?: string
-  createdAtFrom?: string
-  createdAtTo?: string
-  page?: number
-  size?: number
 }
