@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,10 @@ import "./login.css";
 
 const SAVED_LOGIN_ID_KEY = "savedLoginId";
 
+function setAuthCookie() {
+  document.cookie = 'auth-token=true; path=/'
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const setTokens = useAuthStore((state) => state.setTokens);
@@ -27,10 +31,20 @@ export default function LoginPage() {
   const loginMutation = useLoginMutation();
   const authoritySelectMutation = useAuthoritySelectMutation();
 
-  const [loginId, setLoginId] = useState("");
+  const [loginId, setLoginId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(SAVED_LOGIN_ID_KEY) || "";
+    }
+    return "";
+  });
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem(SAVED_LOGIN_ID_KEY);
+    }
+    return false;
+  });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 모달 관련 상태
@@ -46,15 +60,6 @@ export default function LoginPage() {
 
   // ID/Password 찾기 팝업 상태
   const [showFindIdPw, setShowFindIdPw] = useState(false);
-
-  // 저장된 아이디 복원
-  useEffect(() => {
-    const savedId = localStorage.getItem(SAVED_LOGIN_ID_KEY);
-    if (savedId) {
-      setLoginId(savedId);
-      setRememberMe(true);
-    }
-  }, []);
 
   const handleClearLoginId = () => {
     setLoginId("");
@@ -97,7 +102,7 @@ export default function LoginPage() {
           localStorage.removeItem(SAVED_LOGIN_ID_KEY);
         }
 
-        document.cookie = 'auth-token=true; path=/'
+        setAuthCookie()
         router.push("/logined-main");
       } else if (companies && companies.length > 0) {
         setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
@@ -148,7 +153,7 @@ export default function LoginPage() {
         localStorage.removeItem(SAVED_LOGIN_ID_KEY);
       }
 
-      document.cookie = 'auth-token=true; path=/'
+      setAuthCookie()
 
       setShowAuthorityModal(false);
       setPendingTokens(null);

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -8,18 +8,11 @@ export default function BeforeHeader() {
   const pathname = usePathname()
   const [isScrollDown, setIsScrollDown] = useState(false)
   const [hasScrolled, setHasScrolled] = useState(false)
-  const [subMenu, setSubMenu] = useState(false)
+
+  const subMenu = useMemo(() => pathname !== '/main', [pathname])
 
   useEffect(() => {
-    // main 페이지일 때는 subMenu false, 아니면 true
-    if (pathname !== '/main') {
-      setSubMenu(true)
-      setIsScrollDown(false)
-      setHasScrolled(false)
-      return
-    } else {
-      setSubMenu(false)
-    }
+    if (subMenu) return
 
     // 스크롤 위치 체크 (act 클래스용)
     const handleScroll = () => {
@@ -51,8 +44,10 @@ export default function BeforeHeader() {
     return () => {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('wheel', handleWheel)
+      setIsScrollDown(false)
+      setHasScrolled(false)
     }
-  }, [pathname])
+  }, [subMenu])
 
   return (
     <div className={`before-header ${subMenu ? 'sub' : ''} ${hasScrolled ? 'act' : ''} ${isScrollDown ? 'off' : ''}`}>
