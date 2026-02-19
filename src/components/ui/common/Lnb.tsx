@@ -41,7 +41,7 @@ export default function Lnb({
     <div className={`lnb ${isOpen ? 'sm' : ''}`}>
       <button className="lnb-toggle-btn" onClick={() => setIsOpen(!isOpen)}></button>
       <div className="lnb-header">
-        <Link href="/list" className="lnb-logo">
+        <Link href="/logined-main" className="lnb-logo">
           <Image src="/assets/images/ui/lnb_logo.svg" alt="logo" width={54} height={54} priority />
           <div className="lnb-logo-text">
             <span className="logo-main">whale ERP</span>

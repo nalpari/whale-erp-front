@@ -5,14 +5,14 @@
   margin-bottom: 34px;
   &.act {
     border-bottom: 1px solid #ebebeb;
-    .searh-result-wrap {
+    .search-result-wrap {
       .search-filed-btn {
         transform: rotate(180deg);
       }
     }
   }
 }
-.searh-result-wrap {
+.search-result-wrap {
   @include flex(0px);
   align-items: center;
   padding: 13px 16px;

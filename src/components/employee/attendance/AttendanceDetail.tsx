@@ -8,6 +8,7 @@ import Location from '@/components/ui/Location'
 import { useAttendanceRecords } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import type { AttendanceRecordItem, AttendanceRecordParams } from '@/types/attendance'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록', '상세']
@@ -220,7 +221,7 @@ export default function AttendanceDetail() {
               </div>
             )}
             {loading ? (
-              <div></div>
+              <div className="cube-loader-overlay"><CubeLoader /></div>
             ) : groupedRecords.length === 0 ? (
               <div className="empty-wrap">
                 <div className="empty-data">출퇴근 기록이 없습니다.</div>

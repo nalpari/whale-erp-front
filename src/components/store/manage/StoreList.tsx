@@ -5,6 +5,7 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import { StoreListItem } from '@/types/store'
 import { formatDateYmd } from '@/util/date-util'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 // 점포 목록 테이블 컴포넌트 props
 interface StoreListProps {
@@ -110,7 +111,7 @@ export default function StoreList({
       <div className="data-list-bx">
         {error && <div className="warning-txt">{error}</div>}
         {loading ? (
-          <div></div>
+          <div className="cube-loader-overlay"><CubeLoader /></div>
         ) : rows.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">검색 결과가 없습니다.</div>
