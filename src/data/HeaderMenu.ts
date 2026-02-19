@@ -29,12 +29,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 11,
         name: '메뉴 정보 관리',
-        link: '/',
+        link: '#',
         children: [
           {
             id: 35,
             name: '마스터용 메뉴 Master',
-            link: '/',
+            link: '/master/menu',
           },
           {
             id: 36,

@@ -234,6 +234,34 @@ export const authorityKeys = {
   detail: (id: number) => [...authorityKeys.details(), id] as const,
 }
 
+export interface MasterMenuListParams {
+  bpId?: number | null
+  menuName?: string
+  operationStatus?: string
+  menuType?: string
+  menuClassificationCode?: string
+  categoryId?: string
+  storeId?: string
+  createdAtFrom?: string
+  createdAtTo?: string
+  page?: number
+  size?: number
+}
+
+export const masterCategoryKeys = {
+  all: ['master-categories'] as const,
+  lists: () => [...masterCategoryKeys.all, 'list'] as const,
+  list: (bpId: number) => [...masterCategoryKeys.lists(), bpId] as const,
+}
+
+export const masterMenuKeys = {
+  all: ['master-menus'] as const,
+  lists: () => [...masterMenuKeys.all, 'list'] as const,
+  list: (params: MasterMenuListParams) => [...masterMenuKeys.lists(), params] as const,
+  details: () => [...masterMenuKeys.all, 'detail'] as const,
+  detail: (id: number) => [...masterMenuKeys.details(), id] as const,
+}
+
 export interface PlansListParams {
   planType?: string | null
   updater?: string | null
