@@ -278,6 +278,7 @@ export default function MenuList({
         <AddStoreMenuPop
           isOpen={isAddStorePopOpen}
           onClose={() => setIsAddStorePopOpen(false)}
+          onSyncSuccess={() => setCheckedIds(new Set())}
           bpId={bpId}
           checkedMenuIds={Array.from(checkedIds)}
         />

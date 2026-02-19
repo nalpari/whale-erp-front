@@ -10,11 +10,12 @@ import type { StoreOption } from '@/types/store'
 interface AddStoreMenuPopProps {
   isOpen: boolean
   onClose: () => void
+  onSyncSuccess?: () => void
   bpId: number
   checkedMenuIds: number[]
 }
 
-export default function AddStoreMenuPop({ isOpen, onClose, bpId, checkedMenuIds }: AddStoreMenuPopProps) {
+export default function AddStoreMenuPop({ isOpen, onClose, onSyncSuccess, bpId, checkedMenuIds }: AddStoreMenuPopProps) {
   const [syncOption, setSyncOption] = useState<'selected' | 'all'>('selected')
   const [operationStatus, setOperationStatus] = useState<'STOPR_001' | 'STOPR_002'>('STOPR_002')
   const [selectedStoreId, setSelectedStoreId] = useState<string>('')
@@ -31,7 +32,7 @@ export default function AddStoreMenuPop({ isOpen, onClose, bpId, checkedMenuIds 
     (s) => !addedStores.some((added) => added.id === s.id)
   )
 
-  const hasStores = isAllStores || addedStores.length > 0
+  const hasStores = isAllStores ? storeOptions.length > 0 : addedStores.length > 0
 
   const handleAddStore = () => {
     if (!selectedStoreId) return
@@ -70,6 +71,7 @@ export default function AddStoreMenuPop({ isOpen, onClose, bpId, checkedMenuIds 
         operationStatus,
       })
       await alert('동기화가 완료되었습니다.')
+      onSyncSuccess?.()
       handleClose()
     } catch (error) {
       await alert(getErrorMessage(error, '동기화에 실패했습니다.'))
