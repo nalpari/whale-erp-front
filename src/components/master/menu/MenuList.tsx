@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
+import AddStoreMenuPop from '@/components/master/menu/AddStoreMenuPop'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import { formatDateYmd } from '@/util/date-util'
 import type { MenuResponse } from '@/lib/schemas/menu'
 
@@ -13,6 +15,7 @@ interface MenuListProps {
   pageSize: number
   totalPages: number
   loading: boolean
+  bpId: number | null
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onCheckedChange: (hasChecked: boolean) => void
@@ -26,22 +29,32 @@ function formatPrice(value: number | null) {
   return `${value.toLocaleString('ko-KR')}원`
 }
 
-function MenuCard({ menu, checked, onCheck }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void }) {
+interface CodeMaps {
+  marketingCodeMap: Map<string, string>
+  temperatureCodeMap: Map<string, string>
+  menuTypeCodeMap: Map<string, string>
+  setStatusCodeMap: Map<string, string>
+  menuClassCodeMap: Map<string, string>
+}
+
+function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; codeMaps: CodeMaps }) {
   const imgSrc = menu.menuImgFile?.fileUrl ?? PLACEHOLDER_IMG
   const hasDiscount = menu.discountPrice != null && menu.discountPrice > 0
-  const categories = menu.categories?.map((c) => c.categoryName).join(', ') || '-'
-
+  const categories = menu.categories?.map((c) => c.name).join(' | ') || '-'
   return (
     <div className="thumb-item">
       <div className="thumb-item-img">
         {/* 마케팅 배지 */}
         {menu.marketingTags && menu.marketingTags.length > 0 && (
           <div className="thumb-badge-wrap">
-            {menu.marketingTags.map((tag) => (
-              <span key={tag} className={`thumb-badge ${tag.toLowerCase()}`}>
-                {tag}
-              </span>
-            ))}
+            {menu.marketingTags.map((tag) => {
+              const name = codeMaps.marketingCodeMap.get(tag) ?? tag
+              return (
+                <span key={tag} className={`thumb-badge ${name.toLowerCase()}`}>
+                  {name}
+                </span>
+              )
+            })}
           </div>
         )}
 
@@ -56,9 +69,12 @@ function MenuCard({ menu, checked, onCheck }: { menu: MenuResponse; checked: boo
         {/* 온도 배지 */}
         {menu.temperatureTags && menu.temperatureTags.length > 0 && (
           <div className="temp-badge-wrap">
-            {menu.temperatureTags.map((tag) => (
-              <span key={tag} className={`temp-badge ${tag.toLowerCase()}`} />
-            ))}
+            {menu.temperatureTags.map((tag) => {
+              const name = codeMaps.temperatureCodeMap.get(tag) ?? tag
+              return (
+                <span key={tag} className={`temp-badge ${name.toLowerCase()}`} />
+              )
+            })}
           </div>
         )}
       </div>
@@ -105,21 +121,17 @@ function MenuCard({ menu, checked, onCheck }: { menu: MenuResponse; checked: boo
                 </td>
               </tr>
               <tr>
-                <th>mapping</th>
+                <th>분류</th>
                 <td>
                   <ul className="thum-data-list">
                     <li className="thum-data-item">
-                      <span className="thum-data-text">{menu.masterMenuName ?? '-'}</span>
-                    </li>
-                  </ul>
-                </td>
-              </tr>
-              <tr>
-                <th>노출 순서</th>
-                <td>
-                  <ul className="thum-data-list">
-                    <li className="thum-data-item">
-                      <span className="thum-data-text">{menu.displayOrder ?? '-'}</span>
+                      <span className="thum-data-text">
+                        {[
+                          codeMaps.menuTypeCodeMap.get(menu.menuType),
+                          codeMaps.setStatusCodeMap.get(menu.setStatus),
+                          menu.menuClassificationCode ? codeMaps.menuClassCodeMap.get(menu.menuClassificationCode) : null,
+                        ].filter(Boolean).join(' | ') || '-'}
+                      </span>
                     </li>
                   </ul>
                 </td>
@@ -177,12 +189,24 @@ export default function MenuList({
   pageSize,
   totalPages,
   loading,
+  bpId,
   onPageChange,
   onPageSizeChange,
   onCheckedChange,
   onOperationStatusChange,
 }: MenuListProps) {
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
+  const [isAddStorePopOpen, setIsAddStorePopOpen] = useState(false)
+  const { data: marketingCodes = [] } = useCommonCodeHierarchy('MKCF')
+  const { data: temperatureCodes = [] } = useCommonCodeHierarchy('TMPCF')
+  const { data: menuTypeCodes = [] } = useCommonCodeHierarchy('MNTYP')
+  const { data: setStatusCodes = [] } = useCommonCodeHierarchy('STST')
+  const { data: menuClassCodes = [] } = useCommonCodeHierarchy('MNCF')
+  const marketingCodeMap = new Map(marketingCodes.map((c) => [c.code, c.name]))
+  const temperatureCodeMap = new Map(temperatureCodes.map((c) => [c.code, c.name]))
+  const menuTypeCodeMap = new Map(menuTypeCodes.map((c) => [c.code, c.name]))
+  const setStatusCodeMap = new Map(setStatusCodes.map((c) => [c.code, c.name]))
+  const menuClassCodeMap = new Map(menuClassCodes.map((c) => [c.code, c.name]))
   const onCheckedChangeRef = useRef(onCheckedChange)
   useEffect(() => {
     onCheckedChangeRef.current = onCheckedChange
@@ -227,7 +251,7 @@ export default function MenuList({
         <div className="data-header-left">
           <button type="button" className="btn-form basic" disabled={!hasChecked} onClick={() => handleOperationStatus('STOPR_001')}>운영</button>
           <button type="button" className="btn-form basic" disabled={!hasChecked} onClick={() => handleOperationStatus('STOPR_002')}>미운영</button>
-          <button type="button" className="btn-form basic" disabled={!hasChecked}>점포메뉴 추가</button>
+          <button type="button" className="btn-form basic" disabled={!hasChecked || !bpId} onClick={() => setIsAddStorePopOpen(true)}>점포메뉴 추가</button>
         </div>
         <div className="data-header-right">
           <button type="button" className="btn-form basic">등록</button>
@@ -263,6 +287,7 @@ export default function MenuList({
                   menu={menu}
                   checked={checkedIds.has(menu.id)}
                   onCheck={handleCheck}
+                  codeMaps={{ marketingCodeMap, temperatureCodeMap, menuTypeCodeMap, setStatusCodeMap, menuClassCodeMap }}
                 />
               ))}
             </div>
@@ -270,6 +295,15 @@ export default function MenuList({
           </>
         )}
       </div>
+      {bpId && (
+        <AddStoreMenuPop
+          isOpen={isAddStorePopOpen}
+          onClose={() => setIsAddStorePopOpen(false)}
+          onSyncSuccess={() => setCheckedIds(new Set())}
+          bpId={bpId}
+          checkedMenuIds={Array.from(checkedIds)}
+        />
+      )}
     </div>
   )
 }
