@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import type { WorkerResponse, ScheduleResponse } from '@/types/work-schedule';
 import WorkHoursTimePicker from '@/components/store/manage/WorkHoursTimePicker';
 import { formatDateDot } from '@/util/date-util';
+import CubeLoader from '@/components/common/ui/CubeLoader';
 
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
@@ -84,9 +85,7 @@ export default function WorkScheduleTable({
             </button>
           </div>
           {isLoading ? (
-            <div className="empty-wrap">
-              <div className="empty-data">데이터를 불러오는 중입니다.</div>
-            </div>
+            <div className="cube-loader-overlay"><CubeLoader /></div>
           ) : sortedSchedules.length === 0 ? (
             <div className="empty-wrap">
               <div className="empty-data">조회된 근무 계획표가 없습니다.</div>

@@ -6,6 +6,7 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { AttendanceListItem } from '@/types/attendance'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 const WORK_DAY_LABEL: Record<string, string> = {
   '평일 전체': '평일',
@@ -98,7 +99,7 @@ export default function AttendanceList({
       <div className="data-list-bx">
         {error && <div className="warning-txt">{error}</div>}
         {loading ? (
-          <div></div>
+          <div className="cube-loader-overlay"><CubeLoader /></div>
         ) : rows.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">검색 결과가 없습니다.</div>

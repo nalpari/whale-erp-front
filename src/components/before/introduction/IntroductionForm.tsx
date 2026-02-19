@@ -1,17 +1,35 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import IntroductionInquiry from './IntroductionInquiry'
 import IntroductionSuccess from './IntroductionSuccess'
 import PersonalinformationConset from './PersonalinformationConset'
+import type { IntroductionFormState } from '@/lib/schemas/introduction'
+
+const initialFormState: IntroductionFormState = {
+  name: '',
+  businessType: '',
+  phone: '',
+  mainMenu: '',
+  email: '',
+  interestedServices: [],
+  content: '',
+  privacyAgreed: false,
+}
 
 export default function IntroductionForm() {
-  const [introductionSuccess, setIntroductionSuccess] = useState(false)
+  const [successName, setSuccessName] = useState<string | null>(null)
   const [personalinformationConset, setPersonalinformationConset] = useState(false)
+  const [formState, setFormState] = useState<IntroductionFormState>(initialFormState)
 
+  const isInitialMount = useRef(true)
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
     window.scrollTo({ top: 0 })
-  }, [introductionSuccess, personalinformationConset])
+  }, [successName, personalinformationConset])
 
   return (
     <div className="sub-wrap">
@@ -28,11 +46,13 @@ export default function IntroductionForm() {
             </div>
             <div className="sub-header-desc">문의사항을 남겨 주시면 가장 적합한 방법을 안내 드리겠습니다.</div>
           </div>
-          {introductionSuccess ? (
-            <IntroductionSuccess />
+          {successName ? (
+            <IntroductionSuccess name={successName} />
           ) : (
             <IntroductionInquiry
-              setIntroductionSuccess={setIntroductionSuccess}
+              formState={formState}
+              setFormState={setFormState}
+              setSuccessName={setSuccessName}
               setPersonalinformationConset={setPersonalinformationConset}
             />
           )}
