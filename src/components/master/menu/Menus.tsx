@@ -6,6 +6,8 @@ import MenuSearch from '@/components/master/menu/MenuSearch'
 import MenuList from '@/components/master/menu/MenuList'
 import type { MenuSearchFormData } from '@/components/master/menu/MenuSearch'
 import { useMasterMenuList, useUpdateMenuOperationStatus, type MasterMenuListParams } from '@/hooks/queries'
+import { useAlert } from '@/components/common/ui'
+import { getErrorMessage } from '@/lib/api'
 
 const BREADCRUMBS = ['홈', 'Master data 관리', '메뉴 정보 관리', '마스터용 메뉴 Master']
 
@@ -62,14 +64,22 @@ export default function Menus() {
     }
   }, [])
 
-  const handleOperationStatusChange = useCallback(async (menuIds: number[], operationStatus: string) => {
+  const { alert, confirm } = useAlert()
+
+  const handleOperationStatusChange = async (menuIds: number[], operationStatus: string) => {
     if (!filters.headOfficeOrganizationId) return
-    await updateOperationStatus({
-      bpId: filters.headOfficeOrganizationId,
-      menuIds,
-      operationStatus,
-    })
-  }, [filters.headOfficeOrganizationId, updateOperationStatus])
+    const confirmed = await confirm('적용하시겠습니까?')
+    if (!confirmed) return
+    try {
+      await updateOperationStatus({
+        bpId: filters.headOfficeOrganizationId,
+        menuIds,
+        operationStatus,
+      })
+    } catch (error) {
+      await alert(getErrorMessage(error, '운영 상태 변경에 실패했습니다.'))
+    }
+  }
 
   return (
     <div className="data-wrap">
