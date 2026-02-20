@@ -37,6 +37,8 @@ export const bpKeys = {
 export const commonCodeKeys = {
   all: ['common-codes'] as const,
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
+  tree: (codeGroup: string, maxDepth: number, headOffice?: string, franchise?: string) =>
+    [...commonCodeKeys.all, 'tree', codeGroup, maxDepth, headOffice, franchise] as const,
 }
 
 export const programKeys = {

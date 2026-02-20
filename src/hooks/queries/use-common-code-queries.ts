@@ -7,7 +7,7 @@ import { getBonusTypes, type BonusTypeInfo } from '@/lib/api/commonCode'
  * 공통코드 노드 타입.
  * - 계층 구조(children)를 포함한다.
  */
-interface CommonCodeNode {
+export interface CommonCodeNode {
   id: number
   code: string
   name: string
@@ -94,6 +94,39 @@ export const useCommonCodeCache = () => {
     getChildren,
     getHierarchyChildren,
   }
+}
+
+/**
+ * 공통코드 트리 조회 응답 타입.
+ */
+interface CommonCodeTreeResponse {
+  success: boolean
+  data: CommonCodeNode[]
+  message?: string | null
+  timestamp?: string
+}
+
+/**
+ * 공통코드 트리 조회 훅.
+ * - codeGroup과 maxDepth를 파라미터로 트리 구조를 가져온다.
+ */
+export const useCommonCodeTree = (
+  codeGroup: string,
+  maxDepth = 3,
+  headOffice?: string,
+  franchise?: string
+) => {
+  return useQuery({
+    queryKey: commonCodeKeys.tree(codeGroup, maxDepth, headOffice, franchise),
+    queryFn: async () => {
+      const response = await api.get<CommonCodeTreeResponse>(
+        '/api/v1/common-codes/tree',
+        { params: { codeGroup, maxDepth, headOffice, franchise } }
+      )
+      return response.data.data
+    },
+    staleTime: 5 * 60 * 1000,
+  })
 }
 
 /**
