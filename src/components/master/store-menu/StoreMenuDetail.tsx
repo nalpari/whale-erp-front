@@ -67,12 +67,20 @@ export default function StoreMenuDetail() {
   }
 
   const [menuInfoOpen, setMenuInfoOpen] = useState(true)
+  const [optionInfoOpen, setOptionInfoOpen] = useState(true)
+  const [categoryInfoOpen, setCategoryInfoOpen] = useState(true)
 
   // 공통코드 조회
   const { children: statusChildren } = useCommonCode('STOPR', true)
   const { children: menuTypeChildren } = useCommonCode('MNTYP', true)
   const { children: marketingChildren } = useCommonCode('MKCF', true)
   const { children: temperatureChildren } = useCommonCode('TMPCF', true)
+
+  // 공통코드 매핑 (코드 → 이름)
+  const statusCodeMap = useMemo(
+    () => statusChildren.reduce<Record<string, string>>((acc, c) => { acc[c.code] = c.name; return acc }, {}),
+    [statusChildren],
+  )
 
   // 공통코드 → RadioButtonGroup/CheckboxButtonGroup 옵션 변환
   const statusOptions = useMemo(
@@ -423,10 +431,24 @@ export default function StoreMenuDetail() {
                     </tr>
                   </tbody>
                 </table>
-              {/* 옵션 정보 */}
-              {detail.optionSets.length > 0 && (
+            </div>
+          </AnimateHeight>
+        </div>
+
+        {/* 옵션 정보 섹션 */}
+        {detail.optionSets.length > 0 && (
+        <div className={`slidebox-wrap ${optionInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+          <div className="slidebox-header">
+            <h2>옵션 정보</h2>
+            <div className="slidebox-btn-wrap">
+              <button className="slidebox-btn arr" onClick={() => setOptionInfoOpen(!optionInfoOpen)}>
+                <i className="arr-icon"></i>
+              </button>
+            </div>
+          </div>
+          <AnimateHeight duration={300} height={optionInfoOpen ? 'auto' : 0}>
+            <div className="slidebox-body">
               <div className="slide-table-wrap">
-                <h3>옵션 정보</h3>
                 {detail.optionSets.map((optionSet: StoreMenuOptionSet, setIdx: number) => (
                     <table key={optionSet.id} className="master-option-table">
                       <colgroup>
@@ -524,8 +546,8 @@ export default function StoreMenuDetail() {
                                             <input type="text" className="input-frame" readOnly defaultValue={item.optionSetItemName} />
                                           </div>
                                           <span className="explain">{item.optionSetItemCode}</span>
-                                          <div className={`store-badge ${(optionItemActiveMap[item.id] ?? item.isActive) ? 'blue' : 'org'}`}>
-                                            {(optionItemActiveMap[item.id] ?? item.isActive) ? '운영' : '미운영'}
+                                          <div className={`store-badge ${item.operationStatus === 'STOPR_001' ? 'blue' : 'org'}`}>
+                                            {statusCodeMap[item.operationStatus] ?? item.operationStatus}
                                           </div>
                                         </div>
                                       </td>
@@ -590,10 +612,24 @@ export default function StoreMenuDetail() {
                     </table>
                   ))}
               </div>
-              )}
-              {/* 카테고리 정보 */}
+            </div>
+          </AnimateHeight>
+        </div>
+        )}
+
+        {/* 카테고리 정보 섹션 */}
+        <div className={`slidebox-wrap ${categoryInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+          <div className="slidebox-header">
+            <h2>카테고리 정보</h2>
+            <div className="slidebox-btn-wrap">
+              <button className="slidebox-btn arr" onClick={() => setCategoryInfoOpen(!categoryInfoOpen)}>
+                <i className="arr-icon"></i>
+              </button>
+            </div>
+          </div>
+          <AnimateHeight duration={300} height={categoryInfoOpen ? 'auto' : 0}>
+            <div className="slidebox-body">
               <div className="slide-table-wrap">
-                <h3>카테고리 정보</h3>
                 <table className="default-table white">
                   <colgroup>
                     <col width="190px" />
