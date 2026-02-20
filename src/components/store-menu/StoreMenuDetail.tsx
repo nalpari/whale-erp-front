@@ -7,14 +7,14 @@ import { Input, useAlert } from '@/components/common/ui'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import CheckboxButtonGroup from '@/components/store-menu/CheckboxButtonGroup'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import SearchSelect from '@/components/ui/common/SearchSelect'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
 import type { StoreMenuOptionSet } from '@/types/store-menu'
 import AnimateHeight from 'react-animate-height'
 
-const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
+const BREADCRUMBS = ['Home', 'Master data 관리', '점포용 메뉴 관리']
 
 function formatPrice(price: number) {
   return price.toLocaleString('ko-KR')
@@ -36,6 +36,7 @@ export default function StoreMenuDetail() {
   const { mutateAsync: deleteMenu } = useDeleteStoreMenu()
   const { alert, confirm } = useAlert()
 
+  const [bpInfoOpen, setBpInfoOpen] = useState(true)
   const [menuInfoOpen, setMenuInfoOpen] = useState(true)
   const [optionInfoOpen, setOptionInfoOpen] = useState(true)
   const [categoryInfoOpen, setCategoryInfoOpen] = useState(true)
@@ -135,42 +136,84 @@ export default function StoreMenuDetail() {
 
   return (
     <div className="data-wrap">
-      <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
+      <Location title="점포용 메뉴 관리" list={BREADCRUMBS} />
       <div className="detail-wrap">
         {/* 헤더 버튼 영역 */}
-        <div className="detail-header">
-          <div className="detail-actions" style={{ justifyContent: 'flex-end', gap: '8px', marginBottom: '12px' }}>
-            <button className="btn-form basic" type="button" onClick={handleGoList}>
-              목록
-            </button>
-            <button className="btn-form gray" type="button" onClick={handleDelete}>
-              저장
-            </button>
-          </div>
+        <div className="detail-header" style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginBottom: '12px' }}>
+          <button className="btn-form basic" type="button" onClick={handleGoList}>
+            목록
+          </button>
+          <button className="btn-form gray" type="button" onClick={handleDelete}>
+            저장
+          </button>
         </div>
 
         {/* 본사/가맹점 + 점포 선택 테이블 (readOnly) */}
-        <div className="detail-data-wrap" style={{ marginBottom: '24px' }}>
-          <table className="detail-data-table">
-            <colgroup>
-              <col width="200px" />
-              <col />
-              <col width="200px" />
-              <col />
-            </colgroup>
-            <tbody>
-              <tr>
-                <HeadOfficeFranchiseStoreSelect
-                  fields={['office', 'store']}
-                  isDisabled={true}
-                  officeId={detail.bpId}
-                  franchiseId={null}
-                  storeId={null}
-                  onChange={() => {}}
-                />
-              </tr>
-            </tbody>
-          </table>
+        <div className={`slidebox-wrap ${bpInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+          <div className="slidebox-header">
+            <h2>Business Partner 정보</h2>
+            <div className="slidebox-btn-wrap">
+              <button className="slidebox-btn arr" onClick={() => setBpInfoOpen(!bpInfoOpen)}>
+                <i className="arr-icon"></i>
+              </button>
+            </div>
+          </div>
+          <AnimateHeight duration={300} height={bpInfoOpen ? 'auto' : 0}>
+            <div className="slidebox-body">
+              <div className="detail-data-wrap">
+                <table className="detail-data-table">
+                  <colgroup>
+                    <col width="200px" />
+                    <col />
+                  </colgroup>
+                  <tbody>
+                    <tr>
+                      <th>본사/가맹점 선택 <span className="red">*</span></th>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ width: 'calc(33.333% - 4px)' }}>
+                            <SearchSelect
+                              value={detail.bpId ? { value: String(detail.bpId), label: detail.companyName } : null}
+                              options={detail.bpId ? [{ value: String(detail.bpId), label: detail.companyName }] : []}
+                              placeholder="본사"
+                              isDisabled={true}
+                              isSearchable={false}
+                              isClearable={false}
+                            />
+                          </div>
+                          <div style={{ width: 'calc(33.333% - 4px)' }}>
+                            <SearchSelect
+                              value={null}
+                              options={[]}
+                              placeholder="가맹점"
+                              isDisabled={true}
+                              isSearchable={false}
+                              isClearable={false}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>점포 선택</th>
+                      <td>
+                        <div style={{ width: 'calc(33.333% - 4px)' }}>
+                          <SearchSelect
+                            value={null}
+                            options={[]}
+                            placeholder="점포"
+                            isDisabled={true}
+                            isSearchable={false}
+                            isClearable={false}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </AnimateHeight>
         </div>
 
         {/* 메뉴 정보 섹션 */}
