@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
 import { useMemo, useState } from 'react'
@@ -39,11 +39,18 @@ export default function StoreSearch({
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  
+
   const statusRadioOptions = useMemo(
     () => [{ value: 'ALL', label: '전체' }, ...statusOptions],
     [statusOptions]
   )
+
+  const handleMultiOffice = (isMulti: boolean) => {
+    if (isMulti) {
+      setSearchOpen(true)
+      setShowOfficeError(true)
+    }
+  }
 
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
@@ -96,6 +103,7 @@ export default function StoreSearch({
                       storeId: next.store,
                     })
                   }}
+                  onMultiOffice={handleMultiOffice}
                 />
               </tr>
               <tr>

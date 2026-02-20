@@ -17,6 +17,9 @@ interface StoreMenuThumbnailListProps {
   statusMap: Record<string, string>
   marketingMap: Record<string, string>
   menuPropertyMap: Record<string, string>
+  menuTypeMap: Record<string, string>
+  setStatusMap: Record<string, string>
+  menuClassMap: Record<string, string>
   selectedIds: Set<number>
   onSelectChange: (id: number, checked: boolean) => void
   onPageChange: (page: number) => void
@@ -69,6 +72,9 @@ export default function StoreMenuThumbnailList({
   statusMap,
   marketingMap,
   menuPropertyMap,
+  menuTypeMap,
+  setStatusMap,
+  menuClassMap,
   selectedIds,
   onSelectChange,
   onPageChange,
@@ -154,7 +160,7 @@ export default function StoreMenuThumbnailList({
                 {/* 썸네일 이미지 */}
                 <div className="thumb-item-img">
                   {/* 마케팅 뱃지 (NEW, BEST, EVENT) */}
-                  {menu.marketingTags.length > 0 && (
+                  {menu.marketingTags?.length > 0 && (
                     <div className="thumb-badge-wrap">
                       {menu.marketingTags.map((code) => {
                         const name = marketingMap[code] ?? code
@@ -192,7 +198,7 @@ export default function StoreMenuThumbnailList({
                   )}
 
                   {/* 온도 뱃지 (HOT, COLD) */}
-                  {menu.temperatureTags.length > 0 && (
+                  {menu.temperatureTags?.length > 0 && (
                     <div className="temp-badge-wrap">
                       {menu.temperatureTags.map((tag) => (
                         <span
@@ -245,7 +251,9 @@ export default function StoreMenuThumbnailList({
                           <td>
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
-                                <span className="thum-data-text">{menu.companyName}</span>
+                                <span className="thum-data-text">
+                                  {menu.franchiseName ? `${menu.companyName} | ${menu.franchiseName}` : menu.companyName}
+                                </span>
                               </li>
                             </ul>
                           </td>
@@ -255,7 +263,7 @@ export default function StoreMenuThumbnailList({
                           <td>
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
-                                <span className="thum-data-text">{getMappingLabel(menu.menuProperty, menuPropertyMap)}</span>
+                                <span className="thum-data-text">{menu.menuProperty ? getMappingLabel(menu.menuProperty, menuPropertyMap) : '-'}</span>
                               </li>
                             </ul>
                           </td>
@@ -278,7 +286,19 @@ export default function StoreMenuThumbnailList({
                             </ul>
                           </td>
                         </tr>
-                        {menu.categories.length > 0 && (
+                        <tr>
+                          <th>분류</th>
+                          <td>
+                            <ul className="thum-data-list">
+                              <li className="thum-data-item">
+                                <span className="thum-data-text">
+                                  {menuTypeMap[menu.menuType] ?? menu.menuType} | {setStatusMap[menu.setStatus] ?? menu.setStatus} | {menuClassMap[menu.menuClassificationCode] ?? menu.menuClassificationCode}
+                                </span>
+                              </li>
+                            </ul>
+                          </td>
+                        </tr>
+                        {menu.categories?.length > 0 && (
                           <tr>
                             <th>카테고리</th>
                             <td>

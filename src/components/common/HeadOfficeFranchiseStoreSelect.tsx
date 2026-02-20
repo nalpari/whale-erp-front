@@ -144,6 +144,8 @@ type HeadOfficeFranchiseStoreSelectProps = {
     fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
     isDisabled?: boolean // 전체 비활성화 여부
+    /** bpTree 로드 후 다중 본사 여부를 알려주는 콜백 */
+    onMultiOffice?: (isMulti: boolean) => void
 }
 
 /** bpTree의 본사 목록을 SearchSelect 옵션 형태로 변환 */
@@ -176,6 +178,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     fields,
     onChange,
     isDisabled = false,
+    onMultiOffice,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
@@ -196,20 +199,17 @@ export default function HeadOfficeFranchiseStoreSelect({
     const isOfficeFixed = bpTree.length === 1
     const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
 
-    // 다중 본사일 때 초기 자동 선택 완료 여부 추적.
-    // true가 되면 officeId가 null로 초기화되어도 첫 번째 본사를 재자동선택하지 않음.
-    // bpTree가 새로 로드되면 리셋하여 최초 자동 선택이 다시 동작할 수 있게 함.
-    // bpTreeKey: 배열 참조가 아닌 실제 id 목록 기반으로 비교하여 백그라운드 리페치 시 불필요한 리셋 방지
-    const multiAutoSelectedRef = useRef(false)
-    const bpTreeKey = useMemo(() => bpTree.map((o) => o.id).join(','), [bpTree])
+    // 다중 본사 여부를 상위 컴포넌트에 알림
+    const onMultiOfficeRef = useRef(onMultiOffice)
+    useEffect(() => { onMultiOfficeRef.current = onMultiOffice }, [onMultiOffice])
     useEffect(() => {
-        multiAutoSelectedRef.current = false
-    }, [bpTreeKey])
+        if (bpLoading || bpTree.length === 0) return
+        onMultiOfficeRef.current?.(bpTree.length > 1)
+    }, [bpLoading, bpTree])
 
     // 본사/가맹점 자동 선택 및 고정 로직
-    // - 단일 본사(사용자 소속): 필수 시 고정, 초기화해도 값 유지 (req 1, 4)
-    // - 다중 본사: 필수 시 첫 번째 값 자동 선택, 초기화 시 전체 리셋 (req 3, 5)
-    // - 필수가 아닌 필드는 null 유지 (req 2)
+    // - 단일 본사(사용자 소속): 항상 고정, 초기화해도 값 유지
+    // - 다중 본사: 자동 선택 없음 (사용자가 직접 선택)
     useEffect(() => {
         if (bpLoading || bpTree.length === 0) return
 
@@ -230,28 +230,8 @@ export default function HeadOfficeFranchiseStoreSelect({
                     store: null,
                 })
             }
-        } else {
-            // 다중 본사: 최초 로드 시에만 첫 번째 값 자동 선택
-            // - multiAutoSelectedRef.current === true → 이미 자동 선택 완료 (초기화 후 재선택 방지)
-            // - !isHeadOfficeRequired → 필수가 아니면 자동 선택하지 않음
-            // - officeId !== null → 이미 값이 있으면 자동 선택 불필요
-            if (multiAutoSelectedRef.current || !isHeadOfficeRequired || officeId !== null) return
-
-            const office = bpTree[0]
-            // isFranchiseRequired가 true이고 가맹점이 1개일 때만 가맹점도 자동 선택
-            const autoFranchiseId =
-                isFranchiseRequired && office.franchises.length === 1
-                    ? office.franchises[0].id
-                    : null
-
-            onChangeRef.current({
-                head_office: office.id,
-                franchise: autoFranchiseId,
-                store: null,
-            })
-            multiAutoSelectedRef.current = true
         }
-    }, [bpLoading, bpTree, officeId, franchiseId, isHeadOfficeRequired, isFranchiseRequired])
+    }, [bpLoading, bpTree, officeId, franchiseId])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

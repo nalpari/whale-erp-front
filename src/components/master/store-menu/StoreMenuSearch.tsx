@@ -8,6 +8,7 @@ import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranch
 import { RadioButtonGroup } from '@/components/common/ui'
 import Input from '@/components/common/ui/Input'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useCategoryList } from '@/hooks/queries/use-category-queries'
 import type { Category } from '@/types/category'
 
 export interface StoreMenuSearchFilters {
@@ -22,32 +23,15 @@ export interface StoreMenuSearchFilters {
   to: Date | null
 }
 
-export interface SearchTag {
-  key: keyof StoreMenuSearchFilters
-  label: string
-  removable?: boolean
-}
-
 interface StoreMenuSearchProps {
   filters: StoreMenuSearchFilters
   operationStatusOptions: { value: string; label: string }[]
   menuTypeOptions: { value: string; label: string }[]
   menuClassificationOptions: { value: string; label: string }[]
-  categories: Category[]
   resultCount: number
-  appliedTags: SearchTag[]
   onChange: (next: Partial<StoreMenuSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
-  onRemoveTag: (key: keyof StoreMenuSearchFilters) => void
-  onClearAllTags: () => void
-}
-
-/** 라벨에서 괄호 앞 텍스트(파란색)와 괄호 텍스트(검은색)를 분리 */
-function splitLabel(label: string) {
-  const idx = label.lastIndexOf(' (')
-  if (idx === -1) return { value: label, suffix: '' }
-  return { value: label.slice(0, idx), suffix: label.slice(idx) }
 }
 
 export default function StoreMenuSearch({
@@ -55,17 +39,20 @@ export default function StoreMenuSearch({
   operationStatusOptions,
   menuTypeOptions,
   menuClassificationOptions,
-  categories,
   resultCount,
-  appliedTags,
   onChange,
   onSearch,
   onReset,
-  onRemoveTag,
-  onClearAllTags,
 }: StoreMenuSearchProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const handleMultiOffice = (isMulti: boolean) => {
+    if (isMulti) {
+      setSearchOpen(true)
+      setShowOfficeError(true)
+    }
+  }
 
   const statusRadioOptions = useMemo(
     () => [{ value: 'ALL', label: '전체' }, ...operationStatusOptions],
@@ -82,14 +69,43 @@ export default function StoreMenuSearch({
     [menuClassificationOptions]
   )
 
-  const categorySelectOptions: SelectOption[] = useMemo(
-    () =>
-      categories.map((cat) => ({
-        value: String(cat.id),
-        label: cat.categoryName,
-      })),
-    [categories]
+  // 카테고리 목록 조회 (본사 선택 시만 활성화, depth=1 고정)
+  const { data: categories = [] } = useCategoryList(
+    { bpId: filters.officeId ?? undefined, depth: 1 },
+    !!filters.officeId
   )
+
+  // 카테고리 이름 원문 맵 (선택된 값 표시용)
+  const categoryNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const collect = (items: Category[]) => {
+      for (const item of items) {
+        map[String(item.id)] = item.categoryName
+        if (item.children?.length) collect(item.children)
+      }
+    }
+    collect(categories)
+    return map
+  }, [categories])
+
+  // 카테고리 트리를 평탄화하여 드롭다운 옵션 생성 (depth별 들여쓰기로 계층 표현)
+  const categorySelectOptions: SelectOption[] = useMemo(() => {
+    const options: SelectOption[] = []
+    const flattenTree = (items: Category[], depth: number) => {
+      for (const item of items) {
+        const prefix = depth > 1 ? '\u00A0\u00A0\u00A0'.repeat(depth - 1) : ''
+        options.push({
+          value: String(item.id),
+          label: `${prefix}${item.categoryName}`,
+        })
+        if (item.children?.length) {
+          flattenTree(item.children, depth + 1)
+        }
+      }
+    }
+    flattenTree(categories, 1)
+    return options
+  }, [categories])
 
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
@@ -104,58 +120,19 @@ export default function StoreMenuSearch({
     onReset()
   }
 
-  const removableTags = appliedTags.filter((t) => t.removable !== false)
-
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>{resultCount}건</span>
         </div>
-        <ul
-          className="search-result-list"
-          style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', whiteSpace: 'nowrap' }}
-        >
-          {appliedTags.map((tag, i) => {
-            const { value, suffix } = splitLabel(tag.label)
-            return (
-              <li
-                key={tag.key}
-                style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, fontSize: '16px', listStyle: 'none' }}
-              >
-                {i > 0 && <span style={{ margin: '0 6px', color: '#d1d5db' }}>|</span>}
-                <span style={{ color: '#2563eb', marginLeft: '4px' }}>{value}</span>
-                {suffix && <span style={{ color: '#111827' }}>{suffix}</span>}
-                {tag.removable !== false && (
-                  <button
-                    type="button"
-                    style={{ marginLeft: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', flexShrink: 0, borderRadius: '50%', color: '#9ca3af', border: 'none', background: 'none', cursor: 'pointer' }}
-                    onClick={() => onRemoveTag(tag.key)}
-                  >
-                    &times;
-                  </button>
-                )}
-              </li>
-            )
-          })}
+        <ul className="search-result-list">
+          <li />
         </ul>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
-          {removableTags.length > 0 && (
-            <button
-              type="button"
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '35px', height: '35px', borderRadius: '50%', color: '#9ca3af', border: '1px solid #d1d5db', background: 'none', cursor: 'pointer', fontSize: '25px', lineHeight: 1 }}
-              onClick={onClearAllTags}
-              title="전체삭제"
-            >
-              &times;
-            </button>
-          )}
-          <button
-            className="search-filed-btn"
-            style={{ marginLeft: 0 }}
-            onClick={() => setSearchOpen(!searchOpen)}
-          />
-        </div>
+        <button
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+        />
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -187,6 +164,7 @@ export default function StoreMenuSearch({
                       storeId: next.store,
                     })
                   }}
+                  onMultiOffice={handleMultiOffice}
                 />
                 <th>메뉴명</th>
                 <td>
@@ -233,9 +211,7 @@ export default function StoreMenuSearch({
                       options={categorySelectOptions}
                       value={
                         filters.categoryId
-                          ? categorySelectOptions.find(
-                              (opt) => opt.value === String(filters.categoryId)
-                            ) || null
+                          ? { value: String(filters.categoryId), label: categoryNameMap[String(filters.categoryId)] ?? '' }
                           : null
                       }
                       onChange={(opt) =>
@@ -246,6 +222,7 @@ export default function StoreMenuSearch({
                       placeholder="전체"
                       isClearable={true}
                       isSearchable={true}
+                      isDisabled={!filters.officeId}
                     />
                   </div>
                 </td>

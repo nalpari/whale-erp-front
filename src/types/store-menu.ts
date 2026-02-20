@@ -34,7 +34,7 @@ export interface StoreMenuItem {
   menuNameChs?: string | null
   menuNameCht?: string | null
   menuNameJpn?: string | null
-  menuProperty: string
+  menuProperty: string | null
   bpId: number
   companyName: string
   menuType: string
@@ -51,6 +51,10 @@ export interface StoreMenuItem {
   menuImgFile: StoreMenuImgFile | null
   masterMenuName: string | null
   masterMenuCode: string | null
+  franchiseId: number | null
+  franchiseName: string | null
+  storeId: number | null
+  storeName: string | null
 }
 
 /** 점포 메뉴 목록 응답 */
@@ -117,7 +121,7 @@ export interface StoreMenuDetailResponse {
   menuNameChs?: string | null
   menuNameCht?: string | null
   menuNameJpn?: string | null
-  menuProperty: string
+  menuProperty: string | null
   bpId: number
   companyName: string
   menuType: string
@@ -133,12 +137,18 @@ export interface StoreMenuDetailResponse {
   displayOrder: number
   createdAt: string
   updatedAt: string
-  createdBy: string | null
-  updatedBy: string | null
+  createdByName: string | null
+  updatedByName: string | null
+  createdByLoginId: string | null
+  updatedByLoginId: string | null
   menuImgFile: StoreMenuImgFile | null
   masterMenuName: string | null
   masterMenuCode: string | null
   optionSets: StoreMenuOptionSet[]
+  franchiseId: number | null
+  franchiseName: string | null
+  storeId: number | null
+  storeName: string | null
 }
 
 /** 점포 메뉴 목록 검색 파라미터 */
@@ -155,4 +165,62 @@ export interface StoreMenuListParams {
   createdAtTo?: string
   page?: number
   size?: number
+}
+
+/** 메뉴 수정 요청 - 카테고리 */
+export interface StoreMenuCategoryRequest {
+  id?: number | null
+  categoryId: number
+  isDeleted?: boolean
+}
+
+/** 메뉴 수정 요청 - 옵션 아이템 */
+export interface StoreMenuOptionItemRequest {
+  id?: number | null
+  optionSetItemId: number
+  additionalPrice: number | null
+  isQuantity: boolean
+  quantity: number | null
+  isDefault: boolean
+  isActive: boolean
+  isDeleted?: boolean
+}
+
+/** 메뉴 수정 요청 - 옵션 SET */
+export interface StoreMenuOptionSetRequest {
+  id?: number | null
+  setName: string
+  isRequired: boolean
+  isMultipleChoice: boolean
+  isActive: boolean
+  displayOrder: number
+  isDeleted?: boolean
+  optionItems: StoreMenuOptionItemRequest[]
+}
+
+/** 메뉴 수정 요청 본문 (multipart 'menu' JSON part) */
+export interface StoreMenuUpdateRequest {
+  id?: number
+  bpId: number
+  operationStatus: string
+  menuType: string
+  menuName: string
+  menuNameEng: string | null
+  menuNameChs: string | null
+  menuNameCht: string | null
+  menuNameJpn: string | null
+  menuClassificationCode: string
+  taxType: string
+  marketingTags: string[]
+  temperatureTags: string[]
+  displayOrder: number | null
+  description: string | null
+  categories: StoreMenuCategoryRequest[]
+  optionSets: StoreMenuOptionSetRequest[]
+}
+
+/** 메뉴 수정 파일 페이로드 */
+export interface StoreMenuFilePayload {
+  image?: File | null
+  deleteFileId?: number | null
 }

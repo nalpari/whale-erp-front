@@ -57,7 +57,7 @@ export default function StoreMenuHeader() {
 
   const handleDelete = async () => {
     if (menuId == null) return
-    const confirmed = await confirm('해당 메뉴를 삭제하시겠습니까?')
+    const confirmed = await confirm('삭제하시겠습니까?')
     if (!confirmed) return
     try {
       await deleteMenu(menuId)
@@ -126,7 +126,9 @@ export default function StoreMenuHeader() {
                         <td>
                           <ul className="detail-data-list">
                             <li className="detail-data-item">
-                              <span className="detail-data-text">{formatValue(detail.companyName)}</span>
+                              <span className="detail-data-text">
+                                {formatValue(detail.companyName)} | {formatValue(detail.franchiseName)} | {formatValue(detail.storeName)}
+                              </span>
                             </li>
                           </ul>
                         </td>
@@ -153,7 +155,7 @@ export default function StoreMenuHeader() {
                               <>
                                 <li className="detail-data-item">
                                   <span className="detail-data-text">
-                                    {codeMap.menuProperty[detail.menuProperty] ?? detail.menuProperty}
+                                    {detail.menuProperty ? (codeMap.menuProperty[detail.menuProperty] ?? detail.menuProperty) : '-'}
                                   </span>
                                 </li>
                                 <li className="detail-data-item">
@@ -196,7 +198,7 @@ export default function StoreMenuHeader() {
                         <th>마케팅 분류</th>
                         <td>
                           <ul className="detail-data-list">
-                            {detail.marketingTags.length > 0
+                            {detail.marketingTags?.length > 0
                               ? detail.marketingTags.map((code) => (
                                 <li key={code} className="detail-data-item">
                                   <span className="detail-data-text">
@@ -217,7 +219,7 @@ export default function StoreMenuHeader() {
                         <th>온도 분류</th>
                         <td>
                           <ul className="detail-data-list">
-                            {detail.temperatureTags.length > 0
+                            {detail.temperatureTags?.length > 0
                               ? detail.temperatureTags.map((code) => (
                                 <li key={code} className="detail-data-item">
                                   <span className="detail-data-text">
@@ -274,7 +276,12 @@ export default function StoreMenuHeader() {
                         <td>
                           <ul className="detail-data-list">
                             <li className="detail-data-item">
-                              <span className="detail-data-text">
+                              <span
+                                className="detail-data-text"
+                                style={detail.discountPrice != null && detail.discountPrice > 0
+                                  ? { textDecoration: 'line-through', color: '#999' }
+                                  : undefined}
+                              >
                                 {detail.salePrice != null ? `${formatPrice(detail.salePrice)}원` : '-'}
                               </span>
                             </li>
@@ -340,48 +347,77 @@ export default function StoreMenuHeader() {
                       <colgroup>
                         <col width="200px" />
                         <col />
-                        <col />
                       </colgroup>
                       <tbody>
                         {detail.optionSets.map((optionSet: StoreMenuOptionSet, setIdx: number) => (
                           <tr key={optionSet.id}>
                             <th>옵션 SET #{setIdx + 1}</th>
                             <td>
-                              <ul className="detail-data-list">
-                                <li className="detail-data-item">
-                                  <span className="detail-data-text">
-                                    {[
-                                      optionSet.setName,
-                                      optionSet.isRequired ? '필수 선택' : '필수 선택 아님',
-                                      optionSet.isMultipleChoice ? '다중 선택' : '다중 선택 아님',
-                                    ].join('  |  ')}
-                                  </span>
-                                </li>
-                              </ul>
-                            </td>
-                            <td>
-                              <ul className="detail-data-list" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                                {optionSet.optionSetItems?.length > 0 ? (
-                                  optionSet.optionSetItems.map((item) => (
-                                    <li key={item.id} className="detail-data-item">
+                              <div className="data-option-wrap">
+                                <div className="data-option-item">
+                                  <ul className="detail-data-list">
+                                    <li className="detail-data-item">
+                                      <span className="detail-data-text">{optionSet.setName}</span>
+                                    </li>
+                                    <li className="detail-data-item">
                                       <span className="detail-data-text">
-                                        {[
-                                          `(${codeMap.status[item.operationStatus] ?? item.operationStatus})`,
-                                          item.optionSetItemName,
-                                          item.optionSetItemCode,
-                                          item.additionalPrice != null ? `${formatPrice(item.additionalPrice)}원` : '0원',
-                                          item.isQuantity ? '수량입력' : '수량입력 아님',
-                                          item.isDefault ? '디폴트' : '디폴트 아님',
-                                        ].join('  |  ')}
+                                        {optionSet.isRequired ? '필수 선택' : '필수 선택 아님'}
                                       </span>
                                     </li>
-                                  ))
-                                ) : (
-                                  <li className="detail-data-item">
+                                    <li className="detail-data-item">
+                                      <span className="detail-data-text">
+                                        {optionSet.isMultipleChoice ? '다중 선택' : '다중 선택 아님'}
+                                      </span>
+                                    </li>
+                                    {!optionSet.isActive && (
+                                      <li className="detail-data-item">
+                                        <span className="detail-data-text red">숨김</span>
+                                      </li>
+                                    )}
+                                  </ul>
+                                </div>
+                                <div className="data-option-item">
+                                  {optionSet.optionSetItems?.length > 0 ? (
+                                    optionSet.optionSetItems.map((item) => (
+                                      <ul key={item.id} className="detail-data-list">
+                                        <li className="detail-data-item">
+                                          <span className="detail-data-text">
+                                            <span className={item.operationStatus !== 'STOPR_001' ? 'red' : ''}>
+                                              ({codeMap.status[item.operationStatus] ?? item.operationStatus})
+                                            </span>
+                                            {' '}{item.optionSetItemName}
+                                          </span>
+                                        </li>
+                                        <li className="detail-data-item">
+                                          <span className="detail-data-text">{item.optionSetItemCode}</span>
+                                        </li>
+                                        <li className="detail-data-item">
+                                          <span className="detail-data-text">
+                                            {item.additionalPrice != null ? `${formatPrice(item.additionalPrice)}원` : '0원'}
+                                          </span>
+                                        </li>
+                                        <li className="detail-data-item">
+                                          <span className="detail-data-text">
+                                            {item.isQuantity ? '수량입력' : '수량입력 아님'}
+                                          </span>
+                                        </li>
+                                        <li className="detail-data-item">
+                                          <span className="detail-data-text">
+                                            {item.isDefault ? '디폴트' : '디폴트 아님'}
+                                          </span>
+                                        </li>
+                                        {!item.isActive && (
+                                          <li className="detail-data-item">
+                                            <span className="detail-data-text red">숨김</span>
+                                          </li>
+                                        )}
+                                      </ul>
+                                    ))
+                                  ) : (
                                     <span className="detail-data-text" style={{ color: '#999' }}>옵션 항목 없음</span>
-                                  </li>
-                                )}
-                              </ul>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -417,13 +453,16 @@ export default function StoreMenuHeader() {
                           <th>카테고리</th>
                           <td>
                             <ul className="detail-data-list">
-                              <li className="detail-data-item">
-                                <span className="detail-data-text">
-                                  {detail.categories.map((cat) =>
-                                    `(${cat.isActive ? '운영' : '미운영'}) ${cat.name}`
-                                  ).join('  |  ')}
-                                </span>
-                              </li>
+                              {detail.categories.map((cat) => (
+                                <li key={cat.id} className="detail-data-item">
+                                  <span className="detail-data-text">
+                                    <span className={!cat.isActive ? 'red' : ''}>
+                                      ({cat.isActive ? '운영' : '미운영'})
+                                    </span>
+                                    {' '}{cat.name}
+                                  </span>
+                                </li>
+                              ))}
                             </ul>
                           </td>
                         </tr>
@@ -448,7 +487,7 @@ export default function StoreMenuHeader() {
                 <tr>
                   <th>등록자</th>
                   <td>
-                    <Input defaultValue={detail?.createdBy ?? '-'} disabled />
+                    <Input defaultValue={detail?.createdByLoginId ? `${detail.createdByName}(${detail.createdByLoginId})` : '-'} disabled />
                   </td>
                   <th>등록일시</th>
                   <td>
@@ -458,7 +497,7 @@ export default function StoreMenuHeader() {
                 <tr>
                   <th>최종 수정자</th>
                   <td>
-                    <Input defaultValue={detail?.updatedBy ?? '-'} disabled />
+                    <Input defaultValue={detail?.updatedByLoginId ? `${detail.updatedByName}(${detail.updatedByLoginId})` : '-'} disabled />
                   </td>
                   <th>최종 수정일시</th>
                   <td>

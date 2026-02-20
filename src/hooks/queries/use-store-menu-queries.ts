@@ -8,6 +8,8 @@ import type {
   StoreMenuDetailResponse,
   MenuDisplayOrderUpdateRequest,
   MenuOperationStatusUpdateRequest,
+  StoreMenuUpdateRequest,
+  StoreMenuFilePayload,
 } from '@/types/store-menu'
 
 export const useStoreMenuDetail = (id: number | null) => {
@@ -80,6 +82,53 @@ export const useBulkUpdateDisplayOrder = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: storeMenuKeys.all })
+    },
+  })
+}
+
+const buildStoreMenuFormData = (
+  payload: StoreMenuUpdateRequest,
+  files: StoreMenuFilePayload,
+) => {
+  const formData = new FormData()
+  formData.append(
+    'menu',
+    new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+  )
+  if (files.image) {
+    formData.append('image', files.image)
+  }
+  return formData
+}
+
+export const useUpdateStoreMenu = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+      files,
+    }: {
+      id: number
+      payload: StoreMenuUpdateRequest
+      files: StoreMenuFilePayload
+    }) => {
+      const formData = buildStoreMenuFormData(payload, files)
+      const response = await api.put<ApiResponse<StoreMenuDetailResponse>>(
+        `/api/master/menu/store/${id}`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          params: files.deleteFileId
+            ? { deleteFileId: files.deleteFileId }
+            : undefined,
+        },
+      )
+      return response.data.data
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.detail(id) })
     },
   })
 }

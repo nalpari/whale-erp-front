@@ -32,13 +32,6 @@ export default function AttendanceRecord() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
-  // bpTree auto-apply로 filters.officeId가 세팅되었는데
-  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
-  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
-  if (filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
-
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)
   const { children: contractClassChildren } = useCommonCode('CNTCFWK', true)
@@ -75,10 +68,11 @@ export default function AttendanceRecord() {
     size: pageSize,
   }
 
-  const { data: response, isPending: loading, error } = useAttendanceList(
+  const { data: response, isPending, error } = useAttendanceList(
     attendanceParams,
     canFetchList && Boolean(accessToken)
   )
+  const loading = canFetchList && isPending
 
   const handleSearch = () => {
     setAppliedFilters(filters)
