@@ -58,7 +58,7 @@ export default function WorkScheduleSearch({
   onSearch,
   onReset,
 }: WorkScheduleSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [showOfficeError, setShowOfficeError] = useState(false);
   const [showPeriodError, setShowPeriodError] = useState(false);
   const defaultRange = useMemo(() => getDefaultRange(), []);

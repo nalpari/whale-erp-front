@@ -57,7 +57,7 @@ export default function AttendanceSearch({
   onSearch,
   onReset,
 }: AttendanceSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   // SearchSelect용 옵션 변환

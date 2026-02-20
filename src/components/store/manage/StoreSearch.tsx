@@ -37,7 +37,7 @@ export default function StoreSearch({
   onSearch,
   onReset,
 }: StoreSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
   
   const statusRadioOptions = useMemo(

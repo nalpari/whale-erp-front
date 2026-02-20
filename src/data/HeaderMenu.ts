@@ -39,7 +39,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 36,
             name: '점포용 메뉴 Master',
-            link: '#',
+            link: '/master/menu/store',
           },
         ],
       },

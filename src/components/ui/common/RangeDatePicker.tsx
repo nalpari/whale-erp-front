@@ -186,7 +186,7 @@ export default function RangeDatePicker({
   }, [])
 
   return (
-    <div>
+    <div style={{ position: 'relative', zIndex: 10 }}>
       <div className={`date-picker-wrap ${containerClassName}`}>
         <div className={`date-picker-custom${error ? ' err' : ''}`}>
           <ReactDatePicker

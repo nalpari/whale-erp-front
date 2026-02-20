@@ -258,3 +258,13 @@ export const categoryKeys = {
 
 export type { CategorySearchParams } from '@/types/category'
 import type { CategorySearchParams } from '@/types/category'
+
+import type { StoreMenuListParams } from '@/types/store-menu'
+
+export const storeMenuKeys = {
+  all: ['store-menus'] as const,
+  lists: () => [...storeMenuKeys.all, 'list'] as const,
+  list: (params: StoreMenuListParams) => [...storeMenuKeys.lists(), params] as const,
+  details: () => [...storeMenuKeys.all, 'detail'] as const,
+  detail: (id: number) => [...storeMenuKeys.details(), id] as const,
+}
