@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
@@ -38,7 +39,7 @@ interface CodeMaps {
 }
 
 function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; codeMaps: CodeMaps }) {
-  const imgSrc = menu.menuImgFile?.fileUrl ?? PLACEHOLDER_IMG
+  const imgSrc = menu.menuImgFile?.publicUrl ?? PLACEHOLDER_IMG
   const hasDiscount = menu.discountPrice != null && menu.discountPrice > 0
   const categories = menu.categories?.map((c) => c.name).join(' | ') || '-'
   return (
@@ -195,6 +196,7 @@ export default function MenuList({
   onCheckedChange,
   onOperationStatusChange,
 }: MenuListProps) {
+  const router = useRouter()
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
   const [isAddStorePopOpen, setIsAddStorePopOpen] = useState(false)
   const { data: marketingCodes = [] } = useCommonCodeHierarchy('MKCF')
@@ -254,7 +256,7 @@ export default function MenuList({
           <button type="button" className="btn-form basic" disabled={!hasChecked || !bpId} onClick={() => setIsAddStorePopOpen(true)}>점포메뉴 추가</button>
         </div>
         <div className="data-header-right">
-          <button type="button" className="btn-form basic">등록</button>
+          <button type="button" className="btn-form basic" onClick={() => router.push('/master/menu/create')}>등록</button>
           <div className="data-count-select">
             <select
               className="select-form"

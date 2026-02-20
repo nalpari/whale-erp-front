@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import api from '@/lib/api'
 import { masterMenuKeys, type MasterMenuListParams } from './query-keys'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
-import type { MenuResponse } from '@/lib/schemas/menu'
+import type { MenuResponse, MenuFormData } from '@/lib/schemas/menu'
 
 export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) => {
   return useQuery({
@@ -19,6 +19,20 @@ export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) 
   })
 }
 
+export const useOperatingOptionMenus = (bpId: number | null, enabled = true) => {
+  return useQuery({
+    queryKey: masterMenuKeys.operatingOptions(bpId!),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<MenuResponse[]>>(
+        '/api/master/menu/master/operating-options',
+        { params: { bpId } }
+      )
+      return response.data.data
+    },
+    enabled: enabled && !!bpId,
+  })
+}
+
 interface UpdateMenuOperationStatusRequest {
   bpId: number
   menuIds: number[]
@@ -32,6 +46,28 @@ export const useUpdateMenuOperationStatus = () => {
       const response = await api.patch<ApiResponse<void>>(
         '/api/master/menu/master/operation-status',
         data
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+    },
+  })
+}
+
+export const useCreateMenu = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ menu, image }: { menu: MenuFormData; image?: File }) => {
+      const formData = new FormData()
+      formData.append('menu', new Blob([JSON.stringify(menu)], { type: 'application/json' }))
+      if (image) {
+        formData.append('image', image)
+      }
+      const response = await api.post<ApiResponse<MenuResponse>>(
+        '/api/master/menu/master',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       )
       return response.data
     },

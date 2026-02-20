@@ -1,7 +1,7 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -58,6 +58,17 @@ const INITIAL_FORM_DATA = {
 export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, onSearchOpenChange }: MenuSearchProps) {
   const { alert } = useAlert()
   const [formData, setFormData] = useState({ ...INITIAL_FORM_DATA })
+
+  // 페이지 진입 시 본사 자동 선택 후 초기 검색 1회 실행
+  const onSearchRef = useRef(onSearch)
+  useEffect(() => { onSearchRef.current = onSearch })
+  const initialSearchDoneRef = useRef(false)
+  useEffect(() => {
+    if (!initialSearchDoneRef.current && formData.headOfficeOrganizationId) {
+      initialSearchDoneRef.current = true
+      onSearchRef.current({ headOfficeOrganizationId: formData.headOfficeOrganizationId })
+    }
+  }, [formData.headOfficeOrganizationId])
 
   // 카테고리 API 조회 (본사 선택 시)
   const { data: categories } = useMasterCategoryList(formData.headOfficeOrganizationId)
