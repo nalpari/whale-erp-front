@@ -867,32 +867,31 @@
       height: fit-content;
       text-align: center;
     }
-    .swiper-button-prev {
+    .swiper-button-prev,
+    .swiper-button-next {
       position: absolute;
-      top: 35px;
       width: 28px;
       height: 28px;
+      margin: 0;
       background: url('/assets/images/contents/working_hours_arr.svg') no-repeat center;
       background-size: cover;
       z-index: 2;
       cursor: pointer;
+      &::after {
+        display: none;
+      }
       svg {
         display: none;
       }
     }
+    .swiper-button-prev {
+      top: 35px;
+      bottom: auto;
+    }
     .swiper-button-next {
-      position: absolute;
       bottom: 35px;
-      width: 28px;
-      height: 28px;
+      top: auto;
       transform: rotate(180deg);
-      background: url('/assets/images/contents/working_hours_arr.svg') no-repeat center;
-      background-size: cover;
-      z-index: 2;
-      cursor: pointer;
-      svg {
-        display: none;
-      }
     }
   }
   .time-swiper {
@@ -900,22 +899,20 @@
     &.hours {
       .mySwiper {
         padding-left: 52px;
-        .swiper-button-prev {
-          left: 0;
-        }
+        .swiper-button-prev,
         .swiper-button-next {
           left: 0;
+          right: auto;
         }
       }
     }
     &.minutes {
       .mySwiper {
         padding-right: 52px;
-        .swiper-button-prev {
-          right: 0;
-        }
+        .swiper-button-prev,
         .swiper-button-next {
           right: 0;
+          left: auto;
         }
       }
     }
