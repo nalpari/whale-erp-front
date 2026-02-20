@@ -16,6 +16,7 @@ export const useStoreMenuDetail = (id: number | null) => {
   return useQuery({
     queryKey: storeMenuKeys.detail(id!),
     queryFn: async () => {
+      if (id == null) throw new Error('Menu ID is required')
       const response = await api.get<ApiResponse<StoreMenuDetailResponse>>(
         `/api/master/menu/store/${id}`
       )

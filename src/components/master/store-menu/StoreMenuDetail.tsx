@@ -11,15 +11,12 @@ import SearchSelect from '@/components/ui/common/SearchSelect'
 import { useStoreMenuDetail, useUpdateStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
+import { formatPrice } from '@/util/format-util'
 import type { StoreMenuOptionSet, StoreMenuUpdateRequest, StoreMenuFilePayload } from '@/types/store-menu'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '점포용 메뉴 관리']
-
-function formatPrice(price: number) {
-  return price.toLocaleString('ko-KR')
-}
 
 const TAX_OPTIONS = [
   { value: 'TAXABLE', label: '과세' },
@@ -37,26 +34,23 @@ export default function StoreMenuDetail() {
   const { mutateAsync: updateMenu } = useUpdateStoreMenu()
   const { alert, confirm } = useAlert()
 
-  // 운영여부 로컬 상태
-  const [localOperationStatus, setLocalOperationStatus] = useState<string | null>(null)
+  // 운영여부 로컬 상태 — key={detail.id}로 리마운트되므로 초기값에서 직접 설정
+  const [localOperationStatus, setLocalOperationStatus] = useState<string | null>(
+    detail?.operationStatus ?? null
+  )
   // 옵션 SET / 옵션 아이템의 isActive를 로컬 상태로 관리
-  const [optionSetActiveMap, setOptionSetActiveMap] = useState<Record<number, boolean>>({})
-  const [optionItemActiveMap, setOptionItemActiveMap] = useState<Record<number, boolean>>({})
-  const [prevDetailId, setPrevDetailId] = useState<number | null>(null)
-
-  // detail 데이터가 변경되면 로컬 편집 상태를 서버 데이터로 초기화 (render-time setState 패턴)
-  if (detail && detail.id !== prevDetailId) {
-    setLocalOperationStatus(detail.operationStatus)
+  const [optionSetActiveMap, setOptionSetActiveMap] = useState<Record<number, boolean>>(() => {
     const setMap: Record<number, boolean> = {}
+    detail?.optionSets.forEach((os) => { setMap[os.id] = os.isActive })
+    return setMap
+  })
+  const [optionItemActiveMap, setOptionItemActiveMap] = useState<Record<number, boolean>>(() => {
     const itemMap: Record<number, boolean> = {}
-    detail.optionSets.forEach((os) => {
-      setMap[os.id] = os.isActive
+    detail?.optionSets.forEach((os) => {
       os.optionSetItems.forEach((item) => { itemMap[item.id] = item.isActive })
     })
-    setOptionSetActiveMap(setMap)
-    setOptionItemActiveMap(itemMap)
-    setPrevDetailId(detail.id)
-  }
+    return itemMap
+  })
 
   const handleToggleOptionSetActive = (optionSetId: number) => {
     setOptionSetActiveMap((prev) => ({ ...prev, [optionSetId]: !prev[optionSetId] }))
@@ -131,8 +125,8 @@ export default function StoreMenuDetail() {
       displayOrder: detail.displayOrder,
       description: detail.description,
       categories: detail.categories.map((cat) => ({
-        id: cat.id,
-        categoryId: cat.id,
+        id: cat.menuCategoryId,
+        categoryId: cat.categoryId!,
         isDeleted: false,
       })),
       optionSets: detail.optionSets.map((os) => ({
@@ -195,7 +189,7 @@ export default function StoreMenuDetail() {
   return (
     <div className="data-wrap">
       <Location title="점포용 메뉴 관리" list={BREADCRUMBS} />
-      <div className="detail-wrap">
+      <div className="detail-wrap" key={detail.id}>
         {/* 메뉴 정보 섹션 */}
         <div className={`slidebox-wrap ${menuInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
           <div className="slidebox-header">
@@ -337,10 +331,12 @@ export default function StoreMenuDetail() {
                             defaultValue={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
                             disabled
                           />
-                          <Input
-                            defaultValue={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
-                            disabled
-                          />
+                          {detail.discountPrice != null && (
+                            <Input
+                              defaultValue={formatPrice(detail.discountPrice)}
+                              disabled
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -654,7 +650,7 @@ export default function StoreMenuDetail() {
                         {detail.categories?.length > 0 && (
                           <ul className="category-list">
                             {detail.categories.map((cat) => (
-                              <li key={cat.id} className="category-item">
+                              <li key={cat.menuCategoryId ?? cat.categoryId} className="category-item">
                                 <span className="category-name">
                                   {cat.name}{!cat.isActive && <i> 미운영</i>}
                                 </span>

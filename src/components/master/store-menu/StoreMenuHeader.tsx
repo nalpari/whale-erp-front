@@ -7,15 +7,12 @@ import { useAlert } from '@/components/common/ui'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
+import { formatPrice } from '@/util/format-util'
 import AnimateHeight from 'react-animate-height'
 import { Input } from '@/components/common/ui'
 import type { StoreMenuOptionSet } from '@/types/store-menu'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
-
-function formatPrice(price: number) {
-  return price.toLocaleString('ko-KR')
-}
 
 const formatValue = (value?: string | null) => value ?? '-'
 
@@ -71,7 +68,7 @@ export default function StoreMenuHeader() {
     <div className="data-wrap">
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
       {loading && <div className="data-loading">메뉴 정보를 불러오는 중...</div>}
-      {error && <div className="warning-txt">{error.message}</div>}
+      {!loading && error && <div className="warning-txt">{error.message}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
@@ -126,9 +123,13 @@ export default function StoreMenuHeader() {
                         <td>
                           <ul className="detail-data-list">
                             <li className="detail-data-item">
-                              <span className="detail-data-text">
-                                {formatValue(detail.companyName)} | {formatValue(detail.franchiseName)} | {formatValue(detail.storeName)}
-                              </span>
+                              <span className="detail-data-text">{formatValue(detail.companyName)}</span>
+                            </li>
+                            <li className="detail-data-item">
+                              <span className="detail-data-text">{formatValue(detail.franchiseName)}</span>
+                            </li>
+                            <li className="detail-data-item">
+                              <span className="detail-data-text">{formatValue(detail.storeName)}</span>
                             </li>
                           </ul>
                         </td>
@@ -454,7 +455,7 @@ export default function StoreMenuHeader() {
                           <td>
                             <ul className="detail-data-list">
                               {detail.categories.map((cat) => (
-                                <li key={cat.id} className="detail-data-item">
+                                <li key={cat.menuCategoryId ?? cat.categoryId} className="detail-data-item">
                                   <span className="detail-data-text">
                                     <span className={!cat.isActive ? 'red' : ''}>
                                       ({cat.isActive ? '운영' : '미운영'})

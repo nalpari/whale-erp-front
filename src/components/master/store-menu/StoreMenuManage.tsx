@@ -30,7 +30,7 @@ export default function StoreMenuManage() {
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const queryParams: StoreMenuListParams = useMemo(
@@ -77,35 +77,35 @@ export default function StoreMenuManage() {
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
 
-  const statusMap = statusChildren.reduce<Record<string, string>>((acc, item) => {
+  const statusMap = useMemo(() => statusChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [statusChildren])
 
-  const marketingMap = marketingChildren.reduce<Record<string, string>>((acc, item) => {
+  const marketingMap = useMemo(() => marketingChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [marketingChildren])
 
-  const menuPropertyMap = menuPropertyChildren.reduce<Record<string, string>>((acc, item) => {
+  const menuPropertyMap = useMemo(() => menuPropertyChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [menuPropertyChildren])
 
-  const menuTypeMap = menuTypeChildren.reduce<Record<string, string>>((acc, item) => {
+  const menuTypeMap = useMemo(() => menuTypeChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [menuTypeChildren])
 
-  const setStatusMap = setStatusChildren.reduce<Record<string, string>>((acc, item) => {
+  const setStatusMap = useMemo(() => setStatusChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [setStatusChildren])
 
-  const menuClassMap = menuClassChildren.reduce<Record<string, string>>((acc, item) => {
+  const menuClassMap = useMemo(() => menuClassChildren.reduce<Record<string, string>>((acc, item) => {
     acc[item.code] = item.name
     return acc
-  }, {})
+  }, {}), [menuClassChildren])
 
   const handleSelectChange = (id: number, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -116,20 +116,20 @@ export default function StoreMenuManage() {
     })
   }
 
-  const operationStatusOptions = statusChildren.map((item) => ({
+  const operationStatusOptions = useMemo(() => statusChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  }))
+  })), [statusChildren])
 
-  const menuTypeOptions = menuTypeChildren.map((item) => ({
+  const menuTypeOptions = useMemo(() => menuTypeChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  }))
+  })), [menuTypeChildren])
 
-  const menuClassificationOptions = menuClassChildren.map((item) => ({
+  const menuClassificationOptions = useMemo(() => menuClassChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  }))
+  })), [menuClassChildren])
 
   const router = useRouter()
   const handleMenuClick = useCallback((menuId: number) => {

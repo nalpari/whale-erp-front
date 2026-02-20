@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
+import { formatPrice } from '@/util/format-util'
 import type { StoreMenuItem } from '@/types/store-menu'
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200]
@@ -27,10 +28,6 @@ interface StoreMenuThumbnailListProps {
   onBulkStatusChange: (operationStatus: string) => void
   onSaveDisplayOrder: (changes: Map<number, string>) => void
   onMenuClick?: (menuId: number) => void
-}
-
-function formatPrice(price: number) {
-  return price.toLocaleString('ko-KR')
 }
 
 function formatDate(dateStr: string) {
@@ -304,7 +301,7 @@ export default function StoreMenuThumbnailList({
                             <td>
                               <ul className="thum-data-list">
                                 {menu.categories.map((cat) => (
-                                  <li key={cat.id} className="thum-data-item">
+                                  <li key={cat.menuCategoryId ?? cat.categoryId} className="thum-data-item">
                                     <span className="thum-data-text">{cat.name}</span>
                                   </li>
                                 ))}

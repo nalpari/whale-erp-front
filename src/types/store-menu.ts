@@ -15,9 +15,10 @@ export interface StoreMenuImgFile {
   createdAt: string
 }
 
-/** 메뉴 카테고리 */
+/** 메뉴 카테고리 (서버 MenuCategoryResponse 매핑) */
 export interface StoreMenuCategory {
-  id: number
+  menuCategoryId: number | null
+  categoryId: number | null
   menuId: number
   name: string
   isActive: boolean
