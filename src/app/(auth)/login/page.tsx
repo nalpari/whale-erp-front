@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,12 @@ import "./login.css";
 
 const SAVED_LOGIN_ID_KEY = "savedLoginId";
 
+function setAuthCookie() {
+  document.cookie = 'auth-token=true; path=/'
+}
+
+const emptySubscribe = () => () => {};
+
 export default function LoginPage() {
   const router = useRouter();
   const setTokens = useAuthStore((state) => state.setTokens);
@@ -27,10 +33,22 @@ export default function LoginPage() {
   const loginMutation = useLoginMutation();
   const authoritySelectMutation = useAuthoritySelectMutation();
 
-  const [loginId, setLoginId] = useState("");
+  // localStorage에서 저장된 로그인 ID를 SSR-safe하게 읽기
+  const savedLoginId = useSyncExternalStore(
+    emptySubscribe,
+    () => localStorage.getItem(SAVED_LOGIN_ID_KEY),
+    () => null
+  );
+
+  const [loginIdInput, setLoginIdInput] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMeInput, setRememberMeInput] = useState<boolean | null>(null);
+
+  const loginId = loginIdInput ?? savedLoginId ?? "";
+  const rememberMe = rememberMeInput ?? (savedLoginId !== null);
+  const setLoginId = (value: string) => setLoginIdInput(value);
+  const setRememberMe = (value: boolean) => setRememberMeInput(value);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // 모달 관련 상태
@@ -46,15 +64,6 @@ export default function LoginPage() {
 
   // ID/Password 찾기 팝업 상태
   const [showFindIdPw, setShowFindIdPw] = useState(false);
-
-  // 저장된 아이디 복원
-  useEffect(() => {
-    const savedId = localStorage.getItem(SAVED_LOGIN_ID_KEY);
-    if (savedId) {
-      setLoginId(savedId);
-      setRememberMe(true);
-    }
-  }, []);
 
   const handleClearLoginId = () => {
     setLoginId("");
@@ -97,7 +106,7 @@ export default function LoginPage() {
           localStorage.removeItem(SAVED_LOGIN_ID_KEY);
         }
 
-        document.cookie = 'auth-token=true; path=/'
+        setAuthCookie()
         router.push("/logined-main");
       } else if (companies && companies.length > 0) {
         setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
@@ -148,7 +157,7 @@ export default function LoginPage() {
         localStorage.removeItem(SAVED_LOGIN_ID_KEY);
       }
 
-      document.cookie = 'auth-token=true; path=/'
+      setAuthCookie()
 
       setShowAuthorityModal(false);
       setPendingTokens(null);

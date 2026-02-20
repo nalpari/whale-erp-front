@@ -381,10 +381,13 @@
     }
   }
   .swip-item-img {
+    position: relative;
     width: 370px;
     height: 370px;
-    background-color: #fff;
     border-radius: 32px;
+    img {
+      object-fit: cover;
+    }
   }
   .swip-item-info {
     padding-left: 8px;
@@ -466,6 +469,7 @@
       }
     }
     .device-item-img {
+      position: relative;
       display: flex;
       background-color: #fff;
     }
@@ -601,8 +605,11 @@
       display: flex;
       overflow: hidden;
       background-color: #000;
+      height: 100%;
+
       img {
         border-radius: 50px;
+        object-fit: cover;
       }
     }
   }

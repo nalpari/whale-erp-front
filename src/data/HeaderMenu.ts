@@ -34,7 +34,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 35,
             name: '마스터용 메뉴 Master',
-            link: '#',
+            link: '/master/menu',
           },
           {
             id: 36,

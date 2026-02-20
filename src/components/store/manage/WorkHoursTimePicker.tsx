@@ -2,7 +2,7 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
-import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 import { Navigation } from 'swiper/modules'
 import { useState } from 'react'
 import type { OperatingFormState } from '@/types/store'
@@ -87,7 +87,7 @@ function TimeSwiperColumn({
 }: TimeSwiperColumnProps) {
   const isInteractionBlocked = disabled || readOnly
   return (
-    <td style={{ padding: '0 16px' }}>
+    <td style={{ padding: '10px 16px' }}>
       <div
         className={`work-hours-box${disabled ? ' disabled' : ''}`}
         style={readOnly ? { pointerEvents: 'none' } : undefined}

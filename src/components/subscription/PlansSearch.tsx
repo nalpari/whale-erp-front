@@ -42,14 +42,6 @@ export default function PlanSearch({ filters, resultCount, onChange, onReset }: 
     const [updater, setUpdater] = useState(filters.updater ?? '')
     const [planType, setPlanType] = useState(filters.planType ?? '')
 
-    // props 변경 시 로컬 상태 동기화 (useEffect 없이 렌더 중 처리)
-    const [prevFilters, setPrevFilters] = useState(filters)
-    if (prevFilters !== filters) {
-        setPrevFilters(filters)
-        setUpdater(filters.updater ?? '')
-        setPlanType(filters.planType ?? '')
-    }
-
     const handlePlanTypeChange = (value: string) => {
         setPlanType(value)
         const next: PlanSearchFilters = {}
@@ -112,12 +104,12 @@ export default function PlanSearch({ filters, resultCount, onChange, onReset }: 
                                 <td>
                                     <div className="data-filed">
                                         <input
-                                                            id="updater"
-                                                            type="text"
-                                                            className="input-frame"
-                                                            value={updater}
-                                                            onChange={(e) => setUpdater(e.target.value)}
-                                                        />
+                                            id="updater"
+                                            type="text"
+                                            className="input-frame"
+                                            value={updater}
+                                            onChange={(e) => setUpdater(e.target.value)}
+                                        />
                                     </div>
                                 </td>
                             </tr>
