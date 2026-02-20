@@ -40,3 +40,26 @@ export const useUpdateMenuOperationStatus = () => {
     },
   })
 }
+
+interface SyncMenuToStoresRequest {
+  bpId: number
+  menuIds: number[] | null
+  storeIds: number[]
+  operationStatus: string
+}
+
+export const useSyncMenuToStores = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: SyncMenuToStoresRequest) => {
+      const response = await api.post<ApiResponse<void>>(
+        '/api/master/menu/master/sync-to-stores',
+        data
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+    },
+  })
+}
