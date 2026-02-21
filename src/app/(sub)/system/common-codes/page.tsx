@@ -29,7 +29,12 @@ export default function CommonCodesPage() {
         searchParams.owner_group,
         3,
         searchParams.head_office_id?.toString(),
-        searchParams.franchisee_id?.toString()
+        searchParams.franchisee_id?.toString(),
+        searchParams.isActive,
+        searchParams.headerCode,
+        searchParams.headerId,
+        searchParams.headerName,
+        searchParams.headerDescription
     )
     const totalNodeCount = countNodes(treeData)
 
@@ -49,6 +54,11 @@ export default function CommonCodesPage() {
                 codeGroup={searchParams.owner_group}
                 headOffice={searchParams.head_office_id?.toString()}
                 franchise={searchParams.franchisee_id?.toString()}
+                isActive={searchParams.isActive}
+                headerCode={searchParams.headerCode}
+                headerId={searchParams.headerId}
+                headerName={searchParams.headerName}
+                headerDescription={searchParams.headerDescription}
             />
         </div>
     )

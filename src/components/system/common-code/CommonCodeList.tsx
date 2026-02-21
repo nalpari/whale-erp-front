@@ -8,6 +8,11 @@ interface CommonCodeListProps {
   codeGroup: string
   headOffice?: string
   franchise?: string
+  isActive?: boolean
+  headerCode?: string
+  headerId?: string
+  headerName?: string
+  headerDescription?: string
 }
 
 // 모든 노드 ID 수집
@@ -31,8 +36,8 @@ function collectAllIds(nodes: CommonCodeNode[]): number[] {
  * ProgramList와 유사한 계층 트리 UI를 제공한다.
  * /api/v1/common-codes/tree API를 호출하여 데이터를 표시한다.
  */
-export default function CommonCodeList({ codeGroup, headOffice, franchise }: CommonCodeListProps) {
-  const { data: treeData = [], isPending, error } = useCommonCodeTree(codeGroup, 3, headOffice, franchise)
+export default function CommonCodeList({ codeGroup, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription }: CommonCodeListProps) {
+  const { data: treeData = [], isPending, error } = useCommonCodeTree(codeGroup, 3, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription)
   // 닫힌 항목만 추적 (기본 전체 열림)
   const [closedItems, setClosedItems] = useState<Set<number>>(new Set())
 

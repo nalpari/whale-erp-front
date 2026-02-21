@@ -32,7 +32,7 @@ export default function CommonCodeSearch({
   onSearch,
   resultCount = 0,
 }: CommonCodeSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [localParams, setLocalParams] = useState<CommonCodeSearchParams>(params)
 
   // 플랫폼일 때는 본사/가맹점 비활성화
@@ -55,10 +55,10 @@ export default function CommonCodeSearch({
     })
   }
 
-  const handleIsUsedChange = (value: string) => {
+  const handleIsActiveChange = (value: string) => {
     setLocalParams({
       ...localParams,
-      is_used: value === 'all' ? undefined : value === 'true',
+      isActive: value === 'all' ? undefined : value === 'true',
     })
   }
 
@@ -145,14 +145,14 @@ export default function CommonCodeSearch({
                       { value: 'false', label: '미운영' },
                     ]}
                     value={
-                      localParams.is_used === undefined
+                      localParams.isActive === undefined
                         ? 'all'
-                        : localParams.is_used === true
+                        : localParams.isActive === true
                           ? 'true'
                           : 'false'
                     }
-                    onChange={handleIsUsedChange}
-                    name="is_used"
+                    onChange={handleIsActiveChange}
+                    name="isActive"
                   />
                 </td>
                 <th>Relation code 유무</th>
@@ -180,8 +180,8 @@ export default function CommonCodeSearch({
                     <input
                       type="text"
                       className="input-frame"
-                      value={localParams.header_code || ''}
-                      onChange={(e) => handleInputChange('header_code', e.target.value)}
+                      value={localParams.headerCode || ''}
+                      onChange={(e) => handleInputChange('headerCode', e.target.value)}
                     />
                   </div>
                 </td>
@@ -193,8 +193,8 @@ export default function CommonCodeSearch({
                     <input
                       type="text"
                       className="input-frame"
-                      value={localParams.header_id || ''}
-                      onChange={(e) => handleInputChange('header_id', e.target.value)}
+                      value={localParams.headerId || ''}
+                      onChange={(e) => handleInputChange('headerId', e.target.value)}
                     />
                   </div>
                 </td>
@@ -204,8 +204,8 @@ export default function CommonCodeSearch({
                     <input
                       type="text"
                       className="input-frame"
-                      value={localParams.header_code_name || ''}
-                      onChange={(e) => handleInputChange('header_code_name', e.target.value)}
+                      value={localParams.headerName || ''}
+                      onChange={(e) => handleInputChange('headerName', e.target.value)}
                     />
                   </div>
                 </td>
@@ -215,8 +215,8 @@ export default function CommonCodeSearch({
                     <input
                       type="text"
                       className="input-frame"
-                      value={localParams.header_code_description || ''}
-                      onChange={(e) => handleInputChange('header_code_description', e.target.value)}
+                      value={localParams.headerDescription || ''}
+                      onChange={(e) => handleInputChange('headerDescription', e.target.value)}
                     />
                   </div>
                 </td>

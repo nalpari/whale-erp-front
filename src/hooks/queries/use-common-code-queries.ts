@@ -114,14 +114,19 @@ export const useCommonCodeTree = (
   codeGroup: string,
   maxDepth = 3,
   headOffice?: string,
-  franchise?: string
+  franchise?: string,
+  isActive?: boolean,
+  headerCode?: string,
+  headerId?: string,
+  headerName?: string,
+  headerDescription?: string
 ) => {
   return useQuery({
-    queryKey: commonCodeKeys.tree(codeGroup, maxDepth, headOffice, franchise),
+    queryKey: commonCodeKeys.tree(codeGroup, maxDepth, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription),
     queryFn: async () => {
       const response = await api.get<CommonCodeTreeResponse>(
         '/api/v1/common-codes/tree',
-        { params: { codeGroup, maxDepth, headOffice, franchise } }
+        { params: { codeGroup, maxDepth, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription } }
       )
       return response.data.data
     },
