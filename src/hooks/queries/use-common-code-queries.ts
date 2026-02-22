@@ -201,16 +201,16 @@ export const useDeleteCommonCode = () => {
 function reorderTreeNodes(
   tree: CommonCodeNode[],
   parentId: number | null,
-  orders: Array<{ id: number; sort_order: number }>,
+  orders: Array<{ id: number; sortOrder: number }>,
 ): CommonCodeNode[] {
   if (parentId === null) {
-    const orderMap = new Map(orders.map((o) => [o.id, o.sort_order]))
+    const orderMap = new Map(orders.map((o) => [o.id, o.sortOrder]))
     return [...tree].sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0))
   }
 
   return tree.map((node) => {
     if (node.id === parentId && node.children) {
-      const orderMap = new Map(orders.map((o) => [o.id, o.sort_order]))
+      const orderMap = new Map(orders.map((o) => [o.id, o.sortOrder]))
       return {
         ...node,
         children: [...node.children].sort(
@@ -248,7 +248,7 @@ export const useReorderCommonCodes = () => {
         { queryKey: [...commonCodeKeys.all, 'tree'] },
         (old) => {
           if (!old) return old
-          return reorderTreeNodes(old, data.parent_id, data.orders)
+          return reorderTreeNodes(old, data.parentId, data.orders)
         },
       )
 

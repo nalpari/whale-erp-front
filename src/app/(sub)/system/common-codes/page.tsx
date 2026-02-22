@@ -19,17 +19,17 @@ function countNodes(nodes: CommonCodeNode[]): number {
 }
 
 const initialParams: CommonCodeSearchParams = {
-    owner_group: 'platform',
+    ownerGroup: 'platform',
 }
 
 export default function CommonCodesPage() {
     const [searchParams, setSearchParams] = useState<CommonCodeSearchParams>(initialParams)
 
     const { data: treeData = [] } = useCommonCodeTree(
-        searchParams.owner_group,
+        searchParams.ownerGroup,
         3,
-        searchParams.head_office_id?.toString(),
-        searchParams.franchisee_id?.toString(),
+        searchParams.headOfficeId?.toString(),
+        searchParams.franchiseeId?.toString(),
         searchParams.isActive,
         searchParams.headerCode,
         searchParams.headerId,
@@ -51,9 +51,9 @@ export default function CommonCodesPage() {
                 resultCount={totalNodeCount}
             />
             <CommonCodeList
-                codeGroup={searchParams.owner_group}
-                headOffice={searchParams.head_office_id?.toString()}
-                franchise={searchParams.franchisee_id?.toString()}
+                codeGroup={searchParams.ownerGroup}
+                headOffice={searchParams.headOfficeId?.toString()}
+                franchise={searchParams.franchiseeId?.toString()}
                 isActive={searchParams.isActive}
                 headerCode={searchParams.headerCode}
                 headerId={searchParams.headerId}

@@ -185,10 +185,10 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
 
     try {
       await reorderMutation.mutateAsync({
-        parent_id: parentId,
+        parentId: parentId,
         orders: validItems.map((item, index) => ({
           id: item.id,
-          sort_order: index + 1,
+          sortOrder: index + 1,
         })),
       })
     } catch (error: unknown) {

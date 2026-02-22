@@ -36,22 +36,22 @@ export default function CommonCodeSearch({
   const [localParams, setLocalParams] = useState<CommonCodeSearchParams>(params)
 
   // 플랫폼일 때는 본사/가맹점 비활성화
-  const isBpDisabled = localParams.owner_group !== 'bp'
+  const isBpDisabled = localParams.ownerGroup !== 'bp'
 
   const handleOwnerGroupChange = (value: string) => {
     setLocalParams({
       ...localParams,
-      owner_group: value,
-      head_office_id: undefined,
-      franchisee_id: undefined,
+      ownerGroup: value,
+      headOfficeId: undefined,
+      franchiseeId: undefined,
     })
   }
 
   const handleBpSelectChange = (value: { head_office: number | null; franchise: number | null; store: number | null }) => {
     setLocalParams({
       ...localParams,
-      head_office_id: value.head_office ?? undefined,
-      franchisee_id: value.franchise ?? undefined,
+      headOfficeId: value.head_office ?? undefined,
+      franchiseeId: value.franchise ?? undefined,
     })
   }
 
@@ -65,7 +65,7 @@ export default function CommonCodeSearch({
   const handleHasRelationCodeChange = (value: string) => {
     setLocalParams({
       ...localParams,
-      has_relation_code: value === 'all' ? undefined : value === 'true',
+      hasRelationCode: value === 'all' ? undefined : value === 'true',
     })
   }
 
@@ -83,7 +83,7 @@ export default function CommonCodeSearch({
 
   const handleReset = () => {
     const resetParams: CommonCodeSearchParams = {
-      owner_group: 'platform',
+      ownerGroup: 'platform',
     }
     setLocalParams(resetParams)
   }
@@ -120,16 +120,16 @@ export default function CommonCodeSearch({
                 <td>
                   <RadioButtonGroup
                     options={OWNER_GROUP_OPTIONS}
-                    value={localParams.owner_group}
+                    value={localParams.ownerGroup}
                     onChange={handleOwnerGroupChange}
-                    name="owner_group"
+                    name="ownerGroup"
                   />
                 </td>
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
                   fields={['office', 'franchise']}
-                  officeId={localParams.head_office_id ?? null}
-                  franchiseId={localParams.franchisee_id ?? null}
+                  officeId={localParams.headOfficeId ?? null}
+                  franchiseId={localParams.franchiseeId ?? null}
                   storeId={null}
                   onChange={handleBpSelectChange}
                   isDisabled={isBpDisabled}
@@ -164,14 +164,14 @@ export default function CommonCodeSearch({
                       { value: 'false', label: '없음' },
                     ]}
                     value={
-                      localParams.has_relation_code === undefined
+                      localParams.hasRelationCode === undefined
                         ? 'all'
-                        : localParams.has_relation_code === true
+                        : localParams.hasRelationCode === true
                           ? 'true'
                           : 'false'
                     }
                     onChange={handleHasRelationCodeChange}
-                    name="has_relation_code"
+                    name="hasRelationCode"
                   />
                 </td>
                 <th>Header Code</th>

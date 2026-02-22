@@ -3,8 +3,8 @@ import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '../constants/organ
 
 // 공통코드 순서 변경 요청 타입
 export interface CommonCodeReorderRequest {
-  parent_id: number | null
-  orders: Array<{ id: number; sort_order: number }>
+  parentId: number | null
+  orders: Array<{ id: number; sortOrder: number }>
 }
 
 // 공통코드 생성/수정 요청 타입
