@@ -57,9 +57,9 @@ export interface LoginAuthorityProgram {
   name: string
   path: string
   level: number
-  can_read: boolean | null
-  can_create_delete: boolean | null
-  can_update: boolean | null
+  canRead: boolean | null
+  canCreateDelete: boolean | null
+  canUpdate: boolean | null
   children: LoginAuthorityProgram[] | null
 }
 
