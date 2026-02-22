@@ -3,7 +3,7 @@ import api from '@/lib/api'
 import { commonCodeKeys, payrollKeys } from './query-keys'
 import { getBonusTypes, type BonusTypeInfo } from '@/lib/api/commonCode'
 import { reorderCommonCodes, type CommonCodeReorderRequest } from '@/lib/api/commonCode'
-import { createCommonCode, updateCommonCode, type CommonCodeCreateRequest } from '@/lib/api/commonCode'
+import { createCommonCode, updateCommonCode, deleteCommonCode, type CommonCodeCreateRequest } from '@/lib/api/commonCode'
 
 /**
  * 공통코드 노드 타입.
@@ -174,6 +174,20 @@ export const useUpdateCommonCode = () => {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: CommonCodeCreateRequest }) => updateCommonCode(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: commonCodeKeys.all })
+    },
+  })
+}
+
+/**
+ * 공통코드 삭제 훅.
+ */
+export const useDeleteCommonCode = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => deleteCommonCode(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: commonCodeKeys.all })
     },

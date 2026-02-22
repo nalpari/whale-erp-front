@@ -60,6 +60,13 @@ export async function updateCommonCode(id: number, data: CommonCodeCreateRequest
   return response.data.data
 }
 
+/**
+ * 공통코드 삭제
+ */
+export async function deleteCommonCode(id: number): Promise<void> {
+  await api.delete(`/api/v1/common-codes/${id}`)
+}
+
 // 급여명세서 공통코드 응답 타입
 export interface PayrollCommonCodeResponse {
   codeId: number

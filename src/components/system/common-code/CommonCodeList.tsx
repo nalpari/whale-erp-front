@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { useCommonCodeTree, useReorderCommonCodes, useCreateCommonCode, useUpdateCommonCode, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
+import { useCommonCodeTree, useReorderCommonCodes, useCreateCommonCode, useUpdateCommonCode, useDeleteCommonCode, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
 import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
 import CommonCodeFormModal, { type CommonCodeFormData } from '@/components/system/common-code/CommonCodeFormModal'
 import CubeLoader from '@/components/common/ui/CubeLoader'
+import { useAlert } from '@/components/common/ui/Alert'
 
 interface CommonCodeListProps {
   codeGroup: string
@@ -40,9 +41,11 @@ function collectAllIds(nodes: CommonCodeNode[]): number[] {
  */
 export default function CommonCodeList({ codeGroup, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription }: CommonCodeListProps) {
   const { data: treeData = [], isPending, error } = useCommonCodeTree(codeGroup, 3, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription)
+  const { alert: showAlert, confirm: showConfirm } = useAlert()
   const reorderMutation = useReorderCommonCodes()
   const createMutation = useCreateCommonCode()
   const updateMutation = useUpdateCommonCode()
+  const deleteMutation = useDeleteCommonCode()
 
   // treeData 기반 전체 ID (데이터 변경 시 자동 재계산)
   const allIds = useMemo(() => collectAllIds(treeData), [treeData])
@@ -79,12 +82,12 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
   }
 
   // 모달 열기
-  const openModal = useCallback((mode: 'create' | 'edit', node: CommonCodeNode) => {
+  const openModal = useCallback((mode: 'create' | 'edit', node?: CommonCodeNode) => {
     setModalMode(mode)
     if (mode === 'create') {
-      setModalParentNode(node)
+      setModalParentNode(node ?? null)
       setModalEditNode(null)
-    } else {
+    } else if (node) {
       setModalParentNode(null)
       setModalEditNode(node)
     }
@@ -120,7 +123,7 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
           setOverriddenOpenItems(next)
         }
 
-        alert('등록되었습니다.')
+        await showAlert('등록되었습니다.')
       } else {
         if (!modalEditNode) return
         await updateMutation.mutateAsync({
@@ -135,7 +138,7 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
             franchise: data.franchise || null,
           },
         })
-        alert('수정되었습니다.')
+        await showAlert('수정되었습니다.')
       }
       closeModal()
     } catch (error: unknown) {
@@ -143,7 +146,25 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
       const message =
         axiosError.response?.data?.message ??
         (modalMode === 'create' ? '등록에 실패하였습니다.' : '수정에 실패하였습니다.')
-      alert(message)
+      await showAlert(message)
+    }
+  }
+
+  // 삭제 핸들러
+  const handleDelete = async (node: CommonCodeNode) => {
+    const confirmed = await showConfirm(
+      `"[${node.code}] ${node.name}" 공통코드를 삭제하시겠습니까?`,
+      { title: '공통코드 삭제', confirmText: '삭제', cancelText: '취소' },
+    )
+    if (!confirmed) return
+
+    try {
+      await deleteMutation.mutateAsync(node.id)
+      await showAlert('삭제되었습니다.')
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message = axiosError.response?.data?.message ?? '삭제에 실패하였습니다.'
+      await showAlert(message)
     }
   }
 
@@ -152,13 +173,13 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
     const validItems = items.filter((item): item is CommonCodeNode & { id: number } => item.id !== null)
 
     if (validItems.length !== items.length) {
-      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      await showAlert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
     }
 
     const ids = validItems.map((item) => item.id)
     if (new Set(ids).size !== ids.length) {
-      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      await showAlert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
     }
 
@@ -173,7 +194,7 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } } }
       const message = axiosError.response?.data?.message ?? '순서 변경에 실패하였습니다.'
-      alert(message)
+      await showAlert(message)
     }
   }
 
@@ -225,6 +246,12 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
                 aria-label="코드 수정"
                 onClick={() => openModal('edit', node)}
               ></button>
+              <button
+                className="depth-btn delete"
+                aria-label="코드 삭제"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='16' height='18' viewBox='0 0 16 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.5815 3.47217L13.2689 8.53256M1.91479 3.47217L2.38505 11.2692C2.50548 13.2661 2.5657 14.2645 3.06488 14.9825C3.31168 15.3375 3.62964 15.6371 3.9985 15.8623C4.52062 16.181 5.16674 16.2767 6.19257 16.3055' stroke='%23E53935' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M13.9746 10.8611L8.53015 16.3052M13.9746 16.3056L8.53015 10.8615' stroke='%23E53935' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M0.75 3.47221H14.75M10.9045 3.47221L10.3735 2.37689C10.0208 1.64931 9.84443 1.28551 9.54022 1.05863C9.47274 1.0083 9.40129 0.963532 9.32657 0.924767C8.98971 0.75 8.58543 0.75 7.77686 0.75C6.94798 0.75 6.53354 0.75 6.19109 0.932092C6.11519 0.97245 6.04276 1.01903 5.97456 1.07135C5.66683 1.30743 5.49493 1.68454 5.15114 2.43875L4.68005 3.47221' stroke='%23E53935' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")` }}
+                onClick={() => handleDelete(node)}
+              ></button>
             </div>
           </div>
         </div>
@@ -260,6 +287,9 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
               <div className="hierarchy-txt">드래그 앤 드롭을 사용하여 동일 레벨 내 순서를 변경할 수 있습니다.</div>
             </div>
             <div className="data-header-right">
+              <button className="btn-form basic s" onClick={() => openModal('create')}>
+                <i className="plus"></i> 최상위 추가
+              </button>
               <button className="btn-form gray s" onClick={collapseAll}>
                 All Close
               </button>
