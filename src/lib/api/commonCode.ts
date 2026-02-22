@@ -7,11 +7,57 @@ export interface CommonCodeReorderRequest {
   orders: Array<{ id: number; sort_order: number }>
 }
 
+// 공통코드 생성/수정 요청 타입
+export interface CommonCodeCreateRequest {
+  code: string
+  name: string
+  description?: string | null
+  parentId?: number | null
+  sortOrder?: number
+  isActive?: boolean
+  codeGroup: string
+  headOffice?: string | null
+  franchise?: string | null
+}
+
+// 공통코드 응답 타입
+export interface CommonCodeResponse {
+  id: number
+  code: string
+  name: string
+  description: string | null
+  parentId: number | null
+  depth: number
+  sortOrder: number
+  isActive: boolean
+  codeGroup: string
+  headOffice: string | null
+  franchise: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 /**
  * 공통코드 순서 변경
  */
 export async function reorderCommonCodes(data: CommonCodeReorderRequest): Promise<void> {
   await api.put('/api/v1/common-codes/reorder', data)
+}
+
+/**
+ * 공통코드 생성
+ */
+export async function createCommonCode(data: CommonCodeCreateRequest): Promise<CommonCodeResponse> {
+  const response = await api.post<{ data: CommonCodeResponse }>('/api/v1/common-codes', data)
+  return response.data.data
+}
+
+/**
+ * 공통코드 수정
+ */
+export async function updateCommonCode(id: number, data: CommonCodeCreateRequest): Promise<CommonCodeResponse> {
+  const response = await api.put<{ data: CommonCodeResponse }>(`/api/v1/common-codes/${id}`, data)
+  return response.data.data
 }
 
 // 급여명세서 공통코드 응답 타입

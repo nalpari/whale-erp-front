@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useCommonCodeTree, useReorderCommonCodes, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
+import { useState, useMemo, useCallback } from 'react'
+import { useCommonCodeTree, useReorderCommonCodes, useCreateCommonCode, useUpdateCommonCode, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
 import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
+import CommonCodeFormModal, { type CommonCodeFormData } from '@/components/system/common-code/CommonCodeFormModal'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 
 interface CommonCodeListProps {
@@ -40,12 +41,20 @@ function collectAllIds(nodes: CommonCodeNode[]): number[] {
 export default function CommonCodeList({ codeGroup, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription }: CommonCodeListProps) {
   const { data: treeData = [], isPending, error } = useCommonCodeTree(codeGroup, 3, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription)
   const reorderMutation = useReorderCommonCodes()
+  const createMutation = useCreateCommonCode()
+  const updateMutation = useUpdateCommonCode()
 
   // treeData 기반 전체 ID (데이터 변경 시 자동 재계산)
   const allIds = useMemo(() => collectAllIds(treeData), [treeData])
 
   // 사용자가 명시적으로 토글/접기/펼치기 한 상태 (null이면 기본값=전체 열림)
   const [overriddenOpenItems, setOverriddenOpenItems] = useState<Set<number> | null>(null)
+
+  // 모달 상태
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  const [modalParentNode, setModalParentNode] = useState<CommonCodeNode | null>(null)
+  const [modalEditNode, setModalEditNode] = useState<CommonCodeNode | null>(null)
 
   // 실제 openItems: 사용자 오버라이드가 없으면 전체 열림
   const openItems = overriddenOpenItems ?? new Set(allIds)
@@ -67,6 +76,75 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
 
   const collapseAll = () => {
     setOverriddenOpenItems(new Set())
+  }
+
+  // 모달 열기
+  const openModal = useCallback((mode: 'create' | 'edit', node: CommonCodeNode) => {
+    setModalMode(mode)
+    if (mode === 'create') {
+      setModalParentNode(node)
+      setModalEditNode(null)
+    } else {
+      setModalParentNode(null)
+      setModalEditNode(node)
+    }
+    setIsModalOpen(true)
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false)
+    setModalParentNode(null)
+    setModalEditNode(null)
+  }, [])
+
+  // 폼 제출 핸들러
+  const handleFormSubmit = async (data: CommonCodeFormData) => {
+    try {
+      if (modalMode === 'create') {
+        await createMutation.mutateAsync({
+          code: data.code,
+          name: data.name,
+          description: data.description || null,
+          parentId: modalParentNode?.id ?? null,
+          isActive: data.isActive,
+          codeGroup: data.codeGroup,
+          headOffice: data.headOffice || null,
+          franchise: data.franchise || null,
+        })
+
+        // 부모 노드가 있으면 펼치기
+        if (modalParentNode) {
+          const current = overriddenOpenItems ?? new Set(allIds)
+          const next = new Set(current)
+          next.add(modalParentNode.id)
+          setOverriddenOpenItems(next)
+        }
+
+        alert('등록되었습니다.')
+      } else {
+        if (!modalEditNode) return
+        await updateMutation.mutateAsync({
+          id: modalEditNode.id,
+          data: {
+            code: data.code,
+            name: data.name,
+            description: data.description || null,
+            isActive: data.isActive,
+            codeGroup: data.codeGroup,
+            headOffice: data.headOffice || null,
+            franchise: data.franchise || null,
+          },
+        })
+        alert('수정되었습니다.')
+      }
+      closeModal()
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message =
+        axiosError.response?.data?.message ??
+        (modalMode === 'create' ? '등록에 실패하였습니다.' : '수정에 실패하였습니다.')
+      alert(message)
+    }
   }
 
   // 순서 변경 핸들러
@@ -102,11 +180,13 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
   // 트리 아이템 렌더링 (DraggableTree의 renderItem 콜백)
   const renderCommonCodeItem = (
     node: CommonCodeNode,
-    _depth: number,
+    depth: number,
     dragHandleProps: DragHandleProps,
     hasChildren: boolean,
     isOpen: boolean,
   ) => {
+    const canAddChild = depth < 3
+
     return (
       <div className={`hierarchy-item ${!node.isActive ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
         <div className="hierarchy-depth">
@@ -133,13 +213,17 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
             {node.description && <div className="path-name">{node.description}</div>}
             {!node.isActive && <div className="disable-badge">비활성</div>}
             <div className="depth-btn-wrap">
-              <button
-                className="depth-btn create"
-                aria-label="하위 코드 추가"
-              ></button>
+              {canAddChild && (
+                <button
+                  className="depth-btn create"
+                  aria-label="하위 코드 추가"
+                  onClick={() => openModal('create', node)}
+                ></button>
+              )}
               <button
                 className="depth-btn edit"
                 aria-label="코드 수정"
+                onClick={() => openModal('edit', node)}
               ></button>
             </div>
           </div>
@@ -198,6 +282,18 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
           </div>
         </div>
       </div>
+      <CommonCodeFormModal
+        key={isModalOpen ? `${modalMode}-${modalEditNode?.id ?? modalParentNode?.id ?? 'new'}` : 'closed'}
+        isOpen={isModalOpen}
+        mode={modalMode}
+        onClose={closeModal}
+        onSubmit={handleFormSubmit}
+        parentNode={modalMode === 'create' ? modalParentNode : null}
+        editNode={modalMode === 'edit' ? modalEditNode : null}
+        codeGroup={codeGroup}
+        headOffice={headOffice}
+        franchise={franchise}
+      />
     </div>
   )
 }
