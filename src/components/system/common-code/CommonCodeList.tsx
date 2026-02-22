@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useCommonCodeTree, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
+import { useState, useMemo } from 'react'
+import { useCommonCodeTree, useReorderCommonCodes, type CommonCodeNode } from '@/hooks/queries/use-common-code-queries'
+import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 
 interface CommonCodeListProps {
@@ -33,83 +34,118 @@ function collectAllIds(nodes: CommonCodeNode[]): number[] {
 /**
  * 공통코드 계층 구조 리스트 컴포넌트
  *
- * ProgramList와 유사한 계층 트리 UI를 제공한다.
+ * DraggableTree를 사용하여 드래그 앤 드롭으로 순서 변경이 가능하다.
  * /api/v1/common-codes/tree API를 호출하여 데이터를 표시한다.
  */
 export default function CommonCodeList({ codeGroup, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription }: CommonCodeListProps) {
   const { data: treeData = [], isPending, error } = useCommonCodeTree(codeGroup, 3, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription)
-  // 닫힌 항목만 추적 (기본 전체 열림)
-  const [closedItems, setClosedItems] = useState<Set<number>>(new Set())
+  const reorderMutation = useReorderCommonCodes()
+
+  // treeData 기반 전체 ID (데이터 변경 시 자동 재계산)
+  const allIds = useMemo(() => collectAllIds(treeData), [treeData])
+
+  // 사용자가 명시적으로 토글/접기/펼치기 한 상태 (null이면 기본값=전체 열림)
+  const [overriddenOpenItems, setOverriddenOpenItems] = useState<Set<number> | null>(null)
+
+  // 실제 openItems: 사용자 오버라이드가 없으면 전체 열림
+  const openItems = overriddenOpenItems ?? new Set(allIds)
 
   const toggleItem = (id: number) => {
-    setClosedItems((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
+    const current = overriddenOpenItems ?? new Set(allIds)
+    const next = new Set(current)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    setOverriddenOpenItems(next)
   }
 
   const expandAll = () => {
-    setClosedItems(new Set())
+    setOverriddenOpenItems(null)
   }
 
   const collapseAll = () => {
-    setClosedItems(new Set(collectAllIds(treeData)))
+    setOverriddenOpenItems(new Set())
   }
 
-  // 재귀 트리 렌더링
-  const renderTreeItems = (nodes: CommonCodeNode[], depth: number) => {
-    return nodes.map((node) => {
-      const hasChildren = !!node.children?.length
-      const isOpen = !closedItems.has(node.id)
+  // 순서 변경 핸들러
+  const handleReorder = async (parentId: number | null, items: CommonCodeNode[]) => {
+    const validItems = items.filter((item): item is CommonCodeNode & { id: number } => item.id !== null)
 
-      return (
-        <div key={node.id} className="hierarchy-depth-wrap">
-          <div className={`hierarchy-item ${!node.isActive ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
-            <div className="hierarchy-depth" style={{ paddingLeft: depth * 24 }}>
-              <div className="depth-inner">
-                {hasChildren && (
-                  <button
-                    className="depth-arr"
-                    onClick={() => toggleItem(node.id)}
-                    aria-label="하위 코드 토글"
-                  ></button>
-                )}
-                <div className="depth-name">
-                  {node.code && <span style={{ color: '#888', marginRight: 8 }}>[{node.code}]</span>}
-                  {node.name}
-                </div>
-              </div>
-              <div className="depth-right">
-                {node.description && <div className="path-name">{node.description}</div>}
-                {!node.isActive && <div className="disable-badge">비활성</div>}
-                <div className="depth-btn-wrap">
-                  {depth < 3 && (
-                    <button
-                      className="depth-btn create"
-                      aria-label="하위 코드 추가"
-                    ></button>
-                  )}
-                  <button
-                    className="depth-btn edit"
-                    aria-label="코드 수정"
-                  ></button>
-                </div>
-              </div>
+    if (validItems.length !== items.length) {
+      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      return
+    }
+
+    const ids = validItems.map((item) => item.id)
+    if (new Set(ids).size !== ids.length) {
+      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      return
+    }
+
+    try {
+      await reorderMutation.mutateAsync({
+        parent_id: parentId,
+        orders: validItems.map((item, index) => ({
+          id: item.id,
+          sort_order: index + 1,
+        })),
+      })
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      const message = axiosError.response?.data?.message ?? '순서 변경에 실패하였습니다.'
+      alert(message)
+    }
+  }
+
+  // 트리 아이템 렌더링 (DraggableTree의 renderItem 콜백)
+  const renderCommonCodeItem = (
+    node: CommonCodeNode,
+    _depth: number,
+    dragHandleProps: DragHandleProps,
+    hasChildren: boolean,
+    isOpen: boolean,
+  ) => {
+    return (
+      <div className={`hierarchy-item ${!node.isActive ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}>
+        <div className="hierarchy-depth">
+          <button
+            className="order-btn"
+            aria-label="순서 변경"
+            {...dragHandleProps.attributes}
+            {...dragHandleProps.listeners}
+          ></button>
+          <div className="depth-inner">
+            {hasChildren && (
+              <button
+                className="depth-arr"
+                onClick={() => toggleItem(node.id)}
+                aria-label="하위 코드 토글"
+              ></button>
+            )}
+            <div className="depth-name">
+              {node.code && <span style={{ color: '#888', marginRight: 8 }}>[{node.code}]</span>}
+              {node.name}
             </div>
           </div>
-          {hasChildren && isOpen && (
-            <div className="hierarchy-children">
-              {renderTreeItems(node.children!, depth + 1)}
+          <div className="depth-right">
+            {node.description && <div className="path-name">{node.description}</div>}
+            {!node.isActive && <div className="disable-badge">비활성</div>}
+            <div className="depth-btn-wrap">
+              <button
+                className="depth-btn create"
+                aria-label="하위 코드 추가"
+              ></button>
+              <button
+                className="depth-btn edit"
+                aria-label="코드 수정"
+              ></button>
             </div>
-          )}
+          </div>
         </div>
-      )
-    })
+      </div>
+    )
   }
 
   if (isPending) {
@@ -137,6 +173,7 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
           <div className="data-list-header">
             <div className="hierarchy-bx">
               <div className="hierarchy-tit">공통코드 계층 관리</div>
+              <div className="hierarchy-txt">드래그 앤 드롭을 사용하여 동일 레벨 내 순서를 변경할 수 있습니다.</div>
             </div>
             <div className="data-header-right">
               <button className="btn-form gray s" onClick={collapseAll}>
@@ -151,7 +188,12 @@ export default function CommonCodeList({ codeGroup, headOffice, franchise, isAct
             {treeData.length === 0 ? (
               <div>등록된 공통코드가 없습니다.</div>
             ) : (
-              renderTreeItems(treeData, 0)
+              <DraggableTree
+                items={treeData}
+                openItems={openItems}
+                renderItem={renderCommonCodeItem}
+                onReorder={handleReorder}
+              />
             )}
           </div>
         </div>

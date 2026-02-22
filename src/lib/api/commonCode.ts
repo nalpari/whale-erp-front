@@ -1,6 +1,19 @@
 import api from '../api'
 import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '../constants/organization'
 
+// 공통코드 순서 변경 요청 타입
+export interface CommonCodeReorderRequest {
+  parent_id: number | null
+  orders: Array<{ id: number; sort_order: number }>
+}
+
+/**
+ * 공통코드 순서 변경
+ */
+export async function reorderCommonCodes(data: CommonCodeReorderRequest): Promise<void> {
+  await api.put('/api/v1/common-codes/reorder', data)
+}
+
 // 급여명세서 공통코드 응답 타입
 export interface PayrollCommonCodeResponse {
   codeId: number
