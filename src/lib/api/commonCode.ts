@@ -1,4 +1,4 @@
-import api from '../api'
+import api from '@/lib/api'
 import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '../constants/organization'
 
 // 공통코드 순서 변경 요청 타입

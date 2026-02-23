@@ -29,6 +29,17 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import Image from 'next/image'
 
+// File → Blob URL 캐시 (WeakMap이므로 File이 GC되면 자동 해제)
+const fileBlobCache = new WeakMap<File, string>()
+
+function getOrCreateBlobUrl(file: File): string {
+  const cached = fileBlobCache.get(file)
+  if (cached) return cached
+  const url = URL.createObjectURL(file)
+  fileBlobCache.set(file, url)
+  return url
+}
+
 /**
  * 이미지 아이템 타입
  */
@@ -196,10 +207,7 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
     const inputRef = useRef<HTMLInputElement>(null)
     const actualRef = ref || inputRef
 
-    // 현재 활성 Blob URL 추적 (cleanup용)
-    const activeBlobUrlsRef = useRef<string[]>([])
-
-    // 이미지 미리보기 URL 생성 (파생 값 — setState 없이 계산)
+    // 이미지 미리보기 URL 생성 (파생 값 — WeakMap 캐시로 중복 생성 방지)
     const imageUrls = useMemo(() => {
       const urls: Record<string | number, string> = {}
 
@@ -208,29 +216,33 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
         if (image.url) {
           urls[key] = image.url
         } else if (image.file) {
-          urls[key] = URL.createObjectURL(image.file)
+          urls[key] = getOrCreateBlobUrl(image.file)
         }
       })
 
       return urls
     }, [images])
 
-    // Blob URL lifecycle 관리 (생성/해제는 effect에서)
+    // 현재 사용 중인 Blob URL 추적 및 정리
+    const activeBlobUrlsRef = useRef<Set<string>>(new Set())
+
     useEffect(() => {
-      const currentBlobUrls = Object.values(imageUrls).filter((url) => url.startsWith('blob:'))
-      const prevBlobUrls = activeBlobUrlsRef.current
+      const currentBlobUrls = new Set(
+        Object.values(imageUrls).filter((url) => url.startsWith('blob:'))
+      )
 
       // 이전에 있었지만 현재 없는 URL 해제
-      prevBlobUrls.forEach((url) => {
-        if (!currentBlobUrls.includes(url)) {
+      for (const url of activeBlobUrlsRef.current) {
+        if (!currentBlobUrls.has(url)) {
           URL.revokeObjectURL(url)
         }
-      })
+      }
       activeBlobUrlsRef.current = currentBlobUrls
 
-      // 언마운트 시 모든 Blob URL 해제
       return () => {
-        currentBlobUrls.forEach((url) => URL.revokeObjectURL(url))
+        for (const url of currentBlobUrls) {
+          URL.revokeObjectURL(url)
+        }
       }
     }, [imageUrls])
 
