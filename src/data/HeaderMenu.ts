@@ -212,7 +212,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 23,
         name: '공통코드 관리',
-        link: '#',
+        link: '/system/common-codes',
       },
       {
         id: 24,
@@ -255,7 +255,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 50,
             name: '공통코드 관리',
-            link: '#',
+            link: '/system/common-codes',
           },
           {
             id: 51,

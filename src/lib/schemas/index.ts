@@ -22,3 +22,6 @@ export * from './program';
 
 // 도입문의 스키마
 export * from './introduction';
+
+// 공통코드 스키마
+export * from './common-code';

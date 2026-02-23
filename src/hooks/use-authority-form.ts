@@ -26,9 +26,9 @@ function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDet
   return programs.map((program) => ({
     program_id: program.id,
     program_name: program.name,
-    can_read: program.can_read ?? undefined,
-    can_create_delete: program.can_create_delete ?? undefined,
-    can_update: program.can_update ?? undefined,
+    can_read: program.canRead ?? undefined,
+    can_create_delete: program.canCreateDelete ?? undefined,
+    can_update: program.canUpdate ?? undefined,
     children: program.children && program.children.length > 0
       ? toAuthorityDetailNodes(program.children)
       : undefined,
