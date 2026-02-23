@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
-import { Input, useAlert } from '@/components/common/ui'
+import { Input, useAlert, ImageUpload } from '@/components/common/ui'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import CheckboxButtonGroup from '@/components/master/store-menu/CheckboxButtonGroup'
@@ -198,9 +198,9 @@ export default function StoreMenuDetail() {
   return (
     <div className="data-wrap">
       <Location title="점포용 메뉴 관리" list={BREADCRUMBS} />
-      <div className="detail-wrap" key={detail.id}>
+      <div className="master-detail-data" key={detail.id}>
         {/* 메뉴 정보 섹션 */}
-        <div className={`slidebox-wrap mb-6 ${menuInfoOpen ? '' : 'close'}`}>
+        <div className={`slidebox-wrap ${menuInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>메뉴 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -303,9 +303,13 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴명 중국어(간체/번체)</th>
                       <td>
-                        <div className="flex gap-2">
-                          <Input value={detail.menuNameChs ?? '-'} disabled />
-                          <Input value={detail.menuNameCht ?? '-'} disabled />
+                        <div className="filed-flx">
+                          <div className="mx-500">
+                            <Input value={detail.menuNameChs ?? '-'} disabled />
+                          </div>
+                          <div className="mx-500">
+                            <Input value={detail.menuNameCht ?? '-'} disabled />
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -335,16 +339,20 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>가격</th>
                       <td>
-                        <div className="flex gap-2">
-                          <Input
-                            value={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
-                            disabled
-                          />
-                          {detail.discountPrice != null && detail.discountPrice > 0 && (
+                        <div className="filed-flx">
+                          <div className="mx-500">
                             <Input
-                              value={formatPrice(detail.discountPrice)}
+                              value={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
                               disabled
                             />
+                          </div>
+                          {detail.discountPrice != null && detail.discountPrice > 0 && (
+                            <div className="mx-500">
+                              <Input
+                                value={formatPrice(detail.discountPrice)}
+                                disabled
+                              />
+                            </div>
                           )}
                         </div>
                       </td>
@@ -353,22 +361,26 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>프로모션 가격</th>
                       <td>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
-                            disabled
-                          />
-                          <DatePicker
-                            value={detail.promotionStartDate ? new Date(detail.promotionStartDate) : null}
-                            disabled
-                            placeholder="시작일"
-                          />
-                          <span className="text-sm text-gray-600">~</span>
-                          <DatePicker
-                            value={detail.promotionEndDate ? new Date(detail.promotionEndDate) : null}
-                            disabled
-                            placeholder="종료일"
-                          />
+                        <div className="filed-flx">
+                          <div className="mx-500">
+                            <Input
+                              value={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
+                              disabled
+                            />
+                          </div>
+                          <div className="date-picker-wrap">
+                            <DatePicker
+                              value={detail.promotionStartDate ? new Date(detail.promotionStartDate) : null}
+                              disabled
+                              placeholder="시작일"
+                            />
+                            <span>~</span>
+                            <DatePicker
+                              value={detail.promotionEndDate ? new Date(detail.promotionEndDate) : null}
+                              disabled
+                              placeholder="종료일"
+                            />
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -418,20 +430,16 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴 이미지</th>
                       <td>
-                        {detail.menuImgFile?.publicUrl ? (
-                          <div className="py-2">
-                            <a
-                              href={detail.menuImgFile.publicUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 underline cursor-pointer"
-                            >
-                              {detail.menuImgFile.originalFileName}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 py-2 inline-block">이미지 없음</span>
-                        )}
+                        <ImageUpload
+                          images={
+                            detail.menuImgFile?.publicUrl
+                              ? [{ id: detail.menuImgFile.id ?? 1, name: detail.menuImgFile.originalFileName ?? '', url: detail.menuImgFile.publicUrl }]
+                              : []
+                          }
+                          onAdd={() => {}}
+                          onRemove={() => {}}
+                          disabled
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -442,7 +450,7 @@ export default function StoreMenuDetail() {
 
         {/* 옵션 정보 섹션 */}
         {detail.optionSets.length > 0 && (
-        <div className={`slidebox-wrap mb-6 ${optionInfoOpen ? '' : 'close'}`}>
+        <div className={`slidebox-wrap ${optionInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>옵션 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -623,7 +631,7 @@ export default function StoreMenuDetail() {
         )}
 
         {/* 카테고리 정보 섹션 */}
-        <div className={`slidebox-wrap mb-6 ${categoryInfoOpen ? '' : 'close'}`}>
+        <div className={`slidebox-wrap ${categoryInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>카테고리 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -675,10 +683,9 @@ export default function StoreMenuDetail() {
             </div>
           </AnimateHeight>
         </div>
-      </div>
 
-      {/* 메타데이터 테이블 */}
-      <div className="detail-data-info-wrap mt-5">
+        {/* 메타데이터 테이블 */}
+        <div className="detail-data-info-wrap">
         <table className="default-table">
           <colgroup>
             <col width="120px" />
@@ -709,6 +716,7 @@ export default function StoreMenuDetail() {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

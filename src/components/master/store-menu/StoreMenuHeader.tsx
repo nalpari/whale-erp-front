@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
-import { useAlert } from '@/components/common/ui'
+import { useAlert, ImageUpload } from '@/components/common/ui'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
@@ -259,24 +259,16 @@ export default function StoreMenuHeader() {
                       <tr>
                         <th>이미지 정보</th>
                         <td>
-                          {detail.menuImgFile?.publicUrl ? (
-                            <div className="flex items-center gap-3 py-2">
-                              <a
-                                href={detail.menuImgFile.publicUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 underline cursor-pointer"
-                              >
-                                {detail.menuImgFile.originalFileName}
-                              </a>
-                            </div>
-                          ) : (
-                            <ul className="detail-data-list">
-                              <li className="detail-data-item">
-                                <span className="detail-data-text">이미지 없음</span>
-                              </li>
-                            </ul>
-                          )}
+                          <ImageUpload
+                            images={
+                              detail.menuImgFile?.publicUrl
+                                ? [{ id: detail.menuImgFile.id ?? 1, name: detail.menuImgFile.originalFileName ?? '', url: detail.menuImgFile.publicUrl }]
+                                : []
+                            }
+                            onAdd={() => {}}
+                            onRemove={() => {}}
+                            disabled
+                          />
                         </td>
                       </tr>
                       {/* 10. 가격 */}

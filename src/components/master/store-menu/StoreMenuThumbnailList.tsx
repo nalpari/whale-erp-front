@@ -263,7 +263,7 @@ export default function StoreMenuThumbnailList({
                                   key={`${menu.id}-${menu.displayOrder}`}
                                   type="text"
                                   className="input-frame small"
-                                  defaultValue={menu.displayOrder}
+                                  defaultValue={menu.displayOrder ?? 0}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={(e) => {
                                     displayOrderRef.current.set(menu.id, e.target.value)
