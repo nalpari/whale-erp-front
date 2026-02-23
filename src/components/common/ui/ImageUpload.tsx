@@ -3,10 +3,10 @@
 import {
   forwardRef,
   useCallback,
-  useId,
-  useRef,
-  useState,
   useEffect,
+  useId,
+  useMemo,
+  useRef,
   type ChangeEvent,
   type DragEvent,
 } from 'react'
@@ -28,6 +28,17 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Image from 'next/image'
+
+// File → Blob URL 캐시 (WeakMap이므로 File이 GC되면 자동 해제)
+const fileBlobCache = new WeakMap<File, string>()
+
+function getOrCreateBlobUrl(file: File): string {
+  const cached = fileBlobCache.get(file)
+  if (cached) return cached
+  const url = URL.createObjectURL(file)
+  fileBlobCache.set(file, url)
+  return url
+}
 
 /**
  * 이미지 아이템 타입
@@ -196,44 +207,44 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
     const inputRef = useRef<HTMLInputElement>(null)
     const actualRef = ref || inputRef
 
-    // 이미지 미리보기 URL 생성
-    const [imageUrls, setImageUrls] = useState<Record<string | number, string>>({})
-    const blobUrlsRef = useRef<string[]>([])
-
-    // Blob URL 관리 (외부 시스템 동기화)
-    useEffect(() => {
+    // 이미지 미리보기 URL 생성 (파생 값 — WeakMap 캐시로 중복 생성 방지)
+    const imageUrls = useMemo(() => {
       const urls: Record<string | number, string> = {}
-      const newBlobUrls: string[] = []
 
       images.forEach((image, index) => {
         const key = image.id ?? `image-${index}`
         if (image.url) {
           urls[key] = image.url
         } else if (image.file) {
-          const blobUrl = URL.createObjectURL(image.file)
-          urls[key] = blobUrl
-          newBlobUrls.push(blobUrl)
+          urls[key] = getOrCreateBlobUrl(image.file)
         }
       })
-      // Blob URL 생성은 외부 시스템 동기화이므로 useEffect 내 setState가 적절
-      setImageUrls(urls) // eslint-disable-line react-hooks/set-state-in-effect
 
-      // cleanup: 이전에 생성한 blob URL 해제
-      const prevBlobUrls = blobUrlsRef.current
-      prevBlobUrls.forEach((url) => {
-        if (!newBlobUrls.includes(url)) {
-          URL.revokeObjectURL(url)
-        }
-      })
-      blobUrlsRef.current = newBlobUrls
-
-      // cleanup: 컴포넌트 언마운트 시 모든 blob URL 해제
-      return () => {
-        newBlobUrls.forEach((url) => {
-          URL.revokeObjectURL(url)
-        })
-      }
+      return urls
     }, [images])
+
+    // 현재 사용 중인 Blob URL 추적 및 정리
+    const activeBlobUrlsRef = useRef<Set<string>>(new Set())
+
+    useEffect(() => {
+      const currentBlobUrls = new Set(
+        Object.values(imageUrls).filter((url) => url.startsWith('blob:'))
+      )
+
+      // 이전에 있었지만 현재 없는 URL 해제
+      for (const url of activeBlobUrlsRef.current) {
+        if (!currentBlobUrls.has(url)) {
+          URL.revokeObjectURL(url)
+        }
+      }
+      activeBlobUrlsRef.current = currentBlobUrls
+
+      return () => {
+        for (const url of currentBlobUrls) {
+          URL.revokeObjectURL(url)
+        }
+      }
+    }, [imageUrls])
 
     // 드래그 센서 설정
     const sensors = useSensors(

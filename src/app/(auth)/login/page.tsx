@@ -94,7 +94,7 @@ export default function LoginPage() {
         }
 
         setAuthority(authority.programs);
-        setAffiliationId(String(authority.authority_id));
+        setAffiliationId(String(authority.authorityId));
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
@@ -109,9 +109,9 @@ export default function LoginPage() {
         setAuthCookie()
         router.push("/logined-main");
       } else if (companies && companies.length > 0) {
-        setAuthorities(companies.map((c: { authority_id: number; company_name: string | null; brand_name: string | null }) => ({
-          id: String(c.authority_id),
-          name: c.company_name || c.brand_name || `회사 ${c.authority_id}`,
+        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null }) => ({
+          id: String(c.authorityId),
+          name: c.companyName || c.brandName || `회사 ${c.authorityId}`,
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');

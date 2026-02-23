@@ -55,7 +55,7 @@ export const useFullTimePayrollList = (params: FullTimePayrollListParams, enable
   return useQuery({
     queryKey: payrollKeys.fullTime.list(params),
     queryFn: () => getPayrollStatements(params),
-    enabled,
+    enabled: enabled && !!params.headOfficeId,
   })
 }
 
@@ -159,7 +159,7 @@ export const usePartTimePayrollList = (params: PartTimePayrollListParams, enable
   return useQuery({
     queryKey: payrollKeys.partTime.list(params),
     queryFn: () => getPartTimerPayrollStatements(params),
-    enabled,
+    enabled: enabled && !!params.headOfficeId,
   })
 }
 
@@ -238,7 +238,7 @@ export const useOvertimePayrollList = (params: OvertimePayrollListParams, enable
   return useQuery({
     queryKey: payrollKeys.overtime.list(params),
     queryFn: () => getOvertimeAllowanceStatements(params),
-    enabled,
+    enabled: enabled && !!params.headOfficeId,
   })
 }
 

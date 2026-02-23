@@ -23,11 +23,10 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   // 검색 폼 상태
-  // TODO: 테스트용 기본값 - 나중에 제거
   const [formData, setFormData] = useState({
-    headOfficeOrganizationId: 1 as number | null,
-    franchiseOrganizationId: 2 as number | null,
-    storeId: 1 as number | null,
+    headOfficeOrganizationId: null as number | null,
+    franchiseOrganizationId: null as number | null,
+    storeId: null as number | null,
     workStatus: '',
     employeeName: '',
     employeeClassification: '',

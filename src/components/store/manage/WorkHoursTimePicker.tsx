@@ -2,6 +2,7 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
+import 'swiper/css/pagination'
 import { Navigation } from 'swiper/modules'
 import { useState } from 'react'
 import type { OperatingFormState } from '@/types/store'
