@@ -49,9 +49,9 @@ function getTemperatureBadgeClass(code: string): string {
 
 /** menuProperty 공통코드 name → mapping 표시 텍스트 */
 function getMappingLabel(menuProperty: string, menuPropertyMap: Record<string, string>): string {
-  if (!menuProperty) return '매핑 안됨'
+  if (!menuProperty) return '-'
   const name = menuPropertyMap[menuProperty]
-  if (!name) return '매핑 안됨'
+  if (!name) return '-'
   if (name.includes('본사')) return '본사 마스터'
   if (name.includes('가맹점')) return '가맹점 마스터'
   return name
