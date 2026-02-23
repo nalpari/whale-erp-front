@@ -121,6 +121,7 @@ export const useUpdateStoreMenu = () => {
       const response = await api.put<ApiResponse<StoreMenuDetailResponse>>(
         `/api/master/menu/store/${id}`,
         formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
       )
       return response.data.data
     },
