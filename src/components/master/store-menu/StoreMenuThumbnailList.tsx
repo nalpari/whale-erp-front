@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { formatPrice } from '@/util/format-util'
+import { formatDateYmd } from '@/util/date-util'
 import type { StoreMenuItem } from '@/types/store-menu'
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200]
@@ -28,10 +29,6 @@ interface StoreMenuThumbnailListProps {
   onBulkStatusChange: (operationStatus: string) => void
   onSaveDisplayOrder: (changes: Map<number, string>) => void
   onMenuClick?: (menuId: number) => void
-}
-
-function formatDate(dateStr: string) {
-  return dateStr.slice(0, 10)
 }
 
 /** 마케팅 공통코드 name → thumb-badge CSS 클래스 매핑 */
@@ -152,7 +149,7 @@ export default function StoreMenuThumbnailList({
                 onClick={() => onMenuClick?.(menu.id)}
               >
                 {/* 썸네일 이미지 */}
-                <div className="thumb-item-img">
+                <div className="thumb-item-img" style={{ aspectRatio: '1 / 1', overflow: 'hidden' }}>
                   {/* 마케팅 뱃지 (NEW, BEST, EVENT) */}
                   {menu.marketingTags?.length > 0 && (
                     <div className="thumb-badge-wrap">
@@ -178,7 +175,7 @@ export default function StoreMenuThumbnailList({
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   ) : (
-                    <div className="flex items-center justify-center w-full aspect-square text-gray-300 text-sm">
+                    <div className="flex items-center justify-center w-full h-full bg-gray-50 text-gray-300 text-sm">
                       No Image
                     </div>
                   )}
@@ -263,6 +260,7 @@ export default function StoreMenuThumbnailList({
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
                                 <input
+                                  key={`${menu.id}-${menu.displayOrder}`}
                                   type="text"
                                   className="input-frame small"
                                   defaultValue={menu.displayOrder}
@@ -310,7 +308,7 @@ export default function StoreMenuThumbnailList({
                           <td>
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
-                                <span className="thum-data-text">{formatDate(menu.createdAt)}</span>
+                                <span className="thum-data-text">{formatDateYmd(menu.createdAt)}</span>
                               </li>
                             </ul>
                           </td>

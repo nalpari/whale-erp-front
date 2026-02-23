@@ -51,6 +51,8 @@ export default function StoreMenuSearch({
     if (isMulti) {
       setSearchOpen(true)
       setShowOfficeError(true)
+    } else {
+      setShowOfficeError(false)
     }
   }
 

@@ -33,6 +33,7 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 }
 
 export default function StoreMenuManage() {
+  const router = useRouter()
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
@@ -114,7 +115,6 @@ export default function StoreMenuManage() {
     label: item.name,
   })), [menuClassChildren])
 
-  const router = useRouter()
   const handleMenuClick = useCallback((menuId: number) => {
     router.push(`/master/menu/store/header?id=${menuId}`)
   }, [router])

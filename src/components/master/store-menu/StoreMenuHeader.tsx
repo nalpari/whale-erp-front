@@ -76,7 +76,7 @@ export default function StoreMenuHeader() {
           <CubeLoader />
         </div>
       )}
-      {!loading && error && <div className="warning-txt">{error.message}</div>}
+      {!loading && error && <div className="warning-txt">메뉴 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>

@@ -12,7 +12,7 @@ import { useStoreMenuDetail, useUpdateStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
-import type { StoreMenuOptionSet, StoreMenuUpdateRequest, StoreMenuFilePayload } from '@/types/store-menu'
+import type { StoreMenuCategory, StoreMenuOptionSet, StoreMenuUpdateRequest, StoreMenuFilePayload } from '@/types/store-menu'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
 
@@ -28,7 +28,7 @@ export default function StoreMenuDetail() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const menuIdParam = searchParams.get('id')
-  const menuId = menuIdParam ? Number(menuIdParam) : null
+  const menuId = menuIdParam && /^\d+$/.test(menuIdParam) ? Number(menuIdParam) : null
 
   const { data: detail, isPending: loading } = useStoreMenuDetail(menuId)
   const { mutateAsync: updateMenu } = useUpdateStoreMenu()
@@ -98,6 +98,7 @@ export default function StoreMenuDetail() {
   )
 
   const handleGoBack = () => {
+    if (menuId == null) return
     router.push(`/master/menu/store/header?id=${menuId}`)
   }
 
@@ -128,10 +129,10 @@ export default function StoreMenuDetail() {
       displayOrder: detail.displayOrder,
       description: detail.description,
       categories: detail.categories
-        .filter((cat) => cat.categoryId != null)
+        .filter((cat): cat is StoreMenuCategory & { categoryId: number } => cat.categoryId != null)
         .map((cat) => ({
           id: cat.menuCategoryId,
-          categoryId: cat.categoryId!,
+          categoryId: cat.categoryId,
           isDeleted: false,
         })),
       optionSets: detail.optionSets.map((os) => ({
@@ -223,11 +224,11 @@ export default function StoreMenuDetail() {
                       <td>
                         <div className="filed-flx">
                           <div className="mx-500">
-                            <Input defaultValue={detail.companyName ?? '-'} disabled />
+                            <Input value={detail.companyName ?? '-'} disabled />
                           </div>
                           {detail.franchiseId && (
                             <div className="mx-500">
-                              <Input defaultValue={detail.franchiseName ?? '-'} disabled />
+                              <Input value={detail.franchiseName ?? '-'} disabled />
                             </div>
                           )}
                         </div>
@@ -237,7 +238,7 @@ export default function StoreMenuDetail() {
                       <th>점포 선택</th>
                       <td>
                         <div className="mx-500">
-                          <Input defaultValue={detail.storeName ?? '-'} disabled />
+                          <Input value={detail.storeName ?? '-'} disabled />
                         </div>
                       </td>
                     </tr>
@@ -259,13 +260,13 @@ export default function StoreMenuDetail() {
                       <td>
                         {hasMasterMapping ? (
                           <div className="flex items-center gap-2">
-                            <Input defaultValue={detail.masterMenuName ?? '-'} disabled />
+                            <Input value={detail.masterMenuName ?? '-'} disabled />
                             <span className="text-sm text-gray-900 whitespace-nowrap">
                               {detail.masterMenuCode}
                             </span>
                           </div>
                         ) : (
-                          <Input defaultValue="-" disabled />
+                          <Input value="-" disabled />
                         )}
                       </td>
                     </tr>
@@ -288,14 +289,14 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴명(대표) <span className="red">*</span></th>
                       <td>
-                        <Input defaultValue={detail.menuName ?? '-'} disabled />
+                        <Input value={detail.menuName ?? '-'} disabled />
                       </td>
                     </tr>
                     {/* 5. 메뉴명 영어 */}
                     <tr>
                       <th>메뉴명 영어</th>
                       <td>
-                        <Input defaultValue={detail.menuNameEng ?? '-'} disabled />
+                        <Input value={detail.menuNameEng ?? '-'} disabled />
                       </td>
                     </tr>
                     {/* 6. 메뉴명 중국어(간체/번체) */}
@@ -303,8 +304,8 @@ export default function StoreMenuDetail() {
                       <th>메뉴명 중국어(간체/번체)</th>
                       <td>
                         <div className="flex gap-2">
-                          <Input defaultValue={detail.menuNameChs ?? '-'} disabled />
-                          <Input defaultValue={detail.menuNameCht ?? '-'} disabled />
+                          <Input value={detail.menuNameChs ?? '-'} disabled />
+                          <Input value={detail.menuNameCht ?? '-'} disabled />
                         </div>
                       </td>
                     </tr>
@@ -312,7 +313,7 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴명 일어</th>
                       <td>
-                        <Input defaultValue={detail.menuNameJpn ?? '-'} disabled />
+                        <Input value={detail.menuNameJpn ?? '-'} disabled />
                       </td>
                     </tr>
                     {/* 8. 과세 */}
@@ -336,12 +337,12 @@ export default function StoreMenuDetail() {
                       <td>
                         <div className="flex gap-2">
                           <Input
-                            defaultValue={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
+                            value={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
                             disabled
                           />
                           {detail.discountPrice != null && detail.discountPrice > 0 && (
                             <Input
-                              defaultValue={formatPrice(detail.discountPrice)}
+                              value={formatPrice(detail.discountPrice)}
                               disabled
                             />
                           )}
@@ -354,7 +355,7 @@ export default function StoreMenuDetail() {
                       <td>
                         <div className="flex items-center gap-2">
                           <Input
-                            defaultValue={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
+                            value={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
                             disabled
                           />
                           <DatePicker
@@ -402,7 +403,7 @@ export default function StoreMenuDetail() {
                       <tr>
                         <th>노출 순서</th>
                         <td>
-                          <Input defaultValue={String(detail.displayOrder ?? '-')} disabled />
+                          <Input value={String(detail.displayOrder ?? '-')} disabled />
                         </td>
                       </tr>
                     )}
@@ -410,7 +411,7 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴 Description <span className="red">*</span></th>
                       <td>
-                        <Input defaultValue={detail.description ?? '-'} disabled />
+                        <Input value={detail.description ?? '-'} disabled />
                       </td>
                     </tr>
                     {/* 15. 메뉴 이미지 */}
@@ -689,21 +690,21 @@ export default function StoreMenuDetail() {
             <tr>
               <th>등록자</th>
               <td>
-                <Input defaultValue={detail.createdByLoginId ? `${detail.createdByName}(${detail.createdByLoginId})` : '-'} disabled />
+                <Input value={detail.createdByLoginId ? `${detail.createdByName}(${detail.createdByLoginId})` : '-'} disabled />
               </td>
               <th>등록일시</th>
               <td>
-                <Input defaultValue={formatDateYmd(detail.createdAt)} disabled />
+                <Input value={formatDateYmd(detail.createdAt)} disabled />
               </td>
             </tr>
             <tr>
               <th>최종 수정자</th>
               <td>
-                <Input defaultValue={detail.updatedByLoginId ? `${detail.updatedByName}(${detail.updatedByLoginId})` : '-'} disabled />
+                <Input value={detail.updatedByLoginId ? `${detail.updatedByName}(${detail.updatedByLoginId})` : '-'} disabled />
               </td>
               <th>최종 수정일시</th>
               <td>
-                <Input defaultValue={formatDateYmd(detail.updatedAt)} disabled />
+                <Input value={formatDateYmd(detail.updatedAt)} disabled />
               </td>
             </tr>
           </tbody>
