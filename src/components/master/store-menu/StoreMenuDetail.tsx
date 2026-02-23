@@ -331,7 +331,7 @@ export default function StoreMenuDetail() {
                             defaultValue={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
                             disabled
                           />
-                          {detail.discountPrice != null && (
+                          {detail.discountPrice != null && detail.discountPrice > 0 && (
                             <Input
                               defaultValue={formatPrice(detail.discountPrice)}
                               disabled

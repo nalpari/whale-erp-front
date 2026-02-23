@@ -87,14 +87,6 @@ export default function StoreMenuThumbnailList({
     displayOrderRef.current.clear()
   }, [rows])
 
-  if (loading) {
-    return (
-      <div className="cube-loader-overlay">
-        <CubeLoader />
-      </div>
-    )
-  }
-
   return (
     <div className="data-list-wrap">
       <div className="data-list-header">
@@ -141,11 +133,16 @@ export default function StoreMenuThumbnailList({
       </div>
 
       <div className="data-list-bx">
-        {rows.length === 0 ? (
+        {loading ? (
+          <div className="cube-loader-overlay">
+            <CubeLoader />
+          </div>
+        ) : rows.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">조회된 메뉴가 없습니다.</div>
           </div>
         ) : (
+          <>
           <div className="thumb-list-wrap">
             {rows.map((menu) => (
               <div
@@ -248,10 +245,13 @@ export default function StoreMenuThumbnailList({
                           <td>
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
-                                <span className="thum-data-text">
-                                  {menu.franchiseName ? `${menu.companyName} | ${menu.franchiseName}` : menu.companyName}
-                                </span>
+                                <span className="thum-data-text">{menu.companyName}</span>
                               </li>
+                              {menu.franchiseName && (
+                                <li className="thum-data-item">
+                                  <span className="thum-data-text">{menu.franchiseName}</span>
+                                </li>
+                              )}
                             </ul>
                           </td>
                         </tr>
@@ -288,9 +288,13 @@ export default function StoreMenuThumbnailList({
                           <td>
                             <ul className="thum-data-list">
                               <li className="thum-data-item">
-                                <span className="thum-data-text">
-                                  {menuTypeMap[menu.menuType] ?? menu.menuType} | {setStatusMap[menu.setStatus] ?? menu.setStatus} | {menuClassMap[menu.menuClassificationCode] ?? menu.menuClassificationCode}
-                                </span>
+                                <span className="thum-data-text">{menuTypeMap[menu.menuType] ?? menu.menuType}</span>
+                              </li>
+                              <li className="thum-data-item">
+                                <span className="thum-data-text">{setStatusMap[menu.setStatus] ?? menu.setStatus}</span>
+                              </li>
+                              <li className="thum-data-item">
+                                <span className="thum-data-text">{menuClassMap[menu.menuClassificationCode] ?? menu.menuClassificationCode}</span>
                               </li>
                             </ul>
                           </td>
@@ -353,9 +357,8 @@ export default function StoreMenuThumbnailList({
               </div>
             ))}
           </div>
-        )}
-        {rows.length > 0 && (
           <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+          </>
         )}
       </div>
     </div>

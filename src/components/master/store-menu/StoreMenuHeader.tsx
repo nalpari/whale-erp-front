@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
@@ -67,7 +68,11 @@ export default function StoreMenuHeader() {
   return (
     <div className="data-wrap">
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
-      {loading && <div className="data-loading">메뉴 정보를 불러오는 중...</div>}
+      {loading && (
+        <div className="cube-loader-overlay">
+          <CubeLoader />
+        </div>
+      )}
       {!loading && error && <div className="warning-txt">{error.message}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
