@@ -66,10 +66,7 @@ export default function StoreMenuSearch({
     [menuTypeOptions]
   )
 
-  const classificationSelectOptions: SelectOption[] = useMemo(
-    () => menuClassificationOptions.map((opt) => ({ value: opt.value, label: opt.label })),
-    [menuClassificationOptions]
-  )
+  const classificationSelectOptions: SelectOption[] = menuClassificationOptions
 
   // 카테고리 목록 조회 (본사 선택 시만 활성화, depth=1 고정)
   const { data: categories = [] } = useCategoryList(
