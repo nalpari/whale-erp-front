@@ -87,7 +87,7 @@ function TimeSwiperColumn({
 }: TimeSwiperColumnProps) {
   const isInteractionBlocked = disabled || readOnly
   return (
-    <td>
+    <td className="py-2.5 px-4">
       <div
         className={`work-hours-box${disabled ? ' disabled' : ''}`}
         style={readOnly ? { pointerEvents: 'none' } : undefined}

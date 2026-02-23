@@ -341,6 +341,8 @@ export const StoreDetailBasicInfo = ({
                       value={formState.storeName}
                       onChange={(event) => onStoreNameChange(event.target.value)}
                       readOnly={!formState.organizationId}
+                      error={!!fieldErrors.storeName}
+                      helpText={fieldErrors.storeName}
                     />
                     {isEditMode && (
                       <Input
@@ -364,7 +366,6 @@ export const StoreDetailBasicInfo = ({
                       </div>
                     )}
                   </div>
-                  {fieldErrors.storeName && <div className="warning-txt">{fieldErrors.storeName}</div>}
                 </td>
               </tr>
               <tr>
@@ -407,8 +408,9 @@ export const StoreDetailBasicInfo = ({
                   <Input
                     value={formState.ceoName}
                     onChange={(event) => onCeoNameChange(event.target.value)}
+                    error={!!fieldErrors.ceoName}
+                    helpText={fieldErrors.ceoName}
                   />
-                  {fieldErrors.ceoName && <div className="warning-txt">{fieldErrors.ceoName}</div>}
                 </td>
               </tr>
               <tr>
@@ -420,10 +422,11 @@ export const StoreDetailBasicInfo = ({
                       onChange={(event) => onBusinessNumberChange(event.target.value)}
                       inputMode="numeric"
                       maxLength={12}
+                      error={!!fieldErrors.businessNumber}
+                      helpText={fieldErrors.businessNumber}
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.businessNumber && <div className="warning-txt">{fieldErrors.businessNumber}</div>}
                 </td>
               </tr>
               <tr>
@@ -453,10 +456,11 @@ export const StoreDetailBasicInfo = ({
                       onChange={(event) => onCeoPhoneChange(event.target.value)}
                       inputMode="numeric"
                       maxLength={13}
+                      error={!!fieldErrors.ceoPhone}
+                      helpText={fieldErrors.ceoPhone}
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.ceoPhone && <div className="warning-txt">{fieldErrors.ceoPhone}</div>}
                 </td>
               </tr>
               <tr>
@@ -469,10 +473,11 @@ export const StoreDetailBasicInfo = ({
                       onChange={(event) => onStorePhoneChange(event.target.value)}
                       inputMode="numeric"
                       maxLength={13}
+                      error={!!fieldErrors.storePhone}
+                      helpText={fieldErrors.storePhone}
                     />
                     <span className="form-helper input-helper-inline">※ 숫자만 입력 가능</span>
                   </div>
-                  {fieldErrors.storePhone && <div className="warning-txt">{fieldErrors.storePhone}</div>}
                 </td>
               </tr>
               <tr>

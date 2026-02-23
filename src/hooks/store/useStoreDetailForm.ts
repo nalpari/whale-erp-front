@@ -5,11 +5,11 @@ import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey }
 import { useCommonCodeCache } from '@/hooks/queries'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
-  A001: '※ 필수 입력 항목입니다.',
-  A002: '※ 필수 선택 항목입니다.',
-  A007: '※ 종료일은 시작일보다 과거일자로 설정할 수 없습니다.',
-  A008: '※ 숫자만 허용합니다.',
-  A009: '※ 한글만 허용합니다.',
+  A001: '필수 입력 항목입니다.',
+  A002: '필수 선택 항목입니다.',
+  A007: '종료일은 시작일보다 과거일자로 설정할 수 없습니다.',
+  A008: '숫자만 허용합니다.',
+  A009: '한글만 허용합니다.',
 }
 
 export type StoreFormMode = 'create' | 'edit'
@@ -321,7 +321,7 @@ export const validateForm = (formState: StoreFormState) => {
     if (/\D/.test(digitsOnly)) {
       fieldErrors.businessNumber = VALIDATE_MESSAGE.A008
     } else if (digitsOnly.length !== 10) {
-      fieldErrors.businessNumber = '※ 사업자등록번호는 10자리만 입력해주세요.'
+      fieldErrors.businessNumber = '사업자등록번호는 10자리만 입력해주세요.'
     }
   }
   if (!formState.ceoName.trim()) fieldErrors.ceoName = VALIDATE_MESSAGE.A001
@@ -329,14 +329,14 @@ export const validateForm = (formState: StoreFormState) => {
   if (formState.ceoPhone.trim()) {
     const formatted = formatPhoneNumber(formState.ceoPhone)
     if (!PHONE_REGEX.test(formatted)) {
-      fieldErrors.ceoPhone = '※ 전화번호 형식이 올바르지 않습니다'
+      fieldErrors.ceoPhone = '전화번호 형식이 올바르지 않습니다.'
     }
   }
   if (!formState.storeAddress.trim()) fieldErrors.storeAddress = VALIDATE_MESSAGE.A001
   if (formState.storePhone.trim()) {
     const formatted = formatPhoneNumber(formState.storePhone)
     if (!PHONE_REGEX.test(formatted)) {
-      fieldErrors.storePhone = '※ 전화번호 형식이 올바르지 않습니다'
+      fieldErrors.storePhone = '전화번호 형식이 올바르지 않습니다.'
     }
   }
 
@@ -367,10 +367,10 @@ export const validateForm = (formState: StoreFormState) => {
   ;(['WEEKDAY', 'SATURDAY', 'SUNDAY'] as OperatingDayType[]).forEach((dayType) => {
     const item = formState.operating[dayType]
     if (item.isOperating && !isTimeRangeValid(item.openTime, item.closeTime)) {
-      formErrors.push(`※ ${dayTypeLabel(dayType)} 운영 시간을 확인하세요.`)
+      formErrors.push(`${dayTypeLabel(dayType)} 운영 시간을 확인하세요.`)
     }
     if (item.breakTimeEnabled && !isTimeRangeValid(item.breakStartTime, item.breakEndTime)) {
-      formErrors.push(`※ ${dayTypeLabel(dayType)} 휴게 시간을 확인하세요.`)
+      formErrors.push(`${dayTypeLabel(dayType)} 휴게 시간을 확인하세요.`)
     }
   })
 
