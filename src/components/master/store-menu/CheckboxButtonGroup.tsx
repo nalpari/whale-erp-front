@@ -79,5 +79,3 @@ export default function CheckboxButtonGroup<T extends string = string>({
     </div>
   )
 }
-
-CheckboxButtonGroup.displayName = 'CheckboxButtonGroup'

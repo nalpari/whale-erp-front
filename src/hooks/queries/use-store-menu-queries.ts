@@ -121,11 +121,6 @@ export const useUpdateStoreMenu = () => {
       const response = await api.put<ApiResponse<StoreMenuDetailResponse>>(
         `/api/master/menu/store/${id}`,
         formData,
-        {
-          params: files.deleteFileId
-            ? { deleteFileId: files.deleteFileId }
-            : undefined,
-        },
       )
       return response.data.data
     },

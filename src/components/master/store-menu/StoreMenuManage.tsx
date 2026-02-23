@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import StoreMenuSearch, { type StoreMenuSearchFilters } from './StoreMenuSearch'
@@ -9,7 +9,7 @@ import { useStoreMenuList, useBulkUpdateOperationStatus, useBulkUpdateDisplayOrd
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui'
-import axios from 'axios'
+import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
@@ -19,6 +19,12 @@ const buildCodeMap = (items: { code: string; name: string }[]) =>
     acc[item.code] = item.name
     return acc
   }, {})
+
+const parseDisplayOrder = (value: string): number | null => {
+  if (value === '') return null
+  const num = Number(value)
+  return Number.isFinite(num) ? num : null
+}
 
 const DEFAULT_FILTERS: StoreMenuSearchFilters = {
   officeId: null,
@@ -40,24 +46,21 @@ export default function StoreMenuManage() {
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
-  const queryParams: StoreMenuListParams = useMemo(
-    () => ({
-      bpId: appliedFilters.officeId ?? undefined,
-      menuGroup: 'MNGRP_002',
-      storeId: appliedFilters.storeId ?? undefined,
-      menuName: appliedFilters.menuName || undefined,
-      operationStatus:
-        appliedFilters.operationStatus === 'ALL' ? undefined : appliedFilters.operationStatus,
-      menuType: appliedFilters.menuType === 'ALL' ? undefined : appliedFilters.menuType,
-      menuClassificationCode: appliedFilters.menuClassificationCode || undefined,
-      categoryId: appliedFilters.categoryId ?? undefined,
-      createdAtFrom: formatDateYmdOrUndefined(appliedFilters.from),
-      createdAtTo: formatDateYmdOrUndefined(appliedFilters.to),
-      page,
-      size: pageSize,
-    }),
-    [appliedFilters, page, pageSize]
-  )
+  const queryParams: StoreMenuListParams = {
+    bpId: appliedFilters.officeId ?? undefined,
+    menuGroup: 'MNGRP_002',
+    storeId: appliedFilters.storeId ?? undefined,
+    menuName: appliedFilters.menuName || undefined,
+    operationStatus:
+      appliedFilters.operationStatus === 'ALL' ? undefined : appliedFilters.operationStatus,
+    menuType: appliedFilters.menuType === 'ALL' ? undefined : appliedFilters.menuType,
+    menuClassificationCode: appliedFilters.menuClassificationCode || undefined,
+    categoryId: appliedFilters.categoryId ?? undefined,
+    createdAtFrom: formatDateYmdOrUndefined(appliedFilters.from),
+    createdAtTo: formatDateYmdOrUndefined(appliedFilters.to),
+    page,
+    size: pageSize,
+  }
 
   const canFetchList = appliedFilters.officeId != null
   const { data: response, isPending } = useStoreMenuList(queryParams, canFetchList)
@@ -84,12 +87,12 @@ export default function StoreMenuManage() {
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
 
-  const statusMap = useMemo(() => buildCodeMap(statusChildren), [statusChildren])
-  const marketingMap = useMemo(() => buildCodeMap(marketingChildren), [marketingChildren])
-  const menuPropertyMap = useMemo(() => buildCodeMap(menuPropertyChildren), [menuPropertyChildren])
-  const menuTypeMap = useMemo(() => buildCodeMap(menuTypeChildren), [menuTypeChildren])
-  const setStatusMap = useMemo(() => buildCodeMap(setStatusChildren), [setStatusChildren])
-  const menuClassMap = useMemo(() => buildCodeMap(menuClassChildren), [menuClassChildren])
+  const statusMap = buildCodeMap(statusChildren)
+  const marketingMap = buildCodeMap(marketingChildren)
+  const menuPropertyMap = buildCodeMap(menuPropertyChildren)
+  const menuTypeMap = buildCodeMap(menuTypeChildren)
+  const setStatusMap = buildCodeMap(setStatusChildren)
+  const menuClassMap = buildCodeMap(menuClassChildren)
 
   const handleSelectChange = (id: number, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -100,24 +103,24 @@ export default function StoreMenuManage() {
     })
   }
 
-  const operationStatusOptions = useMemo(() => statusChildren.map((item) => ({
+  const operationStatusOptions = statusChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  })), [statusChildren])
+  }))
 
-  const menuTypeOptions = useMemo(() => menuTypeChildren.map((item) => ({
+  const menuTypeOptions = menuTypeChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  })), [menuTypeChildren])
+  }))
 
-  const menuClassificationOptions = useMemo(() => menuClassChildren.map((item) => ({
+  const menuClassificationOptions = menuClassChildren.map((item) => ({
     value: item.code,
     label: item.name,
-  })), [menuClassChildren])
+  }))
 
-  const handleMenuClick = useCallback((menuId: number) => {
+  const handleMenuClick = (menuId: number) => {
     router.push(`/master/menu/store/header?id=${menuId}`)
-  }, [router])
+  }
 
   const { confirm, alert } = useAlert()
   const bulkStatusMutation = useBulkUpdateOperationStatus()
@@ -142,7 +145,7 @@ export default function StoreMenuManage() {
       setSelectedIds(new Set())
     } catch (error) {
       if (
-        axios.isAxiosError(error) &&
+        isAxiosError(error) &&
         error.response?.status === 400 &&
         error.response?.data?.code === 'ERR3034'
       ) {
@@ -165,7 +168,7 @@ export default function StoreMenuManage() {
     const body = Array.from(changes.entries()).map(([menuId, value]) => ({
       bpId,
       menuId,
-      displayOrder: value === '' ? null : (Number.isFinite(Number(value)) ? Number(value) : null),
+      displayOrder: parseDisplayOrder(value),
     }))
 
     try {

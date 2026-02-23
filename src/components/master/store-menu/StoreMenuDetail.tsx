@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import { Input, useAlert, ImageUpload } from '@/components/common/ui'
@@ -12,6 +12,7 @@ import { useStoreMenuDetail, useUpdateStoreMenu } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
+import { isAxiosError } from 'axios'
 import type { StoreMenuCategory, StoreMenuOptionSet, StoreMenuUpdateRequest, StoreMenuFilePayload } from '@/types/store-menu'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
@@ -36,6 +37,7 @@ export default function StoreMenuDetail() {
 
   // 운영여부 로컬 상태
   const [localOperationStatus, setLocalOperationStatus] = useState<string | null>(null)
+  const [operationStatusError, setOperationStatusError] = useState<string | null>(null)
   // 옵션 SET / 옵션 아이템의 isActive를 로컬 상태로 관리
   const [optionSetActiveMap, setOptionSetActiveMap] = useState<Record<number, boolean>>({})
   const [optionItemActiveMap, setOptionItemActiveMap] = useState<Record<number, boolean>>({})
@@ -45,12 +47,13 @@ export default function StoreMenuDetail() {
   if (detail && detail.id !== prevDetailId) {
     setPrevDetailId(detail.id)
     setLocalOperationStatus(detail.operationStatus)
+
     const setMap: Record<number, boolean> = {}
     const itemMap: Record<number, boolean> = {}
-    detail.optionSets.forEach((os) => {
+    for (const os of detail.optionSets) {
       setMap[os.id] = os.isActive
-      os.optionSetItems.forEach((item) => { itemMap[item.id] = item.isActive })
-    })
+      for (const item of os.optionSetItems) { itemMap[item.id] = item.isActive }
+    }
     setOptionSetActiveMap(setMap)
     setOptionItemActiveMap(itemMap)
   }
@@ -74,28 +77,13 @@ export default function StoreMenuDetail() {
   const { children: temperatureChildren } = useCommonCode('TMPCF', true)
 
   // 공통코드 매핑 (코드 → 이름)
-  const statusCodeMap = useMemo(
-    () => statusChildren.reduce<Record<string, string>>((acc, c) => { acc[c.code] = c.name; return acc }, {}),
-    [statusChildren],
-  )
+  const statusCodeMap = statusChildren.reduce<Record<string, string>>((acc, c) => { acc[c.code] = c.name; return acc }, {})
 
   // 공통코드 → RadioButtonGroup/CheckboxButtonGroup 옵션 변환
-  const statusOptions = useMemo(
-    () => statusChildren.map((c) => ({ value: c.code, label: c.name })),
-    [statusChildren],
-  )
-  const menuTypeOptions = useMemo(
-    () => menuTypeChildren.map((c) => ({ value: c.code, label: c.name })),
-    [menuTypeChildren],
-  )
-  const marketingOptions = useMemo(
-    () => marketingChildren.map((c) => ({ value: c.code, label: c.name })),
-    [marketingChildren],
-  )
-  const temperatureOptions = useMemo(
-    () => temperatureChildren.map((c) => ({ value: c.code, label: c.name })),
-    [temperatureChildren],
-  )
+  const statusOptions = statusChildren.map((c) => ({ value: c.code, label: c.name }))
+  const menuTypeOptions = menuTypeChildren.map((c) => ({ value: c.code, label: c.name }))
+  const marketingOptions = marketingChildren.map((c) => ({ value: c.code, label: c.name }))
+  const temperatureOptions = temperatureChildren.map((c) => ({ value: c.code, label: c.name }))
 
   const handleGoBack = () => {
     if (menuId == null) return
@@ -162,42 +150,40 @@ export default function StoreMenuDetail() {
       await updateMenu({ id: detail.id, payload, files })
       await alert('저장되었습니다.')
       handleGoList()
-    } catch {
-      await alert('메뉴 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } catch (error) {
+      if (
+        isAxiosError(error) &&
+        error.response?.status === 400 &&
+        error.response?.data?.code === 'ERR3034'
+      ) {
+        setOperationStatusError('마스터 메뉴가 미운영 상태이므로 점포 메뉴를 운영 상태로 변경할 수 없습니다.')
+      } else {
+        await alert('메뉴 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      }
     }
   }
 
-  if (loading && !detail) {
-    return (
-      <div className="data-wrap">
-        <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
-        <div className="cube-loader-overlay">
-          <CubeLoader />
-        </div>
-      </div>
-    )
-  }
-
-  if (!detail) {
-    return (
-      <div className="data-wrap">
-        <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
-        <div className="empty-wrap">
-          <div className="empty-data">메뉴 정보를 찾을 수 없습니다.</div>
-        </div>
-      </div>
-    )
-  }
-
   // 마스터 메뉴 매핑 여부
-  const hasMasterMapping = !!detail.menuProperty
+  const hasMasterMapping = detail ? !!detail.menuProperty : false
   // 본사 마스터 매핑(MNPRP_001)이고 미운영(STOPR_002) 상태이면 운영여부 변경 불가
-  const isOperationStatusLocked =
-    detail.menuProperty === 'MNPRP_001' && (localOperationStatus ?? detail.operationStatus) === 'STOPR_002'
+  const isOperationStatusLocked = detail
+    ? detail.menuProperty === 'MNPRP_001' && (localOperationStatus ?? detail.operationStatus) === 'STOPR_002'
+    : false
 
   return (
     <div className="data-wrap">
       <Location title="점포용 메뉴 관리" list={BREADCRUMBS} />
+      {loading && !detail && (
+        <div className="cube-loader-overlay">
+          <CubeLoader />
+        </div>
+      )}
+      {!loading && !detail && (
+        <div className="empty-wrap">
+          <div className="empty-data">메뉴 정보를 찾을 수 없습니다.</div>
+        </div>
+      )}
+      {detail && (
       <div className="master-detail-data" key={detail.id}>
         {/* 메뉴 정보 섹션 */}
         <div className={`slidebox-wrap ${menuInfoOpen ? '' : 'close'}`}>
@@ -249,9 +235,17 @@ export default function StoreMenuDetail() {
                         <RadioButtonGroup
                           options={statusOptions}
                           value={localOperationStatus ?? detail.operationStatus}
-                          onChange={(val) => setLocalOperationStatus(val)}
+                          onChange={(val) => {
+                            setLocalOperationStatus(val)
+                            setOperationStatusError(null)
+                          }}
                           disabled={isOperationStatusLocked}
                         />
+                        {operationStatusError && (
+                          <div className="warning-txt mt5" role="alert">
+                            * {operationStatusError}
+                          </div>
+                        )}
                       </td>
                     </tr>
                     {/* 2. 마스터용 메뉴 mapping */}
@@ -718,6 +712,7 @@ export default function StoreMenuDetail() {
         </table>
         </div>
       </div>
+      )}
     </div>
   )
 }

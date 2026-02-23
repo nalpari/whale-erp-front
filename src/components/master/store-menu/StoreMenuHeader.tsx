@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
@@ -41,20 +41,18 @@ export default function StoreMenuHeader() {
   const { children: menuPropertyChildren } = useCommonCode('MNPRP', true)
 
   // 공통코드 매핑
-  const codeMap = useMemo(() => {
-    const build = (items: { code: string; name: string }[]) =>
-      items.reduce<Record<string, string>>((acc, item) => {
-        acc[item.code] = item.name
-        return acc
-      }, {})
-    return {
-      status: build(statusChildren),
-      menuType: build(menuTypeChildren),
-      marketing: build(marketingChildren),
-      temperature: build(temperatureChildren),
-      menuProperty: build(menuPropertyChildren),
-    }
-  }, [statusChildren, menuTypeChildren, marketingChildren, temperatureChildren, menuPropertyChildren])
+  const buildMap = (items: { code: string; name: string }[]) =>
+    items.reduce<Record<string, string>>((acc, item) => {
+      acc[item.code] = item.name
+      return acc
+    }, {})
+  const codeMap = {
+    status: buildMap(statusChildren),
+    menuType: buildMap(menuTypeChildren),
+    marketing: buildMap(marketingChildren),
+    temperature: buildMap(temperatureChildren),
+    menuProperty: buildMap(menuPropertyChildren),
+  }
 
   const handleDelete = async () => {
     if (menuId == null) return
@@ -180,7 +178,7 @@ export default function StoreMenuHeader() {
                               </>
                             ) : (
                               <li className="detail-data-item">
-                                <span className="detail-data-text">매핑 안됨</span>
+                                <span className="detail-data-text">-</span>
                               </li>
                             )}
                           </ul>
