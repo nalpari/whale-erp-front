@@ -180,7 +180,7 @@ export default function BeforeMain() {
               navigation
               modules={[Navigation]}
             >
-              {[...SWIPER_SLIDES, SWIPER_SLIDES[0]].map((slide, idx) => (
+              {SWIPER_SLIDES.map((slide, idx) => (
                 <SwiperSlide key={idx}>
                   <div className="section-swip-item">
                     <div className="swip-item-head">
@@ -347,7 +347,7 @@ export default function BeforeMain() {
                         <div className="service-tit">WHALE ERP</div>
                         <div className="service-name">{service.name}</div>
                       </div>
-                      <button type="button" className="service-arr" />
+                      <button type="button" className="service-arr" aria-label="서비스 상세 보기" />
                     </div>
                   </div>
                 </SwiperSlide>
