@@ -508,7 +508,7 @@ export default function StoreMenuHeader() {
           </div>
         </div>
       )}
-      {!loading && !detail && <div className="data-empty">조회할 메뉴를 선택하세요.</div>}
+      {!loading && !detail && !error && <div className="data-empty">조회할 메뉴를 선택하세요.</div>}
     </div>
   )
 }

@@ -201,10 +201,11 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
     useEffect(() => { onMultiOfficeRef.current = onMultiOffice }, [onMultiOffice])
+    const bpCount = bpTree.length
     useEffect(() => {
-        if (bpLoading || bpTree.length === 0) return
-        onMultiOfficeRef.current?.(bpTree.length > 1)
-    }, [bpLoading, bpTree])
+        if (bpLoading || bpCount === 0) return
+        onMultiOfficeRef.current?.(bpCount > 1)
+    }, [bpLoading, bpCount])
 
     // 본사/가맹점 자동 선택 및 고정 로직
     // - 단일 본사(사용자 소속): 항상 고정, 초기화해도 값 유지

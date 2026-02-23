@@ -660,8 +660,8 @@ export default function StoreMenuDetail() {
                         </div>
                         {detail.categories?.length > 0 && (
                           <ul className="category-list">
-                            {detail.categories.map((cat) => (
-                              <li key={cat.menuCategoryId ?? cat.categoryId} className="category-item">
+                            {detail.categories.map((cat, idx) => (
+                              <li key={cat.menuCategoryId ?? cat.categoryId ?? `cat-${idx}`} className="category-item">
                                 <span className="category-name">
                                   {cat.name}{!cat.isActive && <i> 미운영</i>}
                                 </span>

@@ -79,7 +79,9 @@ export default function StoreMenuSearch({
     const map: Record<string, string> = {}
     const collect = (items: Category[]) => {
       for (const item of items) {
-        map[String(item.id)] = item.categoryName
+        if (item.id != null) {
+          map[String(item.id)] = item.categoryName
+        }
         if (item.children?.length) collect(item.children)
       }
     }
@@ -91,7 +93,7 @@ export default function StoreMenuSearch({
   const categorySelectOptions: SelectOption[] = useMemo(() => {
     const options: SelectOption[] = []
     const flattenTree = (items: Category[], depth: number) => {
-      for (const item of items) {
+      for (const item of items.filter((i) => i.id != null)) {
         const prefix = depth > 1 ? '\u00A0\u00A0\u00A0'.repeat(depth - 1) : ''
         options.push({
           value: String(item.id),
