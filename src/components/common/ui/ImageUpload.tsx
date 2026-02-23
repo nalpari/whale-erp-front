@@ -3,10 +3,10 @@
 import {
   forwardRef,
   useCallback,
-  useId,
-  useRef,
-  useState,
   useEffect,
+  useId,
+  useMemo,
+  useRef,
   type ChangeEvent,
   type DragEvent,
 } from 'react'
@@ -196,44 +196,43 @@ const ImageUpload = forwardRef<HTMLInputElement, ImageUploadProps>(
     const inputRef = useRef<HTMLInputElement>(null)
     const actualRef = ref || inputRef
 
-    // 이미지 미리보기 URL 생성
-    const [imageUrls, setImageUrls] = useState<Record<string | number, string>>({})
-    const blobUrlsRef = useRef<string[]>([])
+    // 현재 활성 Blob URL 추적 (cleanup용)
+    const activeBlobUrlsRef = useRef<string[]>([])
 
-    // Blob URL 관리 (외부 시스템 동기화)
-    useEffect(() => {
+    // 이미지 미리보기 URL 생성 (파생 값 — setState 없이 계산)
+    const imageUrls = useMemo(() => {
       const urls: Record<string | number, string> = {}
-      const newBlobUrls: string[] = []
 
       images.forEach((image, index) => {
         const key = image.id ?? `image-${index}`
         if (image.url) {
           urls[key] = image.url
         } else if (image.file) {
-          const blobUrl = URL.createObjectURL(image.file)
-          urls[key] = blobUrl
-          newBlobUrls.push(blobUrl)
+          urls[key] = URL.createObjectURL(image.file)
         }
       })
-      // Blob URL 생성은 외부 시스템 동기화이므로 useEffect 내 setState가 적절
-      setImageUrls(urls) // eslint-disable-line react-hooks/set-state-in-effect
 
-      // cleanup: 이전에 생성한 blob URL 해제
-      const prevBlobUrls = blobUrlsRef.current
-      prevBlobUrls.forEach((url) => {
-        if (!newBlobUrls.includes(url)) {
-          URL.revokeObjectURL(url)
-        }
-      })
-      blobUrlsRef.current = newBlobUrls
-
-      // cleanup: 컴포넌트 언마운트 시 모든 blob URL 해제
-      return () => {
-        newBlobUrls.forEach((url) => {
-          URL.revokeObjectURL(url)
-        })
-      }
+      return urls
     }, [images])
+
+    // Blob URL lifecycle 관리 (생성/해제는 effect에서)
+    useEffect(() => {
+      const currentBlobUrls = Object.values(imageUrls).filter((url) => url.startsWith('blob:'))
+      const prevBlobUrls = activeBlobUrlsRef.current
+
+      // 이전에 있었지만 현재 없는 URL 해제
+      prevBlobUrls.forEach((url) => {
+        if (!currentBlobUrls.includes(url)) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      activeBlobUrlsRef.current = currentBlobUrls
+
+      // 언마운트 시 모든 Blob URL 해제
+      return () => {
+        currentBlobUrls.forEach((url) => URL.revokeObjectURL(url))
+      }
+    }, [imageUrls])
 
     // 드래그 센서 설정
     const sensors = useSensors(
