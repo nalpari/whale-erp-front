@@ -156,6 +156,7 @@ export default function StoreMenuDetail() {
         error.response?.status === 400 &&
         error.response?.data?.code === 'ERR3034'
       ) {
+        setLocalOperationStatus(detail.operationStatus)
         setOperationStatusError('마스터 메뉴가 미운영 상태이므로 점포 메뉴를 운영 상태로 변경할 수 없습니다.')
       } else {
         await alert('메뉴 저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
@@ -165,10 +166,6 @@ export default function StoreMenuDetail() {
 
   // 마스터 메뉴 매핑 여부
   const hasMasterMapping = detail ? !!detail.menuProperty : false
-  // 본사 마스터 매핑(MNPRP_001)이고 미운영(STOPR_002) 상태이면 운영여부 변경 불가
-  const isOperationStatusLocked = detail
-    ? detail.menuProperty === 'MNPRP_001' && (localOperationStatus ?? detail.operationStatus) === 'STOPR_002'
-    : false
 
   return (
     <div className="data-wrap">
@@ -239,7 +236,6 @@ export default function StoreMenuDetail() {
                             setLocalOperationStatus(val)
                             setOperationStatusError(null)
                           }}
-                          disabled={isOperationStatusLocked}
                         />
                         {operationStatusError && (
                           <div className="warning-txt mt5" role="alert">
@@ -660,8 +656,8 @@ export default function StoreMenuDetail() {
                         </div>
                         {detail.categories?.length > 0 && (
                           <ul className="category-list">
-                            {detail.categories.map((cat) => (
-                              <li key={cat.menuCategoryId ?? cat.categoryId} className="category-item">
+                            {detail.categories.map((cat, idx) => (
+                              <li key={cat.menuCategoryId ?? cat.categoryId ?? `cat-${idx}`} className="category-item">
                                 <span className="category-name">
                                   {cat.name}{!cat.isActive && <i> 미운영</i>}
                                 </span>

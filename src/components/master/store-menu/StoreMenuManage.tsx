@@ -128,9 +128,11 @@ export default function StoreMenuManage() {
 
   /** 선택된 메뉴들의 운영여부를 일괄 변경. ERR3034: 마스터 메뉴가 미운영이면 점포 메뉴 운영 전환 불가 */
   const handleBulkStatusChange = async (operationStatus: string) => {
-    if (selectedIds.size === 0 || appliedFilters.officeId == null) return
+    const officeId = appliedFilters.officeId
+    if (selectedIds.size === 0 || officeId == null) return
 
-    const statusLabel = operationStatus === 'STOPR_001' ? '운영' : '미운영'
+    const menuIds = Array.from(selectedIds)
+    const statusLabel = statusMap[operationStatus] ?? operationStatus
     const confirmed = await confirm(
       `선택한 메뉴의 운영여부를 '${statusLabel}'으로 변경하시겠습니까?`
     )
@@ -138,8 +140,8 @@ export default function StoreMenuManage() {
 
     try {
       await bulkStatusMutation.mutateAsync({
-        bpId: appliedFilters.officeId,
-        menuIds: Array.from(selectedIds),
+        bpId: officeId,
+        menuIds,
         operationStatus,
       })
       setSelectedIds(new Set())
@@ -159,14 +161,13 @@ export default function StoreMenuManage() {
 
   /** 썸네일 리스트에서 변경된 노출순서를 일괄 저장 */
   const handleSaveDisplayOrder = async (changes: Map<number, string>) => {
-    if (changes.size === 0 || appliedFilters.officeId == null) return
+    const officeId = appliedFilters.officeId
+    if (changes.size === 0 || officeId == null) return
 
     const confirmed = await confirm('저장하시겠습니까?')
     if (!confirmed) return
-
-    const bpId = appliedFilters.officeId
     const body = Array.from(changes.entries()).map(([menuId, value]) => ({
-      bpId,
+      bpId: officeId,
       menuId,
       displayOrder: parseDisplayOrder(value),
     }))

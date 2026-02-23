@@ -109,7 +109,11 @@ export default function StoreMenuThumbnailList({
           <button
             type="button"
             className="btn-form basic"
-            onClick={() => onSaveDisplayOrder(displayOrderRef.current)}
+            onClick={() => {
+              if (displayOrderRef.current.size > 0) {
+                onSaveDisplayOrder(displayOrderRef.current)
+              }
+            }}
           >
             저장
           </button>
