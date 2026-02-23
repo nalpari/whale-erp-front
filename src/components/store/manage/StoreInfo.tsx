@@ -50,15 +50,10 @@ export default function StoreInfo() {
   // HeadOfficeFranchiseStoreSelect 내부에서 동일 쿼리 키로 useStoreOptions를 호출하므로
   // 캐시 워밍 역할 — 본사/가맹점 변경 시 점포 옵션을 미리 가져와 드롭다운 지연을 줄인다.
   useStoreOptions(filters.officeId, filters.franchiseId)
-  // bpTree auto-apply로 filters.officeId가 세팅되었는데
-  // appliedFilters.officeId가 아직 null이면 자동으로 동기화하여 목록 조회를 시작한다.
-  // (렌더 중 조건부 setState — React 19에서 지원하는 패턴으로, 조건 해소 후 루프 종료)
-  if (filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isPending: loading, error } = useStoreList(storeParams, canFetchList)
+  const { data: response, isPending, error } = useStoreList(storeParams, canFetchList)
+  const loading = canFetchList && isPending
   const { children: statusChildren } = useCommonCode('STOPR', true)
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
@@ -68,7 +63,6 @@ export default function StoreInfo() {
   }
 
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
-  // bpTree auto-apply가 filters에 고정값을 다시 세팅한다.
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
   }

@@ -87,9 +87,11 @@ interface DatePickerProps {
   error?: boolean
   /** 에러 메시지 또는 도움말 텍스트 */
   helpText?: string
+  /** 비활성화 여부 */
+  disabled?: boolean
 }
 
-export default function DatePicker({ value, onChange, placeholder, error = false, helpText }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder, error = false, helpText, disabled }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? new Date())
   const isControlled = value !== undefined
   const currentValue = isControlled ? value : selectedDate
@@ -125,6 +127,7 @@ export default function DatePicker({ value, onChange, placeholder, error = false
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={helpText ? `${inputId}-help` : undefined}
           dayClassName={getDayClassName}
+          disabled={disabled}
         />
       </div>
       {helpText && (
