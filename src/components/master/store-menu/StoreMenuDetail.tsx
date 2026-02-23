@@ -34,23 +34,26 @@ export default function StoreMenuDetail() {
   const { mutateAsync: updateMenu } = useUpdateStoreMenu()
   const { alert, confirm } = useAlert()
 
-  // 운영여부 로컬 상태 — key={detail.id}로 리마운트되므로 초기값에서 직접 설정
-  const [localOperationStatus, setLocalOperationStatus] = useState<string | null>(
-    detail?.operationStatus ?? null
-  )
+  // 운영여부 로컬 상태
+  const [localOperationStatus, setLocalOperationStatus] = useState<string | null>(null)
   // 옵션 SET / 옵션 아이템의 isActive를 로컬 상태로 관리
-  const [optionSetActiveMap, setOptionSetActiveMap] = useState<Record<number, boolean>>(() => {
+  const [optionSetActiveMap, setOptionSetActiveMap] = useState<Record<number, boolean>>({})
+  const [optionItemActiveMap, setOptionItemActiveMap] = useState<Record<number, boolean>>({})
+
+  // detail 데이터가 로드/변경되면 로컬 상태 동기화 (렌더 중 동기화 패턴)
+  const [prevDetailId, setPrevDetailId] = useState<number | null>(null)
+  if (detail && detail.id !== prevDetailId) {
+    setPrevDetailId(detail.id)
+    setLocalOperationStatus(detail.operationStatus)
     const setMap: Record<number, boolean> = {}
-    detail?.optionSets.forEach((os) => { setMap[os.id] = os.isActive })
-    return setMap
-  })
-  const [optionItemActiveMap, setOptionItemActiveMap] = useState<Record<number, boolean>>(() => {
     const itemMap: Record<number, boolean> = {}
-    detail?.optionSets.forEach((os) => {
+    detail.optionSets.forEach((os) => {
+      setMap[os.id] = os.isActive
       os.optionSetItems.forEach((item) => { itemMap[item.id] = item.isActive })
     })
-    return itemMap
-  })
+    setOptionSetActiveMap(setMap)
+    setOptionItemActiveMap(itemMap)
+  }
 
   const handleToggleOptionSetActive = (optionSetId: number) => {
     setOptionSetActiveMap((prev) => ({ ...prev, [optionSetId]: !prev[optionSetId] }))
@@ -124,11 +127,13 @@ export default function StoreMenuDetail() {
       temperatureTags: detail.temperatureTags ?? [],
       displayOrder: detail.displayOrder,
       description: detail.description,
-      categories: detail.categories.map((cat) => ({
-        id: cat.menuCategoryId,
-        categoryId: cat.categoryId!,
-        isDeleted: false,
-      })),
+      categories: detail.categories
+        .filter((cat) => cat.categoryId != null)
+        .map((cat) => ({
+          id: cat.menuCategoryId,
+          categoryId: cat.categoryId!,
+          isDeleted: false,
+        })),
       optionSets: detail.optionSets.map((os) => ({
         id: os.id,
         setName: os.setName,
@@ -185,13 +190,16 @@ export default function StoreMenuDetail() {
 
   // 마스터 메뉴 매핑 여부
   const hasMasterMapping = !!detail.menuProperty
+  // 본사 마스터 매핑(MNPRP_001)이고 미운영(STOPR_002) 상태이면 운영여부 변경 불가
+  const isOperationStatusLocked =
+    detail.menuProperty === 'MNPRP_001' && (localOperationStatus ?? detail.operationStatus) === 'STOPR_002'
 
   return (
     <div className="data-wrap">
       <Location title="점포용 메뉴 관리" list={BREADCRUMBS} />
       <div className="detail-wrap" key={detail.id}>
         {/* 메뉴 정보 섹션 */}
-        <div className={`slidebox-wrap ${menuInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+        <div className={`slidebox-wrap mb-6 ${menuInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>메뉴 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -241,7 +249,7 @@ export default function StoreMenuDetail() {
                           options={statusOptions}
                           value={localOperationStatus ?? detail.operationStatus}
                           onChange={(val) => setLocalOperationStatus(val)}
-                          disabled={detail.menuProperty === 'MNPRP_001' && (localOperationStatus ?? detail.operationStatus) === 'STOPR_002'}
+                          disabled={isOperationStatusLocked}
                         />
                       </td>
                     </tr>
@@ -250,9 +258,9 @@ export default function StoreMenuDetail() {
                       <th>마스터용 메뉴 mapping</th>
                       <td>
                         {hasMasterMapping ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div className="flex items-center gap-2">
                             <Input defaultValue={detail.masterMenuName ?? '-'} disabled />
-                            <span style={{ color: '#222', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                            <span className="text-sm text-gray-900 whitespace-nowrap">
                               {detail.masterMenuCode}
                             </span>
                           </div>
@@ -265,14 +273,14 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴 타입 <span className="red">*</span></th>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="flex items-center gap-3">
                           <RadioButtonGroup
                             options={menuTypeOptions}
                             value={detail.menuType}
                             onChange={() => { }}
                             disabled={true}
                           />
-                          <span style={{ fontSize: '14px', color: '#999', whiteSpace: 'nowrap' }}>※ 옵션으로 선택할 경우 단독으로 판매할 수 없고, 각 메뉴의 옵션의 역할만 수행합니다.</span>
+                          <span className="text-sm text-gray-400 whitespace-nowrap">※ 옵션으로 선택할 경우 단독으로 판매할 수 없고, 각 메뉴의 옵션의 역할만 수행합니다.</span>
                         </div>
                       </td>
                     </tr>
@@ -294,7 +302,7 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>메뉴명 중국어(간체/번체)</th>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="flex gap-2">
                           <Input defaultValue={detail.menuNameChs ?? '-'} disabled />
                           <Input defaultValue={detail.menuNameCht ?? '-'} disabled />
                         </div>
@@ -311,14 +319,14 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>과세</th>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="flex items-center gap-3">
                           <RadioButtonGroup
                             options={TAX_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
                             value={detail.taxType}
                             onChange={() => { }}
                             disabled={true}
                           />
-                          <span style={{ fontSize: '14px', color: '#999', whiteSpace: 'nowrap' }}>※ 과세로 설정하면 가격에는 VAT를 포함합니다.</span>
+                          <span className="text-sm text-gray-400 whitespace-nowrap">※ 과세로 설정하면 가격에는 VAT를 포함합니다.</span>
                         </div>
                       </td>
                     </tr>
@@ -326,7 +334,7 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>가격</th>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="flex gap-2">
                           <Input
                             defaultValue={detail.salePrice != null ? `${formatPrice(detail.salePrice)}` : '-'}
                             disabled
@@ -344,7 +352,7 @@ export default function StoreMenuDetail() {
                     <tr>
                       <th>프로모션 가격</th>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="flex items-center gap-2">
                           <Input
                             defaultValue={detail.discountPrice != null ? `${formatPrice(detail.discountPrice)}` : '-'}
                             disabled
@@ -354,7 +362,7 @@ export default function StoreMenuDetail() {
                             disabled
                             placeholder="시작일"
                           />
-                          <span style={{ fontSize: '14px', color: '#555' }}>~</span>
+                          <span className="text-sm text-gray-600">~</span>
                           <DatePicker
                             value={detail.promotionEndDate ? new Date(detail.promotionEndDate) : null}
                             disabled
@@ -410,18 +418,18 @@ export default function StoreMenuDetail() {
                       <th>메뉴 이미지</th>
                       <td>
                         {detail.menuImgFile?.publicUrl ? (
-                          <div style={{ padding: '8px 0' }}>
+                          <div className="py-2">
                             <a
                               href={detail.menuImgFile.publicUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
+                              className="text-sm text-blue-600 underline cursor-pointer"
                             >
                               {detail.menuImgFile.originalFileName}
                             </a>
                           </div>
                         ) : (
-                          <span style={{ color: '#999', fontSize: '13px', padding: '8px 0', display: 'inline-block' }}>이미지 없음</span>
+                          <span className="text-sm text-gray-400 py-2 inline-block">이미지 없음</span>
                         )}
                       </td>
                     </tr>
@@ -433,7 +441,7 @@ export default function StoreMenuDetail() {
 
         {/* 옵션 정보 섹션 */}
         {detail.optionSets.length > 0 && (
-        <div className={`slidebox-wrap ${optionInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+        <div className={`slidebox-wrap mb-6 ${optionInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>옵션 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -600,7 +608,7 @@ export default function StoreMenuDetail() {
                               </div>
                             </th>
                             <td>
-                              <div style={{ color: '#999', fontSize: '14px', padding: '12px 0' }}>옵션 항목이 없습니다.</div>
+                              <div className="text-sm text-gray-400 py-3">옵션 항목이 없습니다.</div>
                             </td>
                           </tr>
                         )}
@@ -614,7 +622,7 @@ export default function StoreMenuDetail() {
         )}
 
         {/* 카테고리 정보 섹션 */}
-        <div className={`slidebox-wrap ${categoryInfoOpen ? '' : 'close'}`} style={{ marginBottom: '24px' }}>
+        <div className={`slidebox-wrap mb-6 ${categoryInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
             <h2>카테고리 정보</h2>
             <div className="slidebox-btn-wrap">
@@ -669,7 +677,7 @@ export default function StoreMenuDetail() {
       </div>
 
       {/* 메타데이터 테이블 */}
-      <div className="detail-data-info-wrap" style={{ marginTop: '20px' }}>
+      <div className="detail-data-info-wrap mt-5">
         <table className="default-table">
           <colgroup>
             <col width="120px" />

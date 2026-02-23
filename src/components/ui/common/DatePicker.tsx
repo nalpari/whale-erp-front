@@ -128,7 +128,6 @@ export default function DatePicker({ value, onChange, placeholder, error = false
           aria-describedby={helpText ? `${inputId}-help` : undefined}
           dayClassName={getDayClassName}
           disabled={disabled}
-          readOnly={disabled}
         />
       </div>
       {helpText && (

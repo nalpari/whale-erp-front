@@ -45,38 +45,34 @@ export default function CheckboxButtonGroup<T extends string = string>({
       {label && (
         <label className="flex items-center gap-1 mb-2 text-sm font-medium text-gray-700">
           {label}
-          {required && <span className="red">*</span>}
+          {required && <span className="text-red-500">*</span>}
         </label>
       )}
 
-      <div className="radio-wrap" role="group" aria-label={label}>
+      <div className="radio-wrap" role="group" aria-label={label ?? name ?? 'checkbox group'}>
         {options.map((option) => {
           const isSelected = values.includes(option.value)
           const optionId = `${groupId}-${option.value}`
 
           return (
-            <button
-              key={option.value}
-              type="button"
-              id={optionId}
-              role="checkbox"
-              aria-checked={isSelected}
-              className={`radio-btn${isSelected ? ' act' : ''}`}
-              onClick={() => handleToggle(option.value)}
-              disabled={disabled}
-            >
+            <div key={option.value} className="radio-btn-wrap">
               <input
                 type="checkbox"
+                id={optionId}
                 name={groupName}
                 value={option.value}
                 checked={isSelected}
                 onChange={() => handleToggle(option.value)}
                 disabled={disabled}
                 className="sr-only"
-                tabIndex={-1}
               />
-              {option.label}
-            </button>
+              <label
+                htmlFor={optionId}
+                className={`radio-btn${isSelected ? ' act' : ''}`}
+              >
+                {option.label}
+              </label>
+            </div>
           )
         })}
       </div>

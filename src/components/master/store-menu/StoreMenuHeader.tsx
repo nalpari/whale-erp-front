@@ -15,13 +15,16 @@ import type { StoreMenuOptionSet } from '@/types/store-menu'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
+/** 운영 상태 코드 */
+const OPERATION_STATUS_ACTIVE = 'STOPR_001'
+
 const formatValue = (value?: string | null) => value ?? '-'
 
 export default function StoreMenuHeader() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const menuIdParam = searchParams.get('id')
-  const menuId = menuIdParam ? Number(menuIdParam) : null
+  const menuId = menuIdParam && /^\d+$/.test(menuIdParam) ? Number(menuIdParam) : null
 
   const { data: detail, isPending: loading, error } = useStoreMenuDetail(menuId)
   const { mutateAsync: deleteMenu } = useDeleteStoreMenu()
@@ -257,12 +260,12 @@ export default function StoreMenuHeader() {
                         <th>이미지 정보</th>
                         <td>
                           {detail.menuImgFile?.publicUrl ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
+                            <div className="flex items-center gap-3 py-2">
                               <a
                                 href={detail.menuImgFile.publicUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ fontSize: '13px', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
+                                className="text-sm text-blue-600 underline cursor-pointer"
                               >
                                 {detail.menuImgFile.originalFileName}
                               </a>
@@ -293,7 +296,7 @@ export default function StoreMenuHeader() {
                             </li>
                             {detail.discountPrice != null && detail.discountPrice > 0 && (
                               <li className="detail-data-item">
-                                <span className="detail-data-text" style={{ color: '#e74c3c' }}>
+                                <span className="detail-data-text text-red-500">
                                   {formatPrice(detail.discountPrice)}원
                                 </span>
                               </li>
@@ -337,7 +340,7 @@ export default function StoreMenuHeader() {
           </div>
           {/* 옵션 구성 섹션 */}
           {detail.optionSets?.length > 0 && (
-            <div className={`slidebox-wrap ${optionInfoOpen ? '' : 'close'}`} style={{ marginTop: '24px' }}>
+            <div className={`slidebox-wrap mt-6 ${optionInfoOpen ? '' : 'close'}`}>
               <div className="slidebox-header">
                 <h2>옵션 구성</h2>
                 <div className="slidebox-btn-wrap">
@@ -388,7 +391,7 @@ export default function StoreMenuHeader() {
                                       <ul key={item.id} className="detail-data-list">
                                         <li className="detail-data-item">
                                           <span className="detail-data-text">
-                                            <span className={item.operationStatus !== 'STOPR_001' ? 'red' : ''}>
+                                            <span className={item.operationStatus !== OPERATION_STATUS_ACTIVE ? 'red' : ''}>
                                               ({codeMap.status[item.operationStatus] ?? item.operationStatus})
                                             </span>
                                             {' '}{item.optionSetItemName}
@@ -420,7 +423,7 @@ export default function StoreMenuHeader() {
                                       </ul>
                                     ))
                                   ) : (
-                                    <span className="detail-data-text" style={{ color: '#999' }}>옵션 항목 없음</span>
+                                    <span className="detail-data-text text-gray-400">옵션 항목 없음</span>
                                   )}
                                 </div>
                               </div>
@@ -437,7 +440,7 @@ export default function StoreMenuHeader() {
 
           {/* 카테고리 설정 섹션 */}
           {detail.categories?.length > 0 && (
-            <div className={`slidebox-wrap ${categoryInfoOpen ? '' : 'close'}`} style={{ marginTop: '24px' }}>
+            <div className={`slidebox-wrap mt-6 ${categoryInfoOpen ? '' : 'close'}`}>
               <div className="slidebox-header">
                 <h2>카테고리 설정</h2>
                 <div className="slidebox-btn-wrap">
@@ -481,7 +484,7 @@ export default function StoreMenuHeader() {
           )}
 
           {/* 메타데이터 테이블 */}
-          <div className="detail-data-info-wrap" style={{ marginTop: '20px' }}>
+          <div className="detail-data-info-wrap mt-5">
             <table className="default-table">
               <colgroup>
                 <col width="120px" />
@@ -493,21 +496,21 @@ export default function StoreMenuHeader() {
                 <tr>
                   <th>등록자</th>
                   <td>
-                    <Input defaultValue={detail?.createdByLoginId ? `${detail.createdByName}(${detail.createdByLoginId})` : '-'} disabled />
+                    <Input value={detail?.createdByLoginId ? `${detail.createdByName}(${detail.createdByLoginId})` : '-'} disabled />
                   </td>
                   <th>등록일시</th>
                   <td>
-                    <Input defaultValue={formatDateYmd(detail?.createdAt)} disabled />
+                    <Input value={formatDateYmd(detail?.createdAt)} disabled />
                   </td>
                 </tr>
                 <tr>
                   <th>최종 수정자</th>
                   <td>
-                    <Input defaultValue={detail?.updatedByLoginId ? `${detail.updatedByName}(${detail.updatedByLoginId})` : '-'} disabled />
+                    <Input value={detail?.updatedByLoginId ? `${detail.updatedByName}(${detail.updatedByLoginId})` : '-'} disabled />
                   </td>
                   <th>최종 수정일시</th>
                   <td>
-                    <Input defaultValue={formatDateYmd(detail?.updatedAt)} disabled />
+                    <Input value={formatDateYmd(detail?.updatedAt)} disabled />
                   </td>
                 </tr>
               </tbody>

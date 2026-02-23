@@ -80,9 +80,9 @@
  * | --------------------- | -------------------------------------------------- | ------------------ | ------------------ | ----------- |
  * | 단일 본사 + 단일 가맹 | `bpTree.length === 1 && franchises.length === 1`   | 자동 고정(readOnly)| 자동 고정(readOnly)| 사용자 선택 |
  * | 단일 본사 + 다중 가맹 | `bpTree.length === 1 && franchises.length > 1`     | 자동 고정(readOnly)| 사용자 선택        | 사용자 선택 |
- * | 다중 본사             | `bpTree.length > 1`                                | 최초 자동 선택*    | 사용자 선택        | 사용자 선택 |
+ * | 다중 본사             | `bpTree.length > 1`                                | 직접 선택 필요†    | 사용자 선택        | 사용자 선택 |
  *
- * (*) 다중 본사: isHeadOfficeRequired일 때만 첫 번째 본사 자동 선택. 초기화 버튼 후에는 재선택하지 않음.
+ * (†) 다중 본사: 자동 선택 없음. onMultiOffice 콜백으로 상위 컴포넌트에 다중 본사 여부를 통보하며, 사용자가 직접 선택해야 한다.
  *
  * ---
  *
@@ -95,14 +95,13 @@
  * ### 자동 선택 useEffect 로직
  * - **단일 본사**: isHeadOfficeRequired 여부와 무관하게 항상 고정. 초기화 버튼 후에도 자동 복원(readOnly).
  *   단일 가맹점이면 가맹점도 함께 고정.
- * - **다중 본사**: isHeadOfficeRequired일 때 최초 1회만 첫 번째 본사 자동 선택.
- *   `multiAutoSelectedRef`로 초기화 후 재자동선택을 방지.
+ * - **다중 본사**: 자동 선택 없음. onMultiOffice(true) 콜백으로 상위 컴포넌트에 통보하여
+ *   상위가 검색 패널을 열거나 오류 상태를 표시하도록 위임한다.
  *
  * ### 핵심 Ref
- * - `multiAutoSelectedRef`: 다중 본사 환경에서 최초 자동 선택 완료 여부 추적.
- *   bpTree 변경 시 리셋. 초기화 버튼 → officeId=null → 재자동선택 방지.
  * - `onChangeRef`: onChange 콜백의 안정적 참조 유지. useEffect 내에서 onChange를 호출하되
  *   의존성 배열에 넣지 않아 불필요한 effect 재실행을 방지.
+ * - `onMultiOfficeRef`: onMultiOffice 콜백의 안정적 참조 유지. bpTree 로드 후 다중 본사 여부를 상위에 통보.
  *
  * ### 상위→하위 초기화 (캐스케이드)
  * - 본사 변경 시: 새 본사의 가맹점 목록에 기존 가맹점이 없으면 가맹점 초기화 + 점포 항상 초기화

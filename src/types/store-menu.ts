@@ -32,9 +32,9 @@ export interface StoreMenuItem {
   operationStatus: string
   menuName: string
   menuNameEng: string | null
-  menuNameChs?: string | null
-  menuNameCht?: string | null
-  menuNameJpn?: string | null
+  menuNameChs: string | null
+  menuNameCht: string | null
+  menuNameJpn: string | null
   menuProperty: string | null
   bpId: number
   companyName: string
@@ -119,9 +119,9 @@ export interface StoreMenuDetailResponse {
   operationStatus: string
   menuName: string
   menuNameEng: string | null
-  menuNameChs?: string | null
-  menuNameCht?: string | null
-  menuNameJpn?: string | null
+  menuNameChs: string | null
+  menuNameCht: string | null
+  menuNameJpn: string | null
   menuProperty: string | null
   bpId: number
   companyName: string

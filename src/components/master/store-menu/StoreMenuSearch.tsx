@@ -159,10 +159,15 @@ export default function StoreMenuSearch({
                     if (next.head_office) {
                       setShowOfficeError(false)
                     }
-                    onChange({
+                    const updates: Partial<StoreMenuSearchFilters> = {
                       officeId: next.head_office,
                       storeId: next.store,
-                    })
+                    }
+                    // 본사 변경 시 카테고리 초기화
+                    if (next.head_office !== undefined && next.head_office !== filters.officeId) {
+                      updates.categoryId = null
+                    }
+                    onChange(updates)
                   }}
                   onMultiOffice={handleMultiOffice}
                 />

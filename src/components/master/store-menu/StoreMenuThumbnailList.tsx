@@ -40,7 +40,7 @@ function getMarketingBadgeClass(name: string): string {
   if (lower.includes('new') || lower.includes('신메뉴')) return 'new'
   if (lower.includes('best') || lower.includes('인기')) return 'best'
   if (lower.includes('event') || lower.includes('이벤트')) return 'event'
-  return 'new'
+  return ''
 }
 
 /** 온도 태그 공통코드 → temp-badge CSS 클래스 매핑 */
@@ -178,15 +178,7 @@ export default function StoreMenuThumbnailList({
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                   ) : (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      aspectRatio: '1 / 1',
-                      color: '#ccc',
-                      fontSize: '14px',
-                    }}>
+                    <div className="flex items-center justify-center w-full aspect-square text-gray-300 text-sm">
                       No Image
                     </div>
                   )}
@@ -304,8 +296,8 @@ export default function StoreMenuThumbnailList({
                             <th>카테고리</th>
                             <td>
                               <ul className="thum-data-list">
-                                {menu.categories.map((cat) => (
-                                  <li key={cat.menuCategoryId ?? cat.categoryId} className="thum-data-item">
+                                {menu.categories.map((cat, idx) => (
+                                  <li key={cat.menuCategoryId ?? cat.categoryId ?? `cat-${idx}`} className="thum-data-item">
                                     <span className="thum-data-text">{cat.name}</span>
                                   </li>
                                 ))}

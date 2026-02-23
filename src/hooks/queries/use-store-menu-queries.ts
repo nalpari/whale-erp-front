@@ -14,7 +14,7 @@ import type {
 
 export const useStoreMenuDetail = (id: number | null) => {
   return useQuery({
-    queryKey: storeMenuKeys.detail(id!),
+    queryKey: storeMenuKeys.detail(id ?? 0),
     queryFn: async () => {
       if (id == null) throw new Error('Menu ID is required')
       const response = await api.get<ApiResponse<StoreMenuDetailResponse>>(
@@ -99,6 +99,9 @@ const buildStoreMenuFormData = (
   if (files.image) {
     formData.append('image', files.image)
   }
+  if (files.deleteFileId != null) {
+    formData.append('deleteFileId', String(files.deleteFileId))
+  }
   return formData
 }
 
@@ -119,7 +122,6 @@ export const useUpdateStoreMenu = () => {
         `/api/master/menu/store/${id}`,
         formData,
         {
-          headers: { 'Content-Type': 'multipart/form-data' },
           params: files.deleteFileId
             ? { deleteFileId: files.deleteFileId }
             : undefined,

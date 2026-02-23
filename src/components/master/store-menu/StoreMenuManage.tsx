@@ -14,6 +14,12 @@ import type { StoreMenuListParams } from '@/types/store-menu'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
+const buildCodeMap = (items: { code: string; name: string }[]) =>
+  items.reduce<Record<string, string>>((acc, item) => {
+    acc[item.code] = item.name
+    return acc
+  }, {})
+
 const DEFAULT_FILTERS: StoreMenuSearchFilters = {
   officeId: null,
   storeId: null,
@@ -77,35 +83,12 @@ export default function StoreMenuManage() {
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
 
-  const statusMap = useMemo(() => statusChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [statusChildren])
-
-  const marketingMap = useMemo(() => marketingChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [marketingChildren])
-
-  const menuPropertyMap = useMemo(() => menuPropertyChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [menuPropertyChildren])
-
-  const menuTypeMap = useMemo(() => menuTypeChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [menuTypeChildren])
-
-  const setStatusMap = useMemo(() => setStatusChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [setStatusChildren])
-
-  const menuClassMap = useMemo(() => menuClassChildren.reduce<Record<string, string>>((acc, item) => {
-    acc[item.code] = item.name
-    return acc
-  }, {}), [menuClassChildren])
+  const statusMap = useMemo(() => buildCodeMap(statusChildren), [statusChildren])
+  const marketingMap = useMemo(() => buildCodeMap(marketingChildren), [marketingChildren])
+  const menuPropertyMap = useMemo(() => buildCodeMap(menuPropertyChildren), [menuPropertyChildren])
+  const menuTypeMap = useMemo(() => buildCodeMap(menuTypeChildren), [menuTypeChildren])
+  const setStatusMap = useMemo(() => buildCodeMap(setStatusChildren), [setStatusChildren])
+  const menuClassMap = useMemo(() => buildCodeMap(menuClassChildren), [menuClassChildren])
 
   const handleSelectChange = (id: number, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -142,7 +125,7 @@ export default function StoreMenuManage() {
 
   /** 선택된 메뉴들의 운영여부를 일괄 변경. ERR3034: 마스터 메뉴가 미운영이면 점포 메뉴 운영 전환 불가 */
   const handleBulkStatusChange = async (operationStatus: string) => {
-    if (selectedIds.size === 0) return
+    if (selectedIds.size === 0 || appliedFilters.officeId == null) return
 
     const statusLabel = operationStatus === 'STOPR_001' ? '운영' : '미운영'
     const confirmed = await confirm(
@@ -152,7 +135,7 @@ export default function StoreMenuManage() {
 
     try {
       await bulkStatusMutation.mutateAsync({
-        bpId: appliedFilters.officeId!,
+        bpId: appliedFilters.officeId,
         menuIds: Array.from(selectedIds),
         operationStatus,
       })
@@ -173,16 +156,16 @@ export default function StoreMenuManage() {
 
   /** 썸네일 리스트에서 변경된 노출순서를 일괄 저장 */
   const handleSaveDisplayOrder = async (changes: Map<number, string>) => {
-    if (changes.size === 0) return
+    if (changes.size === 0 || appliedFilters.officeId == null) return
 
     const confirmed = await confirm('저장하시겠습니까?')
     if (!confirmed) return
 
-    const bpId = appliedFilters.officeId!
+    const bpId = appliedFilters.officeId
     const body = Array.from(changes.entries()).map(([menuId, value]) => ({
       bpId,
       menuId,
-      displayOrder: value === '' ? null : Number(value),
+      displayOrder: value === '' ? null : (Number.isFinite(Number(value)) ? Number(value) : null),
     }))
 
     try {
