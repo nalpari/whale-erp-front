@@ -6,6 +6,8 @@ import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert, ImageUpload } from '@/components/common/ui'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
+import { useQueryClient } from '@tanstack/react-query'
+import { storeMenuKeys } from '@/hooks/queries/query-keys'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -27,6 +29,7 @@ export default function StoreMenuHeader() {
   const menuId = menuIdParam && /^\d+$/.test(menuIdParam) ? Number(menuIdParam) : null
 
   const { data: detail, isPending: loading, error } = useStoreMenuDetail(menuId)
+  const queryClient = useQueryClient()
   const { mutateAsync: deleteMenu } = useDeleteStoreMenu()
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -59,6 +62,7 @@ export default function StoreMenuHeader() {
     const confirmed = await confirm('삭제하시겠습니까?')
     if (!confirmed) return
     try {
+      queryClient.removeQueries({ queryKey: storeMenuKeys.detail(menuId) })
       await deleteMenu(menuId)
       router.push('/master/menu/store')
     } catch {
