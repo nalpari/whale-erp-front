@@ -38,12 +38,12 @@ interface CodeMaps {
   menuClassCodeMap: Map<string, string>
 }
 
-function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; codeMaps: CodeMaps }) {
+function MenuCard({ menu, checked, onCheck, onCardClick, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; onCardClick: (id: number) => void; codeMaps: CodeMaps }) {
   const imgSrc = menu.menuImgFile?.publicUrl ?? PLACEHOLDER_IMG
   const hasDiscount = menu.discountPrice != null && menu.discountPrice > 0
   const categories = menu.categories?.map((c) => c.name).join(' | ') || '-'
   return (
-    <div className="thumb-item">
+    <div className="thumb-item cursor-pointer" onClick={() => onCardClick(menu.id)}>
       <div className="thumb-item-img">
         {/* 마케팅 배지 */}
         {menu.marketingTags && menu.marketingTags.length > 0 && (
@@ -90,7 +90,7 @@ function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; ch
             )}
             <div className="info-tit">{menu.menuName}</div>
           </div>
-          <div className="info-tit-right">
+          <div className="info-tit-right" onClick={(e) => e.stopPropagation()}>
             <div className="check-form-box no-txt">
               <input
                 type="checkbox"
@@ -235,6 +235,10 @@ export default function MenuList({
     setCheckedIds(new Set())
   }
 
+  const handleCardClick = (menuId: number) => {
+    router.push(`/master/menu/${menuId}`)
+  }
+
   const handleCheck = (id: number, checked: boolean) => {
     setCheckedIds(prev => {
       const next = new Set(prev)
@@ -289,6 +293,7 @@ export default function MenuList({
                   menu={menu}
                   checked={checkedIds.has(menu.id)}
                   onCheck={handleCheck}
+                  onCardClick={handleCardClick}
                   codeMaps={{ marketingCodeMap, temperatureCodeMap, menuTypeCodeMap, setStatusCodeMap, menuClassCodeMap }}
                 />
               ))}

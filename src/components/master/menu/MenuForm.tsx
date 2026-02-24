@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useId } from 'react'
+import { useState, useCallback, useId, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import Location from '@/components/ui/Location'
@@ -10,14 +10,13 @@ import HeadOfficeFranchiseStoreSelect, {
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import OptionSetSection from '@/components/master/menu/OptionSetSection'
 import CategorySelectSection from '@/components/master/menu/CategorySelectSection'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useCommonCodeHierarchy, useStoreOptions } from '@/hooks/queries'
-import { useCreateMenu } from '@/hooks/queries/use-master-menu-queries'
+import { useCreateMenu, useUpdateMenu, useMasterMenuDetail } from '@/hooks/queries/use-master-menu-queries'
 import { menuFormSchema, type MenuFormData, type OptionSetFormData } from '@/lib/schemas/menu'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { useAlert, Input, RadioButtonGroup, ImageUpload, type ImageItem } from '@/components/common/ui'
 import { getErrorMessage } from '@/lib/api'
-
-const BREADCRUMBS = ['홈', 'Master data 관리', '메뉴 정보 관리', '마스터용 메뉴 Master', '등록']
 
 // 차후 추가 개발 예정 필드 — true로 변경하면 UI에 표시됨
 const SHOW_MENU_OWNERSHIP = false
@@ -29,13 +28,26 @@ interface SelectedCategory {
   id: number
   name: string
   isActive: boolean
+  mappingId?: number
 }
 
-export default function MenuForm() {
+interface MenuFormProps {
+  menuId?: number
+}
+
+export default function MenuForm({ menuId }: MenuFormProps) {
+  const isEditMode = !!menuId
   const router = useRouter()
   const { alert } = useAlert()
   const { mutateAsync: createMenu } = useCreateMenu()
+  const { mutateAsync: updateMenu } = useUpdateMenu()
   const uniqueId = useId()
+
+  const breadcrumbs = ['홈', 'Master data 관리', '메뉴 정보 관리', '마스터용 메뉴 Master', isEditMode ? '수정' : '등록']
+
+  // 수정 모드: 기존 데이터 로딩
+  const { data: menuDetail, isPending: isDetailLoading } = useMasterMenuDetail(menuId ?? 0)
+  const initializedRef = useRef(false)
 
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
@@ -63,6 +75,10 @@ export default function MenuForm() {
   const [description, setDescription] = useState('')
   const [images, setImages] = useState<ImageItem[]>([])
 
+  // 이미지 삭제 추적 (수정 모드)
+  const [deleteFileId, setDeleteFileId] = useState<number | null>(null)
+  const [existingFileId, setExistingFileId] = useState<number | null>(null)
+
   // 옵션 SET
   const [optionSets, setOptionSets] = useState<OptionSetFormData[]>([])
 
@@ -78,6 +94,77 @@ export default function MenuForm() {
       return rest
     })
   }, [])
+
+  // 수정 모드: 데이터 로딩 완료 시 폼 초기화
+  useEffect(() => {
+    if (!isEditMode || !menuDetail || initializedRef.current) return
+    initializedRef.current = true
+
+    // 기본 정보
+    if (menuDetail.bpId) setBpId(menuDetail.bpId)
+
+    // 메뉴 정보
+    setOperationStatus(menuDetail.operationStatus || '')
+    setMenuType(menuDetail.menuType || '')
+    setSetStatus(menuDetail.setStatus || '')
+    setMenuClassificationCode(menuDetail.menuClassificationCode || '')
+    setMenuName(menuDetail.menuName || '')
+    setMenuNameEng(menuDetail.menuNameEng || '')
+    setMenuNameChs(menuDetail.menuNameChs || '')
+    setMenuNameCht(menuDetail.menuNameCht || '')
+    setMenuNameJpn(menuDetail.menuNameJpn || '')
+    setTaxType(menuDetail.taxType || '')
+    setMarketingTags(menuDetail.marketingTags || [])
+    setTemperatureTags(menuDetail.temperatureTags || [])
+    setDisplayOrder(menuDetail.displayOrder ?? null)
+    setDescription(menuDetail.description || '')
+
+    // 이미지
+    if (menuDetail.menuImgFile) {
+      const imgFile = menuDetail.menuImgFile
+      setExistingFileId(imgFile.id)
+      setImages([{
+        id: imgFile.id,
+        name: imgFile.originalFileName,
+        url: imgFile.publicUrl || undefined,
+      }])
+    }
+
+    // 옵션 SET 변환
+    if (menuDetail.optionSets && menuDetail.optionSets.length > 0) {
+      const converted: OptionSetFormData[] = menuDetail.optionSets.map((os) => ({
+        id: os.id,
+        setName: os.setName,
+        isRequired: os.isRequired,
+        isMultipleChoice: os.isMultipleChoice,
+        displayOrder: os.displayOrder ?? null,
+        isActive: os.isActive,
+        optionItems: (os.optionSetItems || []).map((item) => ({
+          id: item.id,
+          optionSetItemId: null,
+          optionName: item.optionName,
+          additionalPrice: item.additionalPrice,
+          isQuantity: item.isQuantity,
+          isDefault: item.isDefault,
+          isActive: item.isActive ?? true,
+          displayOrder: item.displayOrder ?? null,
+        })),
+      }))
+      setOptionSets(converted)
+    }
+
+    // 카테고리 변환
+    if (menuDetail.categories && menuDetail.categories.length > 0) {
+      setSelectedCategories(
+        menuDetail.categories.map((cat) => ({
+          id: cat.categoryId,
+          name: cat.name,
+          isActive: cat.isActive,
+          mappingId: cat.menuCategoryId,
+        }))
+      )
+    }
+  }, [isEditMode, menuDetail])
 
   // 공통코드 조회
   const { data: mngrpCodes = [] } = useCommonCodeHierarchy('MNGRP')
@@ -145,18 +232,22 @@ export default function MenuForm() {
   // 이미지 핸들러
   const handleImageAdd = useCallback(
     (files: File[]) => {
-      if (images.length > 0) {
-        setImages([{ name: files[0].name, file: files[0] }])
-      } else {
-        setImages(files.slice(0, 1).map((f) => ({ name: f.name, file: f })))
+      // 기존 이미지가 있었다면 삭제 플래그 설정
+      if (existingFileId && images.length > 0 && !images[0].file) {
+        setDeleteFileId(existingFileId)
       }
+      setImages([{ name: files[0].name, file: files[0] }])
     },
-    [images.length]
+    [existingFileId, images]
   )
 
   const handleImageRemove = useCallback(() => {
+    // 기존 이미지 삭제 시 deleteFileId 설정
+    if (existingFileId && images.length > 0 && !images[0].file) {
+      setDeleteFileId(existingFileId)
+    }
     setImages([])
-  }, [])
+  }, [existingFileId, images])
 
   // 저장
   const handleSave = async () => {
@@ -186,9 +277,12 @@ export default function MenuForm() {
       marketingTags,
       temperatureTags,
       displayOrder,
-      description: description || null,
+      description,
       optionSets,
-      categoryIds: selectedCategories.map((c) => c.id),
+      categories: selectedCategories.map((c) => ({
+        ...(c.mappingId ? { id: c.mappingId } : {}),
+        categoryId: c.id,
+      })),
     }
 
     const result = menuFormSchema.safeParse(formData)
@@ -200,20 +294,40 @@ export default function MenuForm() {
     setFieldErrors({})
 
     try {
-      await createMenu({
-        menu: result.data,
-        image: images.length > 0 && images[0].file ? images[0].file : undefined,
-      })
+      const imageFile = images.length > 0 && images[0].file ? images[0].file : undefined
 
-      router.push('/master/menu')
+      if (isEditMode) {
+        await updateMenu({
+          id: menuId,
+          menu: result.data,
+          image: imageFile,
+          deleteFileId: deleteFileId ?? undefined,
+        })
+        router.push(`/master/menu/${menuId}`)
+      } else {
+        await createMenu({
+          menu: result.data,
+          image: imageFile,
+        })
+        router.push('/master/menu')
+      }
     } catch (error) {
-      await alert(getErrorMessage(error, '메뉴 등록에 실패했습니다.'))
+      await alert(getErrorMessage(error, isEditMode ? '메뉴 수정에 실패했습니다.' : '메뉴 등록에 실패했습니다.'))
     }
+  }
+
+  // 수정 모드: 데이터 로딩 중
+  if (isEditMode && isDetailLoading) {
+    return (
+      <div className="cube-loader-overlay">
+        <CubeLoader />
+      </div>
+    )
   }
 
   return (
     <div className="data-wrap">
-      <Location title="마스터용 메뉴 관리" list={BREADCRUMBS} />
+      <Location title="마스터용 메뉴 관리" list={breadcrumbs} />
       <div className="master-detail-data">
         <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
@@ -353,8 +467,11 @@ export default function MenuForm() {
                               setMenuType(v)
                               clearFieldError('menuType')
                             }}
+                            disabled={isEditMode}
                           />
-                          <span className="help-txt">※ 옵션으로 선택할 경우 단독으로 판매할 수 없고, 각 메뉴의 옵션의 역할만 수행합니다.</span>
+                          {!isEditMode && (
+                            <span className="help-txt">※ 옵션으로 선택할 경우 단독으로 판매할 수 없고, 각 메뉴의 옵션의 역할만 수행합니다.</span>
+                          )}
                         </div>
                         {fieldErrors.menuType && (
                           <div className="warning-txt mt5">* {fieldErrors.menuType}</div>
@@ -526,12 +643,19 @@ export default function MenuForm() {
                       </tr>
                     )}
                     <tr>
-                      <th>메뉴 Description</th>
+                      <th>
+                        메뉴 Description <span className="red">*</span>
+                      </th>
                       <td>
                         <Input
                           value={description}
-                          onChange={(e) => setDescription(e.target.value)}
+                          onChange={(e) => {
+                            setDescription(e.target.value)
+                            clearFieldError('description')
+                          }}
                           placeholder="메뉴 설명을 입력하세요"
+                          error={!!fieldErrors.description}
+                          helpText={fieldErrors.description}
                           fullWidth
                         />
                       </td>
@@ -552,24 +676,24 @@ export default function MenuForm() {
                 </table>
               </div>
 
-              {/* 섹션3: 옵션 정보 */}
+              {/* 섹션3: 카테고리 선택 */}
+              <CategorySelectSection
+                bpId={bpId}
+                selectedCategories={selectedCategories}
+                onChange={(cats) => {
+                  setSelectedCategories(cats)
+                  clearFieldError('categories')
+                }}
+                error={fieldErrors.categories}
+              />
+
+              {/* 섹션4: 옵션 정보 */}
               <OptionSetSection
                 optionSets={optionSets}
                 onChange={setOptionSets}
                 bpId={bpId}
                 fieldErrors={fieldErrors}
                 onClearFieldError={clearFieldError}
-              />
-
-              {/* 섹션4: 카테고리 선택 */}
-              <CategorySelectSection
-                bpId={bpId}
-                selectedCategories={selectedCategories}
-                onChange={(cats) => {
-                  setSelectedCategories(cats)
-                  clearFieldError('categoryIds')
-                }}
-                error={fieldErrors.categoryIds}
               />
             </div>
           </AnimateHeight>

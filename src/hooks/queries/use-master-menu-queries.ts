@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import api from '@/lib/api'
 import { masterMenuKeys, type MasterMenuListParams } from './query-keys'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
-import type { MenuResponse, MenuFormData } from '@/lib/schemas/menu'
+import type { MenuResponse, MenuFormData, MenuDetailResponse } from '@/lib/schemas/menu'
 
 export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) => {
   return useQuery({
@@ -55,12 +55,27 @@ export const useUpdateMenuOperationStatus = () => {
   })
 }
 
+/** 폼 데이터에서 프론트엔드 전용 필드를 제거하여 API 전송용 객체 생성 */
+function toApiPayload(menu: MenuFormData, keepIds = false) {
+  return {
+    ...menu,
+    optionSets: menu.optionSets.map(({ id: setId, ...set }) => ({
+      ...(keepIds && setId != null ? { id: setId } : {}),
+      ...set,
+      optionItems: set.optionItems.map(({ id: itemId, selectedMenuCode: _mc, selectedOperationStatus: _os, ...item }) => ({
+        ...(keepIds && itemId != null ? { id: itemId } : {}),
+        ...item,
+      })),
+    })),
+  }
+}
+
 export const useCreateMenu = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ menu, image }: { menu: MenuFormData; image?: File }) => {
       const formData = new FormData()
-      formData.append('menu', new Blob([JSON.stringify(menu)], { type: 'application/json' }))
+      formData.append('menu', new Blob([JSON.stringify(toApiPayload(menu))], { type: 'application/json' }))
       if (image) {
         formData.append('image', image)
       }
@@ -68,6 +83,60 @@ export const useCreateMenu = () => {
         '/api/master/menu/master',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+    },
+  })
+}
+
+export const useUpdateMenu = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, menu, image, deleteFileId }: { id: number; menu: MenuFormData; image?: File; deleteFileId?: number }) => {
+      const formData = new FormData()
+      formData.append('menu', new Blob([JSON.stringify(toApiPayload(menu, true))], { type: 'application/json' }))
+      if (image) {
+        formData.append('image', image)
+      }
+      if (deleteFileId != null) {
+        formData.append('deleteFileId', String(deleteFileId))
+      }
+      const response = await api.put<ApiResponse<MenuResponse>>(
+        `/api/master/menu/master/${id}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      return response.data
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: masterMenuKeys.detail(variables.id) })
+    },
+  })
+}
+
+export const useMasterMenuDetail = (id: number) => {
+  return useQuery({
+    queryKey: masterMenuKeys.detail(id),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<MenuDetailResponse>>(
+        `/api/master/menu/master/${id}`
+      )
+      return response.data.data
+    },
+    enabled: !!id,
+  })
+}
+
+export const useDeleteMenu = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.delete<ApiResponse<void>>(
+        `/api/master/menu/master/${id}`
       )
       return response.data
     },

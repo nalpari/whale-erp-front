@@ -58,7 +58,8 @@ export const menuImageFileSchema = z.object({
  * 메뉴 카테고리 응답 스키마
  */
 export const menuCategoryResponseSchema = z.object({
-  id: z.number(),
+  menuCategoryId: z.number(),
+  categoryId: z.number(),
   menuId: z.number(),
   name: z.string(),
   isActive: z.boolean(),
@@ -69,7 +70,7 @@ export const menuCategoryResponseSchema = z.object({
  */
 export const menuOptionSetResponseSchema = z.object({
   id: z.number(),
-  optionSetName: z.string(),
+  setName: z.string(),
 });
 
 /**
@@ -122,14 +123,64 @@ export type MenuOptionSetResponse = z.infer<typeof menuOptionSetResponseSchema>;
 export type MenuImageFile = z.infer<typeof menuImageFileSchema>;
 
 /**
+ * 옵션 항목 상세 응답 스키마
+ */
+export const menuOptionItemDetailSchema = z.object({
+  id: z.number(),
+  optionSetId: z.number().optional(),
+  optionSetItemId: z.number().optional(),
+  optionName: z.string(),
+  optionSetItemName: z.string().optional(),
+  optionSetItemCode: z.string().optional(),
+  operationStatus: z.string().optional(),
+  additionalPrice: z.number(),
+  isQuantity: z.boolean(),
+  quantity: z.number().optional(),
+  isDefault: z.boolean(),
+  isActive: z.boolean(),
+  displayOrder: z.number().nullable().optional(),
+});
+
+/**
+ * 옵션 SET 상세 응답 스키마
+ */
+export const menuOptionSetDetailSchema = z.object({
+  id: z.number(),
+  setName: z.string(),
+  isRequired: z.boolean(),
+  isMultipleChoice: z.boolean(),
+  displayOrder: z.number().nullable(),
+  isActive: z.boolean(),
+  optionSetItems: z.array(menuOptionItemDetailSchema).nullable().default(null),
+});
+
+/**
+ * 메뉴 상세 응답 스키마 (옵션 SET 상세 포함)
+ */
+export const menuDetailResponseSchema = menuResponseSchema.extend({
+  isActive: z.boolean().optional(),
+  optionSets: z.array(menuOptionSetDetailSchema).nullable(),
+});
+
+/**
+ * 상세 응답 타입 추출
+ */
+export type MenuOptionItemDetail = z.infer<typeof menuOptionItemDetailSchema>;
+export type MenuOptionSetDetail = z.infer<typeof menuOptionSetDetailSchema>;
+export type MenuDetailResponse = z.infer<typeof menuDetailResponseSchema>;
+
+/**
  * 옵션 항목 폼 스키마
  */
 export const optionItemFormSchema = z.object({
+  id: z.number().optional(),
+  optionSetItemId: z.number().nullable().optional(),
   optionName: z.string().min(1, '필수 입력 항목입니다.'),
   additionalPrice: z.number().default(0),
-  quantityInput: z.boolean().default(false),
+  isQuantity: z.boolean().default(false),
   isDefault: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  displayOrder: z.number().nullable().optional(),
   // 옵션찾기로 선택된 메뉴의 표시용 메타데이터
   selectedMenuCode: z.string().nullable().optional(),
   selectedOperationStatus: z.string().nullable().optional(),
@@ -139,11 +190,13 @@ export const optionItemFormSchema = z.object({
  * 옵션 SET 폼 스키마
  */
 export const optionSetFormSchema = z.object({
-  optionSetName: z.string().min(1, '필수 입력 항목입니다.'),
+  id: z.number().optional(),
+  setName: z.string().min(1, '필수 입력 항목입니다.'),
   isRequired: z.boolean().default(false),
-  isMultiSelect: z.boolean().default(false),
+  isMultipleChoice: z.boolean().default(false),
   displayOrder: z.number().nullable().default(null),
-  options: z.array(optionItemFormSchema).min(1, '옵션을 1개 이상 추가해주세요'),
+  isActive: z.boolean().default(true),
+  optionItems: z.array(optionItemFormSchema).min(1, '옵션을 1개 이상 추가해주세요'),
 });
 
 /**
@@ -170,13 +223,13 @@ export const menuFormSchema = z.object({
   marketingTags: z.array(z.string()).default([]),
   temperatureTags: z.array(z.string()).default([]),
   displayOrder: z.number().nullable().default(null),
-  description: z.string().nullable().default(null),
+  description: z.string().min(1, '필수 입력 항목입니다.'),
 
   // 옵션 SET (여러 개)
   optionSets: z.array(optionSetFormSchema).default([]),
 
   // 카테고리
-  categoryIds: z.array(z.number()).min(1, '필수 선택 항목입니다.'),
+  categories: z.array(z.object({ id: z.number().optional(), categoryId: z.number() })).min(1, '필수 선택 항목입니다.'),
 });
 
 /**

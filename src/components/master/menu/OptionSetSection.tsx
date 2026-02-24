@@ -17,17 +17,19 @@ interface OptionSetSectionProps {
 const DEFAULT_OPTION_ITEM: OptionItemFormData = {
   optionName: '',
   additionalPrice: 0,
-  quantityInput: false,
+  isQuantity: false,
   isDefault: false,
   isActive: true,
+  displayOrder: null,
 }
 
 const DEFAULT_OPTION_SET: OptionSetFormData = {
-  optionSetName: '',
+  setName: '',
   isRequired: false,
-  isMultiSelect: false,
+  isMultipleChoice: false,
   displayOrder: null,
-  options: [{ ...DEFAULT_OPTION_ITEM }],
+  isActive: true,
+  optionItems: [{ ...DEFAULT_OPTION_ITEM }],
 }
 
 export default function OptionSetSection({ optionSets, onChange, bpId, fieldErrors = {}, onClearFieldError }: OptionSetSectionProps) {
@@ -35,7 +37,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
   const [findOptionTarget, setFindOptionTarget] = useState<{ setIndex: number; optionIndex: number } | null>(null)
 
   const addSet = useCallback(() => {
-    onChange([...optionSets, { ...DEFAULT_OPTION_SET, options: [{ ...DEFAULT_OPTION_ITEM }] }])
+    onChange([...optionSets, { ...DEFAULT_OPTION_SET, optionItems: [{ ...DEFAULT_OPTION_ITEM }] }])
   }, [optionSets, onChange])
 
   const removeSet = useCallback(
@@ -55,7 +57,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
   const addOption = useCallback(
     (setIndex: number) => {
       const set = optionSets[setIndex]
-      updateSet(setIndex, { options: [...set.options, { ...DEFAULT_OPTION_ITEM }] })
+      updateSet(setIndex, { optionItems: [...set.optionItems, { ...DEFAULT_OPTION_ITEM }] })
     },
     [optionSets, updateSet]
   )
@@ -63,8 +65,8 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
   const removeOption = useCallback(
     (setIndex: number, optionIndex: number) => {
       const set = optionSets[setIndex]
-      if (set.options.length <= 1) return
-      updateSet(setIndex, { options: set.options.filter((_, i) => i !== optionIndex) })
+      if (set.optionItems.length <= 1) return
+      updateSet(setIndex, { optionItems: set.optionItems.filter((_, i) => i !== optionIndex) })
     },
     [optionSets, updateSet]
   )
@@ -72,8 +74,8 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
   const updateOption = useCallback(
     (setIndex: number, optionIndex: number, updates: Partial<OptionItemFormData>) => {
       const set = optionSets[setIndex]
-      const newOptions = set.options.map((opt, i) => (i === optionIndex ? { ...opt, ...updates } : opt))
-      updateSet(setIndex, { options: newOptions })
+      const newOptions = set.optionItems.map((opt, i) => (i === optionIndex ? { ...opt, ...updates } : opt))
+      updateSet(setIndex, { optionItems: newOptions })
     },
     [optionSets, updateSet]
   )
@@ -81,11 +83,11 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
   const handleSetDefault = useCallback(
     (setIndex: number, optionIndex: number) => {
       const set = optionSets[setIndex]
-      const newOptions = set.options.map((opt, i) => ({
+      const newOptions = set.optionItems.map((opt, i) => ({
         ...opt,
         isDefault: i === optionIndex,
       }))
-      updateSet(setIndex, { options: newOptions })
+      updateSet(setIndex, { optionItems: newOptions })
     },
     [optionSets, updateSet]
   )
@@ -95,11 +97,12 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
       if (!findOptionTarget) return
       const { setIndex, optionIndex } = findOptionTarget
       updateOption(setIndex, optionIndex, {
+        optionSetItemId: menu.id,
         optionName: menu.menuName,
         selectedMenuCode: menu.menuCode ?? null,
         selectedOperationStatus: menu.operationStatus,
       })
-      onClearFieldError?.(`optionSets.${setIndex}.options.${optionIndex}.optionName`)
+      onClearFieldError?.(`optionSets.${setIndex}.optionItems.${optionIndex}.optionName`)
       setFindOptionTarget(null)
     },
     [findOptionTarget, updateOption, onClearFieldError]
@@ -137,21 +140,22 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                     <col width="150px" />
                     <col width="150px" />
                     <col width="200px" />
+                    <col width="150px" />
                     <col width="110px" />
                   </colgroup>
                   <tbody>
                     <tr>
                       <td>
                         <Input
-                          value={optionSet.optionSetName}
+                          value={optionSet.setName}
                           onChange={(e) => {
-                            updateSet(setIndex, { optionSetName: e.target.value })
-                            onClearFieldError?.(`optionSets.${setIndex}.optionSetName`)
+                            updateSet(setIndex, { setName: e.target.value })
+                            onClearFieldError?.(`optionSets.${setIndex}.setName`)
                           }}
                           placeholder="옵션 SET명을 입력하세요"
                           fullWidth
-                          error={!!fieldErrors[`optionSets.${setIndex}.optionSetName`]}
-                          helpText={fieldErrors[`optionSets.${setIndex}.optionSetName`]}
+                          error={!!fieldErrors[`optionSets.${setIndex}.setName`]}
+                          helpText={fieldErrors[`optionSets.${setIndex}.setName`]}
                           startAdornment={
                             <div className="option-name">
                               옵션 SET명 <span className="red">*</span>
@@ -180,8 +184,8 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                             <input
                               type="checkbox"
                               id={`${uniqueId}-multi-${setIndex}`}
-                              checked={optionSet.isMultiSelect}
-                              onChange={(e) => updateSet(setIndex, { isMultiSelect: e.target.checked })}
+                              checked={optionSet.isMultipleChoice}
+                              onChange={(e) => updateSet(setIndex, { isMultipleChoice: e.target.checked })}
                             />
                             <label className="slider" htmlFor={`${uniqueId}-multi-${setIndex}`}></label>
                           </div>
@@ -198,6 +202,26 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                             <div className="option-name">노출순서</div>
                           }
                         />
+                      </td>
+                      <td>
+                        <div className="toggle-wrap">
+                          <span className="toggle-txt">운영여부</span>
+                          <div className="toggle-btn">
+                            <input
+                              type="checkbox"
+                              id={`${uniqueId}-active-${setIndex}`}
+                              checked={optionSet.isActive}
+                              onChange={(e) => {
+                                const active = e.target.checked
+                                updateSet(setIndex, {
+                                  isActive: active,
+                                  optionItems: optionSet.optionItems.map((opt) => ({ ...opt, isActive: active })),
+                                })
+                              }}
+                            />
+                            <label className="slider" htmlFor={`${uniqueId}-active-${setIndex}`}></label>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <div className="filed-flx">
@@ -226,7 +250,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
             </tr>
 
             {/* 옵션 항목 목록 */}
-            {optionSet.options.map((option, optionIndex) => (
+            {optionSet.optionItems.map((option, optionIndex) => (
               <tr key={optionIndex}>
                 <th>
                   <div className="option-num-tit">
@@ -238,8 +262,10 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                     <colgroup>
                       <col />
                       <col width="240px" />
+                      <col width="200px" />
                       <col width="150px" />
                       <col width="140px" />
+                      <col width="150px" />
                       <col width="110px" />
                     </colgroup>
                     <tbody>
@@ -260,28 +286,28 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                                 value={option.optionName}
                                 onChange={(e) => {
                                   updateOption(setIndex, optionIndex, { optionName: e.target.value })
-                                  onClearFieldError?.(`optionSets.${setIndex}.options.${optionIndex}.optionName`)
+                                  onClearFieldError?.(`optionSets.${setIndex}.optionItems.${optionIndex}.optionName`)
                                 }}
                                 placeholder="옵션명을 입력하세요"
                                 fullWidth
-                                error={!!fieldErrors[`optionSets.${setIndex}.options.${optionIndex}.optionName`]}
-                                helpText={fieldErrors[`optionSets.${setIndex}.options.${optionIndex}.optionName`]}
+                                error={!!fieldErrors[`optionSets.${setIndex}.optionItems.${optionIndex}.optionName`]}
+                                helpText={fieldErrors[`optionSets.${setIndex}.optionItems.${optionIndex}.optionName`]}
                               />
                             </div>
-                            {option.selectedMenuCode && (
-                              <span className="option-name" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                {option.selectedMenuCode}
-                              </span>
-                            )}
-                            {option.selectedOperationStatus && (
-                              <div style={{ flexShrink: 0 }}>
-                                {option.selectedOperationStatus === 'STOPR_001' ? (
+                            <span className="option-name" style={{ flexShrink: 0, whiteSpace: 'nowrap', minWidth: '80px' }}>
+                              {option.selectedMenuCode ?? '-'}
+                            </span>
+                            <div style={{ flexShrink: 0, minWidth: '52px' }}>
+                              {option.selectedOperationStatus ? (
+                                option.selectedOperationStatus === 'STOPR_001' ? (
                                   <div className="store-badge blue">운영</div>
                                 ) : (
                                   <div className="store-badge org">미운영</div>
-                                )}
-                              </div>
-                            )}
+                                )
+                              ) : (
+                                <div className="store-badge" style={{ visibility: 'hidden' }}>-</div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td>
@@ -299,15 +325,29 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                           />
                         </td>
                         <td>
+                          <Input
+                            type="number"
+                            value={option.displayOrder !== null && option.displayOrder !== undefined ? String(option.displayOrder) : ''}
+                            onChange={() => { }}
+                            onValueChange={(val) =>
+                              updateOption(setIndex, optionIndex, { displayOrder: val })
+                            }
+                            fullWidth
+                            startAdornment={
+                              <div className="option-name">노출순서</div>
+                            }
+                          />
+                        </td>
+                        <td>
                           <div className="toggle-wrap">
                             <span className="toggle-txt">수량입력</span>
                             <div className="toggle-btn">
                               <input
                                 type="checkbox"
                                 id={`${uniqueId}-qty-${setIndex}-${optionIndex}`}
-                                checked={option.quantityInput}
+                                checked={option.isQuantity}
                                 onChange={(e) =>
-                                  updateOption(setIndex, optionIndex, { quantityInput: e.target.checked })
+                                  updateOption(setIndex, optionIndex, { isQuantity: e.target.checked })
                                 }
                               />
                               <label className="slider" htmlFor={`${uniqueId}-qty-${setIndex}-${optionIndex}`}></label>
@@ -335,18 +375,24 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                           </div>
                         </td>
                         <td>
-                          <div className="filed-flx">
+                          <div className="toggle-wrap">
+                            <span className="toggle-txt">운영여부</span>
                             <div className="toggle-btn">
                               <input
                                 type="checkbox"
-                                id={`${uniqueId}-active-${setIndex}-${optionIndex}`}
-                                checked={option.isActive}
+                                id={`${uniqueId}-item-active-${setIndex}-${optionIndex}`}
+                                checked={option.isActive ?? true}
+                                disabled={!optionSet.isActive}
                                 onChange={(e) =>
                                   updateOption(setIndex, optionIndex, { isActive: e.target.checked })
                                 }
                               />
-                              <label className="slider" htmlFor={`${uniqueId}-active-${setIndex}-${optionIndex}`}></label>
+                              <label className="slider" htmlFor={`${uniqueId}-item-active-${setIndex}-${optionIndex}`}></label>
                             </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="filed-flx">
                             <div className="more-btn">
                               <span
                                 className="icon-more"
@@ -364,7 +410,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                                 <button type="button" className="option-item" onClick={() => addOption(setIndex)}>
                                   옵션 추가
                                 </button>
-                                {optionSet.options.length > 1 && (
+                                {optionSet.optionItems.length > 1 && (
                                   <button
                                     type="button"
                                     className="option-item"
