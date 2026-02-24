@@ -610,7 +610,6 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
                           <Input
                             type="number"
                             value={displayOrder !== null ? String(displayOrder) : ''}
-                            onChange={() => {}}
                             onValueChange={(val) => setDisplayOrder(val)}
                             placeholder="노출순서"
                           />

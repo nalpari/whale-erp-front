@@ -170,7 +170,6 @@ function SortableOptionRow({
                 <Input
                   type="number"
                   value={String(option.additionalPrice)}
-                  onChange={() => { }}
                   onValueChange={(val) =>
                     updateOption(setIndex, optionIndex, { additionalPrice: val ?? 0 })
                   }
@@ -481,7 +480,6 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                           <Input
                             type="number"
                             value={optionSet.displayOrder !== null ? String(optionSet.displayOrder) : ''}
-                            onChange={() => { }}
                             onValueChange={(val) => updateSet(setIndex, { displayOrder: val })}
                             fullWidth
                             startAdornment={
