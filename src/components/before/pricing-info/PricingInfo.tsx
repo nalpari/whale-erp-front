@@ -34,7 +34,6 @@ const PLANS: Plan[] = [
     function: '무료기능 + 재무 관리',
     explain: '5개 점포에 25명의 직원이 무료로 사용하는 비즈니스 운영 플랜',
     cost: '19,000원',
-    isCurrentPlan: true,
     features: [
       {
         title: 'Free 플랜 모든 기능 포함',
@@ -65,8 +64,8 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    grade: 'Franchis',
-    function: 'ENTERPRISE기능 + 가맹점 관리기능',
+    grade: 'Franchise',
+    function: 'ENTERPRISE 기능 + 가맹점 관리기능',
     explain: '직영 점포 운영과 가맹점 운영에 적합한 프랜차이즈 운영 플랜',
     cost: '190,000원',
     features: [

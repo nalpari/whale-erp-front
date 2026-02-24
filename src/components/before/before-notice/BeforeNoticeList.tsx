@@ -14,7 +14,7 @@ export default function BeforeNoticeList() {
   const [page, setPage] = useState(0)
   const [selectedNoticeId, setSelectedNoticeId] = useState<number | null>(null)
 
-  const { data: notices = [], isLoading } = useNotices()
+  const { data: notices = [], isPending } = useNotices()
   const { data: noticeDetail } = useNoticeDetail(selectedNoticeId)
 
   const totalPages = Math.max(1, Math.ceil(notices.length / PAGE_SIZE))
@@ -36,7 +36,7 @@ export default function BeforeNoticeList() {
         </div>
         <div className="before-notice-wrap">
           <ul className="before-notice-list">
-            {isLoading ? (
+            {isPending ? (
               <li className="before-notice-item">
                 <div className="cube-loader-overlay"><CubeLoader /></div>
               </li>

@@ -21,7 +21,8 @@ export default function SubPageHeader({
       <div className="sub-header-icon">
         <Image
           src="/assets/images/before_main/sub_whale.png"
-          alt="introduction"
+          alt=""
+          aria-hidden="true"
           width={228}
           height={126}
         />

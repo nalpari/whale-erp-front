@@ -63,12 +63,15 @@ export default function StoreOperation() {
                 </div>
                 <div className="operation-tit">{item.title}</div>
                 <div className="operation-desc">
-                  {item.desc.split('\n').map((line, i) => (
-                    <span key={i}>
-                      {line}
-                      {i < item.desc.split('\n').length - 1 && <br />}
-                    </span>
-                  ))}
+                  {(() => {
+                    const lines = item.desc.split('\n')
+                    return lines.map((line, i) => (
+                      <span key={i}>
+                        {line}
+                        {i < lines.length - 1 && <br />}
+                      </span>
+                    ))
+                  })()}
                 </div>
               </div>
             ))}
