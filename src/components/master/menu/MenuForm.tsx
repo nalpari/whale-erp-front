@@ -139,15 +139,17 @@ export default function MenuForm({ menuId }: MenuFormProps) {
         isMultipleChoice: os.isMultipleChoice,
         displayOrder: os.displayOrder ?? null,
         isActive: os.isActive,
-        optionItems: (os.optionSetItems || []).map((item) => ({
+        optionItems: (os.optionSetItems || []).sort((a, b) => (a.displayOrder ?? Infinity) - (b.displayOrder ?? Infinity)).map((item) => ({
           id: item.id,
-          optionSetItemId: null,
+          optionSetItemId: item.optionSetItemId ?? null,
           optionName: item.optionName,
           additionalPrice: item.additionalPrice,
           isQuantity: item.isQuantity,
           isDefault: item.isDefault,
           isActive: item.isActive ?? true,
           displayOrder: item.displayOrder ?? null,
+          selectedMenuCode: item.optionSetItemCode ?? null,
+          selectedOperationStatus: item.operationStatus ?? null,
         })),
       }))
       setOptionSets(converted)

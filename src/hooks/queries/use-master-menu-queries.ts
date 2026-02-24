@@ -59,12 +59,18 @@ export const useUpdateMenuOperationStatus = () => {
 function toApiPayload(menu: MenuFormData, keepIds = false) {
   return {
     ...menu,
+    categories: menu.categories.map(({ id, ...cat }) => ({
+      ...(keepIds && id != null ? { menuCategoryId: id } : {}),
+      ...cat,
+    })),
     optionSets: menu.optionSets.map(({ id: setId, ...set }) => ({
       ...(keepIds && setId != null ? { id: setId } : {}),
       ...set,
-      optionItems: set.optionItems.map(({ id: itemId, selectedMenuCode: _mc, selectedOperationStatus: _os, ...item }) => ({
+      optionItems: set.optionItems.map(({ id: itemId, selectedMenuCode: _mc, selectedOperationStatus: _os, optionSetItemId, ...item }, index) => ({
         ...(keepIds && itemId != null ? { id: itemId } : {}),
+        ...(optionSetItemId != null ? { optionSetItemId } : {}),
         ...item,
+        displayOrder: index + 1,
       })),
     })),
   }

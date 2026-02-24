@@ -87,6 +87,7 @@ export const menuResponseSchema = z.object({
   menuNameChs: z.string().nullable(),
   menuNameCht: z.string().nullable(),
   menuNameJpn: z.string().nullable(),
+  menuGroup: z.string().nullable().optional(),
   menuProperty: z.string(),
   bpId: z.number().nullable(),
   companyName: z.string().nullable(),

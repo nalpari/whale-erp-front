@@ -249,6 +249,8 @@ export interface MasterMenuListParams {
   storeId?: string
   createdAtFrom?: string
   createdAtTo?: string
+  menuGroup?: string
+  setStatus?: string
   page?: number
   size?: number
 }
