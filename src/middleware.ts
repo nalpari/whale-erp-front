@@ -20,9 +20,7 @@ export function middleware(request: NextRequest) {
   const authToken = request.cookies.get('auth-token')
 
   if (!authToken) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('returnUrl', pathname)
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return NextResponse.next()
