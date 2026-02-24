@@ -251,7 +251,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {startAdornment}
 
           {/* 입력 필드 + clear 버튼 영역 */}
-          <div className={containerWidthClass}>
+          <div className={containerWidthClass} style={fullWidth ? { minWidth: 0 } : undefined}>
             <div className={inputWrapperClass}>
               <input
                 ref={ref}
