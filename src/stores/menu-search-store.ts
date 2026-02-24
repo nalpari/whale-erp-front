@@ -14,7 +14,6 @@ export interface MenuSearchFormData {
 
 const INITIAL_FORM_DATA = {
   headOfficeOrganizationId: null as number | null,
-  franchiseOrganizationId: null as number | null,
   menuName: '',
   operationStatus: '',
   menuType: '',
