@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, Autoplay } from 'swiper/modules'
 import 'swiper/css'
@@ -29,6 +30,7 @@ const SWIPER_SLIDES = [
 const STORE_INFO = [
   {
     title: '매장 및 직원관리',
+    link: '/store-operation',
     items: [
       { title: '급여 자동 발행', desc: '주휴수당, 4대 보험 포함 급여 정산 및 명세서 자동 생성' },
       { title: '운영 뼈대 구축', desc: '점포·시설·근무 관리를 한 곳에서 간편하게 처리' },
@@ -36,6 +38,7 @@ const STORE_INFO = [
   },
   {
     title: '재무관리',
+    link: '/financial',
     items: [
       { title: '매출 통합 관리', desc: '은행 계좌 및 카드사 매출 데이터 자동 수집' },
       { title: '손익 분석 자동화', desc: '매출과 지출을 분석하여 매장의재무 상태 진단' },
@@ -43,6 +46,7 @@ const STORE_INFO = [
   },
   {
     title: '프랜차이즈 관리',
+    link: '/franchise',
     items: [
       { title: '다점포 통합 대시보드', desc: '여러 매장의 현황을 한눈에 비교하고 동시 관리' },
       { title: '운영 표준화', desc: '표준 매뉴얼로 모든 지점의 서비스 퀄리티 유지' },
@@ -253,9 +257,9 @@ export default function BeforeMain() {
                     </div>
                   ))}
                 </div>
-                <button type="button" className="store-info-btn">
+                <Link href={info.link} className="store-info-btn">
                   기능 상세 보기 <i className="icon-arrow-right" />
-                </button>
+                </Link>
               </div>
             ))}
           </div>

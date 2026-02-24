@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import NoticePop from '@/components/customer/NoticePop'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useNotices, useNoticeDetail } from '@/hooks/queries/use-notice-queries'
 import { formatDateDot } from '@/util/date-util'
 
@@ -37,7 +38,7 @@ export default function BeforeNoticeList() {
           <ul className="before-notice-list">
             {isLoading ? (
               <li className="before-notice-item">
-                <div className="before-notice-empty">불러오는 중...</div>
+                <div className="cube-loader-overlay"><CubeLoader /></div>
               </li>
             ) : pagedNotices.length === 0 ? (
               <li className="before-notice-item">
