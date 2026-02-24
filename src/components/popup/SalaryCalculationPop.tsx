@@ -64,6 +64,8 @@ interface SalaryCalculationPopProps {
   contractClassification?: ContractClassificationType
 }
 
+const EMPTY_WAGE_LIST: never[] = []
+
 // 숫자를 3자리마다 쉼표가 있는 문자열로 변환
 const formatNumber = (value: number | string): string => {
   const num = typeof value === 'string' ? parseInt(value.replace(/,/g, ''), 10) : value
@@ -80,7 +82,7 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   const currentYear = new Date().getFullYear()
 
   // TanStack Query로 최저시급 목록 조회
-  const { data: minimumWageListData = [] } = useMinimumWageList(isOpen)
+  const { data: minimumWageListData = EMPTY_WAGE_LIST } = useMinimumWageList(isOpen)
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [minimumWage, setMinimumWage] = useState<number>(0)
@@ -94,25 +96,28 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   )
 
   // 비포괄연봉제 추가근무시급 상태 — initialData에서 초기값 계산
-  const baseHourlyWage = initialData?.hourlyWage || 0
   const [weekdayHourlyWage, setWeekdayHourlyWage] = useState<string>(() => {
     if (initialData?.weekdayHourlyWage && initialData.weekdayHourlyWage > 0) return formatNumber(initialData.weekdayHourlyWage)
-    if (baseHourlyWage > 0) return formatNumber(baseHourlyWage)
+    const base = initialData?.hourlyWage || 0
+    if (base > 0) return formatNumber(base)
     return '0'
   })
   const [overtimeHourlyWage, setOvertimeHourlyWage] = useState<string>(() => {
     if (initialData?.overtimeHourlyWage && initialData.overtimeHourlyWage > 0) return formatNumber(initialData.overtimeHourlyWage)
-    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    const base = initialData?.hourlyWage || 0
+    if (base > 0) return formatNumber(Math.round(base * 1.5))
     return '0'
   })
   const [nightHourlyWage, setNightHourlyWage] = useState<string>(() => {
     if (initialData?.nightHourlyWage && initialData.nightHourlyWage > 0) return formatNumber(initialData.nightHourlyWage)
-    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    const base = initialData?.hourlyWage || 0
+    if (base > 0) return formatNumber(Math.round(base * 1.5))
     return '0'
   })
   const [holidayHourlyWage, setHolidayHourlyWage] = useState<string>(() => {
     if (initialData?.holidayHourlyWage && initialData.holidayHourlyWage > 0) return formatNumber(initialData.holidayHourlyWage)
-    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    const base = initialData?.hourlyWage || 0
+    if (base > 0) return formatNumber(Math.round(base * 1.5))
     return '0'
   })
 
