@@ -166,11 +166,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     return emp?.employeeNumber || '-'
   }, [formData.employeeNumber, formData.employeeId, employeeList])
 
-  // 계약 상세 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
-  const [prevContractDetail, setPrevContractDetail] = useState(contractDetail)
+  // 계약 상세 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환, 초기 1회만 적용)
+  const [prevContractDetail, setPrevContractDetail] = useState<typeof contractDetail>(undefined)
   if (contractDetail !== prevContractDetail) {
     setPrevContractDetail(contractDetail)
-    if (contractDetail && !isCreateMode) {
+    if (contractDetail && !isCreateMode && headerId === null) {
       const header = contractDetail.employmentContractHeader
       const member = contractDetail.member
 

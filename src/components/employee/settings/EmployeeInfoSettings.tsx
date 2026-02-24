@@ -277,7 +277,7 @@ export default function EmployeeInfoSettings() {
   )
 
   // 쿼리 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
-  const [prevSettingsData, setPrevSettingsData] = useState(settingsData)
+  const [prevSettingsData, setPrevSettingsData] = useState<typeof settingsData>(undefined)
   if (settingsData !== prevSettingsData) {
     setPrevSettingsData(settingsData)
     if (settingsData?.codeMemoContent) {
