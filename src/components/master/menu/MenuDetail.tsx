@@ -81,7 +81,19 @@ export default function MenuDetail({ id }: MenuDetailProps) {
     )
   }
 
-  if (!menu) return null
+  if (!menu) {
+    return (
+      <div className="data-wrap">
+        <Location title="마스터용 메뉴 관리" list={BREADCRUMBS} />
+        <div className="empty-wrap">
+          <div className="empty-data">메뉴 정보를 찾을 수 없습니다.</div>
+        </div>
+        <div className="btn-filed" style={{ justifyContent: 'center', marginTop: '20px' }}>
+          <button className="btn-form basic" onClick={handleList}>목록으로</button>
+        </div>
+      </div>
+    )
+  }
 
   const hasMarketingTags = menu.marketingTags && menu.marketingTags.length > 0
   const hasTemperatureTags = menu.temperatureTags && menu.temperatureTags.length > 0
