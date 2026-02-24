@@ -86,7 +86,10 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
     weekDayAllowance: salaryInfo.weekDayAllowance || 0,
     overtimeDayAllowance: salaryInfo.overtimeDayAllowance || 0,
     nightDayAllowance: salaryInfo.nightDayAllowance || 0,
-    holidayDayAllowance: salaryInfo.holidayAllowanceTime || 0
+    holidayDayAllowance: salaryInfo.holidayAllowanceTime || 0,
+    weeklyWorkHours: salaryInfo.monthlyTime
+      ? Math.round(salaryInfo.monthlyTime / (1.2 * 4.345))
+      : 40
   } : {
     annualSalary: 0,
     monthlySalary: 0,
@@ -110,7 +113,8 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
     weekDayAllowance: 0,
     overtimeDayAllowance: 0,
     nightDayAllowance: 0,
-    holidayDayAllowance: 0
+    holidayDayAllowance: 0,
+    weeklyWorkHours: 40
   }
 
   // 로컬 수정 상태
@@ -318,6 +322,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
       annualSalary: data.annualSalary,
       monthlySalary: data.monthlySalary,
       hourlyWage: data.hourlyWage,
+      weeklyWorkHours: data.weeklyWorkHours,
       monthlyBasicHours: data.monthlyBasicHours,
       monthlyBasicAmount: data.monthlyBasicAmount,
       monthlyOvertimeHours: data.monthlyOvertimeHours,
@@ -1063,12 +1068,14 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
 
       {/* 연봉 및 통상시급 계산기 팝업 */}
       <SalaryCalculationPop
+        key={isCalculatorOpen ? `salary-${contractClassification}` : 'closed'}
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
         onApply={handleCalculatorApply}
         contractClassification={contractClassification}
         initialData={{
           hourlyWage: formData.hourlyWage,
+          weeklyWorkHours: formData.weeklyWorkHours,
           monthlyOvertimeHours: formData.monthlyOvertimeHours,
           monthlyExtraHolidayHours: formData.monthlyExtraHolidayHours,
           monthlyNightHours: formData.monthlyNightHours,

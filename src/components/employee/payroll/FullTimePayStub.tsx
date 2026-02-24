@@ -309,7 +309,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     actualPaymentAmount: 0,
   }))
 
-  // 공통코드 로드 (마운트 시 한 번만)
+  // 공통코드 로드 (getHierarchyChildren이 useCallback으로 안정화되어 실질적으로 마운트 시 한 번만 실행)
   useEffect(() => {
     const loadCommonCodes = async () => {
       try {
@@ -326,8 +326,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       }
     }
     loadCommonCodes()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 공통코드는 마운트 시 한 번만 로드
-  }, [])
+  }, [getHierarchyChildren])
 
   // 기존 데이터가 로드되면 폼에 반영
   useEffect(() => {
