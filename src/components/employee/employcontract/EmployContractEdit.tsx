@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
@@ -166,9 +166,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     return emp?.employeeNumber || '-'
   }, [formData.employeeNumber, formData.employeeId, employeeList])
 
-  // 계약 상세 데이터 로드 시 폼 업데이트
-  useEffect(() => {
-    if (contractDetail && !isCreateMode && headerId === null) {
+  // 계약 상세 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
+  const [prevContractDetail, setPrevContractDetail] = useState(contractDetail)
+  if (contractDetail !== prevContractDetail) {
+    setPrevContractDetail(contractDetail)
+    if (contractDetail && !isCreateMode) {
       const header = contractDetail.employmentContractHeader
       const member = contractDetail.member
 
@@ -180,7 +182,6 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
       }
 
       if (header?.id) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 데이터(contractDetail) 로드 시 폼 상태 동기화
         setHeaderId(header.id)
       }
 
@@ -218,7 +219,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
         wageContractFileUrl: header?.wageContractFile?.downloadUrl || ''
       }))
     }
-  }, [contractDetail, isCreateMode, headerId])
+  }
 
   const handleInputChange = (field: string, value: string | number | boolean | string[] | Date | null) => {
     if (field === 'employeeAffiliation' && value === 'HEAD_OFFICE') {

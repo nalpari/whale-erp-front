@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -276,21 +276,21 @@ export default function EmployeeInfoSettings() {
     })
   )
 
-  // 쿼리 데이터로 상태 초기화 - settingsData 변경 시 로컬 상태 동기화
-  useEffect(() => {
+  // 쿼리 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
+  const [prevSettingsData, setPrevSettingsData] = useState(settingsData)
+  if (settingsData !== prevSettingsData) {
+    setPrevSettingsData(settingsData)
     if (settingsData?.codeMemoContent) {
       const { EMPLOYEE, RANK, POSITION } = settingsData.codeMemoContent
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 쿼리 데이터 로드 시 상태 동기화
       setClassifications({
         employee: apiToUiClassifications(EMPLOYEE || []),
         rank: apiToUiClassifications(RANK || []),
         position: apiToUiClassifications(POSITION || []),
       })
     } else if (!isLoading) {
-      // 데이터가 없으면 빈 배열로 초기화
       setClassifications({ employee: [], rank: [], position: [] })
     }
-  }, [settingsData, isLoading])
+  }
 
   // 현재 탭에 따른 데이터 가져오기
   const getCurrentClassifications = () => {

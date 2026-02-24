@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Tooltip } from 'react-tooltip'
 import {
   useLaborContractSettings,
@@ -222,18 +222,19 @@ export default function LaborContractSettings() {
   // 파트타이머 계약서 설정 (로컬 상태)
   const [parttimeSettings, setParttimeSettings] = useState<ParttimeContractSettings>(DEFAULT_PARTTIME_SETTINGS)
 
-  // 서버 데이터가 변경되면 로컬 상태 업데이트
-  useEffect(() => {
+  // 서버 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
+  const [prevSettingsData, setPrevSettingsData] = useState(settingsData)
+  if (settingsData !== prevSettingsData) {
+    setPrevSettingsData(settingsData)
     if (settingsData?.codeMemoContent) {
       const { fulltime, parttime } = settingsData.codeMemoContent
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 쿼리 데이터 로드 시 상태 동기화
       setFulltimeSettings(fulltime || DEFAULT_FULLTIME_SETTINGS)
       setParttimeSettings(parttime || DEFAULT_PARTTIME_SETTINGS)
     } else {
       setFulltimeSettings(DEFAULT_FULLTIME_SETTINGS)
       setParttimeSettings(DEFAULT_PARTTIME_SETTINGS)
     }
-  }, [settingsData])
+  }
 
   // 검색 (refetch)
   const handleSearch = () => {

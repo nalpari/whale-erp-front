@@ -1063,6 +1063,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
 
       {/* 연봉 및 통상시급 계산기 팝업 */}
       <SalaryCalculationPop
+        key={isCalculatorOpen ? `salary-${contractClassification}` : 'closed'}
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
         onApply={handleCalculatorApply}

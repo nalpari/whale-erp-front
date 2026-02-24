@@ -1,4 +1,5 @@
-﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+﻿import { useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { commonCodeKeys, payrollKeys } from './query-keys'
 import { getBonusTypes, type BonusTypeInfo } from '@/lib/api/commonCode'
@@ -79,18 +80,18 @@ export const fetchCommonCodeHierarchy = async (code: string): Promise<CommonCode
 export const useCommonCodeCache = () => {
   const queryClient = useQueryClient()
 
-  const getChildren = (code: string): CommonCodeNode[] => {
+  const getChildren = useCallback((code: string): CommonCodeNode[] => {
     return queryClient.getQueryData(commonCodeKeys.hierarchy(code)) ?? []
-  }
+  }, [queryClient])
 
-  const getHierarchyChildren = async (code: string): Promise<CommonCodeNode[]> => {
+  const getHierarchyChildren = useCallback(async (code: string): Promise<CommonCodeNode[]> => {
     const cached = queryClient.getQueryData<CommonCodeNode[]>(commonCodeKeys.hierarchy(code))
     if (cached) return cached
 
     const data = await fetchCommonCodeHierarchy(code)
     queryClient.setQueryData(commonCodeKeys.hierarchy(code), data)
     return data
-  }
+  }, [queryClient])
 
   return {
     getChildren,

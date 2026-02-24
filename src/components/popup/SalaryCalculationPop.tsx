@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import { useMinimumWageList } from '@/hooks/queries/use-employee-queries'
 import type { MinimumWageInfo as _MinimumWageInfo } from '@/lib/api/employee'
@@ -82,120 +82,76 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
 
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [minimumWage, setMinimumWage] = useState<number>(0)
-  const [hourlyWage, setHourlyWage] = useState<string>('0')
 
-  // 계약 분류 상태 (부모 컴포넌트에서 전달받은 값으로 초기화)
+  // 계약 분류 상태 (부모 컴포넌트에서 전달받은 값으로 초기화 — key prop으로 리마운트 보장)
   const [selectedContractType, setSelectedContractType] = useState<ContractClassificationType>(contractClassification)
 
-  // 비포괄연봉제 추가근무시급 상태
-  const [weekdayHourlyWage, setWeekdayHourlyWage] = useState<string>('0')
-  const [overtimeHourlyWage, setOvertimeHourlyWage] = useState<string>('0')
-  const [nightHourlyWage, setNightHourlyWage] = useState<string>('0')
-  const [holidayHourlyWage, setHolidayHourlyWage] = useState<string>('0')
+  // 통상시급 — initialData에서 초기값 설정 (key prop으로 리마운트 보장)
+  const [hourlyWage, setHourlyWage] = useState<string>(() =>
+    initialData?.hourlyWage ? formatNumber(initialData.hourlyWage) : '0'
+  )
 
-  // 근무시간 상태 (주당 근무시간 기본값 40)
+  // 비포괄연봉제 추가근무시급 상태 — initialData에서 초기값 계산
+  const baseHourlyWage = initialData?.hourlyWage || 0
+  const [weekdayHourlyWage, setWeekdayHourlyWage] = useState<string>(() => {
+    if (initialData?.weekdayHourlyWage && initialData.weekdayHourlyWage > 0) return formatNumber(initialData.weekdayHourlyWage)
+    if (baseHourlyWage > 0) return formatNumber(baseHourlyWage)
+    return '0'
+  })
+  const [overtimeHourlyWage, setOvertimeHourlyWage] = useState<string>(() => {
+    if (initialData?.overtimeHourlyWage && initialData.overtimeHourlyWage > 0) return formatNumber(initialData.overtimeHourlyWage)
+    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    return '0'
+  })
+  const [nightHourlyWage, setNightHourlyWage] = useState<string>(() => {
+    if (initialData?.nightHourlyWage && initialData.nightHourlyWage > 0) return formatNumber(initialData.nightHourlyWage)
+    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    return '0'
+  })
+  const [holidayHourlyWage, setHolidayHourlyWage] = useState<string>(() => {
+    if (initialData?.holidayHourlyWage && initialData.holidayHourlyWage > 0) return formatNumber(initialData.holidayHourlyWage)
+    if (baseHourlyWage > 0) return formatNumber(Math.round(baseHourlyWage * 1.5))
+    return '0'
+  })
+
+  // 근무시간 상태 — initialData에서 초기값 설정
   const [weeklyWorkHours, setWeeklyWorkHours] = useState<number>(40)
-  const [monthlyOvertimeHours, setMonthlyOvertimeHours] = useState<number>(0)
-  const [monthlyExtraHolidayHours, setMonthlyExtraHolidayHours] = useState<number>(0)
-  const [monthlyNightHours, setMonthlyNightHours] = useState<number>(0)
-  const [monthlyHolidayHours, setMonthlyHolidayHours] = useState<number>(0)
+  const [monthlyOvertimeHours, setMonthlyOvertimeHours] = useState<number>(initialData?.monthlyOvertimeHours ?? 0)
+  const [monthlyExtraHolidayHours, setMonthlyExtraHolidayHours] = useState<number>(initialData?.monthlyExtraHolidayHours ?? 0)
+  const [monthlyNightHours, setMonthlyNightHours] = useState<number>(initialData?.monthlyNightHours ?? 0)
+  const [monthlyHolidayHours, setMonthlyHolidayHours] = useState<number>(initialData?.monthlyHolidayHours ?? 0)
 
-  // 수당 상태 (급여 포함 여부 + 금액) - 기본값 ON
-  const [foodAllowanceIncluded, setFoodAllowanceIncluded] = useState<boolean>(true)
-  const [foodAllowance, setFoodAllowance] = useState<string>('200,000')
-  const [drivingAllowanceIncluded, setDrivingAllowanceIncluded] = useState<boolean>(true)
-  const [drivingAllowance, setDrivingAllowance] = useState<string>('200,000')
-  const [childAllowanceIncluded, setChildAllowanceIncluded] = useState<boolean>(true)
-  const [childAllowance, setChildAllowance] = useState<string>('100,000')
-
-  // 팝업 열릴 때 initialData로 초기화
-  useEffect(() => {
-    if (isOpen) {
-      // 계약 분류 초기화
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 props 변경 시 상태 동기화
-      setSelectedContractType(contractClassification)
-
-      if (initialData) {
-        // 통상시급
-        if (initialData.hourlyWage) {
-          setHourlyWage(formatNumber(initialData.hourlyWage))
-        }
-        // 근무시간
-        if (initialData.monthlyOvertimeHours !== undefined) {
-          setMonthlyOvertimeHours(initialData.monthlyOvertimeHours)
-        }
-        if (initialData.monthlyExtraHolidayHours !== undefined) {
-          setMonthlyExtraHolidayHours(initialData.monthlyExtraHolidayHours)
-        }
-        if (initialData.monthlyNightHours !== undefined) {
-          setMonthlyNightHours(initialData.monthlyNightHours)
-        }
-        if (initialData.monthlyHolidayHours !== undefined) {
-          setMonthlyHolidayHours(initialData.monthlyHolidayHours)
-        }
-        // 비과세 항목 - 기존 값이 있으면 그 값 사용, 없으면 기본값 유지
-        // 식대: 기존값 있으면 사용, 없으면 기본값 200,000 / checked
-        if (initialData.mealAllowance !== undefined && initialData.mealAllowance > 0) {
-          setFoodAllowance(formatNumber(initialData.mealAllowance))
-          setFoodAllowanceIncluded(initialData.mealAllowanceIncluded ?? true)
-        } else {
-          setFoodAllowance('200,000')
-          setFoodAllowanceIncluded(true)
-        }
-        // 자가운전보조금: 기존값 있으면 사용, 없으면 기본값 200,000 / checked
-        if (initialData.carAllowance !== undefined && initialData.carAllowance > 0) {
-          setDrivingAllowance(formatNumber(initialData.carAllowance))
-          setDrivingAllowanceIncluded(initialData.carAllowanceIncluded ?? true)
-        } else {
-          setDrivingAllowance('200,000')
-          setDrivingAllowanceIncluded(true)
-        }
-        // 육아수당: 기존값 있으면 사용, 없으면 기본값 100,000 / checked
-        if (initialData.childcareAllowance !== undefined && initialData.childcareAllowance > 0) {
-          setChildAllowance(formatNumber(initialData.childcareAllowance))
-          setChildAllowanceIncluded(initialData.childcareAllowanceIncluded ?? true)
-        } else {
-          setChildAllowance('100,000')
-          setChildAllowanceIncluded(true)
-        }
-        // 비포괄연봉제 추가근무시급 - 기존 값이 있으면 사용, 없으면 통상시급 기반 계산
-        const baseHourlyWage = initialData.hourlyWage || 0
-        if (initialData.weekdayHourlyWage !== undefined && initialData.weekdayHourlyWage > 0) {
-          setWeekdayHourlyWage(formatNumber(initialData.weekdayHourlyWage))
-        } else if (baseHourlyWage > 0) {
-          setWeekdayHourlyWage(formatNumber(baseHourlyWage))
-        }
-        if (initialData.overtimeHourlyWage !== undefined && initialData.overtimeHourlyWage > 0) {
-          setOvertimeHourlyWage(formatNumber(initialData.overtimeHourlyWage))
-        } else if (baseHourlyWage > 0) {
-          setOvertimeHourlyWage(formatNumber(Math.round(baseHourlyWage * 1.5)))
-        }
-        if (initialData.nightHourlyWage !== undefined && initialData.nightHourlyWage > 0) {
-          setNightHourlyWage(formatNumber(initialData.nightHourlyWage))
-        } else if (baseHourlyWage > 0) {
-          setNightHourlyWage(formatNumber(Math.round(baseHourlyWage * 1.5)))
-        }
-        if (initialData.holidayHourlyWage !== undefined && initialData.holidayHourlyWage > 0) {
-          setHolidayHourlyWage(formatNumber(initialData.holidayHourlyWage))
-        } else if (baseHourlyWage > 0) {
-          setHolidayHourlyWage(formatNumber(Math.round(baseHourlyWage * 1.5)))
-        }
-      } else {
-        // initialData가 없으면 기본값 설정
-        setFoodAllowance('200,000')
-        setFoodAllowanceIncluded(true)
-        setDrivingAllowance('200,000')
-        setDrivingAllowanceIncluded(true)
-        setChildAllowance('100,000')
-        setChildAllowanceIncluded(true)
-        // 비포괄연봉제 추가근무시급 초기화
-        setWeekdayHourlyWage('0')
-        setOvertimeHourlyWage('0')
-        setNightHourlyWage('0')
-        setHolidayHourlyWage('0')
-      }
-    }
-  }, [isOpen, initialData, contractClassification])
+  // 수당 상태 — initialData에서 초기값 설정
+  const [foodAllowanceIncluded, setFoodAllowanceIncluded] = useState<boolean>(
+    initialData?.mealAllowance !== undefined && initialData.mealAllowance > 0
+      ? (initialData.mealAllowanceIncluded ?? true)
+      : true
+  )
+  const [foodAllowance, setFoodAllowance] = useState<string>(
+    initialData?.mealAllowance !== undefined && initialData.mealAllowance > 0
+      ? formatNumber(initialData.mealAllowance)
+      : '200,000'
+  )
+  const [drivingAllowanceIncluded, setDrivingAllowanceIncluded] = useState<boolean>(
+    initialData?.carAllowance !== undefined && initialData.carAllowance > 0
+      ? (initialData.carAllowanceIncluded ?? true)
+      : true
+  )
+  const [drivingAllowance, setDrivingAllowance] = useState<string>(
+    initialData?.carAllowance !== undefined && initialData.carAllowance > 0
+      ? formatNumber(initialData.carAllowance)
+      : '200,000'
+  )
+  const [childAllowanceIncluded, setChildAllowanceIncluded] = useState<boolean>(
+    initialData?.childcareAllowance !== undefined && initialData.childcareAllowance > 0
+      ? (initialData.childcareAllowanceIncluded ?? true)
+      : true
+  )
+  const [childAllowance, setChildAllowance] = useState<string>(
+    initialData?.childcareAllowance !== undefined && initialData.childcareAllowance > 0
+      ? formatNumber(initialData.childcareAllowance)
+      : '100,000'
+  )
 
   // 월간 기본근무 시간 계산: (주당근무시간 + (주당근무시간/5)) * 4.345, 소수점 첫째자리에서 반올림
   const monthlyBasicHours = Math.round((weeklyWorkHours + (weeklyWorkHours / 5)) * 4.345)
@@ -242,21 +198,19 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   // 연봉 총액 계산 (월급여 총액 * 12)
   const annualTotalSalary = monthlyTotalSalary * 12
 
-  // 최저시급 목록 데이터가 로드되면 초기화 (TanStack Query 데이터 반영)
-  useEffect(() => {
+  // 최저시급 목록 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
+  const [prevMinimumWageListData, setPrevMinimumWageListData] = useState(minimumWageListData)
+  if (minimumWageListData !== prevMinimumWageListData) {
+    setPrevMinimumWageListData(minimumWageListData)
     if (minimumWageListData.length > 0) {
-      // 현재년도 또는 첫번째 항목 선택
       const currentYearData = minimumWageListData.find(item => item.year === currentYear)
       const wageData = currentYearData || minimumWageListData[0]
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 쿼리 데이터 로드 시 상태 동기화
       setSelectedYear(wageData.year)
       setMinimumWage(wageData.minimumWage)
 
-      // initialData에 통상시급이 있으면 그 값 사용, 없으면 최저시급 사용
       if (!initialData?.hourlyWage || initialData.hourlyWage === 0) {
         setHourlyWage(formatNumber(wageData.minimumWage))
 
-        // 비포괄연봉제/파트타임인 경우 추가근무시급 자동 계산 (initialData에 값이 없을 때만)
         if (contractClassification !== 'CNTCFWK_001') {
           if (!initialData?.weekdayHourlyWage || initialData.weekdayHourlyWage === 0) {
             setWeekdayHourlyWage(formatNumber(wageData.minimumWage))
@@ -273,7 +227,7 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
         }
       }
     }
-  }, [minimumWageListData, currentYear, initialData, contractClassification])
+  }
 
   // 연도 선택 시 해당 년도의 최저시급으로 통상시급 자동 입력
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
