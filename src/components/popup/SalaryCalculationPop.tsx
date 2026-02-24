@@ -11,6 +11,7 @@ export interface SalaryCalculationData {
   annualSalary: number
   monthlySalary: number
   hourlyWage: number
+  weeklyWorkHours: number
   monthlyBasicHours: number
   monthlyBasicAmount: number
   monthlyOvertimeHours: number
@@ -37,6 +38,7 @@ export interface SalaryCalculationData {
 // 초기 데이터 타입 (기존 급여 정보)
 export interface SalaryCalculationInitialData {
   hourlyWage?: number
+  weeklyWorkHours?: number
   monthlyOvertimeHours?: number
   monthlyExtraHolidayHours?: number
   monthlyNightHours?: number
@@ -115,7 +117,7 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   })
 
   // 근무시간 상태 — initialData에서 초기값 설정
-  const [weeklyWorkHours, setWeeklyWorkHours] = useState<number>(40)
+  const [weeklyWorkHours, setWeeklyWorkHours] = useState<number>(initialData?.weeklyWorkHours ?? 40)
   const [monthlyOvertimeHours, setMonthlyOvertimeHours] = useState<number>(initialData?.monthlyOvertimeHours ?? 0)
   const [monthlyExtraHolidayHours, setMonthlyExtraHolidayHours] = useState<number>(initialData?.monthlyExtraHolidayHours ?? 0)
   const [monthlyNightHours, setMonthlyNightHours] = useState<number>(initialData?.monthlyNightHours ?? 0)
@@ -123,32 +125,32 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
 
   // 수당 상태 — initialData에서 초기값 설정
   const [foodAllowanceIncluded, setFoodAllowanceIncluded] = useState<boolean>(
-    initialData?.mealAllowance !== undefined && initialData.mealAllowance > 0
+    initialData?.mealAllowance !== undefined
       ? (initialData.mealAllowanceIncluded ?? true)
       : true
   )
   const [foodAllowance, setFoodAllowance] = useState<string>(
-    initialData?.mealAllowance !== undefined && initialData.mealAllowance > 0
+    initialData?.mealAllowance !== undefined
       ? formatNumber(initialData.mealAllowance)
       : '200,000'
   )
   const [drivingAllowanceIncluded, setDrivingAllowanceIncluded] = useState<boolean>(
-    initialData?.carAllowance !== undefined && initialData.carAllowance > 0
+    initialData?.carAllowance !== undefined
       ? (initialData.carAllowanceIncluded ?? true)
       : true
   )
   const [drivingAllowance, setDrivingAllowance] = useState<string>(
-    initialData?.carAllowance !== undefined && initialData.carAllowance > 0
+    initialData?.carAllowance !== undefined
       ? formatNumber(initialData.carAllowance)
       : '200,000'
   )
   const [childAllowanceIncluded, setChildAllowanceIncluded] = useState<boolean>(
-    initialData?.childcareAllowance !== undefined && initialData.childcareAllowance > 0
+    initialData?.childcareAllowance !== undefined
       ? (initialData.childcareAllowanceIncluded ?? true)
       : true
   )
   const [childAllowance, setChildAllowance] = useState<string>(
-    initialData?.childcareAllowance !== undefined && initialData.childcareAllowance > 0
+    initialData?.childcareAllowance !== undefined
       ? formatNumber(initialData.childcareAllowance)
       : '100,000'
   )
@@ -309,6 +311,7 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
         annualSalary: annualTotalSalary,
         monthlySalary: monthlyTotalSalary,
         hourlyWage: hourlyWageNum,
+        weeklyWorkHours: weeklyWorkHours,
         monthlyBasicHours: monthlyBasicHours,
         monthlyBasicAmount: monthlyBasicSalary,
         monthlyOvertimeHours: monthlyOvertimeHours,
