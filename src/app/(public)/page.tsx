@@ -1,10 +1,5 @@
-'use client'
+import BeforeMain from '@/components/before/before-main/BeforeMain'
 
 export default function NotLoginMainPage() {
-
-  return (
-    <div>
-      <h1>Not Logined Main Page</h1>
-    </div>
-  )
+  return <BeforeMain />
 }

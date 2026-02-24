@@ -37,6 +37,11 @@ export const bpKeys = {
 export const commonCodeKeys = {
   all: ['common-codes'] as const,
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
+  tree: (
+    codeGroup: string, maxDepth: number, headOffice?: string, franchise?: string, isActive?: boolean,
+    headerCode?: string, headerId?: string, headerName?: string, headerDescription?: string
+  ) =>
+    [...commonCodeKeys.all, 'tree', codeGroup, maxDepth, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription] as const,
 }
 
 export const programKeys = {
@@ -234,6 +239,34 @@ export const authorityKeys = {
   detail: (id: number) => [...authorityKeys.details(), id] as const,
 }
 
+export interface MasterMenuListParams {
+  bpId?: number | null
+  menuName?: string
+  operationStatus?: string
+  menuType?: string
+  menuClassificationCode?: string
+  categoryId?: string
+  storeId?: string
+  createdAtFrom?: string
+  createdAtTo?: string
+  page?: number
+  size?: number
+}
+
+export const masterCategoryKeys = {
+  all: ['master-categories'] as const,
+  lists: () => [...masterCategoryKeys.all, 'list'] as const,
+  list: (bpId: number) => [...masterCategoryKeys.lists(), bpId] as const,
+}
+
+export const masterMenuKeys = {
+  all: ['master-menus'] as const,
+  lists: () => [...masterMenuKeys.all, 'list'] as const,
+  list: (params: MasterMenuListParams) => [...masterMenuKeys.lists(), params] as const,
+  details: () => [...masterMenuKeys.all, 'detail'] as const,
+  detail: (id: number) => [...masterMenuKeys.details(), id] as const,
+}
+
 export interface PlansListParams {
   planType?: string | null
   updater?: string | null
@@ -258,3 +291,13 @@ export const categoryKeys = {
 
 export type { CategorySearchParams } from '@/types/category'
 import type { CategorySearchParams } from '@/types/category'
+
+import type { StoreMenuListParams } from '@/types/store-menu'
+
+export const storeMenuKeys = {
+  all: ['store-menus'] as const,
+  lists: () => [...storeMenuKeys.all, 'list'] as const,
+  list: (params: StoreMenuListParams) => [...storeMenuKeys.lists(), params] as const,
+  details: () => [...storeMenuKeys.all, 'detail'] as const,
+  detail: (id: number) => [...storeMenuKeys.details(), id] as const,
+}

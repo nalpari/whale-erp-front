@@ -34,12 +34,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 35,
             name: '마스터용 메뉴 Master',
-            link: '#',
+            link: '/master/menu',
           },
           {
             id: 36,
             name: '점포용 메뉴 Master',
-            link: '#',
+            link: '/master/menu/store',
           },
         ],
       },
@@ -212,7 +212,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 23,
         name: '공통코드 관리',
-        link: '#',
+        link: '/system/common-codes',
       },
       {
         id: 24,
@@ -255,7 +255,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 50,
             name: '공통코드 관리',
-            link: '#',
+            link: '/system/common-codes',
           },
           {
             id: 51,

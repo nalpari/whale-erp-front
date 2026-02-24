@@ -23,7 +23,7 @@ export const useContractList = (params?: ContractSearchParams, enabled = true) =
   return useQuery({
     queryKey: contractKeys.list(params),
     queryFn: () => getEmploymentContracts(params),
-    enabled,
+    enabled: enabled && !!params?.headOfficeId,
   })
 }
 

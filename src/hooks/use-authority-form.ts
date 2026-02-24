@@ -26,9 +26,9 @@ function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDet
   return programs.map((program) => ({
     program_id: program.id,
     program_name: program.name,
-    can_read: program.can_read ?? undefined,
-    can_create_delete: program.can_create_delete ?? undefined,
-    can_update: program.can_update ?? undefined,
+    can_read: program.canRead ?? undefined,
+    can_create_delete: program.canCreateDelete ?? undefined,
+    can_update: program.canUpdate ?? undefined,
     children: program.children && program.children.length > 0
       ? toAuthorityDetailNodes(program.children)
       : undefined,
@@ -87,6 +87,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
   const { mutateAsync: createAuthority } = useCreateAuthority()
   const { mutateAsync: updateAuthority } = useUpdateAuthority()
 
+  // 슈퍼 관리자 체크 (권한 데이터가 비어있으면 슈퍼 관리자)
+  const isAdmin = !myPermissions || myPermissions.length === 0
+
   // 본인의 프로그램별 권한 찾기
   const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
     if (!myPermissions) return undefined
@@ -105,9 +108,6 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     return findInTree(myPermissions)
   }
 
-  // 슈퍼 관리자 체크 (권한 데이터가 비어있으면 슈퍼 관리자)
-  const isAdmin = !myPermissions || myPermissions.length === 0
-
   // 생성 모드: 프로그램 목록을 트리 구조로 변환
   useEffect(() => {
     if (mode === 'create' && programList && programTree.length === 0) {
@@ -120,29 +120,21 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
       const convertToTree = (programs: ProgramNode[]): AuthorityDetailNode[] => {
         return programs
           .filter((program): program is ProgramNode & { id: number } => program.id !== null)
-          .map((program) => {
-            const myPermission = findMyPermission(program.id)
-
-            return {
-              program_id: program.id,
-              program_name: program.name,
-              can_read: false,
-              can_create_delete: false,
-              can_update: false,
-              // 본인이 가진 최대 권한 (슈퍼 관리자는 모든 권한 가능)
-              max_can_read: isAdmin ? true : (myPermission?.can_read ?? false),
-              max_can_create_delete: isAdmin ? true : (myPermission?.can_create_delete ?? false),
-              max_can_update: isAdmin ? true : (myPermission?.can_update ?? false),
-              children: program.children ? convertToTree(program.children) : undefined,
-            }
-          })
+          .map((program) => ({
+            program_id: program.id,
+            program_name: program.name,
+            can_read: false,
+            can_create_delete: false,
+            can_update: false,
+            children: program.children ? convertToTree(program.children) : undefined,
+          }))
       }
 
       setProgramTree(convertToTree(programList))
     }
-  }, [mode, programList, programTree.length, loginAuthority])
+  }, [mode, programList, programTree.length])
 
-  // 수정 모드: initialAuthority 변경 시 폼 데이터 초기화
+  // 수정 모드: initialAuthority 변경 시 폼 데이터 및 프로그램 트리 초기화
   useEffect(() => {
     if (mode === 'edit' && initialAuthority) {
       setFormData({
@@ -153,29 +145,28 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
       })
+      setProgramTree(initialAuthority.details || [])
     }
   }, [mode, initialAuthority])
 
-  // 수정 모드: 프로그램 트리에 max_can_* 권한 적용
-  useEffect(() => {
-    if (mode === 'edit' && initialAuthority) {
-      const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
-        return nodes.map((node) => {
-          const myPermission = findMyPermission(node.program_id)
+  // max_can_* 권한을 파생 값으로 계산
+  const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
+    return nodes.map((node) => {
+      const myPermission = findMyPermission(node.program_id)
 
-          return {
-            ...node,
-            max_can_read: isAdmin ? true : (myPermission?.can_read ?? false),
-            max_can_create_delete: isAdmin ? true : (myPermission?.can_create_delete ?? false),
-            max_can_update: isAdmin ? true : (myPermission?.can_update ?? false),
-            children: node.children ? addMaxPermissions(node.children) : undefined,
-          }
-        })
+      return {
+        ...node,
+        max_can_read: isAdmin ? true : (myPermission?.can_read ?? false),
+        max_can_create_delete: isAdmin ? true : (myPermission?.can_create_delete ?? false),
+        max_can_update: isAdmin ? true : (myPermission?.can_update ?? false),
+        children: node.children ? addMaxPermissions(node.children) : undefined,
       }
+    })
+  }
 
-      setProgramTree(addMaxPermissions(initialAuthority.details || []))
-    }
-  }, [mode, initialAuthority, loginAuthority])
+  const programTreeWithMaxPermissions = programTree.length > 0
+    ? addMaxPermissions(programTree)
+    : programTree
 
   // 폼 데이터 변경 핸들러
   const handleFormChange = (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => {
@@ -332,7 +323,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
   return {
     formData,
     errors,
-    programTree,
+    programTree: programTreeWithMaxPermissions,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,

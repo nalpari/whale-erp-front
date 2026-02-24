@@ -39,8 +39,20 @@
     .before-menu-list {
       .before-menu-item {
         a {
-          color: #252b32;
+          color: #999999;
           transition: none;
+        }
+        &.act {
+          a {
+            color: #252b32;
+          }
+        }
+      }
+      &.act {
+        .before-menu-item {
+          a {
+            color: #252b32;
+          }
         }
       }
     }
@@ -236,6 +248,23 @@
   width: 100%;
   margin: 0 auto;
 }
+// 고래 움직임 애니메이션
+@keyframes whaleFloat {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-50%, -50%) translateY(-15px) rotate(-2deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translate(-50%, -50%) translateY(-10px) rotate(2deg);
+  }
+}
+
 .erp-tit-wrap {
   position: relative;
   height: 418px;
@@ -244,6 +273,7 @@
   background-size: 765px 418px;
   .whale-img {
     @include absoluteCenter;
+    animation: whaleFloat 4s ease-in-out infinite;
   }
 }
 .erp-txt-wrap {
@@ -300,6 +330,12 @@
   .mySwiper {
     position: relative;
     padding-bottom: 173px;
+    padding-left: 170px;
+    padding-right: 170px;
+    .swiper-slide {
+      display: flex;
+      justify-content: center;
+    }
     .swiper-button-prev {
       top: unset;
       bottom: 0;
@@ -341,7 +377,9 @@
   }
 }
 .section-swip-item {
+  width: auto;
   .swip-item-head {
+    padding-left: 8px;
     margin-bottom: 24px;
     .s-tit {
       display: block;
@@ -355,12 +393,16 @@
     }
   }
   .swip-item-img {
-    width: 100%;
+    position: relative;
+    width: 370px;
     height: 370px;
-    background-color: #fff;
     border-radius: 32px;
+    img {
+      object-fit: cover;
+    }
   }
   .swip-item-info {
+    padding-left: 8px;
     margin-top: 60px;
     .info-txt {
       @include fontDefinition($font-ds-24, $font-w-700, $line-h-150);
@@ -439,6 +481,7 @@
       }
     }
     .device-item-img {
+      position: relative;
       display: flex;
       background-color: #fff;
     }
@@ -574,8 +617,11 @@
       display: flex;
       overflow: hidden;
       background-color: #000;
+      height: 100%;
+
       img {
         border-radius: 50px;
+        object-fit: cover;
       }
     }
   }
@@ -630,6 +676,7 @@
   margin-top: 120px;
   .service-swiper {
     padding-bottom: 62px;
+    margin-left: 170px;
     .swiper-pagination {
       top: unset;
       bottom: 0;
@@ -663,7 +710,7 @@
   }
   .service-arr {
     flex: none;
-    margin-left: auto;
+    margin-left: 112px;
     display: block;
     width: 24px;
     height: 24px;

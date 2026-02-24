@@ -251,41 +251,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {startAdornment}
 
           {/* 입력 필드 + clear 버튼 영역 */}
-          <div className={containerWidthClass}>
-            {showClear ? (
-              // clear 버튼이 있는 경우: input-icon-frame 래퍼 사용
-              <div className={inputWrapperClass}>
-                <input
-                  ref={ref}
-                  id={inputId}
-                  type={getNativeInputType()}
-                  inputMode={getInputMode()}
-                  className={`${className}`}
-                  disabled={disabled}
-                  readOnly={readOnly}
-                  value={getDisplayValue()}
-                  onChange={handleChange}
-                  aria-invalid={error}
-                  aria-describedby={helpText ? `${inputId}-help` : undefined}
-                  {...rest}
-                />
-                {hasValue && !disabled && !readOnly && (
-                  <button
-                    type="button"
-                    className="input-icon-btn del"
-                    onClick={onClear}
-                    aria-label="입력 값 초기화"
-                  />
-                )}
-              </div>
-            ) : (
-              // clear 버튼이 없는 경우: 기본 input-frame 스타일
+          <div className={containerWidthClass} style={fullWidth ? { minWidth: 0 } : undefined}>
+            <div className={inputWrapperClass}>
               <input
                 ref={ref}
                 id={inputId}
                 type={getNativeInputType()}
                 inputMode={getInputMode()}
-                className={`input-frame${error ? ' border-red-500' : ''} ${className}`}
+                className={`${className}`}
                 disabled={disabled}
                 readOnly={readOnly}
                 value={getDisplayValue()}
@@ -294,7 +267,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 aria-describedby={helpText ? `${inputId}-help` : undefined}
                 {...rest}
               />
-            )}
+              {showClear && hasValue && !disabled && !readOnly && (
+                <button
+                  type="button"
+                  className="input-icon-btn del"
+                  onClick={onClear}
+                  aria-label="입력 값 초기화"
+                />
+              )}
+            </div>
           </div>
 
           {/* 설명 텍스트 (ID코드 등) */}

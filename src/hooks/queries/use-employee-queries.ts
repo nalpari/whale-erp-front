@@ -97,6 +97,8 @@ export const useEmployeeCommonCode = (
  * - getEmployeeList를 사용하여 변환된 데이터를 반환한다.
  */
 export const useEmployeeInfoList = (params: EmployeeListParams, enabled = true) => {
+  // 0은 유효한 ID가 아니므로 || 사용 (0, null, undefined 모두 fallthrough)
+  const headOfficeId = params.officeId || params.headOfficeOrganizationId
   return useQuery({
     queryKey: employeeKeys.list(params),
     queryFn: () => {
@@ -121,7 +123,7 @@ export const useEmployeeInfoList = (params: EmployeeListParams, enabled = true) 
       }
       return getEmployeeList(searchParams)
     },
-    enabled,
+    enabled: enabled && !!headOfficeId,
   })
 }
 

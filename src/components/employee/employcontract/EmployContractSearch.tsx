@@ -265,7 +265,7 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
                 <td>
                   <div className="data-filed">
                     <Input
-                      placeholder="홍길동"
+                      placeholder="직원명 입력"
                       value={formData.employeeName}
                       onChange={(e) => handleInputChange('employeeName', e.target.value)}
                       showClear

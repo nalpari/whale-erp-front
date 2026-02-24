@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
@@ -166,8 +166,10 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     return emp?.employeeNumber || '-'
   }, [formData.employeeNumber, formData.employeeId, employeeList])
 
-  // 계약 상세 데이터 로드 시 폼 업데이트
-  useEffect(() => {
+  // 계약 상세 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환, 초기 1회만 적용)
+  const [prevContractDetail, setPrevContractDetail] = useState<typeof contractDetail>(undefined)
+  if (contractDetail !== prevContractDetail) {
+    setPrevContractDetail(contractDetail)
     if (contractDetail && !isCreateMode && headerId === null) {
       const header = contractDetail.employmentContractHeader
       const member = contractDetail.member
@@ -180,7 +182,6 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
       }
 
       if (header?.id) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 데이터(contractDetail) 로드 시 폼 상태 동기화
         setHeaderId(header.id)
       }
 
@@ -218,7 +219,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
         wageContractFileUrl: header?.wageContractFile?.downloadUrl || ''
       }))
     }
-  }, [contractDetail, isCreateMode, headerId])
+  }
 
   const handleInputChange = (field: string, value: string | number | boolean | string[] | Date | null) => {
     if (field === 'employeeAffiliation' && value === 'HEAD_OFFICE') {
@@ -758,15 +759,17 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>급여계산 주기/급여일 <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '150px' }}>
+                        <div style={{ width: '150px', flexShrink: 0 }}>
                           <SearchSelect
+                            fullWidth
                             options={salaryCycleOptions}
                             value={salaryCycleOptions.find(opt => opt.value === formData.salaryCycle) || null}
                             onChange={(option) => handleInputChange('salaryCycle', option?.value || '')}
                           />
                         </div>
-                        <div style={{ width: '100px' }}>
+                        <div style={{ width: '150px', flexShrink: 0 }}>
                           <SearchSelect
+                            fullWidth
                             options={salaryMonthOptions}
                             value={salaryMonthOptions.find(opt => opt.value === formData.salaryMonth) || null}
                             onChange={(option) => handleInputChange('salaryMonth', option?.value || '')}
@@ -774,11 +777,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                         </div>
                         <Input
                           type="number"
-                          style={{ width: '80px' }}
+                          style={{ width: '80px', flexShrink: 0 }}
                           value={formData.salaryDay}
                           onChange={(e) => handleInputChange('salaryDay', parseInt(e.target.value))}
                         />
-                        <span style={{ color: '#666', fontSize: '12px' }}>※ 31일을 입력한 경우 급여일은 매달 말일로 적용합니다.</span>
+                        <span style={{ color: '#666', fontSize: '12px', marginLeft: '4px', flexShrink: 0 }}>※ 31일을 입력한 경우 급여일은 매달 말일로 적용합니다.</span>
                       </div>
                     </td>
                   </tr>

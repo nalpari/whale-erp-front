@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 /** 퍼블(https://pub.whaleerp.co.kr/after-service) 기준 부가서비스 카드 데이터. 테이블 미정의로 정적 데이터, 상태는 모두 준비중 */
 export interface AfterServiceItem {
   id: string
@@ -45,7 +47,7 @@ export default function AfterService() {
         {AFTER_SERVICES.map((service, index) => (
           <div key={service.id} className="after-service-item">
             <div className="after-service-icon" aria-hidden>
-              <img
+              <Image
                 src={`/assets/images/main/service_icon${String(index + 1).padStart(2, '0')}.png`}
                 alt=""
                 width={82}

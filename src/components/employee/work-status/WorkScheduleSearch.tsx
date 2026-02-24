@@ -58,8 +58,16 @@ export default function WorkScheduleSearch({
   onSearch,
   onReset,
 }: WorkScheduleSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [showOfficeError, setShowOfficeError] = useState(false);
+
+  const handleMultiOffice = (isMulti: boolean) => {
+    if (isMulti) {
+      setSearchOpen(true);
+      setShowOfficeError(true);
+      onStoreErrorChange?.(true);
+    }
+  };
   const [showPeriodError, setShowPeriodError] = useState(false);
   const defaultRange = useMemo(() => getDefaultRange(), []);
   const defaultForm = useMemo(
@@ -256,6 +264,7 @@ export default function WorkScheduleSearch({
                       storeId: next.store,
                     }));
                   }}
+                  onMultiOffice={handleMultiOffice}
                 />
               </tr>
               <tr>

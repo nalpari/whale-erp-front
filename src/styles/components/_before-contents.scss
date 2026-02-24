@@ -32,6 +32,60 @@
     color: #1c1c2c;
     margin-top: 15px;
   }
+  .sub-header-btn-wrap {
+    @include flex(8px);
+    align-items: center;
+    justify-content: center;
+    margin-top: 52px;
+    .sub-header-btn {
+      @include flex(12px);
+      align-items: center;
+      padding: 0 32px;
+      height: 64px;
+      border-radius: 50px;
+      @include fontDefinition($font-ds-20, $font-w-800, 64px);
+      color: #fff;
+      transition: all 0.15s ease-in-out;
+      &.free {
+        background-color: #2c244d;
+        border: 1px solid #2c244d;
+        &:hover {
+          background-color: #fff;
+          color: #2c244d;
+          .free-btn-arr {
+            background: url('/assets/images/before_main/free_btn_arr_hover.svg') no-repeat center center;
+          }
+        }
+      }
+      &.inquiry {
+        background-color: #2563eb;
+        border: 1px solid #2563eb;
+        &:hover {
+          background-color: #fff;
+          color: #2563eb;
+          .inquiry-icon {
+            background: url('/assets/images/before_main/inquiry_icon_hover.svg') no-repeat center center;
+          }
+        }
+      }
+      .free-btn-arr {
+        display: block;
+        width: 24px;
+        height: 24px;
+        background: url('/assets/images/before_main/free_btn_arr.svg') no-repeat center center;
+        background-size: cover;
+        transition: all 0.15s ease-in-out;
+      }
+      .inquiry-icon {
+        display: block;
+        width: 24px;
+        height: 24px;
+        background: url('/assets/images/before_main/inquiry_icon.svg') no-repeat center center;
+        background-size: cover;
+        transition: all 0.15s ease-in-out;
+      }
+    }
+  }
 }
 .before {
   input {
@@ -313,4 +367,112 @@
   align-items: center;
   justify-content: center;
   margin-top: 40px;
+}
+
+/********************** 매장운영 컨텐츠 **********************/
+.store-operation-wrap {
+  padding: 240px 0;
+  background-image: url('/assets/images/before_main/store_operation_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.sub-category-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 1224px;
+  margin: 0 auto;
+}
+.sub-category-item {
+  position: relative;
+  display: block;
+  text-align: left;
+  padding: 32px;
+  height: 250px;
+  border-radius: 32px;
+  background: url('/assets/images/before_main/glass_bg.png') no-repeat center center;
+  background-size: cover;
+  transition: all 0.15s ease-in-out;
+  &.act {
+    background: #2563eb;
+    .operation-desc {
+      color: #d3e0fb;
+    }
+  }
+  .operation-icon {
+    display: flex;
+  }
+  .operation-tit {
+    @include fontDefinition($font-ds-22, $font-w-800, $line-h-150);
+    color: #fff;
+    margin-top: 24px;
+  }
+  .operation-desc {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #9ca3af;
+    margin-top: 16px;
+    word-break: keep-all;
+  }
+  .operation-btn {
+    position: absolute;
+    top: 32px;
+    right: 32px;
+    display: block;
+    width: 42px;
+    height: 42px;
+    background: url('/assets/images/before_main/operation_arr.svg') no-repeat center center;
+    background-size: cover;
+  }
+}
+
+/********************** 재무관리 컨텐츠 **********************/
+.financial-management-wrap {
+  padding: 240px 0;
+  background-image: url('/assets/images/before_main/financial_management_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/********************** 프랜차이즈 컨텐츠 **********************/
+.franchise-wrap {
+  padding: 240px 0;
+  background-image: url('/assets/images/before_main/franchise_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  .sub-category-content {
+    .sub-category-item {
+      &:last-child {
+        grid-column: span 3;
+        text-align: center;
+        .operation-icon {
+          justify-content: center;
+        }
+        .operation-tit {
+          @include flex(20px);
+          align-items: center;
+          justify-content: center;
+          margin-top: 12px;
+          .operation-btn {
+            position: relative;
+            top: 0;
+            right: 0;
+          }
+        }
+        .operation-desc {
+          margin-top: 9px;
+        }
+      }
+    }
+  }
+}
+
+/********************** 요금안내 컨텐츠 **********************/
+.pricing-info-wrap {
+  padding: 0 0 80px;
+  .pricing-info-inner {
+    max-width: 1580px;
+    margin: 0 auto;
+  }
 }
