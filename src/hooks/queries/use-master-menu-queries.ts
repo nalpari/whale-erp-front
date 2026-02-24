@@ -21,7 +21,7 @@ export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) 
 
 export const useOperatingOptionMenus = (bpId: number | null, enabled = true) => {
   return useQuery({
-    queryKey: masterMenuKeys.operatingOptions(bpId!),
+    queryKey: masterMenuKeys.operatingOptions(bpId ?? 0),
     queryFn: async () => {
       const response = await api.get<ApiResponse<MenuResponse[]>>(
         '/api/master/menu/master/operating-options',
@@ -146,8 +146,9 @@ export const useDeleteMenu = () => {
       )
       return response.data
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: masterMenuKeys.lists() })
+      queryClient.removeQueries({ queryKey: masterMenuKeys.detail(id) })
     },
   })
 }

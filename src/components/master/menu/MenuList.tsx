@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
@@ -204,15 +204,11 @@ export default function MenuList({
   const { data: menuTypeCodes = [] } = useCommonCodeHierarchy('MNTYP')
   const { data: setStatusCodes = [] } = useCommonCodeHierarchy('STST')
   const { data: menuClassCodes = [] } = useCommonCodeHierarchy('MNCF')
-  const marketingCodeMap = new Map(marketingCodes.map((c) => [c.code, c.name]))
-  const temperatureCodeMap = new Map(temperatureCodes.map((c) => [c.code, c.name]))
-  const menuTypeCodeMap = new Map(menuTypeCodes.map((c) => [c.code, c.name]))
-  const setStatusCodeMap = new Map(setStatusCodes.map((c) => [c.code, c.name]))
-  const menuClassCodeMap = new Map(menuClassCodes.map((c) => [c.code, c.name]))
-  const onCheckedChangeRef = useRef(onCheckedChange)
-  useEffect(() => {
-    onCheckedChangeRef.current = onCheckedChange
-  })
+  const marketingCodeMap = useMemo(() => new Map(marketingCodes.map((c) => [c.code, c.name])), [marketingCodes])
+  const temperatureCodeMap = useMemo(() => new Map(temperatureCodes.map((c) => [c.code, c.name])), [temperatureCodes])
+  const menuTypeCodeMap = useMemo(() => new Map(menuTypeCodes.map((c) => [c.code, c.name])), [menuTypeCodes])
+  const setStatusCodeMap = useMemo(() => new Map(setStatusCodes.map((c) => [c.code, c.name])), [setStatusCodes])
+  const menuClassCodeMap = useMemo(() => new Map(menuClassCodes.map((c) => [c.code, c.name])), [menuClassCodes])
 
   // 페이지 변경 시 체크 초기화 (렌더 중 상태 리셋 패턴)
   const resetKey = `${page}-${pageSize}`
@@ -224,15 +220,11 @@ export default function MenuList({
 
   const hasChecked = checkedIds.size > 0
 
-  // 체크 상태 변경을 부모에 알림
-  useEffect(() => {
-    onCheckedChangeRef.current(checkedIds.size > 0)
-  }, [checkedIds])
-
   const handleOperationStatus = async (operationStatus: string) => {
     const menuIds = Array.from(checkedIds)
     await onOperationStatusChange(menuIds, operationStatus)
     setCheckedIds(new Set())
+    onCheckedChange(false)
   }
 
   const handleCardClick = (menuId: number) => {
@@ -240,15 +232,14 @@ export default function MenuList({
   }
 
   const handleCheck = (id: number, checked: boolean) => {
-    setCheckedIds(prev => {
-      const next = new Set(prev)
-      if (checked) {
-        next.add(id)
-      } else {
-        next.delete(id)
-      }
-      return next
-    })
+    const next = new Set(checkedIds)
+    if (checked) {
+      next.add(id)
+    } else {
+      next.delete(id)
+    }
+    setCheckedIds(next)
+    onCheckedChange(next.size > 0)
   }
 
   return (
@@ -306,7 +297,7 @@ export default function MenuList({
         <AddStoreMenuPop
           isOpen={isAddStorePopOpen}
           onClose={() => setIsAddStorePopOpen(false)}
-          onSyncSuccess={() => setCheckedIds(new Set())}
+          onSyncSuccess={() => { setCheckedIds(new Set()); onCheckedChange(false) }}
           bpId={bpId}
           checkedMenuIds={Array.from(checkedIds)}
         />

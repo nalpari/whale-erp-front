@@ -276,6 +276,14 @@ function SortableOptionRow({
 export default function OptionSetSection({ optionSets, onChange, bpId, fieldErrors = {}, onClearFieldError }: OptionSetSectionProps) {
   const uniqueId = useId()
   const [findOptionTarget, setFindOptionTarget] = useState<{ setIndex: number; optionIndex: number } | null>(null)
+  const [findOptionKey, setFindOptionKey] = useState(0)
+
+  const openFindOption = useCallback((target: { setIndex: number; optionIndex: number } | null) => {
+    setFindOptionTarget(target)
+    if (target) {
+      setFindOptionKey((prev) => prev + 1)
+    }
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -396,7 +404,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
 
         return (
           <DndContext
-            key={setIndex}
+            key={optionSet.id ?? `new-set-${setIndex}`}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={(e) => handleOptionDragEnd(setIndex, e)}
@@ -545,7 +553,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
                     addOption={addOption}
                     removeOption={removeOption}
                     onClearFieldError={onClearFieldError}
-                    setFindOptionTarget={setFindOptionTarget}
+                    setFindOptionTarget={openFindOption}
                   />
                 ))}
               </SortableContext>
@@ -556,6 +564,7 @@ export default function OptionSetSection({ optionSets, onChange, bpId, fieldErro
       })}
       {bpId && (
         <FindOptionPop
+          key={findOptionKey}
           isOpen={findOptionTarget !== null}
           onClose={() => setFindOptionTarget(null)}
           onSelect={handleFindOptionSelect}

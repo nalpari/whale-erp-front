@@ -65,40 +65,11 @@ export default function FindOptionPop({ isOpen, onClose, onSelect, bpId }: FindO
 
   // 페이징
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(20)
 
   // UI
   const [searchOpen, setSearchOpen] = useState(true)
   const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null)
-
-  // 팝업 열림/닫힘 시 상태 초기화
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
-  if (prevIsOpen !== isOpen) {
-    setPrevIsOpen(isOpen)
-    if (isOpen) {
-      setFormData({
-        headOfficeOrganizationId: bpId,
-        franchiseOrganizationId: null,
-        menuGroup: 'MNGRP_001',
-        menuClassificationCode: '',
-        menuType: '',
-        setStatus: '',
-        menuName: '',
-      })
-      setFilters({})
-      setPage(0)
-      setPageSize(20)
-      setSearchOpen(true)
-      setSelectedMenuId(null)
-    }
-  }
-
-  // bpId prop 변경 시 동기화
-  const [prevBpId, setPrevBpId] = useState(bpId)
-  if (prevBpId !== bpId) {
-    setPrevBpId(bpId)
-    setFormData((prev) => ({ ...prev, headOfficeOrganizationId: bpId }))
-  }
 
   // 공통코드 조회
   const { data: menuGroupCodes = [] } = useCommonCodeHierarchy('MNGRP')
@@ -188,7 +159,7 @@ export default function FindOptionPop({ isOpen, onClose, onSelect, bpId }: FindO
     { field: 'setStatusLabel', headerName: '세트여부', width: 100 },
   ]
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: 'menuGroup' | 'menuClassificationCode' | 'menuType' | 'setStatus' | 'menuName', value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 

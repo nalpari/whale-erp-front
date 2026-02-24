@@ -83,7 +83,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     }))
   }, [menuClassificationCodes])
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: 'menuName' | 'operationStatus' | 'menuType' | 'menuClassificationCode' | 'categoryId' | 'franchiseAvailableId', value: string) => {
     setFormData({ [field]: value })
   }
 

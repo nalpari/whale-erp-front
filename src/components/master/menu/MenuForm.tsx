@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useId, useEffect, useRef } from 'react'
+import { useState, useCallback, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import Location from '@/components/ui/Location'
@@ -13,7 +13,7 @@ import CategorySelectSection from '@/components/master/menu/CategorySelectSectio
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useCommonCodeHierarchy, useStoreOptions } from '@/hooks/queries'
 import { useCreateMenu, useUpdateMenu, useMasterMenuDetail } from '@/hooks/queries/use-master-menu-queries'
-import { menuFormSchema, type MenuFormData, type OptionSetFormData } from '@/lib/schemas/menu'
+import { menuFormSchema, type MenuFormData, type OptionSetFormData, type MenuDetailResponse } from '@/lib/schemas/menu'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { useAlert, Input, RadioButtonGroup, ImageUpload, type ImageItem } from '@/components/common/ui'
 import { getErrorMessage } from '@/lib/api'
@@ -37,6 +37,26 @@ interface MenuFormProps {
 
 export default function MenuForm({ menuId }: MenuFormProps) {
   const isEditMode = !!menuId
+  const { data: menuDetail, isPending: isDetailLoading } = useMasterMenuDetail(menuId ?? 0)
+
+  if (isEditMode && isDetailLoading) {
+    return (
+      <div className="cube-loader-overlay">
+        <CubeLoader />
+      </div>
+    )
+  }
+
+  return <MenuFormContent key={menuId ?? 'create'} menuId={menuId} initialData={isEditMode ? menuDetail : undefined} />
+}
+
+interface MenuFormContentProps {
+  menuId?: number
+  initialData?: MenuDetailResponse
+}
+
+function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
+  const isEditMode = !!menuId
   const router = useRouter()
   const { alert } = useAlert()
   const { mutateAsync: createMenu } = useCreateMenu()
@@ -45,94 +65,45 @@ export default function MenuForm({ menuId }: MenuFormProps) {
 
   const breadcrumbs = ['홈', 'Master data 관리', '메뉴 정보 관리', '마스터용 메뉴 Master', isEditMode ? '수정' : '등록']
 
-  // 수정 모드: 기존 데이터 로딩
-  const { data: menuDetail, isPending: isDetailLoading } = useMasterMenuDetail(menuId ?? 0)
-  const initializedRef = useRef(false)
-
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
-  // 기본 정보
+  // 기본 정보 (initialData가 있으면 초기값으로 사용 — key 리마운트 패턴)
   const [menuOwnership, setMenuOwnership] = useState<'HEAD_OFFICE' | 'FRANCHISE'>('HEAD_OFFICE')
-  const [bpId, setBpId] = useState<number | null>(null)
+  const [bpId, setBpId] = useState<number | null>(initialData?.bpId ?? null)
   const [franchiseId, setFranchiseId] = useState<number | null>(null)
   const [menuGroup, setMenuGroup] = useState('')
   const [storeId, setStoreId] = useState<number | null>(null)
 
   // 메뉴 정보
-  const [operationStatus, setOperationStatus] = useState('')
-  const [menuType, setMenuType] = useState('')
-  const [setStatus, setSetStatus] = useState('')
-  const [menuClassificationCode, setMenuClassificationCode] = useState('')
-  const [menuName, setMenuName] = useState('')
-  const [menuNameEng, setMenuNameEng] = useState('')
-  const [menuNameChs, setMenuNameChs] = useState('')
-  const [menuNameCht, setMenuNameCht] = useState('')
-  const [menuNameJpn, setMenuNameJpn] = useState('')
-  const [taxType, setTaxType] = useState('')
-  const [marketingTags, setMarketingTags] = useState<string[]>([])
-  const [temperatureTags, setTemperatureTags] = useState<string[]>([])
-  const [displayOrder, setDisplayOrder] = useState<number | null>(null)
-  const [description, setDescription] = useState('')
-  const [images, setImages] = useState<ImageItem[]>([])
+  const [operationStatus, setOperationStatus] = useState(initialData?.operationStatus ?? '')
+  const [menuType, setMenuType] = useState(initialData?.menuType ?? '')
+  const [setStatus, setSetStatus] = useState(initialData?.setStatus ?? '')
+  const [menuClassificationCode, setMenuClassificationCode] = useState(initialData?.menuClassificationCode ?? '')
+  const [menuName, setMenuName] = useState(initialData?.menuName ?? '')
+  const [menuNameEng, setMenuNameEng] = useState(initialData?.menuNameEng ?? '')
+  const [menuNameChs, setMenuNameChs] = useState(initialData?.menuNameChs ?? '')
+  const [menuNameCht, setMenuNameCht] = useState(initialData?.menuNameCht ?? '')
+  const [menuNameJpn, setMenuNameJpn] = useState(initialData?.menuNameJpn ?? '')
+  const [taxType, setTaxType] = useState(initialData?.taxType ?? '')
+  const [marketingTags, setMarketingTags] = useState<string[]>(initialData?.marketingTags ?? [])
+  const [temperatureTags, setTemperatureTags] = useState<string[]>(initialData?.temperatureTags ?? [])
+  const [displayOrder, setDisplayOrder] = useState<number | null>(initialData?.displayOrder ?? null)
+  const [description, setDescription] = useState(initialData?.description ?? '')
+  const [images, setImages] = useState<ImageItem[]>(() => {
+    if (initialData?.menuImgFile) {
+      return [{ id: initialData.menuImgFile.id, name: initialData.menuImgFile.originalFileName, url: initialData.menuImgFile.publicUrl || undefined }]
+    }
+    return []
+  })
 
   // 이미지 삭제 추적 (수정 모드)
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null)
-  const [existingFileId, setExistingFileId] = useState<number | null>(null)
+  const [existingFileId] = useState<number | null>(initialData?.menuImgFile?.id ?? null)
 
   // 옵션 SET
-  const [optionSets, setOptionSets] = useState<OptionSetFormData[]>([])
-
-  // 카테고리
-  const [selectedCategories, setSelectedCategories] = useState<SelectedCategory[]>([])
-
-  // 에러
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const clearFieldError = useCallback((key: string) => {
-    setFieldErrors((prev) => {
-      if (!prev[key]) return prev
-      const { [key]: _, ...rest } = prev
-      return rest
-    })
-  }, [])
-
-  // 수정 모드: 데이터 로딩 완료 시 폼 초기화
-  useEffect(() => {
-    if (!isEditMode || !menuDetail || initializedRef.current) return
-    initializedRef.current = true
-
-    // 기본 정보
-    if (menuDetail.bpId) setBpId(menuDetail.bpId)
-
-    // 메뉴 정보
-    setOperationStatus(menuDetail.operationStatus || '')
-    setMenuType(menuDetail.menuType || '')
-    setSetStatus(menuDetail.setStatus || '')
-    setMenuClassificationCode(menuDetail.menuClassificationCode || '')
-    setMenuName(menuDetail.menuName || '')
-    setMenuNameEng(menuDetail.menuNameEng || '')
-    setMenuNameChs(menuDetail.menuNameChs || '')
-    setMenuNameCht(menuDetail.menuNameCht || '')
-    setMenuNameJpn(menuDetail.menuNameJpn || '')
-    setTaxType(menuDetail.taxType || '')
-    setMarketingTags(menuDetail.marketingTags || [])
-    setTemperatureTags(menuDetail.temperatureTags || [])
-    setDisplayOrder(menuDetail.displayOrder ?? null)
-    setDescription(menuDetail.description || '')
-
-    // 이미지
-    if (menuDetail.menuImgFile) {
-      const imgFile = menuDetail.menuImgFile
-      setExistingFileId(imgFile.id)
-      setImages([{
-        id: imgFile.id,
-        name: imgFile.originalFileName,
-        url: imgFile.publicUrl || undefined,
-      }])
-    }
-
-    // 옵션 SET 변환
-    if (menuDetail.optionSets && menuDetail.optionSets.length > 0) {
-      const converted: OptionSetFormData[] = menuDetail.optionSets.map((os) => ({
+  const [optionSets, setOptionSets] = useState<OptionSetFormData[]>(() => {
+    if (initialData?.optionSets?.length) {
+      return initialData.optionSets.map((os) => ({
         id: os.id,
         setName: os.setName,
         isRequired: os.isRequired,
@@ -152,21 +123,32 @@ export default function MenuForm({ menuId }: MenuFormProps) {
           selectedOperationStatus: item.operationStatus ?? null,
         })),
       }))
-      setOptionSets(converted)
     }
+    return []
+  })
 
-    // 카테고리 변환
-    if (menuDetail.categories && menuDetail.categories.length > 0) {
-      setSelectedCategories(
-        menuDetail.categories.map((cat) => ({
-          id: cat.categoryId,
-          name: cat.name,
-          isActive: cat.isActive,
-          mappingId: cat.menuCategoryId,
-        }))
-      )
+  // 카테고리
+  const [selectedCategories, setSelectedCategories] = useState<SelectedCategory[]>(() => {
+    if (initialData?.categories?.length) {
+      return initialData.categories.map((cat) => ({
+        id: cat.categoryId,
+        name: cat.name,
+        isActive: cat.isActive,
+        mappingId: cat.menuCategoryId,
+      }))
     }
-  }, [isEditMode, menuDetail])
+    return []
+  })
+
+  // 에러
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const clearFieldError = useCallback((key: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const { [key]: _, ...rest } = prev
+      return rest
+    })
+  }, [])
 
   // 공통코드 조회
   const { data: mngrpCodes = [] } = useCommonCodeHierarchy('MNGRP')
@@ -316,15 +298,6 @@ export default function MenuForm({ menuId }: MenuFormProps) {
     } catch (error) {
       await alert(getErrorMessage(error, isEditMode ? '메뉴 수정에 실패했습니다.' : '메뉴 등록에 실패했습니다.'))
     }
-  }
-
-  // 수정 모드: 데이터 로딩 중
-  if (isEditMode && isDetailLoading) {
-    return (
-      <div className="cube-loader-overlay">
-        <CubeLoader />
-      </div>
-    )
   }
 
   return (
