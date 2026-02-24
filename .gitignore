@@ -42,7 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 # Claude
-.claude
 .mcp.json
 
 # TestSprite
