@@ -37,6 +37,11 @@ export const bpKeys = {
 export const commonCodeKeys = {
   all: ['common-codes'] as const,
   hierarchy: (code: string) => [...commonCodeKeys.all, 'hierarchy', code] as const,
+  tree: (
+    codeGroup: string, maxDepth: number, headOffice?: string, franchise?: string, isActive?: boolean,
+    headerCode?: string, headerId?: string, headerName?: string, headerDescription?: string
+  ) =>
+    [...commonCodeKeys.all, 'tree', codeGroup, maxDepth, headOffice, franchise, isActive, headerCode, headerId, headerName, headerDescription] as const,
 }
 
 export const programKeys = {
@@ -287,3 +292,13 @@ export const categoryKeys = {
 
 export type { CategorySearchParams } from '@/types/category'
 import type { CategorySearchParams } from '@/types/category'
+
+import type { StoreMenuListParams } from '@/types/store-menu'
+
+export const storeMenuKeys = {
+  all: ['store-menus'] as const,
+  lists: () => [...storeMenuKeys.all, 'list'] as const,
+  list: (params: StoreMenuListParams) => [...storeMenuKeys.lists(), params] as const,
+  details: () => [...storeMenuKeys.all, 'detail'] as const,
+  detail: (id: number) => [...storeMenuKeys.details(), id] as const,
+}

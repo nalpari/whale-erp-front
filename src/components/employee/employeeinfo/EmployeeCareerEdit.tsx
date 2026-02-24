@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
+import { formatDateYmd } from '@/util/date-util'
 import { Input, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
@@ -334,8 +335,13 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
                             startDate={career.startDate ? new Date(career.startDate) : null}
                             endDate={career.endDate ? new Date(career.endDate) : null}
                             onChange={(range: DateRange) => {
-                              handleCareerChange(index, 'startDate', range.startDate ? range.startDate.toISOString().split('T')[0] : null)
-                              handleCareerChange(index, 'endDate', range.endDate ? range.endDate.toISOString().split('T')[0] : null)
+                              updateCareers(prev => prev.map((c, i) =>
+                                i === index ? {
+                                  ...c,
+                                  startDate: formatDateYmd(range.startDate, ''),
+                                  endDate: range.endDate ? formatDateYmd(range.endDate) : null
+                                } : c
+                              ))
                             }}
                             startDatePlaceholder="시작일"
                             endDatePlaceholder="종료일"

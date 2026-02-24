@@ -57,8 +57,15 @@ export default function AttendanceSearch({
   onSearch,
   onReset,
 }: AttendanceSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const handleMultiOffice = (isMulti: boolean) => {
+    if (isMulti) {
+      setSearchOpen(true)
+      setShowOfficeError(true)
+    }
+  }
 
   // SearchSelect용 옵션 변환
   const workStatusSelectOptions: SelectOption[] = useMemo(
@@ -135,6 +142,7 @@ export default function AttendanceSearch({
                       storeId: next.store,
                     })
                   }}
+                  onMultiOffice={handleMultiOffice}
                 />
               </tr>
               <tr>

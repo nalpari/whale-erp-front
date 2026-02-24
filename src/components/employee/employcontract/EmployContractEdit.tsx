@@ -758,15 +758,17 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>급여계산 주기/급여일 <span className="red">*</span></th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '150px' }}>
+                        <div style={{ width: '150px', flexShrink: 0 }}>
                           <SearchSelect
+                            fullWidth
                             options={salaryCycleOptions}
                             value={salaryCycleOptions.find(opt => opt.value === formData.salaryCycle) || null}
                             onChange={(option) => handleInputChange('salaryCycle', option?.value || '')}
                           />
                         </div>
-                        <div style={{ width: '100px' }}>
+                        <div style={{ width: '150px', flexShrink: 0 }}>
                           <SearchSelect
+                            fullWidth
                             options={salaryMonthOptions}
                             value={salaryMonthOptions.find(opt => opt.value === formData.salaryMonth) || null}
                             onChange={(option) => handleInputChange('salaryMonth', option?.value || '')}
@@ -774,11 +776,11 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                         </div>
                         <Input
                           type="number"
-                          style={{ width: '80px' }}
+                          style={{ width: '80px', flexShrink: 0 }}
                           value={formData.salaryDay}
                           onChange={(e) => handleInputChange('salaryDay', parseInt(e.target.value))}
                         />
-                        <span style={{ color: '#666', fontSize: '12px' }}>※ 31일을 입력한 경우 급여일은 매달 말일로 적용합니다.</span>
+                        <span style={{ color: '#666', fontSize: '12px', marginLeft: '4px', flexShrink: 0 }}>※ 31일을 입력한 경우 급여일은 매달 말일로 적용합니다.</span>
                       </div>
                     </td>
                   </tr>

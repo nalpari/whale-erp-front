@@ -6,13 +6,13 @@ interface LoginResponse {
   accessToken: string
   refreshToken: string
   authority?: {
-    authority_id: number
+    authorityId: number
     programs: LoginAuthorityProgram[]
   }
   companies?: Array<{
-    authority_id: number
-    company_name: string | null
-    brand_name: string | null
+    authorityId: number
+    companyName: string | null
+    brandName: string | null
   }>
   loginId?: string
   name?: string
@@ -52,7 +52,7 @@ export function useAuthoritySelectMutation() {
     mutationFn: async ({ authorityId, accessToken }: AuthoritySelectRequest) => {
       const response = await api.post<{ data: AuthoritySelectResponse }>(
         '/api/auth/authority',
-        { authority_id: authorityId },
+        { authorityId },
         { headers: { Authorization: `Bearer ${accessToken}` } },
       )
       return response.data.data
