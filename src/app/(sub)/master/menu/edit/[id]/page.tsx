@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import MenuForm from '@/components/master/menu/MenuForm'
 
 interface Props {
@@ -6,5 +7,11 @@ interface Props {
 
 export default async function MenuEditPage({ params }: Props) {
   const { id } = await params
-  return <MenuForm menuId={Number(id)} />
+  const menuId = parseInt(id, 10)
+
+  if (Number.isNaN(menuId)) {
+    redirect('/master/menu')
+  }
+
+  return <MenuForm menuId={menuId} />
 }

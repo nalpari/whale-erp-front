@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import MenuDetail from '@/components/master/menu/MenuDetail'
 
 interface Props {
@@ -6,5 +7,11 @@ interface Props {
 
 export default async function MasterMenuDetailPage({ params }: Props) {
   const { id } = await params
-  return <MenuDetail id={Number(id)} />
+  const menuId = parseInt(id, 10)
+
+  if (Number.isNaN(menuId)) {
+    redirect('/master/menu')
+  }
+
+  return <MenuDetail id={menuId} />
 }
