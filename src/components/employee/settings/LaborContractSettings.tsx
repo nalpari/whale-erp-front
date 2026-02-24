@@ -230,7 +230,7 @@ export default function LaborContractSettings() {
       const { fulltime, parttime } = settingsData.codeMemoContent
       setFulltimeSettings(fulltime || DEFAULT_FULLTIME_SETTINGS)
       setParttimeSettings(parttime || DEFAULT_PARTTIME_SETTINGS)
-    } else {
+    } else if (!isLoading) {
       setFulltimeSettings(DEFAULT_FULLTIME_SETTINGS)
       setParttimeSettings(DEFAULT_PARTTIME_SETTINGS)
     }

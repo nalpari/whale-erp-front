@@ -206,7 +206,7 @@ export default function SalaryCalculationPop({ isOpen, onClose, onApply, initial
   const annualTotalSalary = monthlyTotalSalary * 12
 
   // 최저시급 목록 데이터 반영 (렌더 중 상태 갱신 — React Compiler 호환)
-  const [prevMinimumWageListData, setPrevMinimumWageListData] = useState(minimumWageListData)
+  const [prevMinimumWageListData, setPrevMinimumWageListData] = useState<typeof minimumWageListData>(EMPTY_WAGE_LIST)
   if (minimumWageListData !== prevMinimumWageListData) {
     setPrevMinimumWageListData(minimumWageListData)
     if (minimumWageListData.length > 0) {
