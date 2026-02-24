@@ -71,7 +71,7 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
   const [menuOwnership, setMenuOwnership] = useState<'HEAD_OFFICE' | 'FRANCHISE'>('HEAD_OFFICE')
   const [bpId, setBpId] = useState<number | null>(initialData?.bpId ?? null)
   const [franchiseId, setFranchiseId] = useState<number | null>(null)
-  const [menuGroup, setMenuGroup] = useState('')
+  const [menuGroup, setMenuGroup] = useState(initialData?.menuGroup ?? '')
   const [storeId, setStoreId] = useState<number | null>(null)
 
   // 메뉴 정보
@@ -238,10 +238,10 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
     // 숨김 필드는 고정값 사용 (차후 개발 시 SHOW_* 플래그를 true로 변경)
     const resolvedMenuGroup = SHOW_MENU_GROUP
       ? menuGroup
-      : mngrpCodes.length > 0 ? mngrpCodes[0].code : 'MASTER'
+      : initialData?.menuGroup ?? (mngrpCodes.length > 0 ? mngrpCodes[0].code : 'MASTER')
     const resolvedSetStatus = SHOW_SET_STATUS
       ? setStatus
-      : ststCodes.length > 0 ? ststCodes[0].code : 'NORMAL'
+      : initialData?.setStatus ?? (ststCodes.length > 0 ? ststCodes[0].code : 'NORMAL')
 
     const formData: MenuFormData = {
       menuOwnership,
