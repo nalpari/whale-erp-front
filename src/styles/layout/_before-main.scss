@@ -39,8 +39,20 @@
     .before-menu-list {
       .before-menu-item {
         a {
-          color: #252b32;
+          color: #999999;
           transition: none;
+        }
+        &.act {
+          a {
+            color: #252b32;
+          }
+        }
+      }
+      &.act {
+        .before-menu-item {
+          a {
+            color: #252b32;
+          }
         }
       }
     }
