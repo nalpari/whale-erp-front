@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { HeaderMenu } from '@/data/HeaderMenu'
 import AnimateHeight from 'react-animate-height'
 import { SupportMenu } from '@/data/SupportMenu'
@@ -15,12 +16,41 @@ export default function Lnb({
   setIsOpen: (isOpen: boolean) => void;
   menuType?: 'header' | 'support';
 }) {
-  const [activeMenu, setActiveMenu] = useState<number | null>(null)
-  const [activeSubMenu, setActiveSubMenu] = useState<number | null>(null)
+  const pathname = usePathname()
 
   // 메뉴 리스트 설정
   const menuList = menuType === 'support' ? SupportMenu : HeaderMenu
 
+  // pathname 기반 활성 메뉴 파생
+  const findActiveFromPathname = (list: typeof menuList) => {
+    for (const menu of list) {
+      if (menu.link !== '#' && pathname === menu.link) {
+        return { menuId: menu.id, subMenuId: null as number | null }
+      }
+      if (menu.children) {
+        for (const child of menu.children) {
+          if (child.link !== '#' && pathname === child.link) {
+            return { menuId: menu.id, subMenuId: child.id }
+          }
+          if (child.children) {
+            for (const subChild of child.children) {
+              if (subChild.link !== '#' && pathname === subChild.link) {
+                return { menuId: menu.id, subMenuId: child.id }
+              }
+            }
+          }
+        }
+      }
+    }
+    return { menuId: null, subMenuId: null }
+  }
+
+  // pathname 기반 활성 메뉴 — 파생값으로 직접 계산 (setState in render 금지)
+  const { menuId: activeMenuId, subMenuId: activeSubMenuId } = findActiveFromPathname(menuList)
+
+  // 아코디언 확장 상태 — key prop으로 리마운트 시 초기화됨
+  const [expandedMenu, setExpandedMenu] = useState<number | null>(activeMenuId)
+  const [expandedSubMenu, setExpandedSubMenu] = useState<number | null>(activeSubMenuId)
 
   const handleMenuToggle = (id: number, isSubMenu: boolean, link: boolean, e: React.MouseEvent<HTMLAnchorElement>) => {
     if (link) {
@@ -28,11 +58,11 @@ export default function Lnb({
     }
 
     if (isSubMenu) {
-      setActiveSubMenu(activeSubMenu === id ? null : id)
+      setExpandedSubMenu(expandedSubMenu === id ? null : id)
     } else {
-      setActiveMenu(activeMenu === id ? null : id)
-      if (activeMenu === null) {
-        setActiveSubMenu(null)
+      setExpandedMenu(expandedMenu === id ? null : id)
+      if (expandedMenu === null) {
+        setExpandedSubMenu(null)
       }
     }
   }
@@ -61,7 +91,7 @@ export default function Lnb({
       <div className="lnb-body">
         <ul className="lnb-list">
           {menuList.map((menu) => (
-            <li className={`lnb-item ${activeMenu === menu.id ? 'act' : ''}`} key={menu.id}>
+            <li className={`lnb-item ${activeMenuId === menu.id ? 'act' : ''}`} key={menu.id}>
               <Link
                 href={menu.link}
                 className={`menu-depth01 ${menu.children ? '' : 'home'}`}
@@ -73,11 +103,11 @@ export default function Lnb({
                 <span className="lnb-menu-name">{menu.name}</span>
               </Link>
               {menu.children && (
-                <AnimateHeight duration={300} height={activeMenu === menu.id ? 'auto' : 0}>
+                <AnimateHeight duration={300} height={expandedMenu === menu.id ? 'auto' : 0}>
                   <ul className="lnb-list-depth02">
                     <div className="sm-tit">{menu.name}</div>
                     {menu.children.map((child) => (
-                      <li className={`lnb-depth02-item ${activeSubMenu === child.id ? 'act' : ''}`} key={child.id}>
+                      <li className={`lnb-depth02-item ${activeSubMenuId === child.id ? 'act' : ''}`} key={child.id}>
                         <Link
                           href={child.link}
                           className="menu-depth02"
@@ -88,7 +118,7 @@ export default function Lnb({
                           <span className="lnb-menu-name">{child.name}</span>
                         </Link>
                         {child.children && (
-                          <AnimateHeight duration={300} height={activeSubMenu === child.id ? 'auto' : 0}>
+                          <AnimateHeight duration={300} height={expandedSubMenu === child.id ? 'auto' : 0}>
                             <ul className="lnb-list-depth03">
                               {child.children.map((subChild) => (
                                 <li className="lnb-depth03-item" key={subChild.id}>

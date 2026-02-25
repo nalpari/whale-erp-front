@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useState, useEffect, useCallback } from 'react'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import Lnb from '@/components/ui/common/Lnb'
@@ -19,7 +19,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const router = useRouter()
     const pathname = usePathname()
     const accessToken = useAuthStore((state) => state.accessToken)
-    const [menuType, setMenuType] = useState<'header' | 'support'>('header')
+    const menuType = pathname?.startsWith('/customer/') ? 'support' : 'header'
+    const lastHeaderPathRef = useRef('/logined-main')
+    const lastSupportPathRef = useRef('/customer/rate-plan')
+
+    // pathname 변경 시 마지막 경로 기억 (ref는 effect 내에서만 접근 — render 중 접근 금지)
+    useEffect(() => {
+        if (pathname?.startsWith('/customer/')) {
+            lastSupportPathRef.current = pathname
+        } else if (pathname) {
+            lastHeaderPathRef.current = pathname
+        }
+    }, [pathname])
 
     const redirectToLogin = useCallback(() => {
         const returnUrl = pathname ? `?returnUrl=${encodeURIComponent(pathname)}` : ''
@@ -27,7 +38,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }, [pathname, router])
 
     const handleToggleMenuType = () => {
-        setMenuType((prev) => (prev === 'header' ? 'support' : 'header'))
+        const nextPath = menuType === 'header' ? lastSupportPathRef.current : lastHeaderPathRef.current
+        router.push(nextPath)
     }
 
     useEffect(() => {
@@ -78,7 +90,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <AlertProvider>
             <div className={`wrap ${isOpen ? 'sm' : ''}`}>
-                <Lnb isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
+                <Lnb key={`${menuType}-${pathname}`} isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
                 <div className="container">
                     <div className="frame">
                         <div className="header-wrap">
