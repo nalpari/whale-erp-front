@@ -249,6 +249,8 @@ export interface MasterMenuListParams {
   storeId?: string
   createdAtFrom?: string
   createdAtTo?: string
+  menuGroup?: string
+  setStatus?: string
   page?: number
   size?: number
 }
@@ -265,6 +267,7 @@ export const masterMenuKeys = {
   list: (params: MasterMenuListParams) => [...masterMenuKeys.lists(), params] as const,
   details: () => [...masterMenuKeys.all, 'detail'] as const,
   detail: (id: number) => [...masterMenuKeys.details(), id] as const,
+  operatingOptions: (bpId: number) => [...masterMenuKeys.all, 'operating-options', bpId] as const,
 }
 
 export interface PlansListParams {
@@ -300,4 +303,14 @@ export const storeMenuKeys = {
   list: (params: StoreMenuListParams) => [...storeMenuKeys.lists(), params] as const,
   details: () => [...storeMenuKeys.all, 'detail'] as const,
   detail: (id: number) => [...storeMenuKeys.details(), id] as const,
+}
+
+import type { StorePromotionListParams } from '@/types/store-promotion'
+
+export const storePromotionKeys = {
+  all: ['store-promotions'] as const,
+  lists: () => [...storePromotionKeys.all, 'list'] as const,
+  list: (params: StorePromotionListParams) => [...storePromotionKeys.lists(), params] as const,
+  details: () => [...storePromotionKeys.all, 'detail'] as const,
+  detail: (id: number) => [...storePromotionKeys.details(), id] as const,
 }

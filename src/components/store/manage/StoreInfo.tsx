@@ -52,8 +52,7 @@ export default function StoreInfo() {
   useStoreOptions(filters.officeId, filters.franchiseId)
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isPending, error } = useStoreList(storeParams, canFetchList)
-  const loading = canFetchList && isPending
+  const { data: response, isFetching: loading, error } = useStoreList(storeParams, canFetchList)
   const { children: statusChildren } = useCommonCode('STOPR', true)
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
