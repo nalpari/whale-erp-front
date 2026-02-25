@@ -249,6 +249,8 @@ export interface MasterMenuListParams {
   storeId?: string
   createdAtFrom?: string
   createdAtTo?: string
+  menuGroup?: string
+  setStatus?: string
   page?: number
   size?: number
 }
@@ -265,6 +267,7 @@ export const masterMenuKeys = {
   list: (params: MasterMenuListParams) => [...masterMenuKeys.lists(), params] as const,
   details: () => [...masterMenuKeys.all, 'detail'] as const,
   detail: (id: number) => [...masterMenuKeys.details(), id] as const,
+  operatingOptions: (bpId: number) => [...masterMenuKeys.all, 'operating-options', bpId] as const,
 }
 
 export interface PlansListParams {

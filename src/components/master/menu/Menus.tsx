@@ -1,23 +1,26 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useMemo, useCallback } from 'react'
 import Location from '@/components/ui/Location'
 import MenuSearch from '@/components/master/menu/MenuSearch'
 import MenuList from '@/components/master/menu/MenuList'
-import type { MenuSearchFormData } from '@/components/master/menu/MenuSearch'
 import { useMasterMenuList, useUpdateMenuOperationStatus, type MasterMenuListParams } from '@/hooks/queries'
 import { useAlert } from '@/components/common/ui'
 import { getErrorMessage } from '@/lib/api'
+import { useMenuSearchStore, type MenuSearchFormData } from '@/stores/menu-search-store'
 
 const BREADCRUMBS = ['홈', 'Master data 관리', '메뉴 정보 관리', '마스터용 메뉴 Master']
 
-const defaultFilters: MenuSearchFormData = {}
-
 export default function Menus() {
-  const [filters, setFilters] = useState<MenuSearchFormData>(defaultFilters)
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
-  const [searchOpen, setSearchOpen] = useState(true)
+  const filters = useMenuSearchStore((s) => s.filters)
+  const page = useMenuSearchStore((s) => s.page)
+  const pageSize = useMenuSearchStore((s) => s.pageSize)
+  const searchOpen = useMenuSearchStore((s) => s.searchOpen)
+  const setFilters = useMenuSearchStore((s) => s.setFilters)
+  const setPage = useMenuSearchStore((s) => s.setPage)
+  const setPageSize = useMenuSearchStore((s) => s.setPageSize)
+  const setSearchOpen = useMenuSearchStore((s) => s.setSearchOpen)
+  const reset = useMenuSearchStore((s) => s.reset)
 
   const listParams: MasterMenuListParams = useMemo(() => {
     const params: MasterMenuListParams = {
@@ -49,8 +52,7 @@ export default function Menus() {
   }
 
   const handleReset = () => {
-    setFilters(defaultFilters)
-    setPage(0)
+    reset()
   }
 
   const handlePageSizeChange = (size: number) => {
@@ -62,7 +64,7 @@ export default function Menus() {
     if (hasChecked) {
       setSearchOpen(false)
     }
-  }, [])
+  }, [setSearchOpen])
 
   const { alert, confirm } = useAlert()
 
