@@ -9,7 +9,8 @@ export default function BeforeHeader() {
   const [isScrollDown, setIsScrollDown] = useState(false)
   const [hasScrolled, setHasScrolled] = useState(false)
 
-  const subMenu = useMemo(() => pathname !== '/main', [pathname])
+  const isMain = pathname === '/' || pathname === '/main'
+  const subMenu = useMemo(() => !isMain, [isMain])
 
   useEffect(() => {
     if (subMenu) return
