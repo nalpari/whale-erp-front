@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whale ERP Front — Code Map</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181a20;
+    --surface2: #22252e;
+    --border: #2e3140;
+    --text: #e1e4ea;
+    --text2: #8b90a0;
+    --accent: #6c8dfa;
+    --accent2: #4c6ef5;
+    --danger: #ef4444;
+
+    --layer-pages: #2a3a5c;
+    --layer-pages-fill: #1e2a44;
+    --layer-components: #2a4a3c;
+    --layer-components-fill: #1e3a2c;
+    --layer-hooks: #4a2a5c;
+    --layer-hooks-fill: #3a1e4c;
+    --layer-stores: #5c3a2a;
+    --layer-stores-fill: #4c2e1e;
+    --layer-lib: #2a4a5c;
+    --layer-lib-fill: #1e3a4c;
+    --layer-types: #5c4a2a;
+    --layer-types-fill: #4c3a1e;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-header h1 span {
+    color: var(--accent);
+  }
+
+  .sidebar-header p {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text2);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .section-title:first-child { margin-top: 0; }
+
+  /* Presets */
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .preset-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .preset-btn.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+
+  /* Layer toggles */
+  .layer-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+
+  .layer-toggle:hover { background: var(--surface2); }
+
+  .layer-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .layer-toggle label {
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .layer-toggle .count {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  .layer-toggle input { display: none; }
+
+  .layer-toggle input:not(:checked) ~ .layer-dot { opacity: 0.3; }
+  .layer-toggle input:not(:checked) ~ label { opacity: 0.4; }
+  .layer-toggle input:not(:checked) ~ .count { opacity: 0.3; }
+
+  /* Connection toggles */
+  .conn-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+  }
+
+  .conn-toggle:hover { background: var(--surface2); }
+
+  .conn-line {
+    width: 24px;
+    height: 2px;
+    flex-shrink: 0;
+    border-radius: 1px;
+  }
+
+  .conn-toggle label {
+    font-size: 13px;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .conn-toggle input { display: none; }
+  .conn-toggle input:not(:checked) ~ .conn-line { opacity: 0.2; }
+  .conn-toggle input:not(:checked) ~ label { opacity: 0.4; }
+
+  /* Search */
+  .search-box {
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--text2); }
+
+  .search-box svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text2);
+  }
+
+  /* Domain filter */
+  .domain-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .domain-chip {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .domain-chip:hover { border-color: var(--accent); color: var(--text); }
+  .domain-chip.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+
+  /* Comments */
+  .comments-section {
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comment-item:last-child { border-bottom: none; }
+
+  .comment-target {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .comment-text {
+    font-size: 12px;
+    color: var(--text2);
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .comment-del {
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+
+  .comment-del:hover { opacity: 1; color: var(--danger); }
+
+  /* Main canvas */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .toolbar-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 16px;
+  }
+
+  .toolbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toolbar .zoom-label {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'SF Mono', monospace;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  .toolbar .spacer { flex: 1; }
+
+  .toolbar .node-count {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+  }
+
+  .canvas-wrap.dragging { cursor: grabbing; }
+
+  .canvas-wrap svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  /* Node styles */
+  .node-group { cursor: pointer; }
+  .node-group:hover .node-rect { filter: brightness(1.2); }
+  .node-group .node-rect {
+    rx: 8;
+    ry: 8;
+    transition: filter 0.15s;
+  }
+  .node-group .node-label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+    fill: var(--text);
+    pointer-events: none;
+  }
+  .node-group .node-sub {
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 10px;
+    fill: var(--text2);
+    pointer-events: none;
+  }
+
+  .node-group.highlighted .node-rect {
+    stroke: var(--accent);
+    stroke-width: 2;
+    filter: brightness(1.3);
+  }
+
+  .node-group.commented .comment-badge {
+    display: block;
+  }
+
+  .comment-badge { display: none; }
+
+  .node-group.dimmed { opacity: 0.15; }
+
+  /* Connection styles */
+  .connection path {
+    fill: none;
+    stroke-width: 1.5;
+    transition: opacity 0.2s;
+  }
+
+  .connection.dimmed { opacity: 0.06; }
+
+  .connection text {
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 10px;
+    fill: var(--text2);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 420px;
+    max-width: 90vw;
+  }
+
+  .modal h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .modal .modal-path {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'SF Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  .modal textarea {
+    width: 100%;
+    height: 80px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 10px;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .modal textarea:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .modal-actions button {
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .modal-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .modal-cancel:hover { border-color: var(--text2); }
+
+  .modal-save {
+    background: var(--accent2);
+    border: 1px solid var(--accent);
+    color: #fff;
+  }
+
+  .modal-save:hover { background: var(--accent); }
+
+  /* Prompt bar */
+  .prompt-bar {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    max-height: 140px;
+  }
+
+  .prompt-text {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    font-family: 'SF Mono', monospace;
+    overflow-y: auto;
+    max-height: 100px;
+    white-space: pre-wrap;
+  }
+
+  .copy-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { background: var(--accent2); border-color: var(--accent); color: #fff; }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+    opacity: 0.9;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text2);
+  }
+
+  .legend-line {
+    width: 20px;
+    height: 0;
+    border-top: 2px solid;
+  }
+
+  .legend-line.dashed { border-top-style: dashed; }
+  .legend-line.dotted { border-top-style: dotted; }
+
+  /* Info overlay */
+  .info-panel {
+    display: none;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    z-index: 10;
+    max-width: 300px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .info-panel.open { display: block; }
+
+  .info-panel h4 {
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--accent);
+    font-size: 13px;
+  }
+
+  .info-panel .info-path {
+    font-family: 'SF Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+
+  .info-panel .info-imports {
+    color: var(--text2);
+  }
+
+  .info-panel .info-imports span {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin: 2px 2px;
+    font-size: 11px;
+  }
+
+  .info-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1><span>&#x1F433;</span> Whale ERP Front</h1>
+    <p>컴포넌트 관계 코드맵</p>
+  </div>
+  <div class="sidebar-scroll">
+    <div class="section-title">View Presets</div>
+    <div class="presets" id="presets"></div>
+
+    <div class="section-title">Layers</div>
+    <div id="layers"></div>
+
+    <div class="section-title">Connections</div>
+    <div id="connTypes"></div>
+
+    <div class="section-title">Search &amp; Filter</div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="컴포넌트 검색...">
+    </div>
+    <div class="domain-chips" id="domainChips"></div>
+
+    <div class="section-title" id="commentsTitle">Comments (0)</div>
+    <div id="commentsList"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="toolbar">
+    <button class="toolbar-btn" id="zoomIn" title="Zoom In">+</button>
+    <span class="zoom-label" id="zoomLabel">100%</span>
+    <button class="toolbar-btn" id="zoomOut" title="Zoom Out">&minus;</button>
+    <button class="toolbar-btn" id="zoomReset" title="Reset">&#8634;</button>
+    <button class="toolbar-btn" id="fitAll" title="Fit All">&#9632;</button>
+    <div class="spacer"></div>
+    <span class="node-count" id="nodeCount"></span>
+  </div>
+  <div class="canvas-wrap" id="canvasWrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="info-panel" id="infoPanel">
+      <button class="info-close" id="infoClose">&times;</button>
+      <h4 id="infoName"></h4>
+      <div class="info-path" id="infoPath"></div>
+      <div class="info-imports" id="infoImports"></div>
+    </div>
+  </div>
+  <div class="prompt-bar">
+    <div class="prompt-text" id="promptText">컴포넌트를 클릭하여 코멘트를 추가하세요. 레이어와 커넥션을 토글하여 원하는 뷰를 구성할 수 있습니다.</div>
+    <button class="copy-btn" id="copyBtn">Copy</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div class="modal-path" id="modalPath"></div>
+    <textarea id="modalInput" placeholder="이 컴포넌트에 대한 코멘트를 입력하세요..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancel">취소</button>
+      <button class="modal-save" id="modalSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// DATA: Nodes
+// ──────────────────────────────────────────────
+
+const LAYERS = {
+  pages:      { label: 'Pages',       color: '#4a7cff', fill: '#1e2a44' },
+  components: { label: 'Components',  color: '#34d399', fill: '#1e3a2c' },
+  hooks:      { label: 'Hooks',       color: '#a78bfa', fill: '#2e1e44' },
+  stores:     { label: 'Stores',      color: '#f97316', fill: '#3a2a1e' },
+  lib:        { label: 'Lib / API',   color: '#38bdf8', fill: '#1e303a' },
+  types:      { label: 'Types / Data',color: '#fbbf24', fill: '#3a301e' },
+};
+
+const CONN_TYPES = {
+  'imports':    { label: '컴포넌트 Import',   color: '#6b7280', dash: '' },
+  'uses-hook':  { label: 'Hook 사용',         color: '#a78bfa', dash: '6,3' },
+  'uses-store': { label: 'Store 사용',        color: '#f97316', dash: '4,4' },
+  'uses-api':   { label: 'API 호출',          color: '#38bdf8', dash: '8,4' },
+  'uses-type':  { label: 'Type 참조',         color: '#fbbf24', dash: '2,3' },
+};
+
+const DOMAINS = ['Layout', 'Auth', 'Employee', 'Store', 'Master', 'System', 'Customer', 'Subscription', 'Common'];
+
+// Node definitions
+const nodes = [
+  // ─── Pages (y: 0~120) ───
+  { id: 'pg-login',      label: 'Login Page',         subtitle: 'app/(auth)/login/page.tsx',             x: 60,   y: 30,  w: 130, h: 44, layer: 'pages', domain: 'Auth' },
+  { id: 'pg-main-pub',   label: 'Public Main',        subtitle: 'app/(public)/main/page.tsx',            x: 220,  y: 30,  w: 130, h: 44, layer: 'pages', domain: 'Layout' },
+  { id: 'pg-intro',      label: 'Introduction',       subtitle: 'app/(public)/introduction/page.tsx',    x: 380,  y: 30,  w: 130, h: 44, layer: 'pages', domain: 'Layout' },
+  { id: 'pg-sub-layout', label: 'Main Layout',        subtitle: 'app/(sub)/layout.tsx',                  x: 580,  y: 30,  w: 130, h: 44, layer: 'pages', domain: 'Layout' },
+  { id: 'pg-dashboard',  label: 'Dashboard',          subtitle: 'app/(sub)/logined-main/page.tsx',       x: 760,  y: 30,  w: 130, h: 44, layer: 'pages', domain: 'Layout' },
+  { id: 'pg-emp-list',   label: 'Employee List',      subtitle: 'app/(sub)/employee/info/page.tsx',      x: 60,   y: 100, w: 140, h: 44, layer: 'pages', domain: 'Employee' },
+  { id: 'pg-emp-detail', label: 'Employee Detail',    subtitle: 'app/(sub)/employee/info/[id]/page.tsx', x: 230,  y: 100, w: 140, h: 44, layer: 'pages', domain: 'Employee' },
+  { id: 'pg-contract',   label: 'Contract List',      subtitle: 'app/(sub)/employee/contract/page.tsx',  x: 400,  y: 100, w: 140, h: 44, layer: 'pages', domain: 'Employee' },
+  { id: 'pg-payroll',    label: 'Payroll Page',       subtitle: 'app/(sub)/employee/payroll/.../page.tsx',x: 570,  y: 100, w: 140, h: 44, layer: 'pages', domain: 'Employee' },
+  { id: 'pg-attendance', label: 'Attendance',          subtitle: 'app/(sub)/employee/.../attendance/',    x: 740,  y: 100, w: 140, h: 44, layer: 'pages', domain: 'Employee' },
+  { id: 'pg-store',      label: 'Store List',         subtitle: 'app/(sub)/store/.../info/page.tsx',     x: 60,   y: 170, w: 130, h: 44, layer: 'pages', domain: 'Store' },
+  { id: 'pg-store-d',    label: 'Store Detail',       subtitle: 'app/(sub)/store/.../info/detail/',      x: 220,  y: 170, w: 130, h: 44, layer: 'pages', domain: 'Store' },
+  { id: 'pg-menu',       label: 'Menu Master',        subtitle: 'app/(sub)/master/menu/page.tsx',        x: 380,  y: 170, w: 130, h: 44, layer: 'pages', domain: 'Master' },
+  { id: 'pg-category',   label: 'Category Master',    subtitle: 'app/(sub)/master/category/',            x: 540,  y: 170, w: 140, h: 44, layer: 'pages', domain: 'Master' },
+  { id: 'pg-authority',  label: 'Authority',          subtitle: 'app/(sub)/system/authority/page.tsx',   x: 710,  y: 170, w: 130, h: 44, layer: 'pages', domain: 'System' },
+  { id: 'pg-common-cd',  label: 'Common Codes',       subtitle: 'app/(sub)/system/common-codes/',        x: 870,  y: 170, w: 130, h: 44, layer: 'pages', domain: 'System' },
+  { id: 'pg-holiday',    label: 'Holiday',            subtitle: 'app/(sub)/system/holiday/page.tsx',     x: 870,  y: 100, w: 120, h: 44, layer: 'pages', domain: 'System' },
+  { id: 'pg-program',    label: 'Program',            subtitle: 'app/(sub)/system/program/page.tsx',     x: 920,  y: 30,  w: 120, h: 44, layer: 'pages', domain: 'System' },
+  { id: 'pg-plans',      label: 'Subscription',       subtitle: 'app/(sub)/subscription/page.tsx',       x: 1030, y: 170, w: 130, h: 44, layer: 'pages', domain: 'Subscription' },
+  { id: 'pg-customer',   label: 'Customer SVC',       subtitle: 'app/(sub)/customer/',                   x: 1030, y: 100, w: 130, h: 44, layer: 'pages', domain: 'Customer' },
+
+  // ─── Components (y: 260~440) ───
+  { id: 'c-header',      label: 'Header',             subtitle: 'components/ui/Header.tsx',               x: 500, y: 270, w: 120, h: 44, layer: 'components', domain: 'Layout' },
+  { id: 'c-lnb',         label: 'Lnb (Sidebar)',      subtitle: 'components/ui/common/Lnb.tsx',           x: 650, y: 270, w: 130, h: 44, layer: 'components', domain: 'Layout' },
+  { id: 'c-fullmenu',    label: 'FullDownMenu',       subtitle: 'components/ui/common/FullDownMenu.tsx',  x: 810, y: 270, w: 140, h: 44, layer: 'components', domain: 'Layout' },
+  { id: 'c-mypage',      label: 'MyPageLayout',       subtitle: 'components/mypage/MyPageLayout.tsx',     x: 350, y: 270, w: 130, h: 44, layer: 'components', domain: 'Layout' },
+  { id: 'c-alert',       label: 'AlertProvider',      subtitle: 'components/common/ui/Alert.tsx',         x: 180, y: 270, w: 130, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-aggrid',      label: 'AgGrid',             subtitle: 'components/ui/AgGrid.tsx',               x: 60,  y: 340, w: 110, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-pagination',  label: 'Pagination',         subtitle: 'components/ui/Pagination.tsx',           x: 200, y: 340, w: 120, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-datepicker',  label: 'DatePicker',         subtitle: 'components/ui/common/DatePicker.tsx',    x: 350, y: 340, w: 120, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-searchsel',   label: 'SearchSelect',       subtitle: 'components/ui/common/SearchSelect.tsx',  x: 500, y: 340, w: 130, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-input',       label: 'Input',              subtitle: 'components/common/ui/Input.tsx',         x: 660, y: 340, w: 110, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-editor',      label: 'Editor (Tiptap)',    subtitle: 'components/common/ui/Editor.tsx',        x: 800, y: 340, w: 140, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-fileupload',  label: 'FileUpload',         subtitle: 'components/common/ui/FileUpload.tsx',    x: 970, y: 340, w: 120, h: 44, layer: 'components', domain: 'Common' },
+
+  { id: 'c-emplist',     label: 'EmployeeList',       subtitle: 'components/employee/employeeinfo/',      x: 60,  y: 420, w: 130, h: 44, layer: 'components', domain: 'Employee' },
+  { id: 'c-empdetail',   label: 'EmployeeDetailData', subtitle: 'components/employee/employeeinfo/',      x: 220, y: 420, w: 155, h: 44, layer: 'components', domain: 'Employee' },
+  { id: 'c-contractlist',label: 'ContractList',        subtitle: 'components/employee/employcontract/',    x: 405, y: 420, w: 130, h: 44, layer: 'components', domain: 'Employee' },
+  { id: 'c-payrolllist', label: 'PayrollList',         subtitle: 'components/employee/payroll/',           x: 565, y: 420, w: 120, h: 44, layer: 'components', domain: 'Employee' },
+  { id: 'c-attendance',  label: 'AttendanceList',      subtitle: 'components/employee/attendance/',        x: 715, y: 420, w: 130, h: 44, layer: 'components', domain: 'Employee' },
+  { id: 'c-schedule',    label: 'WorkScheduleTable',   subtitle: 'components/employee/work-status/',      x: 875, y: 420, w: 150, h: 44, layer: 'components', domain: 'Employee' },
+
+  { id: 'c-storelist',   label: 'StoreList',          subtitle: 'components/store/manage/',               x: 60,  y: 500, w: 110, h: 44, layer: 'components', domain: 'Store' },
+  { id: 'c-storedetail', label: 'StoreDetail',        subtitle: 'components/store/manage/',               x: 200, y: 500, w: 120, h: 44, layer: 'components', domain: 'Store' },
+  { id: 'c-menulist',    label: 'MenuList',            subtitle: 'components/master/menu/',                x: 350, y: 500, w: 110, h: 44, layer: 'components', domain: 'Master' },
+  { id: 'c-catmanage',   label: 'CategoryManage',     subtitle: 'components/category/',                   x: 490, y: 500, w: 140, h: 44, layer: 'components', domain: 'Master' },
+  { id: 'c-cattree',     label: 'CategoryTree',       subtitle: 'components/category/CategoryTree.tsx',   x: 660, y: 500, w: 130, h: 44, layer: 'components', domain: 'Master' },
+  { id: 'c-authlist',    label: 'AuthorityList',      subtitle: 'components/system/authority/',            x: 820, y: 500, w: 130, h: 44, layer: 'components', domain: 'System' },
+  { id: 'c-commoncode',  label: 'CommonCodeList',     subtitle: 'components/system/common-code/',         x: 980, y: 500, w: 140, h: 44, layer: 'components', domain: 'System' },
+  { id: 'c-bpselect',    label: 'BPStoreSelect',      subtitle: 'components/common/HeadOffice...',        x: 1060, y: 270, w: 130, h: 44, layer: 'components', domain: 'Common' },
+  { id: 'c-dragtree',    label: 'DraggableTree',      subtitle: 'components/common/DraggableTree.tsx',    x: 1060, y: 340, w: 130, h: 44, layer: 'components', domain: 'Common' },
+
+  // ─── Hooks (y: 580~660) ───
+  { id: 'h-login',       label: 'useLoginMutation',   subtitle: 'hooks/queries/use-login-mutation.ts',    x: 60,  y: 600, w: 155, h: 44, layer: 'hooks', domain: 'Auth' },
+  { id: 'h-employee',    label: 'useEmployeeQueries', subtitle: 'hooks/queries/use-employee-queries.ts',  x: 245, y: 600, w: 170, h: 44, layer: 'hooks', domain: 'Employee' },
+  { id: 'h-contract',    label: 'useContractQueries', subtitle: 'hooks/queries/use-contract-queries.ts',  x: 445, y: 600, w: 170, h: 44, layer: 'hooks', domain: 'Employee' },
+  { id: 'h-payroll',     label: 'usePayrollQueries',  subtitle: 'hooks/queries/use-payroll-queries.ts',   x: 645, y: 600, w: 160, h: 44, layer: 'hooks', domain: 'Employee' },
+  { id: 'h-attendance',  label: 'useAttendanceQ',     subtitle: 'hooks/queries/use-attendance-queries.ts',x: 835, y: 600, w: 150, h: 44, layer: 'hooks', domain: 'Employee' },
+  { id: 'h-store',       label: 'useStoreQueries',    subtitle: 'hooks/queries/use-store-queries.ts',     x: 60,  y: 670, w: 150, h: 44, layer: 'hooks', domain: 'Store' },
+  { id: 'h-storeschedule',label:'useStoreScheduleQ',  subtitle: 'hooks/queries/use-store-schedule-...',   x: 240, y: 670, w: 160, h: 44, layer: 'hooks', domain: 'Store' },
+  { id: 'h-mastermenu',  label: 'useMasterMenuQ',     subtitle: 'hooks/queries/use-master-menu-...',      x: 430, y: 670, w: 150, h: 44, layer: 'hooks', domain: 'Master' },
+  { id: 'h-category',    label: 'useCategoryQueries', subtitle: 'hooks/queries/use-category-queries.ts',  x: 610, y: 670, w: 165, h: 44, layer: 'hooks', domain: 'Master' },
+  { id: 'h-authority',   label: 'useAuthorityQ',      subtitle: 'hooks/queries/use-authority-queries.ts', x: 805, y: 670, w: 150, h: 44, layer: 'hooks', domain: 'System' },
+  { id: 'h-commoncode',  label: 'useCommonCodeQ',     subtitle: 'hooks/queries/use-common-code-...',      x: 985, y: 670, w: 155, h: 44, layer: 'hooks', domain: 'System' },
+  { id: 'h-program',     label: 'useProgramQueries',  subtitle: 'hooks/queries/use-program-queries.ts',   x: 985, y: 600, w: 160, h: 44, layer: 'hooks', domain: 'System' },
+  { id: 'h-plans',       label: 'usePlansQueries',    subtitle: 'hooks/queries/use-plans-queries.ts',     x: 1170,y: 600, w: 150, h: 44, layer: 'hooks', domain: 'Subscription' },
+  { id: 'h-bp',          label: 'useBpQueries',       subtitle: 'hooks/queries/use-bp-queries.ts',        x: 1170,y: 670, w: 130, h: 44, layer: 'hooks', domain: 'Common' },
+
+  // ─── Stores (y: 750) ───
+  { id: 's-auth',        label: 'useAuthStore',       subtitle: 'stores/auth-store.ts',                   x: 200, y: 760, w: 140, h: 44, layer: 'stores', domain: 'Auth' },
+  { id: 's-program',     label: 'useProgramStore',    subtitle: 'stores/program-store.ts',                x: 420, y: 760, w: 150, h: 44, layer: 'stores', domain: 'System' },
+  { id: 's-mypage',      label: 'useMyPageStore',     subtitle: 'stores/mypage-store.ts',                 x: 640, y: 760, w: 145, h: 44, layer: 'stores', domain: 'Layout' },
+
+  // ─── Lib / API (y: 840~920) ───
+  { id: 'l-api',         label: 'api.ts (Axios)',     subtitle: 'lib/api.ts',                             x: 200, y: 850, w: 140, h: 44, layer: 'lib', domain: 'Common' },
+  { id: 'l-api-emp',     label: 'employee API',       subtitle: 'lib/api/employee.ts',                    x: 400, y: 850, w: 130, h: 44, layer: 'lib', domain: 'Employee' },
+  { id: 'l-api-store',   label: 'store API',          subtitle: 'lib/api/...',                            x: 560, y: 850, w: 110, h: 44, layer: 'lib', domain: 'Store' },
+  { id: 'l-api-auth',    label: 'authority API',      subtitle: 'lib/api/authority.ts',                   x: 700, y: 850, w: 130, h: 44, layer: 'lib', domain: 'System' },
+  { id: 'l-api-cat',     label: 'category API',       subtitle: 'lib/api/category.ts',                   x: 860, y: 850, w: 130, h: 44, layer: 'lib', domain: 'Master' },
+  { id: 'l-qclient',     label: 'QueryClient',        subtitle: 'lib/query-client.ts',                   x: 60,  y: 850, w: 120, h: 44, layer: 'lib', domain: 'Common' },
+  { id: 'l-zodutils',    label: 'zod-utils',          subtitle: 'lib/zod-utils.ts',                      x: 1020,y: 850, w: 110, h: 44, layer: 'lib', domain: 'Common' },
+  { id: 'l-utils',       label: 'utils (cn)',         subtitle: 'lib/utils.ts',                           x: 1160,y: 850, w: 110, h: 44, layer: 'lib', domain: 'Common' },
+  { id: 'l-schemas',     label: 'Schemas (Zod)',      subtitle: 'lib/schemas/',                           x: 200, y: 930, w: 130, h: 44, layer: 'lib', domain: 'Common' },
+  { id: 'l-provider',    label: 'QueryProvider',      subtitle: 'providers/query-provider.tsx',           x: 60,  y: 930, w: 130, h: 44, layer: 'lib', domain: 'Common' },
+
+  // ─── Types & Data (y: 1010) ───
+  { id: 't-employee',    label: 'employee types',     subtitle: 'types/employee.ts',                      x: 200, y: 1020, w: 130, h: 44, layer: 'types', domain: 'Employee' },
+  { id: 't-store',       label: 'store types',        subtitle: 'types/store.ts',                         x: 360, y: 1020, w: 120, h: 44, layer: 'types', domain: 'Store' },
+  { id: 't-bp',          label: 'bp types',           subtitle: 'types/bp.ts',                            x: 510, y: 1020, w: 100, h: 44, layer: 'types', domain: 'Common' },
+  { id: 't-menu',        label: 'menu types',         subtitle: 'types/menu.ts',                          x: 640, y: 1020, w: 110, h: 44, layer: 'types', domain: 'Master' },
+  { id: 't-plans',       label: 'plans types',        subtitle: 'types/plans.ts',                         x: 780, y: 1020, w: 110, h: 44, layer: 'types', domain: 'Subscription' },
+  { id: 'd-headermenu',  label: 'HeaderMenu Data',    subtitle: 'data/HeaderMenu.ts',                     x: 920, y: 1020, w: 140, h: 44, layer: 'types', domain: 'Layout' },
+  { id: 'd-supportmenu', label: 'SupportMenu Data',   subtitle: 'data/SupportMenu.ts',                   x: 1090,y: 1020, w: 140, h: 44, layer: 'types', domain: 'Layout' },
+];
+
+// Connection definitions
+const connections = [
+  // Pages → Layout components
+  { from: 'pg-sub-layout', to: 'c-header',     type: 'imports' },
+  { from: 'pg-sub-layout', to: 'c-lnb',        type: 'imports' },
+  { from: 'pg-sub-layout', to: 'c-fullmenu',   type: 'imports' },
+  { from: 'pg-sub-layout', to: 'c-mypage',     type: 'imports' },
+  { from: 'pg-sub-layout', to: 'c-alert',      type: 'imports' },
+
+  // Pages → Domain components
+  { from: 'pg-emp-list',   to: 'c-emplist',     type: 'imports' },
+  { from: 'pg-emp-detail', to: 'c-empdetail',   type: 'imports' },
+  { from: 'pg-contract',   to: 'c-contractlist',type: 'imports' },
+  { from: 'pg-payroll',    to: 'c-payrolllist',  type: 'imports' },
+  { from: 'pg-attendance', to: 'c-attendance',   type: 'imports' },
+  { from: 'pg-store',      to: 'c-storelist',   type: 'imports' },
+  { from: 'pg-store-d',    to: 'c-storedetail', type: 'imports' },
+  { from: 'pg-menu',       to: 'c-menulist',    type: 'imports' },
+  { from: 'pg-category',   to: 'c-catmanage',   type: 'imports' },
+  { from: 'pg-authority',  to: 'c-authlist',    type: 'imports' },
+  { from: 'pg-common-cd',  to: 'c-commoncode',  type: 'imports' },
+
+  // Domain components → Common UI
+  { from: 'c-emplist',     to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-emplist',     to: 'c-pagination',  type: 'imports' },
+  { from: 'c-emplist',     to: 'c-searchsel',   type: 'imports' },
+  { from: 'c-storelist',   to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-storelist',   to: 'c-pagination',  type: 'imports' },
+  { from: 'c-contractlist',to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-contractlist',to: 'c-datepicker',  type: 'imports' },
+  { from: 'c-payrolllist', to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-attendance',  to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-authlist',    to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-commoncode',  to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-menulist',    to: 'c-aggrid',      type: 'imports' },
+  { from: 'c-catmanage',   to: 'c-cattree',     type: 'imports' },
+  { from: 'c-cattree',     to: 'c-dragtree',    type: 'imports' },
+
+  // Layout → Data
+  { from: 'c-lnb',         to: 'd-headermenu',  type: 'uses-type' },
+  { from: 'c-lnb',         to: 'd-supportmenu', type: 'uses-type' },
+  { from: 'c-fullmenu',    to: 'd-headermenu',  type: 'uses-type' },
+
+  // Components → Hooks
+  { from: 'c-emplist',     to: 'h-employee',    type: 'uses-hook' },
+  { from: 'c-empdetail',   to: 'h-employee',    type: 'uses-hook' },
+  { from: 'c-contractlist',to: 'h-contract',    type: 'uses-hook' },
+  { from: 'c-payrolllist', to: 'h-payroll',     type: 'uses-hook' },
+  { from: 'c-attendance',  to: 'h-attendance',  type: 'uses-hook' },
+  { from: 'c-schedule',    to: 'h-storeschedule',type: 'uses-hook' },
+  { from: 'c-storelist',   to: 'h-store',       type: 'uses-hook' },
+  { from: 'c-storedetail', to: 'h-store',       type: 'uses-hook' },
+  { from: 'c-menulist',    to: 'h-mastermenu',  type: 'uses-hook' },
+  { from: 'c-catmanage',   to: 'h-category',    type: 'uses-hook' },
+  { from: 'c-authlist',    to: 'h-authority',   type: 'uses-hook' },
+  { from: 'c-commoncode',  to: 'h-commoncode',  type: 'uses-hook' },
+  { from: 'c-bpselect',    to: 'h-bp',          type: 'uses-hook' },
+  { from: 'pg-login',      to: 'h-login',       type: 'uses-hook' },
+
+  // Components → Stores
+  { from: 'pg-login',      to: 's-auth',        type: 'uses-store' },
+  { from: 'pg-sub-layout', to: 's-auth',        type: 'uses-store' },
+  { from: 'c-header',      to: 's-auth',        type: 'uses-store' },
+  { from: 'c-mypage',      to: 's-mypage',      type: 'uses-store' },
+  { from: 'c-header',      to: 's-mypage',      type: 'uses-store' },
+  { from: 'c-lnb',         to: 's-program',     type: 'uses-store' },
+  { from: 'pg-program',    to: 's-program',     type: 'uses-store' },
+
+  // Hooks → API lib
+  { from: 'h-employee',    to: 'l-api',         type: 'uses-api' },
+  { from: 'h-contract',    to: 'l-api',         type: 'uses-api' },
+  { from: 'h-payroll',     to: 'l-api',         type: 'uses-api' },
+  { from: 'h-attendance',  to: 'l-api',         type: 'uses-api' },
+  { from: 'h-store',       to: 'l-api',         type: 'uses-api' },
+  { from: 'h-storeschedule',to:'l-api',         type: 'uses-api' },
+  { from: 'h-mastermenu',  to: 'l-api',         type: 'uses-api' },
+  { from: 'h-category',    to: 'l-api',         type: 'uses-api' },
+  { from: 'h-authority',   to: 'l-api',         type: 'uses-api' },
+  { from: 'h-commoncode',  to: 'l-api',         type: 'uses-api' },
+  { from: 'h-program',     to: 'l-api',         type: 'uses-api' },
+  { from: 'h-plans',       to: 'l-api',         type: 'uses-api' },
+  { from: 'h-bp',          to: 'l-api',         type: 'uses-api' },
+  { from: 'h-login',       to: 'l-api',         type: 'uses-api' },
+
+  // API lib → specific API modules
+  { from: 'h-employee',    to: 'l-api-emp',     type: 'uses-api' },
+  { from: 'h-store',       to: 'l-api-store',   type: 'uses-api' },
+  { from: 'h-authority',   to: 'l-api-auth',    type: 'uses-api' },
+  { from: 'h-category',    to: 'l-api-cat',     type: 'uses-api' },
+
+  // Stores → API
+  { from: 's-auth',        to: 'l-api',         type: 'uses-api' },
+
+  // Lib internal
+  { from: 'l-api',         to: 'l-schemas',     type: 'uses-type' },
+  { from: 'l-api',         to: 'l-zodutils',    type: 'imports' },
+  { from: 'l-provider',    to: 'l-qclient',     type: 'imports' },
+  { from: 'l-api-emp',     to: 'l-api',         type: 'imports' },
+  { from: 'l-api-store',   to: 'l-api',         type: 'imports' },
+  { from: 'l-api-auth',    to: 'l-api',         type: 'imports' },
+  { from: 'l-api-cat',     to: 'l-api',         type: 'imports' },
+
+  // Types usage
+  { from: 'h-employee',    to: 't-employee',    type: 'uses-type' },
+  { from: 'h-store',       to: 't-store',       type: 'uses-type' },
+  { from: 'h-bp',          to: 't-bp',          type: 'uses-type' },
+  { from: 'h-mastermenu',  to: 't-menu',        type: 'uses-type' },
+  { from: 'h-plans',       to: 't-plans',       type: 'uses-type' },
+  { from: 'c-emplist',     to: 't-employee',    type: 'uses-type' },
+  { from: 'c-storelist',   to: 't-store',       type: 'uses-type' },
+];
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+
+const state = {
+  layers: Object.fromEntries(Object.keys(LAYERS).map(k => [k, true])),
+  connTypes: Object.fromEntries(Object.keys(CONN_TYPES).map(k => [k, true])),
+  search: '',
+  domain: null,
+  comments: [],
+  zoom: 1,
+  panX: 20,
+  panY: 10,
+  hovered: null,
+};
+
+const PRESETS = [
+  { label: 'Full System',    layers: ['pages','components','hooks','stores','lib','types'], conns: ['imports','uses-hook','uses-store','uses-api','uses-type'], domain: null },
+  { label: 'Frontend Only',  layers: ['pages','components'], conns: ['imports'], domain: null },
+  { label: 'Data Flow',      layers: ['components','hooks','lib','stores'], conns: ['uses-hook','uses-store','uses-api'], domain: null },
+  { label: 'Employee',       layers: ['pages','components','hooks','lib','types'], conns: ['imports','uses-hook','uses-api','uses-type'], domain: 'Employee' },
+  { label: 'Store',          layers: ['pages','components','hooks','lib','types'], conns: ['imports','uses-hook','uses-api','uses-type'], domain: 'Store' },
+  { label: 'System',         layers: ['pages','components','hooks','stores','lib'], conns: ['imports','uses-hook','uses-store','uses-api'], domain: 'System' },
+];
+
+// ──────────────────────────────────────────────
+// RENDER CONTROLS
+// ──────────────────────────────────────────────
+
+function renderPresets() {
+  const el = document.getElementById('presets');
+  el.innerHTML = PRESETS.map((p, i) =>
+    `<button class="preset-btn" data-idx="${i}">${p.label}</button>`
+  ).join('');
+  el.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(+btn.dataset.idx));
+  });
+}
+
+function applyPreset(idx) {
+  const p = PRESETS[idx];
+  Object.keys(state.layers).forEach(k => state.layers[k] = p.layers.includes(k));
+  Object.keys(state.connTypes).forEach(k => state.connTypes[k] = p.conns.includes(k));
+  state.domain = p.domain;
+  renderLayerToggles();
+  renderConnToggles();
+  renderDomainChips();
+  updateAll();
+  document.querySelectorAll('.preset-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+}
+
+function renderLayerToggles() {
+  const el = document.getElementById('layers');
+  el.innerHTML = Object.entries(LAYERS).map(([k, v]) => {
+    const count = nodes.filter(n => n.layer === k).length;
+    return `<div class="layer-toggle" data-layer="${k}">
+      <input type="checkbox" id="layer-${k}" ${state.layers[k] ? 'checked' : ''}>
+      <div class="layer-dot" style="background:${v.color}"></div>
+      <label for="layer-${k}">${v.label}</label>
+      <span class="count">${count}</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.layer-toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      const k = t.dataset.layer;
+      state.layers[k] = !state.layers[k];
+      t.querySelector('input').checked = state.layers[k];
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      updateAll();
+    });
+  });
+}
+
+function renderConnToggles() {
+  const el = document.getElementById('connTypes');
+  el.innerHTML = Object.entries(CONN_TYPES).map(([k, v]) => {
+    return `<div class="conn-toggle" data-conn="${k}">
+      <input type="checkbox" id="conn-${k}" ${state.connTypes[k] ? 'checked' : ''}>
+      <div class="conn-line" style="background:${v.color}${v.dash ? ';border-top:2px dashed '+v.color+';background:none' : ''}"></div>
+      <label for="conn-${k}">${v.label}</label>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.conn-toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      const k = t.dataset.conn;
+      state.connTypes[k] = !state.connTypes[k];
+      t.querySelector('input').checked = state.connTypes[k];
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      updateAll();
+    });
+  });
+}
+
+function renderDomainChips() {
+  const el = document.getElementById('domainChips');
+  el.innerHTML = DOMAINS.map(d =>
+    `<button class="domain-chip ${state.domain === d ? 'active' : ''}" data-domain="${d}">${d}</button>`
+  ).join('');
+  el.querySelectorAll('.domain-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      state.domain = state.domain === c.dataset.domain ? null : c.dataset.domain;
+      renderDomainChips();
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      updateAll();
+    });
+  });
+}
+
+// ──────────────────────────────────────────────
+// RENDER DIAGRAM
+// ──────────────────────────────────────────────
+
+function getVisibleNodes() {
+  return nodes.filter(n => {
+    if (!state.layers[n.layer]) return false;
+    if (state.domain && n.domain !== state.domain) return false;
+    if (state.search) {
+      const s = state.search.toLowerCase();
+      return n.label.toLowerCase().includes(s) || n.subtitle.toLowerCase().includes(s) || n.domain.toLowerCase().includes(s);
+    }
+    return true;
+  });
+}
+
+function getVisibleConns(visIds) {
+  return connections.filter(c => {
+    if (!state.connTypes[c.type]) return false;
+    return visIds.has(c.from) && visIds.has(c.to);
+  });
+}
+
+function renderDiagram() {
+  const svg = document.getElementById('canvas');
+  const wrap = document.getElementById('canvasWrap');
+  const vis = getVisibleNodes();
+  const visIds = new Set(vis.map(n => n.id));
+  const visConns = getVisibleConns(visIds);
+
+  // Compute SVG size
+  const maxX = vis.length ? Math.max(...vis.map(n => n.x + n.w)) + 80 : 800;
+  const maxY = vis.length ? Math.max(...vis.map(n => n.y + n.h)) + 80 : 600;
+
+  svg.setAttribute('width', maxX * state.zoom);
+  svg.setAttribute('height', maxY * state.zoom);
+  svg.setAttribute('viewBox', `${-state.panX} ${-state.panY} ${maxX} ${maxY}`);
+
+  // Commented node ids
+  const commentedIds = new Set(state.comments.map(c => c.target));
+
+  // Hovered node: highlight connected
+  let connectedIds = null;
+  if (state.hovered) {
+    connectedIds = new Set([state.hovered]);
+    connections.forEach(c => {
+      if (c.from === state.hovered) connectedIds.add(c.to);
+      if (c.to === state.hovered) connectedIds.add(c.from);
+    });
+  }
+
+  // Arrow markers
+  let defs = '<defs>';
+  Object.entries(CONN_TYPES).forEach(([k, v]) => {
+    defs += `<marker id="arrow-${k}" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="${v.color}"/>
+    </marker>`;
+  });
+  defs += '</defs>';
+
+  // Connections
+  let connSvg = '';
+  visConns.forEach(c => {
+    const from = nodes.find(n => n.id === c.from);
+    const to = nodes.find(n => n.id === c.to);
+    if (!from || !to) return;
+    const ct = CONN_TYPES[c.type];
+    const x1 = from.x + from.w / 2;
+    const y1 = from.y + from.h;
+    const x2 = to.x + to.w / 2;
+    const y2 = to.y;
+
+    const dy = y2 - y1;
+    const cp = Math.max(Math.abs(dy) * 0.4, 30);
+
+    const dimmed = connectedIds && !(connectedIds.has(c.from) && connectedIds.has(c.to));
+
+    connSvg += `<g class="connection ${dimmed ? 'dimmed' : ''}">
+      <path d="M${x1},${y1} C${x1},${y1+cp} ${x2},${y2-cp} ${x2},${y2}"
+        stroke="${ct.color}" stroke-dasharray="${ct.dash}" marker-end="url(#arrow-${c.type})" opacity="0.6"/>
+    </g>`;
+  });
+
+  // Nodes
+  let nodeSvg = '';
+  vis.forEach(n => {
+    const lyr = LAYERS[n.layer];
+    const highlighted = state.hovered === n.id;
+    const commented = commentedIds.has(n.id);
+    const dimmed = connectedIds && !connectedIds.has(n.id);
+    const cls = ['node-group', highlighted && 'highlighted', commented && 'commented', dimmed && 'dimmed'].filter(Boolean).join(' ');
+
+    nodeSvg += `<g class="${cls}" data-id="${n.id}" transform="translate(${n.x},${n.y})">
+      <rect class="node-rect" width="${n.w}" height="${n.h}" fill="${lyr.fill}" stroke="${commented ? '#f97316' : lyr.color}" stroke-width="${commented ? 2 : 1}" rx="8"/>
+      <text class="node-label" x="${n.w/2}" y="18" text-anchor="middle" font-size="12">${n.label}</text>
+      <text class="node-sub" x="${n.w/2}" y="33" text-anchor="middle">${n.subtitle.length > 28 ? n.subtitle.slice(0, 26) + '...' : n.subtitle}</text>
+      ${commented ? `<circle class="comment-badge" cx="${n.w - 6}" cy="6" r="5" fill="#f97316"/>` : ''}
+    </g>`;
+  });
+
+  svg.innerHTML = defs + connSvg + nodeSvg;
+
+  // Event listeners
+  svg.querySelectorAll('.node-group').forEach(g => {
+    g.addEventListener('mouseenter', () => {
+      state.hovered = g.dataset.id;
+      renderDiagram();
+      showInfoPanel(g.dataset.id);
+    });
+    g.addEventListener('mouseleave', () => {
+      state.hovered = null;
+      renderDiagram();
+    });
+    g.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openCommentModal(g.dataset.id);
+    });
+  });
+
+  document.getElementById('nodeCount').textContent = `${vis.length} nodes / ${visConns.length} connections`;
+}
+
+// ──────────────────────────────────────────────
+// INFO PANEL (hover)
+// ──────────────────────────────────────────────
+
+function showInfoPanel(id) {
+  const node = nodes.find(n => n.id === id);
+  if (!node) return;
+  const panel = document.getElementById('infoPanel');
+  document.getElementById('infoName').textContent = node.label;
+  document.getElementById('infoPath').textContent = node.subtitle;
+
+  const incoming = connections.filter(c => c.to === id).map(c => {
+    const n = nodes.find(nn => nn.id === c.from);
+    return n ? `<span>${n.label}</span>` : '';
+  });
+  const outgoing = connections.filter(c => c.from === id).map(c => {
+    const n = nodes.find(nn => nn.id === c.to);
+    return n ? `<span>${n.label}</span>` : '';
+  });
+
+  let html = '';
+  if (incoming.length) html += `<div style="margin-bottom:6px"><b style="font-size:11px;color:#8b90a0">Imported by:</b><br>${incoming.join('')}</div>`;
+  if (outgoing.length) html += `<div><b style="font-size:11px;color:#8b90a0">Imports:</b><br>${outgoing.join('')}</div>`;
+  if (!html) html = '<span style="color:#8b90a0">No connections in current view</span>';
+
+  document.getElementById('infoImports').innerHTML = html;
+  panel.classList.add('open');
+}
+
+document.getElementById('infoClose').addEventListener('click', () => {
+  document.getElementById('infoPanel').classList.remove('open');
+});
+
+// ──────────────────────────────────────────────
+// COMMENT SYSTEM
+// ──────────────────────────────────────────────
+
+let modalTarget = null;
+
+function openCommentModal(id) {
+  const node = nodes.find(n => n.id === id);
+  if (!node) return;
+  modalTarget = id;
+  document.getElementById('modalTitle').textContent = node.label;
+  document.getElementById('modalPath').textContent = node.subtitle;
+  document.getElementById('modalInput').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('modalInput').focus(), 100);
+}
+
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  modalTarget = null;
+}
+
+document.getElementById('modalSave').addEventListener('click', () => {
+  const text = document.getElementById('modalInput').value.trim();
+  if (!text || !modalTarget) return;
+  const node = nodes.find(n => n.id === modalTarget);
+  state.comments.push({
+    id: Date.now(),
+    target: modalTarget,
+    targetLabel: node.label,
+    targetFile: node.subtitle,
+    text
+  });
+  closeModal();
+  renderComments();
+  updateAll();
+});
+
+document.getElementById('modalInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    document.getElementById('modalSave').click();
+  }
+});
+
+function renderComments() {
+  document.getElementById('commentsTitle').textContent = `Comments (${state.comments.length})`;
+  const el = document.getElementById('commentsList');
+  if (!state.comments.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:4px 0">컴포넌트를 클릭하여 코멘트 추가</div>';
+    return;
+  }
+  el.innerHTML = state.comments.map(c =>
+    `<div class="comment-item">
+      <span class="comment-target">${c.targetLabel}</span>
+      <span class="comment-text">${c.text}</span>
+      <button class="comment-del" data-id="${c.id}">&times;</button>
+    </div>`
+  ).join('');
+  el.querySelectorAll('.comment-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.comments = state.comments.filter(c => c.id !== +btn.dataset.id);
+      renderComments();
+      updateAll();
+    });
+  });
+}
+
+// ──────────────────────────────────────────────
+// PROMPT OUTPUT
+// ──────────────────────────────────────────────
+
+function updatePrompt() {
+  const el = document.getElementById('promptText');
+  if (!state.comments.length) {
+    const activeLayers = Object.entries(state.layers).filter(([,v]) => v).map(([k]) => LAYERS[k].label);
+    el.textContent = `whale-erp-front 아키텍처 (${activeLayers.join(', ')}${state.domain ? ' / ' + state.domain + ' 도메인' : ''}) 뷰를 보고 있습니다. 컴포넌트를 클릭하여 코멘트를 추가하세요.`;
+    return;
+  }
+
+  const activeLayers = Object.entries(state.layers).filter(([,v]) => v).map(([k]) => LAYERS[k].label);
+  let prompt = `whale-erp-front 프로젝트의 ${activeLayers.join(', ')} 레이어${state.domain ? ' (' + state.domain + ' 도메인)' : ''}에 대한 피드백입니다.\n\n`;
+
+  state.comments.forEach(c => {
+    prompt += `**${c.targetLabel}** (${c.targetFile}):\n${c.text}\n\n`;
+  });
+
+  el.textContent = prompt.trim();
+}
+
+// ──────────────────────────────────────────────
+// COPY
+// ──────────────────────────────────────────────
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('promptText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy'; }, 1500);
+  });
+});
+
+// ──────────────────────────────────────────────
+// PAN & ZOOM
+// ──────────────────────────────────────────────
+
+document.getElementById('zoomIn').addEventListener('click', () => {
+  state.zoom = Math.min(state.zoom + 0.15, 3);
+  updateZoom();
+});
+
+document.getElementById('zoomOut').addEventListener('click', () => {
+  state.zoom = Math.max(state.zoom - 0.15, 0.3);
+  updateZoom();
+});
+
+document.getElementById('zoomReset').addEventListener('click', () => {
+  state.zoom = 1;
+  state.panX = 20;
+  state.panY = 10;
+  updateZoom();
+});
+
+document.getElementById('fitAll').addEventListener('click', () => {
+  const wrap = document.getElementById('canvasWrap');
+  const vis = getVisibleNodes();
+  if (!vis.length) return;
+  const minX = Math.min(...vis.map(n => n.x));
+  const minY = Math.min(...vis.map(n => n.y));
+  const maxX = Math.max(...vis.map(n => n.x + n.w));
+  const maxY = Math.max(...vis.map(n => n.y + n.h));
+  const w = maxX - minX + 100;
+  const h = maxY - minY + 100;
+  const scale = Math.min(wrap.clientWidth / w, wrap.clientHeight / h, 2);
+  state.zoom = scale;
+  state.panX = -minX + 50;
+  state.panY = -minY + 50;
+  updateZoom();
+});
+
+function updateZoom() {
+  document.getElementById('zoomLabel').textContent = Math.round(state.zoom * 100) + '%';
+  renderDiagram();
+}
+
+// Pan with mouse drag
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+const wrap = document.getElementById('canvasWrap');
+
+wrap.addEventListener('mousedown', (e) => {
+  if (e.target.closest('.node-group')) return;
+  isPanning = true;
+  panStart = { x: e.clientX, y: e.clientY };
+  wrap.classList.add('dragging');
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  const dx = (e.clientX - panStart.x) / state.zoom;
+  const dy = (e.clientY - panStart.y) / state.zoom;
+  state.panX += dx;
+  state.panY += dy;
+  panStart = { x: e.clientX, y: e.clientY };
+  renderDiagram();
+});
+
+window.addEventListener('mouseup', () => {
+  isPanning = false;
+  wrap.classList.remove('dragging');
+});
+
+wrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  state.zoom = Math.min(Math.max(state.zoom + delta, 0.3), 3);
+  updateZoom();
+}, { passive: false });
+
+// ──────────────────────────────────────────────
+// SEARCH
+// ──────────────────────────────────────────────
+
+document.getElementById('search').addEventListener('input', (e) => {
+  state.search = e.target.value;
+  updateAll();
+});
+
+// ──────────────────────────────────────────────
+// LEGEND
+// ──────────────────────────────────────────────
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.entries(CONN_TYPES).map(([k, v]) =>
+    `<div class="legend-item">
+      <div class="legend-line ${v.dash ? 'dashed' : ''}" style="border-color:${v.color}"></div>
+      ${v.label}
+    </div>`
+  ).join('');
+}
+
+// ──────────────────────────────────────────────
+// MAIN UPDATE
+// ──────────────────────────────────────────────
+
+function updateAll() {
+  renderDiagram();
+  updatePrompt();
+}
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+
+renderPresets();
+renderLayerToggles();
+renderConnToggles();
+renderDomainChips();
+renderComments();
+renderLegend();
+updateAll();
+
+// Auto fit on load
+setTimeout(() => document.getElementById('fitAll').click(), 100);
+</script>
+</body>
+</html>

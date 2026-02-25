@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // 로그인 없이 접근 가능한 경로
-const PUBLIC_PATHS = ['/', '/main', '/login', '/signup', '/pricing', '/introduction', '/before-notice']
+const PUBLIC_PATHS = ['/', '/main', '/login', '/signup', '/pricing', '/introduction', '/before-notice', '/store-operation', '/financial', '/franchise', '/pricing-info']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -21,6 +21,10 @@ export function middleware(request: NextRequest) {
 
   if (!authToken) {
     const loginUrl = new URL('/login', request.url)
+    const returnUrl = request.nextUrl.pathname + request.nextUrl.search
+    if (returnUrl && returnUrl !== '/') {
+      loginUrl.searchParams.set('returnUrl', returnUrl)
+    }
     return NextResponse.redirect(loginUrl)
   }
 
