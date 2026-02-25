@@ -95,6 +95,14 @@ export interface StorePromotionCreateRequest {
 
 export type StorePromotionUpdateRequest = StorePromotionCreateRequest
 
+export interface ApiErrorResponse {
+  code?: string
+  message?: string
+  details?: {
+    overlappingMenuIds?: number[]
+  }
+}
+
 export interface StorePromotionDetailResponse {
   id: number
   headOfficeName: string | null

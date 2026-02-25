@@ -48,7 +48,7 @@ export default function StorePromotionManage() {
   }
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isFetching: loading } = useStorePromotionList(queryParams, canFetchList)
+  const { data: response, isPending: loading } = useStorePromotionList(queryParams, canFetchList)
 
   // 선택된 점포명 조회
   const storeName =

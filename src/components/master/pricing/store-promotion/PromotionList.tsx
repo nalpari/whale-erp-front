@@ -6,7 +6,8 @@ import type { RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
-import type { StorePromotionListItem } from '@/types/store-promotion'
+import type { StorePromotionListItem, PromotionStatus } from '@/types/store-promotion'
+import { PROMOTION_STATUS_LABEL } from '@/types/store-promotion'
 import { formatDateYmd } from '@/util/date-util'
 
 interface PromotionListProps {
@@ -47,7 +48,11 @@ export default function PromotionList({
       width: 70,
       valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1 + page * pageSize,
     },
-    { field: 'status', headerName: '프로모션 상태' },
+    {
+      field: 'status',
+      headerName: '프로모션 상태',
+      valueFormatter: (params) => PROMOTION_STATUS_LABEL[params.value as PromotionStatus] ?? params.value,
+    },
     { field: 'promotionName', headerName: '프로모션명', flex: 1 },
     {
       headerName: '프로모션 메뉴',

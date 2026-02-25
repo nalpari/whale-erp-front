@@ -36,8 +36,8 @@ export default function StorePromotionHeader() {
     const confirmed = await confirm('삭제하시겠습니까?')
     if (!confirmed) return
     try {
-      queryClient.removeQueries({ queryKey: storePromotionKeys.detail(promotionId) })
       await deletePromotion(promotionId)
+      queryClient.removeQueries({ queryKey: storePromotionKeys.detail(promotionId) })
       router.push('/master/pricing/store-promotion')
     } catch {
       await alert('프로모션 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')

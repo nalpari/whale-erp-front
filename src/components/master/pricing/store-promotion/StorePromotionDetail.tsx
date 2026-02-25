@@ -1,24 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import Location from '@/components/ui/Location'
 import { useAlert } from '@/components/common/ui'
 import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
-import CubeLoader from '@/components/common/ui/CubeLoader'
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import {
-  useStorePromotionDetail,
   useCreateStorePromotion,
   useUpdateStorePromotion,
   useBpHeadOfficeTree,
   useStoreOptions,
 } from '@/hooks/queries'
 import { useStoreMenuList } from '@/hooks/queries/use-store-menu-queries'
-import { useQueryClient } from '@tanstack/react-query'
-import { storePromotionKeys } from '@/hooks/queries/query-keys'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -30,6 +26,7 @@ import {
 } from '@/types/store-promotion'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { StoreMenuItem } from '@/types/store-menu'
+import type { StorePromotionDetailResponse, ApiErrorResponse } from '@/types/store-promotion'
 import { isAxiosError } from 'axios'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
@@ -39,7 +36,11 @@ const MENU_PROPERTY_OPTIONS = Object.entries(MENU_PROPERTY_LABEL).map(([value, l
   label,
 }))
 
+let menuRowId = 0
+const nextMenuRowId = () => ++menuRowId
+
 interface MenuRow {
+  rowId: number
   menuId: number
   menuName: string
   salePrice: number | null
@@ -48,14 +49,15 @@ interface MenuRow {
   checked: boolean
 }
 
-const EMPTY_MENU_ROW: MenuRow = {
+const createEmptyMenuRow = (): MenuRow => ({
+  rowId: nextMenuRowId(),
   menuId: 0,
   menuName: '',
   salePrice: null,
   discountPrice: null,
   promotionPrice: null,
   checked: false,
-}
+})
 
 const buildOfficeOptions = (tree: BpHeadOfficeNode[]) =>
   tree.map((office) => ({ value: String(office.id), label: office.name }))
@@ -69,15 +71,16 @@ const buildFranchiseOptions = (tree: BpHeadOfficeNode[], oid: number | null) =>
         office.franchises.map((f) => ({ value: String(f.id), label: f.name }))
       )
 
-export default function StorePromotionDetail() {
+interface StorePromotionDetailProps {
+  promotionId: number | null
+  initialData?: StorePromotionDetailResponse | null
+}
+
+export default function StorePromotionDetail({ promotionId, initialData }: StorePromotionDetailProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const idParam = searchParams.get('id')
-  const promotionId = idParam && /^\d+$/.test(idParam) ? Number(idParam) : null
   const isEditMode = promotionId != null
 
   const { alert, confirm } = useAlert()
-  const queryClient = useQueryClient()
   const { mutateAsync: createPromotion } = useCreateStorePromotion()
   const { mutateAsync: updatePromotion } = useUpdateStorePromotion()
 
@@ -86,21 +89,39 @@ export default function StorePromotionDetail() {
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
-  // 메뉴 소유 구분
-  const [menuProperty, setMenuProperty] = useState<MenuProperty>(MENU_PROPERTY.HEAD_OFFICE)
+  // 메뉴 소유 구분 (초기값: initialData에서 파생)
+  const [menuProperty, setMenuProperty] = useState<MenuProperty>(
+    initialData?.franchiseId ? MENU_PROPERTY.FRANCHISE : MENU_PROPERTY.HEAD_OFFICE
+  )
 
   // 본사/가맹점/점포 선택
-  const [officeId, setOfficeId] = useState<number | null>(null)
-  const [franchiseId, setFranchiseId] = useState<number | null>(null)
-  const [storeId, setStoreId] = useState<number | null>(null)
+  const [officeId, setOfficeId] = useState<number | null>(initialData?.headOfficeId ?? null)
+  const [franchiseId, setFranchiseId] = useState<number | null>(initialData?.franchiseId ?? null)
+  const [storeId, setStoreId] = useState<number | null>(initialData?.storeId ?? null)
 
   // 프로모션명, 기간
-  const [promotionName, setPromotionName] = useState('')
-  const [startDate, setStartDate] = useState<Date | null>(null)
-  const [endDate, setEndDate] = useState<Date | null>(null)
+  const [promotionName, setPromotionName] = useState(initialData?.promotionName ?? '')
+  const [startDate, setStartDate] = useState<Date | null>(
+    initialData?.startDate ? new Date(initialData.startDate) : null
+  )
+  const [endDate, setEndDate] = useState<Date | null>(
+    initialData?.endDate ? new Date(initialData.endDate) : null
+  )
 
-  // 메뉴 목록 (디폴트 빈 행 1개)
-  const [menuRows, setMenuRows] = useState<MenuRow[]>([{ ...EMPTY_MENU_ROW }])
+  // 메뉴 목록 (초기값: initialData에서 파생)
+  const [menuRows, setMenuRows] = useState<MenuRow[]>(
+    initialData?.promotionMenus && initialData.promotionMenus.length > 0
+      ? initialData.promotionMenus.map((m) => ({
+          rowId: nextMenuRowId(),
+          menuId: m.menuId,
+          menuName: m.menuName,
+          salePrice: m.salePrice,
+          discountPrice: m.discountPrice,
+          promotionPrice: m.promotionPrice,
+          checked: false,
+        }))
+      : [createEmptyMenuRow()]
+  )
 
   // 일괄 적용 필드
   const [bulkType, setBulkType] = useState<'FIXED' | 'RATE'>('FIXED')
@@ -115,47 +136,19 @@ export default function StorePromotionDetail() {
   const [showPromotionPriceError, setShowPromotionPriceError] = useState(false)
   const [overlappingMenuIds, setOverlappingMenuIds] = useState<Set<number>>(new Set())
 
-  // 수정 모드: 상세 조회
-  const { data: detail, isPending: detailLoading } = useStorePromotionDetail(promotionId)
-
-  // render-time sync: detail → 로컬 state 초기화
-  const [prevDetailId, setPrevDetailId] = useState<number | null>(null)
-  if (detail && detail.id !== prevDetailId) {
-    setPrevDetailId(detail.id)
-    setPromotionName(detail.promotionName ?? '')
-    setStartDate(detail.startDate ? new Date(detail.startDate) : null)
-    setEndDate(detail.endDate ? new Date(detail.endDate) : null)
-    setOfficeId(detail.headOfficeId ?? null)
-    setFranchiseId(detail.franchiseId ?? null)
-    setStoreId(detail.storeId ?? null)
-    setMenuProperty(detail.franchiseId ? MENU_PROPERTY.FRANCHISE : MENU_PROPERTY.HEAD_OFFICE)
-    setMenuRows(
-      detail.promotionMenus.length > 0
-        ? detail.promotionMenus.map((m) => ({
-            menuId: m.menuId,
-            menuName: m.menuName,
-            salePrice: m.salePrice,
-            discountPrice: m.discountPrice,
-            promotionPrice: m.promotionPrice,
-            checked: false,
-          }))
-        : [{ ...EMPTY_MENU_ROW }]
-    )
-  }
-
   const handleMenuPropertyChange = (value: MenuProperty) => {
     setMenuProperty(value)
     setFranchiseId(null)
     setStoreId(null)
-    setMenuRows([{ ...EMPTY_MENU_ROW }])
+    setMenuRows([createEmptyMenuRow()])
     setShowFranchiseError(false)
     setShowMenuError(false)
   }
 
   const handleBpChange = (next: { head_office: number | null; franchise: number | null; store: number | null }) => {
-    if (next.head_office !== officeId || next.franchise !== franchiseId) {
+    if (next.head_office !== effectiveOfficeId || next.franchise !== effectiveFranchiseId) {
       // 본사/가맹점 변경 시 메뉴 초기화
-      setMenuRows([{ ...EMPTY_MENU_ROW }])
+      setMenuRows([createEmptyMenuRow()])
     }
     setOfficeId(next.head_office)
     setFranchiseId(next.franchise)
@@ -188,17 +181,17 @@ export default function StorePromotionDetail() {
     setMenuRows((prev) =>
       prev.map((row) => {
         if (!row.checked || row.salePrice == null) return row
-        const promotionPrice =
+        const calculated =
           bulkType === 'FIXED'
             ? row.salePrice - inputNum
             : Math.round(row.salePrice - row.salePrice * (inputNum / 100))
-        return { ...row, promotionPrice }
+        return { ...row, promotionPrice: Math.max(0, calculated) }
       })
     )
   }
 
   const handleAddMenu = () => {
-    setMenuRows((prev) => [...prev, { ...EMPTY_MENU_ROW }])
+    setMenuRows((prev) => [...prev, createEmptyMenuRow()])
   }
 
   const handleRemoveMenu = (idx: number) => {
@@ -208,35 +201,27 @@ export default function StorePromotionDetail() {
   // BP 선택 인라인 로직 (HeadOfficeFranchiseStoreSelect 동일 기능)
   const showFranchise = menuProperty === MENU_PROPERTY.FRANCHISE
 
+  const isOfficeFixed = bpTree.length === 1
+  const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
+
+  // 단일 본사/가맹점 계정일 때 자동 선택 (파생 값)
+  const effectiveOfficeId = isOfficeFixed ? bpTree[0].id : officeId
+  const effectiveFranchiseId = isFranchiseFixed ? bpTree[0].franchises[0].id : franchiseId
+
   const officeOptions = buildOfficeOptions(bpTree)
-  const franchiseOptions = buildFranchiseOptions(bpTree, officeId)
+  const franchiseOptions = buildFranchiseOptions(bpTree, effectiveOfficeId)
   const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
-    officeId,
-    franchiseId,
+    effectiveOfficeId,
+    effectiveFranchiseId,
     isReady
   )
   const storeOptions = storeOptionList.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
 
-  const isOfficeFixed = bpTree.length === 1
-  const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
-
-  // 자동 선택: 단일 본사/가맹점 계정 값 자동 고정 (render-time sync)
-  if (!bpLoading && bpTree.length === 1) {
-    const office = bpTree[0]
-    const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
-    if (officeId !== office.id) {
-      setOfficeId(office.id)
-    }
-    if (autoFranchiseId !== null && franchiseId !== autoFranchiseId) {
-      setFranchiseId(autoFranchiseId)
-    }
-  }
-
   // 선택한 본사/가맹점/점포에 해당하는 메뉴 목록 조회 (운영 메뉴만)
-  const canFetchMenus = officeId != null
+  const canFetchMenus = effectiveOfficeId != null
   const { data: storeMenuData } = useStoreMenuList(
     {
-      bpId: officeId ?? undefined,
+      bpId: effectiveOfficeId ?? undefined,
       storeId: storeId ?? undefined,
       operationStatus: 'STOPR_001',
       page: 0,
@@ -251,13 +236,23 @@ export default function StorePromotionDetail() {
     discountPrice: m.discountPrice,
   }))
 
+  // 이미 선택된 메뉴 ID 집합 (중복 방지용)
+  const selectedMenuIds = new Set(menuRows.filter((r) => r.menuId !== 0).map((r) => r.menuId))
+
   const handleMenuSelect = (idx: number, menuId: string | null) => {
     if (!menuId) {
       setMenuRows((prev) =>
         prev.map((row, i) =>
-          i === idx ? { ...EMPTY_MENU_ROW } : row
+          i === idx ? createEmptyMenuRow() : row
         )
       )
+      return
+    }
+    const numericMenuId = Number(menuId)
+    // 같은 폼 내 메뉴 중복 선택 방지 (현재 행 제외)
+    const currentRowMenuId = menuRows[idx]?.menuId
+    if (numericMenuId !== currentRowMenuId && selectedMenuIds.has(numericMenuId)) {
+      alert('이미 선택된 메뉴입니다.')
       return
     }
     const found = menuSelectOptions.find((opt) => opt.value === menuId)
@@ -267,7 +262,7 @@ export default function StorePromotionDetail() {
         i === idx
           ? {
               ...row,
-              menuId: Number(menuId),
+              menuId: numericMenuId,
               menuName: found.label,
               salePrice: found.salePrice,
               discountPrice: found.discountPrice,
@@ -280,11 +275,11 @@ export default function StorePromotionDetail() {
   const validate = (): boolean => {
     let valid = true
 
-    if (!officeId) {
+    if (!effectiveOfficeId) {
       setShowOfficeError(true)
       valid = false
     }
-    if (menuProperty === MENU_PROPERTY.FRANCHISE && !franchiseId) {
+    if (menuProperty === MENU_PROPERTY.FRANCHISE && !effectiveFranchiseId) {
       setShowFranchiseError(true)
       valid = false
     }
@@ -326,8 +321,8 @@ export default function StorePromotionDetail() {
 
     const payload = {
       menuProperty,
-      headOfficeId: officeId!,
-      ...(menuProperty === MENU_PROPERTY.FRANCHISE && franchiseId ? { franchiseId } : {}),
+      headOfficeId: effectiveOfficeId!,
+      ...(menuProperty === MENU_PROPERTY.FRANCHISE && effectiveFranchiseId ? { franchiseId: effectiveFranchiseId } : {}),
       ...(storeId != null ? { storeId } : {}),
       promotionName: promotionName.trim(),
       startDate: formatDateYmd(startDate, ''),
@@ -341,38 +336,25 @@ export default function StorePromotionDetail() {
           id: promotionId,
           data: payload,
         })
-        queryClient.invalidateQueries({ queryKey: storePromotionKeys.detail(promotionId) })
-        queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
       } else {
         await createPromotion(payload)
-        queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
       }
       router.push('/master/pricing/store-promotion')
     } catch (err) {
-      if (
-        isAxiosError(err) &&
-        err.response?.status === 409 &&
-        err.response?.data?.code === 'ERR3106'
-      ) {
-        const ids: number[] = err.response.data.details?.overlappingMenuIds ?? []
-        setOverlappingMenuIds(new Set(ids))
-        return
+      if (isAxiosError<ApiErrorResponse>(err) && err.response?.status === 409) {
+        const errorData = err.response.data
+        if (errorData?.code === 'ERR3106') {
+          const ids: number[] = errorData.details?.overlappingMenuIds ?? []
+          setOverlappingMenuIds(new Set(ids))
+          return
+        }
       }
       const message =
-        isAxiosError(err) && err.response?.data?.message
+        isAxiosError<ApiErrorResponse>(err) && err.response?.data?.message
           ? err.response.data.message
           : '저장에 실패했습니다. 잠시 후 다시 시도해주세요.'
       await alert(message)
     }
-  }
-
-  if (isEditMode && detailLoading) {
-    return (
-      <div className="data-wrap">
-        <Location title="점포용 프로모션 가격 관리" list={BREADCRUMBS} />
-        <div className="cube-loader-overlay"><CubeLoader /></div>
-      </div>
-    )
   }
 
   return (
@@ -424,11 +406,9 @@ export default function StorePromotionDetail() {
                       <div className="mx-500">
                         <SearchSelect
                           value={
-                            isOfficeFixed
-                              ? officeOptions.find((opt) => opt.value === String(bpTree[0]?.id)) || null
-                              : officeId !== null
-                                ? officeOptions.find((opt) => opt.value === String(officeId)) || null
-                                : null
+                            effectiveOfficeId !== null
+                              ? officeOptions.find((opt) => opt.value === String(effectiveOfficeId)) || null
+                              : null
                           }
                           options={officeOptions}
                           placeholder="본사 선택"
@@ -441,11 +421,11 @@ export default function StorePromotionDetail() {
                               ? bpTree.find((o) => o.id === nextOfficeId)?.franchises ?? []
                               : bpTree.flatMap((o) => o.franchises)
                             const shouldClearFranchise =
-                              franchiseId !== null &&
-                              !nextFranchiseOptions.some((f) => f.id === franchiseId)
+                              effectiveFranchiseId !== null &&
+                              !nextFranchiseOptions.some((f) => f.id === effectiveFranchiseId)
                             handleBpChange({
                               head_office: nextOfficeId,
-                              franchise: shouldClearFranchise ? null : franchiseId ?? null,
+                              franchise: shouldClearFranchise ? null : effectiveFranchiseId ?? null,
                               store: null,
                             })
                           }}
@@ -455,11 +435,9 @@ export default function StorePromotionDetail() {
                         <div className="mx-500">
                           <SearchSelect
                             value={
-                              isFranchiseFixed
-                                ? franchiseOptions.find((opt) => opt.value === String(bpTree[0]?.franchises[0]?.id)) || null
-                                : franchiseId !== null
-                                  ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null
-                                  : null
+                              effectiveFranchiseId !== null
+                                ? franchiseOptions.find((opt) => opt.value === String(effectiveFranchiseId)) || null
+                                : null
                             }
                             options={franchiseOptions}
                             placeholder="가맹점 선택"
@@ -469,7 +447,7 @@ export default function StorePromotionDetail() {
                             onChange={(option) => {
                               const nextFranchiseId = option ? Number(option.value) : null
                               handleBpChange({
-                                head_office: officeId,
+                                head_office: effectiveOfficeId,
                                 franchise: nextFranchiseId,
                                 store: null,
                               })
@@ -478,10 +456,10 @@ export default function StorePromotionDetail() {
                         </div>
                       )}
                     </div>
-                    {showOfficeError && !officeId && (
+                    {showOfficeError && !effectiveOfficeId && (
                       <div className="warning-txt mt5">* 본사를 선택해주세요.</div>
                     )}
-                    {showFranchiseError && showFranchise && !franchiseId && (
+                    {showFranchiseError && showFranchise && !effectiveFranchiseId && (
                       <div className="warning-txt mt5">* 가맹점을 선택해주세요.</div>
                     )}
                   </td>
@@ -503,8 +481,8 @@ export default function StorePromotionDetail() {
                         onChange={(option) => {
                           const nextStoreId = option ? Number(option.value) : null
                           handleBpChange({
-                            head_office: officeId,
-                            franchise: franchiseId,
+                            head_office: effectiveOfficeId,
+                            franchise: effectiveFranchiseId,
                             store: nextStoreId,
                           })
                         }}
@@ -621,7 +599,7 @@ export default function StorePromotionDetail() {
                 </colgroup>
                 <tbody>
                   {menuRows.map((row, idx) => (
-                    <tr key={idx}>
+                    <tr key={row.rowId}>
                       <th>
                         <div className="check-form-box">
                           <input
