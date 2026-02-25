@@ -68,7 +68,7 @@ export default function AttendanceRecord() {
     size: pageSize,
   }
 
-  const { data: response, isFetching: loading, error } = useAttendanceList(
+  const { data: response, isPending: loading, error } = useAttendanceList(
     attendanceParams,
     canFetchList && Boolean(accessToken)
   )
