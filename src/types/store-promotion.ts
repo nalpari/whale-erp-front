@@ -79,7 +79,7 @@ export interface StorePromotionMenuItem {
 
 export interface StorePromotionMenuPayload {
   menuId: number
-  promotionPrice: number | null
+  promotionPrice: number
 }
 
 export interface StorePromotionCreateRequest {
@@ -95,7 +95,7 @@ export interface StorePromotionCreateRequest {
 
 export type StorePromotionUpdateRequest = StorePromotionCreateRequest
 
-export interface ApiErrorResponse {
+export interface StorePromotionErrorResponse {
   code?: string
   message?: string
   details?: {

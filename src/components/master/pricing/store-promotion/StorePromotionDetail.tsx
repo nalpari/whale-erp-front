@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import Location from '@/components/ui/Location'
@@ -26,7 +26,7 @@ import {
 } from '@/types/store-promotion'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { StoreMenuItem } from '@/types/store-menu'
-import type { StorePromotionDetailResponse, ApiErrorResponse } from '@/types/store-promotion'
+import type { StorePromotionDetailResponse, StorePromotionErrorResponse } from '@/types/store-promotion'
 import { isAxiosError } from 'axios'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
@@ -35,9 +35,6 @@ const MENU_PROPERTY_OPTIONS = Object.entries(MENU_PROPERTY_LABEL).map(([value, l
   value: value as MenuProperty,
   label,
 }))
-
-let menuRowId = 0
-const nextMenuRowId = () => ++menuRowId
 
 interface MenuRow {
   rowId: number
@@ -48,16 +45,6 @@ interface MenuRow {
   promotionPrice: number | null
   checked: boolean
 }
-
-const createEmptyMenuRow = (): MenuRow => ({
-  rowId: nextMenuRowId(),
-  menuId: 0,
-  menuName: '',
-  salePrice: null,
-  discountPrice: null,
-  promotionPrice: null,
-  checked: false,
-})
 
 const buildOfficeOptions = (tree: BpHeadOfficeNode[]) =>
   tree.map((office) => ({ value: String(office.id), label: office.name }))
@@ -79,6 +66,18 @@ interface StorePromotionDetailProps {
 export default function StorePromotionDetail({ promotionId, initialData }: StorePromotionDetailProps) {
   const router = useRouter()
   const isEditMode = promotionId != null
+
+  const menuRowIdRef = useRef(0)
+  const nextMenuRowId = () => ++menuRowIdRef.current
+  const createEmptyMenuRow = (): MenuRow => ({
+    rowId: nextMenuRowId(),
+    menuId: 0,
+    menuName: '',
+    salePrice: null,
+    discountPrice: null,
+    promotionPrice: null,
+    checked: false,
+  })
 
   const { alert, confirm } = useAlert()
   const { mutateAsync: createPromotion } = useCreateStorePromotion()
@@ -229,7 +228,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       storeId: storeId ?? undefined,
       operationStatus: 'STOPR_001',
       page: 0,
-      size: 500,
+      size: 9999, // 전체 메뉴 조회 (페이지네이션 없이)
     },
     canFetchMenus
   )
@@ -321,12 +320,12 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       .filter((row) => row.menuId !== 0)
       .map((row) => ({
         menuId: row.menuId,
-        promotionPrice: row.promotionPrice ?? 0,
+        promotionPrice: row.promotionPrice!,
       }))
 
     const payload = {
       menuProperty,
-      headOfficeId: effectiveOfficeId!,
+      headOfficeId: effectiveOfficeId ?? 0,
       ...(menuProperty === MENU_PROPERTY.FRANCHISE && effectiveFranchiseId ? { franchiseId: effectiveFranchiseId } : {}),
       ...(storeId != null ? { storeId } : {}),
       promotionName: promotionName.trim(),
@@ -347,16 +346,17 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       }
       router.push('/master/pricing/store-promotion')
     } catch (err) {
-      if (isAxiosError<ApiErrorResponse>(err) && err.response?.status === 409) {
+      if (isAxiosError<StorePromotionErrorResponse>(err) && err.response?.status === 409) {
         const errorData = err.response.data
         if (errorData?.code === 'ERR3106') {
           const ids: number[] = errorData.details?.overlappingMenuIds ?? []
           setOverlappingMenuIds(new Set(ids))
+          await alert('중복 프로모션 메뉴가 존재합니다. 표시된 메뉴를 확인해주세요.')
           return
         }
       }
       const message =
-        isAxiosError<ApiErrorResponse>(err) && err.response?.data?.message
+        isAxiosError<StorePromotionErrorResponse>(err) && err.response?.data?.message
           ? err.response.data.message
           : '저장에 실패했습니다. 잠시 후 다시 시도해주세요.'
       await alert(message)

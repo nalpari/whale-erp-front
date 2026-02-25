@@ -25,7 +25,7 @@ export const useStorePromotionList = (params: StorePromotionListParams, enabled 
 
 export const useStorePromotionDetail = (id?: number | null) => {
   return useQuery({
-    queryKey: storePromotionKeys.detail(id!),
+    queryKey: storePromotionKeys.detail(id ?? 0),
     queryFn: async () => {
       const response = await api.get<ApiResponse<StorePromotionDetailResponse>>(
         `/api/master/promotion/store/${id}`
