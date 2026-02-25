@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -10,7 +10,7 @@ export default function BeforeHeader() {
   const [hasScrolled, setHasScrolled] = useState(false)
 
   const isMain = pathname === '/' || pathname === '/main'
-  const subMenu = useMemo(() => !isMain, [isMain])
+  const subMenu = !isMain
 
   useEffect(() => {
     if (subMenu) return
