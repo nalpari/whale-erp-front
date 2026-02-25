@@ -304,3 +304,13 @@ export const storeMenuKeys = {
   details: () => [...storeMenuKeys.all, 'detail'] as const,
   detail: (id: number) => [...storeMenuKeys.details(), id] as const,
 }
+
+import type { StorePromotionListParams } from '@/types/store-promotion'
+
+export const storePromotionKeys = {
+  all: ['store-promotions'] as const,
+  lists: () => [...storePromotionKeys.all, 'list'] as const,
+  list: (params: StorePromotionListParams) => [...storePromotionKeys.lists(), params] as const,
+  details: () => [...storePromotionKeys.all, 'detail'] as const,
+  detail: (id: number) => [...storePromotionKeys.details(), id] as const,
+}

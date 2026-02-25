@@ -56,7 +56,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 38,
             name: '점포용 프로모션 가격 관리',
-            link: '#',
+            link: '/master/pricing/store-promotion',
           },
         ],
       },

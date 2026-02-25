@@ -293,20 +293,24 @@ export default function StoreMenuThumbnailList({
                             </ul>
                           </td>
                         </tr>
-                        {menu.categories?.length > 0 && (
-                          <tr>
-                            <th>카테고리</th>
-                            <td>
-                              <ul className="thum-data-list">
-                                {menu.categories.map((cat, idx) => (
+                        <tr>
+                          <th>카테고리</th>
+                          <td>
+                            <ul className="thum-data-list">
+                              {menu.categories?.length > 0 ? (
+                                menu.categories.map((cat, idx) => (
                                   <li key={cat.menuCategoryId ?? cat.categoryId ?? `cat-${idx}`} className="thum-data-item">
                                     <span className="thum-data-text">{cat.name}</span>
                                   </li>
-                                ))}
-                              </ul>
-                            </td>
-                          </tr>
-                        )}
+                                ))
+                              ) : (
+                                <li className="thum-data-item">
+                                  <span className="thum-data-text">-</span>
+                                </li>
+                              )}
+                            </ul>
+                          </td>
+                        </tr>
                         <tr>
                           <th>등록일</th>
                           <td>
