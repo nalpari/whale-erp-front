@@ -25,28 +25,28 @@ export default function Lnb({
   const findActiveFromPathname = (list: typeof menuList) => {
     for (const menu of list) {
       if (menu.link !== '#' && pathname === menu.link) {
-        return { menuId: menu.id, subMenuId: null as number | null }
+        return { menuId: menu.id, subMenuId: null as number | null, subSubMenuId: null as number | null }
       }
       if (menu.children) {
         for (const child of menu.children) {
           if (child.link !== '#' && pathname === child.link) {
-            return { menuId: menu.id, subMenuId: child.id }
+            return { menuId: menu.id, subMenuId: child.id, subSubMenuId: null as number | null }
           }
           if (child.children) {
             for (const subChild of child.children) {
               if (subChild.link !== '#' && pathname === subChild.link) {
-                return { menuId: menu.id, subMenuId: child.id }
+                return { menuId: menu.id, subMenuId: child.id, subSubMenuId: subChild.id }
               }
             }
           }
         }
       }
     }
-    return { menuId: null, subMenuId: null }
+    return { menuId: null, subMenuId: null, subSubMenuId: null }
   }
 
   // pathname 기반 활성 메뉴 — 파생값으로 직접 계산 (setState in render 금지)
-  const { menuId: activeMenuId, subMenuId: activeSubMenuId } = findActiveFromPathname(menuList)
+  const { menuId: activeMenuId, subMenuId: activeSubMenuId, subSubMenuId: activeSubSubMenuId } = findActiveFromPathname(menuList)
 
   // 아코디언 확장 상태 — key prop으로 리마운트 시 초기화됨
   const [expandedMenu, setExpandedMenu] = useState<number | null>(activeMenuId)
@@ -61,7 +61,7 @@ export default function Lnb({
       setExpandedSubMenu(expandedSubMenu === id ? null : id)
     } else {
       setExpandedMenu(expandedMenu === id ? null : id)
-      if (expandedMenu === null) {
+      if (expandedMenu !== null && expandedMenu !== id) {
         setExpandedSubMenu(null)
       }
     }
@@ -121,7 +121,7 @@ export default function Lnb({
                           <AnimateHeight duration={300} height={expandedSubMenu === child.id ? 'auto' : 0}>
                             <ul className="lnb-list-depth03">
                               {child.children.map((subChild) => (
-                                <li className="lnb-depth03-item" key={subChild.id}>
+                                <li className={`lnb-depth03-item ${activeSubSubMenuId === subChild.id ? 'act' : ''}`} key={subChild.id}>
                                   <Link href={subChild.link} className="menu-depth03">
                                     <span className="lnb-menu-name">{subChild.name}</span>
                                   </Link>
