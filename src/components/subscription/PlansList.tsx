@@ -28,9 +28,24 @@ const COLUMN_DEFS: ColDef<PlansListItem>[] = [
         valueFormatter: (params) => params.value === null ? '제한없음' : params.value,
     },
     { field: 'featureCount', headerName: '포함기능 *', flex: 1 },
-    { field: 'monthlyPrice', headerName: '1개월 요금 *', flex: 1 },
-    { field: 'sixMonthDiscountPrice', headerName: '6개월 요금', flex: 1 },
-    { field: 'yearlyDiscountPrice', headerName: '12개월 요금', flex: 1 },
+    {
+        field: 'monthlyPrice',
+        headerName: '1개월 요금 *',
+        flex: 1,
+        valueFormatter: (params) => params.value != null ? `${Number(params.value).toLocaleString()} 원` : '',
+    },
+    {
+        field: 'sixMonthDiscount',
+        headerName: '6개월 요금',
+        flex: 1,
+        valueFormatter: (params) => params.value != null ? `${Number(params.value).toLocaleString()} 원` : '',
+    },
+    {
+        field: 'yearlyDiscount',
+        headerName: '12개월 요금',
+        flex: 1,
+        valueFormatter: (params) => params.value != null ? `${Number(params.value).toLocaleString()} 원` : '',
+    },
     { field: 'updatedAt', headerName: '수정일시', flex: 1, valueFormatter: (params) => formatDateTimeYmdHm(params.value, '') },
     { field: 'updater', headerName: '수정자', flex: 1 },
 ]

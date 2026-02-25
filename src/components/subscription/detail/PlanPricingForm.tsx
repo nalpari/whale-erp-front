@@ -310,18 +310,6 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
         setErrors(prev => ({ ...prev, fromDate: undefined, toDate: undefined, dateCheck: undefined }))
     }, [isInProgress, fromDate, handleDuplicateCheck])
 
-    const handleNumberInput = (
-        value: string,
-        setter: (val: number | undefined) => void,
-    ) => {
-        const filtered = value.replace(/[^0-9]/g, '')
-        if (filtered === '') {
-            setter(undefined)
-        } else {
-            setter(Number(filtered))
-        }
-    }
-
     // 6개월 할인 계산
     const calculateSixMonthDiscount = () => {
         if (!sixMonth.discountValue) {
@@ -496,20 +484,22 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                             <th>1개월 요금 <span className="red">*</span></th>
                                             <td>
                                                 <Input
-                                                    type="text"
-                                                    inputMode="numeric"
+                                                    type="currency"
                                                     value={monthlyPrice ?? ''}
-                                                    onChange={(e) => {
-                                                        handleNumberInput(e.target.value, setMonthlyPrice)
+                                                    onValueChange={(val) => {
+                                                        setMonthlyPrice(val ?? undefined)
                                                         if (errors.monthlyPrice) {
                                                             setErrors(prev => ({ ...prev, monthlyPrice: undefined }))
                                                         }
                                                     }}
-                                                    placeholder="숫자를 입력하세요"
+                                                    placeholder="금액을 입력하세요"
                                                     error={!!errors.monthlyPrice}
                                                     helpText={errors.monthlyPrice}
                                                     endAdornment={
-                                                        <button type="button" className="btn-form basic" onClick={handleOpenAddPricePopup}>요금 추가</button>
+                                                        <>
+                                                            <span className="explain">원</span>
+                                                            <button type="button" className="btn-form basic" onClick={handleOpenAddPricePopup}>요금 추가</button>
+                                                        </>
                                                     }
                                                 />
                                             </td>
@@ -533,25 +523,25 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                             <th>6개월 요금 <span className="red">*</span></th>
                                             <td>
                                                 <Input
-                                                    type="text"
-                                                    inputMode="numeric"
+                                                    type="currency"
                                                     value={sixMonth.price ?? ''}
-                                                    onChange={(e) => {
-                                                        handleNumberInput(e.target.value, (v) => setSixMonth(prev => ({ ...prev, price: v })))
+                                                    onValueChange={(val) => {
+                                                        setSixMonth(prev => ({ ...prev, price: val ?? undefined }))
                                                         if (errors.sixMonthPrice) {
                                                             setErrors(prev => ({ ...prev, sixMonthPrice: undefined }))
                                                         }
                                                     }}
-                                                    placeholder="숫자를 입력하세요"
+                                                    placeholder="금액을 입력하세요"
                                                     error={!!errors.sixMonthPrice}
                                                     helpText={errors.sixMonthPrice}
                                                     endAdornment={
                                                         <>
                                                             <Input
-                                                                type="text"
-                                                                value={sixMonth.price ? (sixMonth.price * 6).toLocaleString() : ''}
+                                                                type="currency"
+                                                                value={sixMonth.price ? sixMonth.price * 6 : ''}
                                                                 readOnly
                                                             />
+                                                            <span className="explain">원</span>
                                                             <div className="toggle-wrap">
                                                                 <span className="toggle-txt">할인</span>
                                                                 <div className="toggle-btn">
@@ -583,16 +573,15 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 <th>요금할인 <span className="red">*</span></th>
                                                 <td>
                                                     <Input
-                                                        type="text"
-                                                        inputMode="numeric"
+                                                        type={sixMonth.discountType === 'rate' ? 'percent' : 'currency'}
                                                         value={sixMonth.discountValue ?? ''}
-                                                        onChange={(e) => {
-                                                            handleNumberInput(e.target.value, (v) => setSixMonth(prev => ({ ...prev, discountValue: v })))
+                                                        onValueChange={(val) => {
+                                                            setSixMonth(prev => ({ ...prev, discountValue: val ?? undefined }))
                                                             if (errors.sixMonthDiscount) {
                                                                 setErrors(prev => ({ ...prev, sixMonthDiscount: undefined }))
                                                             }
                                                         }}
-                                                        placeholder="숫자를 입력하세요"
+                                                        placeholder={sixMonth.discountType === 'rate' ? '할인율을 입력하세요' : '할인금액을 입력하세요'}
                                                         error={!!errors.sixMonthDiscount}
                                                         helpText={errors.sixMonthDiscount || (sixMonth.discountResult ? `${sixMonth.discountResult.totalPrice.toLocaleString()} – (할인) ${sixMonth.discountResult.discountAmount.toLocaleString()}원 = ${sixMonth.discountResult.finalPrice.toLocaleString()}원` : undefined)}
                                                         startAdornment={
@@ -600,7 +589,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                                 <select
                                                                     className="select-form"
                                                                     value={sixMonth.discountType}
-                                                                    onChange={(e) => setSixMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount' }))}
+                                                                    onChange={(e) => setSixMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount', discountValue: undefined, discountResult: null }))}
                                                                 >
                                                                     <option value="rate">할인율</option>
                                                                     <option value="amount">할인금액</option>
@@ -608,13 +597,16 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                             </div>
                                                         }
                                                         endAdornment={
-                                                            <button
-                                                                type="button"
-                                                                className="btn-form basic"
-                                                                onClick={calculateSixMonthDiscount}
-                                                            >
-                                                                계산하기
-                                                            </button>
+                                                            <>
+                                                                <span className="explain">{sixMonth.discountType === 'rate' ? '%' : '원'}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-form basic"
+                                                                    onClick={calculateSixMonthDiscount}
+                                                                >
+                                                                    계산하기
+                                                                </button>
+                                                            </>
                                                         }
                                                     />
                                                 </td>
@@ -640,25 +632,25 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                             <th>12개월 요금 <span className="red">*</span></th>
                                             <td>
                                                 <Input
-                                                    type="text"
-                                                    inputMode="numeric"
+                                                    type="currency"
                                                     value={twelveMonth.price ?? ''}
-                                                    onChange={(e) => {
-                                                        handleNumberInput(e.target.value, (v) => setTwelveMonth(prev => ({ ...prev, price: v })))
+                                                    onValueChange={(val) => {
+                                                        setTwelveMonth(prev => ({ ...prev, price: val ?? undefined }))
                                                         if (errors.twelveMonthPrice) {
                                                             setErrors(prev => ({ ...prev, twelveMonthPrice: undefined }))
                                                         }
                                                     }}
-                                                    placeholder="숫자를 입력하세요"
+                                                    placeholder="금액을 입력하세요"
                                                     error={!!errors.twelveMonthPrice}
                                                     helpText={errors.twelveMonthPrice}
                                                     endAdornment={
                                                         <>
                                                             <Input
-                                                                type="text"
-                                                                value={twelveMonth.price ? (twelveMonth.price * 12).toLocaleString() : ''}
+                                                                type="currency"
+                                                                value={twelveMonth.price ? twelveMonth.price * 12 : ''}
                                                                 readOnly
                                                             />
+                                                            <span className="explain">원</span>
                                                             <div className="toggle-wrap">
                                                                 <span className="toggle-txt">할인</span>
                                                                 <div className="toggle-btn">
@@ -690,16 +682,15 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                 <th>요금할인 <span className="red">*</span></th>
                                                 <td>
                                                     <Input
-                                                        type="text"
-                                                        inputMode="numeric"
+                                                        type={twelveMonth.discountType === 'rate' ? 'percent' : 'currency'}
                                                         value={twelveMonth.discountValue ?? ''}
-                                                        onChange={(e) => {
-                                                            handleNumberInput(e.target.value, (v) => setTwelveMonth(prev => ({ ...prev, discountValue: v })))
+                                                        onValueChange={(val) => {
+                                                            setTwelveMonth(prev => ({ ...prev, discountValue: val ?? undefined }))
                                                             if (errors.twelveMonthDiscount) {
                                                                 setErrors(prev => ({ ...prev, twelveMonthDiscount: undefined }))
                                                             }
                                                         }}
-                                                        placeholder="숫자를 입력하세요"
+                                                        placeholder={twelveMonth.discountType === 'rate' ? '할인율을 입력하세요' : '할인금액을 입력하세요'}
                                                         error={!!errors.twelveMonthDiscount}
                                                         helpText={errors.twelveMonthDiscount || (twelveMonth.discountResult ? `${twelveMonth.discountResult.totalPrice.toLocaleString()} – (할인) ${twelveMonth.discountResult.discountAmount.toLocaleString()}원 = ${twelveMonth.discountResult.finalPrice.toLocaleString()}원` : undefined)}
                                                         startAdornment={
@@ -707,7 +698,7 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                                 <select
                                                                     className="select-form"
                                                                     value={twelveMonth.discountType}
-                                                                    onChange={(e) => setTwelveMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount' }))}
+                                                                    onChange={(e) => setTwelveMonth(prev => ({ ...prev, discountType: e.target.value as 'rate' | 'amount', discountValue: undefined, discountResult: null }))}
                                                                 >
                                                                     <option value="rate">할인율</option>
                                                                     <option value="amount">할인금액</option>
@@ -715,13 +706,16 @@ export default function PlanPricingForm({ planId, planTypeId, planTypeName, mode
                                                             </div>
                                                         }
                                                         endAdornment={
-                                                            <button
-                                                                type="button"
-                                                                className="btn-form basic"
-                                                                onClick={calculateTwelveMonthDiscount}
-                                                            >
-                                                                계산하기
-                                                            </button>
+                                                            <>
+                                                                <span className="explain">{twelveMonth.discountType === 'rate' ? '%' : '원'}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-form basic"
+                                                                    onClick={calculateTwelveMonthDiscount}
+                                                                >
+                                                                    계산하기
+                                                                </button>
+                                                            </>
                                                         }
                                                     />
                                                 </td>

@@ -1,7 +1,7 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { format } from 'date-fns'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -9,18 +9,9 @@ import { Input, RadioButtonGroup, useAlert } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import { useMasterCategoryList, useStoreList, useCommonCodeHierarchy } from '@/hooks/queries'
 import type { CategoryResponse } from '@/types/menu'
+import { useMenuSearchStore, type MenuSearchFormData } from '@/stores/menu-search-store'
 
-export interface MenuSearchFormData {
-  headOfficeOrganizationId?: number | null
-  menuName?: string
-  operationStatus?: string
-  menuType?: string
-  menuClassificationCode?: string
-  categoryId?: string
-  franchiseAvailableId?: string
-  registeredDateFrom?: string
-  registeredDateTo?: string
-}
+export type { MenuSearchFormData }
 
 interface MenuSearchProps {
   onSearch: (params: MenuSearchFormData) => void
@@ -42,22 +33,11 @@ const menuTypeOptions = [
   { value: 'MNTYP_002', label: '옵션' },
 ]
 
-const INITIAL_FORM_DATA = {
-  headOfficeOrganizationId: null as number | null,
-  franchiseOrganizationId: null as number | null,
-  menuName: '',
-  operationStatus: '',
-  menuType: '',
-  menuClassificationCode: '',
-  categoryId: '',
-  franchiseAvailableId: '',
-  registeredDateFrom: '',
-  registeredDateTo: '',
-}
-
 export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, onSearchOpenChange }: MenuSearchProps) {
   const { alert } = useAlert()
-  const [formData, setFormData] = useState({ ...INITIAL_FORM_DATA })
+  const formData = useMenuSearchStore((s) => s.formData)
+  const setFormData = useMenuSearchStore((s) => s.setFormData)
+  const reset = useMenuSearchStore((s) => s.reset)
 
   // 카테고리 API 조회 (본사 선택 시)
   const { data: categories } = useMasterCategoryList(formData.headOfficeOrganizationId)
@@ -103,8 +83,8 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     }))
   }, [menuClassificationCodes])
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: 'menuName' | 'operationStatus' | 'menuType' | 'menuClassificationCode' | 'categoryId' | 'franchiseAvailableId', value: string) => {
+    setFormData({ [field]: value })
   }
 
   const handleSearch = async () => {
@@ -129,7 +109,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }
 
   const handleReset = () => {
-    setFormData({ ...INITIAL_FORM_DATA })
+    reset()
     onReset()
   }
 
@@ -164,12 +144,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                   franchiseId={null}
                   storeId={null}
                   onChange={(next) =>
-                    setFormData(prev => ({
-                      ...prev,
+                    setFormData({
                       headOfficeOrganizationId: next.head_office,
                       categoryId: '',
                       franchiseAvailableId: '',
-                    }))
+                    })
                   }
                 />
                 <th>가맹점</th>
@@ -262,8 +241,10 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                     startDate={formData.registeredDateFrom ? new Date(formData.registeredDateFrom) : null}
                     endDate={formData.registeredDateTo ? new Date(formData.registeredDateTo) : null}
                     onChange={(range: DateRange) => {
-                      handleInputChange('registeredDateFrom', range.startDate ? format(range.startDate, 'yyyy-MM-dd') : '')
-                      handleInputChange('registeredDateTo', range.endDate ? format(range.endDate, 'yyyy-MM-dd') : '')
+                      setFormData({
+                        registeredDateFrom: range.startDate ? format(range.startDate, 'yyyy-MM-dd') : '',
+                        registeredDateTo: range.endDate ? format(range.endDate, 'yyyy-MM-dd') : '',
+                      })
                     }}
                     startDatePlaceholder="시작일"
                     endDatePlaceholder="종료일"

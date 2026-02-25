@@ -6,7 +6,7 @@ import type { CategoryResponse } from '@/types/menu'
 
 export const useMasterCategoryList = (bpId: number | null | undefined) => {
   return useQuery({
-    queryKey: masterCategoryKeys.list(bpId!),
+    queryKey: masterCategoryKeys.list(bpId ?? 0),
     queryFn: async () => {
       const response = await api.get<ApiResponse<CategoryResponse[]>>(
         '/api/master/category/master',

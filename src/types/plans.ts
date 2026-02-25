@@ -11,8 +11,8 @@ export interface PlansListItem {
     updatedAt: Date
     updater: string
     monthlyPrice: number
-    sixMonthDiscountPrice: number
-    yearlyDiscountPrice: number
+    sixMonthDiscount: number | null
+    yearlyDiscount: number | null
 }
 
 // 요금제 상세 조회 응답

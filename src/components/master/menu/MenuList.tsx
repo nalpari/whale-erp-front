@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
@@ -37,12 +38,12 @@ interface CodeMaps {
   menuClassCodeMap: Map<string, string>
 }
 
-function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; codeMaps: CodeMaps }) {
-  const imgSrc = menu.menuImgFile?.fileUrl ?? PLACEHOLDER_IMG
+function MenuCard({ menu, checked, onCheck, onCardClick, codeMaps }: { menu: MenuResponse; checked: boolean; onCheck: (id: number, checked: boolean) => void; onCardClick: (id: number) => void; codeMaps: CodeMaps }) {
+  const imgSrc = menu.menuImgFile?.publicUrl ?? PLACEHOLDER_IMG
   const hasDiscount = menu.discountPrice != null && menu.discountPrice > 0
   const categories = menu.categories?.map((c) => c.name).join(' | ') || '-'
   return (
-    <div className="thumb-item">
+    <div className="thumb-item cursor-pointer" onClick={() => onCardClick(menu.id)}>
       <div className="thumb-item-img">
         {/* 마케팅 배지 */}
         {menu.marketingTags && menu.marketingTags.length > 0 && (
@@ -89,7 +90,7 @@ function MenuCard({ menu, checked, onCheck, codeMaps }: { menu: MenuResponse; ch
             )}
             <div className="info-tit">{menu.menuName}</div>
           </div>
-          <div className="info-tit-right">
+          <div className="info-tit-right" onClick={(e) => e.stopPropagation()}>
             <div className="check-form-box no-txt">
               <input
                 type="checkbox"
@@ -195,6 +196,7 @@ export default function MenuList({
   onCheckedChange,
   onOperationStatusChange,
 }: MenuListProps) {
+  const router = useRouter()
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set())
   const [isAddStorePopOpen, setIsAddStorePopOpen] = useState(false)
   const { data: marketingCodes = [] } = useCommonCodeHierarchy('MKCF')
@@ -202,15 +204,11 @@ export default function MenuList({
   const { data: menuTypeCodes = [] } = useCommonCodeHierarchy('MNTYP')
   const { data: setStatusCodes = [] } = useCommonCodeHierarchy('STST')
   const { data: menuClassCodes = [] } = useCommonCodeHierarchy('MNCF')
-  const marketingCodeMap = new Map(marketingCodes.map((c) => [c.code, c.name]))
-  const temperatureCodeMap = new Map(temperatureCodes.map((c) => [c.code, c.name]))
-  const menuTypeCodeMap = new Map(menuTypeCodes.map((c) => [c.code, c.name]))
-  const setStatusCodeMap = new Map(setStatusCodes.map((c) => [c.code, c.name]))
-  const menuClassCodeMap = new Map(menuClassCodes.map((c) => [c.code, c.name]))
-  const onCheckedChangeRef = useRef(onCheckedChange)
-  useEffect(() => {
-    onCheckedChangeRef.current = onCheckedChange
-  })
+  const marketingCodeMap = useMemo(() => new Map(marketingCodes.map((c) => [c.code, c.name])), [marketingCodes])
+  const temperatureCodeMap = useMemo(() => new Map(temperatureCodes.map((c) => [c.code, c.name])), [temperatureCodes])
+  const menuTypeCodeMap = useMemo(() => new Map(menuTypeCodes.map((c) => [c.code, c.name])), [menuTypeCodes])
+  const setStatusCodeMap = useMemo(() => new Map(setStatusCodes.map((c) => [c.code, c.name])), [setStatusCodes])
+  const menuClassCodeMap = useMemo(() => new Map(menuClassCodes.map((c) => [c.code, c.name])), [menuClassCodes])
 
   // 페이지 변경 시 체크 초기화 (렌더 중 상태 리셋 패턴)
   const resetKey = `${page}-${pageSize}`
@@ -222,27 +220,26 @@ export default function MenuList({
 
   const hasChecked = checkedIds.size > 0
 
-  // 체크 상태 변경을 부모에 알림
-  useEffect(() => {
-    onCheckedChangeRef.current(checkedIds.size > 0)
-  }, [checkedIds])
-
   const handleOperationStatus = async (operationStatus: string) => {
     const menuIds = Array.from(checkedIds)
     await onOperationStatusChange(menuIds, operationStatus)
     setCheckedIds(new Set())
+    onCheckedChange(false)
+  }
+
+  const handleCardClick = (menuId: number) => {
+    router.push(`/master/menu/${menuId}`)
   }
 
   const handleCheck = (id: number, checked: boolean) => {
-    setCheckedIds(prev => {
-      const next = new Set(prev)
-      if (checked) {
-        next.add(id)
-      } else {
-        next.delete(id)
-      }
-      return next
-    })
+    const next = new Set(checkedIds)
+    if (checked) {
+      next.add(id)
+    } else {
+      next.delete(id)
+    }
+    setCheckedIds(next)
+    onCheckedChange(next.size > 0)
   }
 
   return (
@@ -254,7 +251,7 @@ export default function MenuList({
           <button type="button" className="btn-form basic" disabled={!hasChecked || !bpId} onClick={() => setIsAddStorePopOpen(true)}>점포메뉴 추가</button>
         </div>
         <div className="data-header-right">
-          <button type="button" className="btn-form basic">등록</button>
+          <button type="button" className="btn-form basic" onClick={() => router.push('/master/menu/create')}>등록</button>
           <div className="data-count-select">
             <select
               className="select-form"
@@ -287,6 +284,7 @@ export default function MenuList({
                   menu={menu}
                   checked={checkedIds.has(menu.id)}
                   onCheck={handleCheck}
+                  onCardClick={handleCardClick}
                   codeMaps={{ marketingCodeMap, temperatureCodeMap, menuTypeCodeMap, setStatusCodeMap, menuClassCodeMap }}
                 />
               ))}
@@ -299,7 +297,7 @@ export default function MenuList({
         <AddStoreMenuPop
           isOpen={isAddStorePopOpen}
           onClose={() => setIsAddStorePopOpen(false)}
-          onSyncSuccess={() => setCheckedIds(new Set())}
+          onSyncSuccess={() => { setCheckedIds(new Set()); onCheckedChange(false) }}
           bpId={bpId}
           checkedMenuIds={Array.from(checkedIds)}
         />

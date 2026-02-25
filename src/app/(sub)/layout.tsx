@@ -1,7 +1,7 @@
 'use client'
 
-import { ReactNode, useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { ReactNode, useState, useEffect, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import Lnb from '@/components/ui/common/Lnb'
 import FullDownMenu from '@/components/ui/common/FullDownMenu'
@@ -17,8 +17,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
+    const pathname = usePathname()
     const accessToken = useAuthStore((state) => state.accessToken)
     const [menuType, setMenuType] = useState<'header' | 'support'>('header')
+
+    const redirectToLogin = useCallback(() => {
+        const returnUrl = pathname ? `?returnUrl=${encodeURIComponent(pathname)}` : ''
+        router.replace(`/login${returnUrl}`)
+    }, [pathname, router])
 
     const handleToggleMenuType = () => {
         setMenuType((prev) => (prev === 'header' ? 'support' : 'header'))
@@ -43,23 +49,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
             }
             // 토큰이 없으면 로그인 페이지로
             const timer = setTimeout(() => {
-                router.replace('/login')
+                redirectToLogin()
             }, 0)
             return () => clearTimeout(timer)
         }
 
         return checkAuth()
-    }, [router])
+    }, [redirectToLogin])
 
     // accessToken 변경 감지 (로그아웃 시)
     useEffect(() => {
         if (!isLoading && !accessToken) {
             const timer = setTimeout(() => {
-                router.replace('/login')
+                redirectToLogin()
             }, 0)
             return () => clearTimeout(timer)
         }
-    }, [accessToken, isLoading, router])
+    }, [accessToken, isLoading, redirectToLogin])
 
     if (isLoading) {
         return (

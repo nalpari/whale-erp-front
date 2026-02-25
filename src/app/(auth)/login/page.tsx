@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useSyncExternalStore } from "react";
+import React, { Suspense, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   loginRequestSchema,
@@ -23,7 +23,18 @@ function setAuthCookie() {
 const emptySubscribe = () => () => {};
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
+  const redirectTarget = returnUrl && returnUrl.startsWith("/") ? returnUrl : "/logined-main";
   const setTokens = useAuthStore((state) => state.setTokens);
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
@@ -107,7 +118,7 @@ export default function LoginPage() {
         }
 
         setAuthCookie()
-        router.push("/logined-main");
+        router.push(redirectTarget);
       } else if (companies && companies.length > 0) {
         setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null }) => ({
           id: String(c.authorityId),
@@ -163,7 +174,7 @@ export default function LoginPage() {
       setPendingTokens(null);
       setSelectedAuthorityId(null);
 
-      router.push("/logined-main");
+      router.push(redirectTarget);
     } catch {
       setSelectedAuthorityId(null);
       alert("권한 정보를 가져오는데 실패했습니다.");
