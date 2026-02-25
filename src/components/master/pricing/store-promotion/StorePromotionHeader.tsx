@@ -135,8 +135,8 @@ export default function StorePromotionHeader() {
                         <th>메뉴 구성 및 프로모션가</th>
                         <td>
                           {detail.promotionMenus?.length > 0 ? (
-                            detail.promotionMenus.map((menu, idx) => (
-                              <ul key={idx} className="detail-data-list">
+                            detail.promotionMenus.map((menu) => (
+                              <ul key={menu.menuId} className="detail-data-list">
                                 <li className="detail-data-item">
                                   <span className="detail-data-text">{menu.menuName}</span>
                                 </li>

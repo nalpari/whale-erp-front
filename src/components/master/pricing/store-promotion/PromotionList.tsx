@@ -67,10 +67,10 @@ export default function PromotionList({
       headerName: '프로모션 기간',
       minWidth: 250,
       valueGetter: (params) => {
-        const start = formatDateYmd(params.data?.startDate)
-        const end = formatDateYmd(params.data?.endDate)
-        if (!start && !end) return '-'
-        return `${start ?? ''} ~ ${end ?? ''}`
+        const rawStart = params.data?.startDate
+        const rawEnd = params.data?.endDate
+        if (!rawStart && !rawEnd) return '-'
+        return `${formatDateYmd(rawStart, '')} ~ ${formatDateYmd(rawEnd, '')}`
       },
     },
     {

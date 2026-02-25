@@ -32,8 +32,8 @@ export default function StorePromotionManage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // 본사/가맹점 변경 시 점포 옵션 캐시 워밍
-  const { data: storeOptions } = useStoreOptions(filters.officeId, filters.franchiseId)
+  // 적용된 필터 기준으로 점포 옵션 조회
+  const { data: storeOptions } = useStoreOptions(appliedFilters.officeId, appliedFilters.franchiseId)
 
   const queryParams: StorePromotionListParams = {
     headOfficeId: appliedFilters.officeId ?? undefined,

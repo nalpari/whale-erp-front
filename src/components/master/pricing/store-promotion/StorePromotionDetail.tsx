@@ -135,6 +135,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   const [showMenuError, setShowMenuError] = useState(false)
   const [showPromotionPriceError, setShowPromotionPriceError] = useState(false)
   const [overlappingMenuIds, setOverlappingMenuIds] = useState<Set<number>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleMenuPropertyChange = (value: MenuProperty) => {
     setMenuProperty(value)
@@ -195,7 +196,10 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   }
 
   const handleRemoveMenu = (idx: number) => {
-    setMenuRows((prev) => prev.filter((_, i) => i !== idx))
+    setMenuRows((prev) => {
+      if (prev.length <= 1) return [createEmptyMenuRow()]
+      return prev.filter((_, i) => i !== idx)
+    })
   }
 
   // BP 선택 인라인 로직 (HeadOfficeFranchiseStoreSelect 동일 기능)
@@ -305,6 +309,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   }
 
   const handleSave = async () => {
+    if (isSaving) return
     setOverlappingMenuIds(new Set())
     setShowPromotionPriceError(false)
     if (!validate()) return
@@ -330,6 +335,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       promotionMenus,
     } as const
 
+    setIsSaving(true)
     try {
       if (isEditMode) {
         await updatePromotion({
@@ -354,6 +360,8 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
           ? err.response.data.message
           : '저장에 실패했습니다. 잠시 후 다시 시도해주세요.'
       await alert(message)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -369,7 +377,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
           >
             목록
           </button>
-          <button className="btn-form basic" type="button" onClick={handleSave}>
+          <button className="btn-form basic" type="button" onClick={handleSave} disabled={isSaving}>
             저장
           </button>
         </div>
@@ -548,7 +556,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
           {/* 프로모션 메뉴 구성 */}
           <div className="content-wrap">
             <div className="content-header">프로모션 메뉴 구성</div>
-            {showMenuError && menuRows.length === 0 && (
+            {showMenuError && menuRows.every((row) => row.menuId === 0) && (
               <div className="warning-txt mb5">* 메뉴를 1개 이상 추가해주세요.</div>
             )}
             <div className="promotion-header">
