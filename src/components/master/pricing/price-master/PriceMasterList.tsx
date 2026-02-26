@@ -238,7 +238,7 @@ const PriceMasterList = forwardRef<PriceMasterListHandle, PriceMasterListProps>(
               columnDefs={columnDefs}
               defaultColDef={DEFAULT_COL_DEF}
               domLayout="autoHeight"
-              rowSelection="multiple"
+              rowSelection={{ mode: 'multiRow' }}
               suppressRowClickSelection={true}
               onSelectionChanged={handleSelectionChanged}
             />
