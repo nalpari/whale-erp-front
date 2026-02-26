@@ -38,8 +38,8 @@ const getFilteredHours = (date: Date | null): string[] => {
   const now = new Date()
   const currentHour = now.getHours()
   const currentMinute = now.getMinutes()
-  // 현재 분이 50 초과면 이번 시간대에 선택 가능한 분이 없으므로 다음 시간부터
-  const minHour = currentMinute > 50 ? currentHour + 1 : currentHour
+  // 현재 분이 50 이상이면 이번 시간대에 선택 가능한 분이 없으므로 다음 시간부터
+  const minHour = currentMinute >= 50 ? currentHour + 1 : currentHour
   return ALL_HOURS.filter((h) => parseInt(h, 10) >= minHour)
 }
 
@@ -49,10 +49,11 @@ const getFilteredMinutes = (date: Date | null, hour: string): string[] => {
   const selectedHour = parseInt(hour, 10)
   if (selectedHour > now.getHours()) return ALL_MINUTES
   if (selectedHour < now.getHours()) return []
-  // selectedHour === currentHour: getFilteredHours가 minute>50일 때 이 시간을 제외하므로
-  // 정상적으로 이 분기에 도달하면 선택 가능한 분이 존재함
+  // selectedHour === currentHour
   const currentMinute = now.getMinutes()
-  return ALL_MINUTES.filter((m) => parseInt(m, 10) >= currentMinute)
+  // 현재 분이 50 이상이면 이 시간대에 선택 가능한 분이 없음
+  if (currentMinute >= 50) return []
+  return ALL_MINUTES.filter((m) => parseInt(m, 10) > currentMinute)
 }
 
 interface PriceMasterSearchProps {
