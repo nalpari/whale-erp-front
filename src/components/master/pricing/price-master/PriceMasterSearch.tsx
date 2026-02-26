@@ -277,7 +277,7 @@ const PriceMasterSearch = ({
               {appliedTags.length > 0 && <span className="mr-2"> / </span>}
               검색결과 <span>{resultCount.toLocaleString()}건</span>
             </div>
-            <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+            <button type="button" className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)} aria-label="검색 영역 열기/닫기"></button>
           </>
         )}
       </div>
