@@ -116,6 +116,7 @@ const PriceMasterManage = () => {
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
     setAppliedFilters(DEFAULT_FILTERS)
+    setPage(0)
   }
 
   const handleRemoveFilter = (key: string) => {
