@@ -54,6 +54,11 @@ export const HeaderMenu: HeaderMenuItem[] = [
             link: '/master/pricing/price-master',
           },
           {
+            id: 53,
+            name: '마스터용 가격 이력',
+            link: '/master/pricing/price-history',
+          },
+          {
             id: 38,
             name: '점포용 프로모션 가격 관리',
             link: '/master/pricing/store-promotion',
