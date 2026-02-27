@@ -86,7 +86,7 @@ export default function StoreOperation() {
               </div>
               <div className="operation-tit">무료로 시작하기</div>
               <div className="operation-desc">WHALE ERP를 지금 시작해 보세요.</div>
-              <Link href="/login" className="operation-btn" aria-label="무료로 시작하기" />
+              <Link href="/login?returnUrl=/customer/rate-plan" className="operation-btn" aria-label="무료로 시작하기" />
             </div>
           </div>
         </div>

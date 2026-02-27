@@ -115,7 +115,7 @@ export default function PricingInfo() {
                       {plan.isCurrentPlan ? (
                         <div className="service-btn block use-plan">이용중</div>
                       ) : (
-                        <Link href="/login" className="service-btn block">
+                        <Link href="/login?returnUrl=/customer/rate-plan" className="service-btn block">
                           구독 하기 <i className="icon-subscribe" />
                         </Link>
                       )}
