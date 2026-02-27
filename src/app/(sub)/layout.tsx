@@ -1,7 +1,7 @@
 'use client'
 
-import { ReactNode, useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import Lnb from '@/components/ui/common/Lnb'
 import FullDownMenu from '@/components/ui/common/FullDownMenu'
@@ -17,11 +17,29 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const router = useRouter()
+    const pathname = usePathname()
     const accessToken = useAuthStore((state) => state.accessToken)
-    const [menuType, setMenuType] = useState<'header' | 'support'>('header')
+    const menuType = pathname?.startsWith('/customer/') ? 'support' : 'header'
+    const lastHeaderPathRef = useRef('/logined-main')
+    const lastSupportPathRef = useRef('/customer/rate-plan')
+
+    // pathname 변경 시 마지막 경로 기억 (ref는 effect 내에서만 접근 — render 중 접근 금지)
+    useEffect(() => {
+        if (pathname?.startsWith('/customer/')) {
+            lastSupportPathRef.current = pathname
+        } else if (pathname) {
+            lastHeaderPathRef.current = pathname
+        }
+    }, [pathname])
+
+    const redirectToLogin = useCallback(() => {
+        const returnUrl = pathname ? `?returnUrl=${encodeURIComponent(pathname)}` : ''
+        router.replace(`/login${returnUrl}`)
+    }, [pathname, router])
 
     const handleToggleMenuType = () => {
-        setMenuType((prev) => (prev === 'header' ? 'support' : 'header'))
+        const nextPath = menuType === 'header' ? lastSupportPathRef.current : lastHeaderPathRef.current
+        router.push(nextPath)
     }
 
     useEffect(() => {
@@ -43,23 +61,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
             }
             // 토큰이 없으면 로그인 페이지로
             const timer = setTimeout(() => {
-                router.replace('/login')
+                redirectToLogin()
             }, 0)
             return () => clearTimeout(timer)
         }
 
         return checkAuth()
-    }, [router])
+    }, [redirectToLogin])
 
     // accessToken 변경 감지 (로그아웃 시)
     useEffect(() => {
         if (!isLoading && !accessToken) {
             const timer = setTimeout(() => {
-                router.replace('/login')
+                redirectToLogin()
             }, 0)
             return () => clearTimeout(timer)
         }
-    }, [accessToken, isLoading, router])
+    }, [accessToken, isLoading, redirectToLogin])
 
     if (isLoading) {
         return (
@@ -72,7 +90,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <AlertProvider>
             <div className={`wrap ${isOpen ? 'sm' : ''}`}>
-                <Lnb isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
+                <Lnb key={`${menuType}-${pathname}`} isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
                 <div className="container">
                     <div className="frame">
                         <div className="header-wrap">

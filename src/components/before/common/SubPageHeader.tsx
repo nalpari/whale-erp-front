@@ -35,7 +35,7 @@ export default function SubPageHeader({
       <div className="sub-header-desc">{description}</div>
       {showButtons && (
         <div className="sub-header-btn-wrap">
-          <Link href="/login" className="sub-header-btn free">
+          <Link href="/login?returnUrl=/customer/rate-plan" className="sub-header-btn free">
             무료로 시작하기 <i className="free-btn-arr" />
           </Link>
           <Link href="/introduction" className="sub-header-btn inquiry">

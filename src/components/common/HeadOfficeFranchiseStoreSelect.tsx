@@ -134,6 +134,7 @@ type OfficeFranchiseStoreField = 'office' | 'franchise' | 'store'
 type HeadOfficeFranchiseStoreSelectProps = {
     isHeadOfficeRequired?: boolean
     showHeadOfficeError?: boolean
+    headOfficeErrorMessage?: string
     isFranchiseRequired?: boolean
     isStoreRequired?: boolean
     showStoreError?: boolean
@@ -168,6 +169,7 @@ const buildFranchiseOptions = (bpTree: BpHeadOfficeNode[], officeId: number | nu
 export default function HeadOfficeFranchiseStoreSelect({
     isHeadOfficeRequired = true,
     showHeadOfficeError = false,
+    headOfficeErrorMessage = '필수 입력 항목입니다.',
     isFranchiseRequired = false,
     isStoreRequired = false,
     showStoreError = false,
@@ -284,7 +286,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 }}
                             />
                             {isHeadOfficeRequired && showHeadOfficeError && !officeId && (
-                                <span className="warning-txt">※ 필수 입력 항목입니다.</span>
+                                <span className="warning-txt">※ {headOfficeErrorMessage}</span>
                             )}
                         </div>
                     </td>

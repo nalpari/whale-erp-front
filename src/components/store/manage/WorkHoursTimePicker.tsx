@@ -113,7 +113,6 @@ function TimeSwiperColumn({
         <div className="work-hours-inner">
           <div className="time-swiper hours">
             <Swiper
-              key={`hour-${hour}`}
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"
@@ -136,7 +135,6 @@ function TimeSwiperColumn({
           <div className="time-colon">:</div>
           <div className="time-swiper minutes">
             <Swiper
-              key={`min-${minute}`}
               spaceBetween={10}
               slidesPerView={3}
               direction="vertical"

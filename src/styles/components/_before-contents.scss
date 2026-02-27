@@ -239,10 +239,14 @@
   background: linear-gradient(270deg, #2563eb 0%, #018fdc 100%);
   box-shadow: 0 7px 18px 0 rgba(34, 103, 234, 0.2);
   min-width: 103px;
-  padding: 0 24px;
+  padding: 0 36px;
   height: 60px;
   @include fontDefinition($font-ds-18, $font-w-700, 60px);
   color: #fff;
+  &.gray {
+    background: linear-gradient(270deg, #767676 0%, #999 100%);
+    box-shadow: 0 7px 18px 0 rgba(122, 122, 122, 0.2);
+  }
 }
 
 /********************** introduction-success **********************/
@@ -474,5 +478,212 @@
   .pricing-info-inner {
     max-width: 1580px;
     margin: 0 auto;
+  }
+}
+
+/********************** 회원가입 컨텐츠 **********************/
+.signup-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.signup-inner {
+  padding-top: 48px;
+  border-top: 1px solid #eee;
+}
+
+.signup-step01-tab-wrap {
+  @include flex(8px);
+  align-items: center;
+  .signup-step01-tab-btn {
+    display: block;
+    width: 100%;
+    height: 60px;
+    border-radius: 6px;
+    background-color: #f4f7fe;
+    @include fontDefinition($font-ds-18, $font-w-700, 60px);
+    color: #7299f2;
+    transition: all 0.15s ease-in-out;
+    &:hover,
+    &.act {
+      background-color: #2563eb;
+      color: #fff;
+    }
+  }
+}
+
+.signup-step01-item {
+  margin-top: 48px;
+  .signup-step01-item-tit {
+    @include fontDefinition($font-ds-22, $font-w-700, $line-h-150);
+    color: #222;
+  }
+  .signup-error-message {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-140);
+    color: #ff4d4f;
+    margin-top: 18px;
+  }
+  .signup-step01-item-input {
+    margin-top: 16px;
+    input {
+      height: 60px;
+      @include fontDefinition($font-ds-16, $font-w-400, 60px);
+      color: #222;
+    }
+  }
+  .signup-step01-item-desc {
+    margin-top: 18px;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #222;
+    span {
+      display: block;
+      b {
+        color: #2563eb;
+        font-weight: $font-w-400;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+    }
+  }
+}
+
+.signup-step01-item-file {
+  margin-top: 24px;
+  .filed-file {
+    margin-bottom: 8px;
+    .btn-form {
+      background-color: #f2f2f2;
+      color: #767676;
+      @include fontDefinition($font-ds-15, $font-w-600, 42px);
+    }
+  }
+}
+
+.signup-form-wrap {
+  padding-top: 48px;
+  border-top: 1px solid #eee;
+  select,
+  input {
+    height: 60px;
+  }
+}
+.signup-form-header {
+  margin-bottom: 24px;
+  .signup-form-header-tit {
+    @include fontDefinition($font-ds-22, $font-w-700, $line-h-140);
+    color: #222;
+  }
+  .signup-form-header-desc {
+    margin-top: 10px;
+    span {
+      @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+      color: #222;
+      display: block;
+    }
+    &.err {
+      span {
+        color: #ff4d4f;
+      }
+    }
+  }
+}
+
+.signup-form-content {
+  @include flex(24px);
+  flex-direction: column;
+}
+.signup-form-content-item {
+  .btn-form {
+    background-color: #f2f2f2;
+    color: #767676;
+    @include fontDefinition($font-ds-15, $font-w-600, 42px);
+  }
+  .filed-file {
+    margin-bottom: 8px;
+  }
+  .signup-form-content-item-tit {
+    @include fontDefinition($font-ds-16, $font-w-500, $line-h-150);
+    color: #090914;
+    margin-bottom: 5px;
+  }
+  .signup-txt-message {
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #767676;
+    margin-top: 10px;
+    &.err {
+      color: #ff4d4f;
+    }
+  }
+  .singup-flx-item {
+    @include flex(8px);
+    align-items: center;
+    .btn-form {
+      height: 60px;
+    }
+  }
+}
+
+.signup-bussiness-type-wrap {
+  padding-top: 48px;
+  border-top: 1px solid #eee;
+  .signup-bussiness-type-tit {
+    @include fontDefinition($font-ds-20, $font-w-700, $line-h-140);
+    color: #222;
+    margin-bottom: 16px;
+  }
+}
+.signup-bussiness-type-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.signup-bussiness-type-item {
+  padding: 24px 20px 28px;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  background: #fff;
+  &:last-child {
+    grid-column: span 3;
+  }
+  .signup-bussiness-type-item-tit {
+    @include flex(10px);
+    align-items: center;
+    .signup-bussiness-type-item-name {
+      @include fontDefinition($font-ds-18, $font-w-600, $line-h-150);
+      color: #222;
+    }
+    .radio-form-box {
+      margin-left: auto;
+    }
+  }
+  .signup-bussiness-type-item-desc {
+    margin-top: 16px;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #505050;
+    span {
+      display: block;
+    }
+  }
+  &.act {
+    border: 1px solid #c7def9;
+    background: #f4f7fe;
+    .signup-bussiness-type-item-name {
+      color: #7299f2;
+    }
+    .signup-bussiness-type-item-desc {
+      color: #7299f2;
+    }
+  }
+}
+
+.singup-account-guide {
+  padding: 24px 20px 28px;
+  border-radius: 6px;
+  background: #f8f8f8;
+  margin-top: 24px;
+  span {
+    display: block;
+    @include fontDefinition($font-ds-16, $font-w-400, $line-h-150);
+    color: #505050;
   }
 }

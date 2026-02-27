@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -9,7 +9,8 @@ export default function BeforeHeader() {
   const [isScrollDown, setIsScrollDown] = useState(false)
   const [hasScrolled, setHasScrolled] = useState(false)
 
-  const subMenu = useMemo(() => pathname !== '/main', [pathname])
+  const isMain = pathname === '/' || pathname === '/main'
+  const subMenu = !isMain
 
   useEffect(() => {
     if (subMenu) return
@@ -55,7 +56,7 @@ export default function BeforeHeader() {
         <div className="before-logo">
           <Link href="/main"></Link>
         </div>
-        <ul className="before-menu-list">
+        <ul className={`before-menu-list${pathname === '/introduction' || pathname === '/before-notice' || pathname === '/signup' ? ' act' : ''}`}>
           <li className={`before-menu-item${pathname === '/store-operation' ? ' act' : ''}`}>
             <Link href="/store-operation">매장운영</Link>
           </li>
