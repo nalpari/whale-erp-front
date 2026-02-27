@@ -155,6 +155,7 @@ const PriceMasterSearch = ({
 
   const handleRemoveTag = (key: string) => {
     if (key === 'office') {
+      setShowOfficeError(false)
       onReset()
       setSearchOpen(true)
     } else {
@@ -425,7 +426,7 @@ const PriceMasterSearch = ({
             <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">
               닫기
             </button>
-            <button className="btn-form gray" onClick={onReset} type="button">
+            <button className="btn-form gray" onClick={() => { setShowOfficeError(false); onReset() }} type="button">
               초기화
             </button>
             <button className="btn-form basic" onClick={handleSearch} type="button">
