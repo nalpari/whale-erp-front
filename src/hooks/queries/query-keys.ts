@@ -314,3 +314,11 @@ export const storePromotionKeys = {
   details: () => [...storePromotionKeys.all, 'detail'] as const,
   detail: (id: number) => [...storePromotionKeys.details(), id] as const,
 }
+
+import type { PriceMasterListParams } from '@/types/price-master'
+
+export const priceMasterKeys = {
+  all: ['price-masters'] as const,
+  lists: () => [...priceMasterKeys.all, 'list'] as const,
+  list: (params: PriceMasterListParams) => [...priceMasterKeys.lists(), params] as const,
+}
