@@ -322,3 +322,11 @@ export const priceMasterKeys = {
   lists: () => [...priceMasterKeys.all, 'list'] as const,
   list: (params: PriceMasterListParams) => [...priceMasterKeys.lists(), params] as const,
 }
+
+import type { PriceHistoryListParams } from '@/types/price-history'
+
+export const priceHistoryKeys = {
+  all: ['price-histories'] as const,
+  lists: () => [...priceHistoryKeys.all, 'list'] as const,
+  list: (params: PriceHistoryListParams) => [...priceHistoryKeys.lists(), params] as const,
+}
