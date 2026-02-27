@@ -188,15 +188,17 @@ const PriceMasterSearch = ({
       const nowHour = new Date().getHours()
       const nowMinute = new Date().getMinutes()
       const selectedHour = parseInt(scheduleHour, 10)
-      if (selectedHour < nowHour) {
-        onScheduleHourChange(String(nowHour).padStart(2, '0'))
-        const nextMinutes = getFilteredMinutes(date, String(nowHour).padStart(2, '0'))
+      const effectiveMinHour = nowMinute >= 50 ? nowHour + 1 : nowHour
+      if (selectedHour < effectiveMinHour) {
+        const correctedHour = String(effectiveMinHour).padStart(2, '0')
+        onScheduleHourChange(correctedHour)
+        const nextMinutes = getFilteredMinutes(date, correctedHour)
         if (nextMinutes.length > 0 && !nextMinutes.includes(scheduleMinute)) {
           onScheduleMinuteChange(nextMinutes[0])
         }
-      } else if (selectedHour === nowHour && parseInt(scheduleMinute, 10) < nowMinute) {
+      } else if (selectedHour === nowHour && nowMinute < 50) {
         const nextMinutes = getFilteredMinutes(date, scheduleHour)
-        if (nextMinutes.length > 0) {
+        if (nextMinutes.length > 0 && !nextMinutes.includes(scheduleMinute)) {
           onScheduleMinuteChange(nextMinutes[0])
         }
       }

@@ -11,7 +11,7 @@ import type { PriceMasterListParams, PriceScheduleSaveRequest } from '@/types/pr
 import type { RadioOption } from '@/components/common/ui'
 import type { SelectOption } from '@/components/ui/common/SearchSelect'
 
-const BREADCRUMBS = ['Home', '마스터', '가격 관리', '마스터용 가격 관리']
+const BREADCRUMBS = ['Home', '가격 Master', '마스터용 가격 관리']
 
 const DEFAULT_FILTERS: PriceMasterSearchFilters = {
   officeId: null,
@@ -61,7 +61,7 @@ const PriceMasterManage = () => {
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const officeNameMap = useMemo(() =>
     new Map(bpTree.map((o) => [o.id, o.name])),
-  [bpTree])
+    [bpTree])
 
   // 공통코드 조회
   const { data: operationStatusCodes = [] } = useCommonCodeHierarchy('STOPR')
@@ -76,16 +76,16 @@ const PriceMasterManage = () => {
   // 메뉴분류 셀렉트 옵션
   const menuClassificationOptions: SelectOption[] = useMemo(() =>
     menuClassCodes.map((c) => ({ value: c.code, label: c.name })),
-  [menuClassCodes])
+    [menuClassCodes])
 
   // 코드 → 이름 변환 Map
   const menuClassCodeMap = useMemo(() =>
     new Map(menuClassCodes.map((c) => [c.code, c.name])),
-  [menuClassCodes])
+    [menuClassCodes])
 
   const operationStatusCodeMap = useMemo(() =>
     new Map(operationStatusCodes.map((c) => [c.code, c.name])),
-  [operationStatusCodes])
+    [operationStatusCodes])
 
   // API 파라미터 조립
   const canFetchList = appliedFilters.officeId != null
