@@ -684,7 +684,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                           </div>
                           <div className="auto-right">
                             <div className="more-btn">
-                              <button type="button" className="icon-more" id={`more-btn-anchor-menu-${idx}`} aria-label={`메뉴 #${idx + 1} 옵션`} />
+                              <button type="button" className="icon-more border-0 bg-transparent p-0 cursor-pointer" id={`more-btn-anchor-menu-${idx}`} aria-label={`메뉴 #${idx + 1} 옵션`} />
                               <Tooltip
                                 className="option-list"
                                 anchorSelect={`#more-btn-anchor-menu-${idx}`}
