@@ -23,7 +23,8 @@ export default function StorePromotionHeader() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const idParam = searchParams.get('id')
-  const promotionId = idParam && /^\d+$/.test(idParam) ? Number(idParam) : null
+  const parsedId = idParam && /^\d+$/.test(idParam) ? Number(idParam) : null
+  const promotionId = parsedId && parsedId > 0 ? parsedId : null
 
   const { data: detail, isPending: loading, error } = useStorePromotionDetail(promotionId)
   const queryClient = useQueryClient()
@@ -70,8 +71,14 @@ export default function StorePromotionHeader() {
                 <button className="slidebox-btn" onClick={() => router.push(`/master/pricing/store-promotion/detail?id=${detail.id}`)}>
                   수정
                 </button>
-                <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
-                  <i className="arr-icon"></i>
+                <button
+                  className="slidebox-btn arr"
+                  type="button"
+                  aria-label={slideboxOpen ? '상세 정보 접기' : '상세 정보 펼치기'}
+                  aria-expanded={slideboxOpen}
+                  onClick={() => setSlideboxOpen((prev) => !prev)}
+                >
+                  <i className="arr-icon" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -119,7 +126,7 @@ export default function StorePromotionHeader() {
                           <ul className="detail-data-list">
                             <li className="detail-data-item">
                               <span className="detail-data-text">
-                                {PROMOTION_STATUS_LABEL[detail.status as PromotionStatus] ?? detail.status}
+                                {detail.status in PROMOTION_STATUS_LABEL ? PROMOTION_STATUS_LABEL[detail.status as PromotionStatus] : detail.status}
                               </span>
                             </li>
                             <li className="detail-data-item">

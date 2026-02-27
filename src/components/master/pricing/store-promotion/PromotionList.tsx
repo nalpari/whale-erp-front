@@ -51,7 +51,10 @@ export default function PromotionList({
     {
       field: 'status',
       headerName: '프로모션 상태',
-      valueFormatter: (params) => PROMOTION_STATUS_LABEL[params.value as PromotionStatus] ?? params.value,
+      valueFormatter: (params) => {
+        const status: string = params.value
+        return (status in PROMOTION_STATUS_LABEL ? PROMOTION_STATUS_LABEL[status as PromotionStatus] : status) ?? '-'
+      },
     },
     { field: 'promotionName', headerName: '프로모션명', flex: 1 },
     {

@@ -108,7 +108,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   )
 
   // 메뉴 목록 (초기값: initialData에서 파생)
-  const [menuRows, setMenuRows] = useState<MenuRow[]>(
+  const [menuRows, setMenuRows] = useState<MenuRow[]>(() =>
     initialData?.promotionMenus && initialData.promotionMenus.length > 0
       ? initialData.promotionMenus.map((m) => ({
           rowId: nextMenuRowId(),
@@ -226,6 +226,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
     {
       bpId: effectiveOfficeId ?? undefined,
       storeId: storeId ?? undefined,
+      menuGroup: storeId != null ? 'MNGRP_002' : 'MNGRP_001',
       operationStatus: 'STOPR_001',
       page: 0,
       size: 9999, // 전체 메뉴 조회 (페이지네이션 없이)
@@ -238,6 +239,9 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
     salePrice: m.salePrice,
     discountPrice: m.discountPrice,
   }))
+
+  // O(1) 룩업용 Map (메뉴 ID → 옵션)
+  const menuOptionMap = new Map(menuSelectOptions.map((opt) => [opt.value, opt]))
 
   // 이미 선택된 메뉴 ID 집합 (중복 방지용)
   const selectedMenuIds = new Set(menuRows.filter((r) => r.menuId !== 0).map((r) => r.menuId))
@@ -273,6 +277,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
           : row
       )
     )
+    setShowMenuError(false)
   }
 
   const validate = (): boolean => {
@@ -518,6 +523,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                           <button
                             type="button"
                             className="input-icon-btn del"
+                            aria-label="프로모션명 초기화"
                             onClick={() => setPromotionName('')}
                           />
                         )}
@@ -626,7 +632,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                               <SearchSelect
                                 value={
                                   row.menuId
-                                    ? menuSelectOptions.find((opt) => opt.value === String(row.menuId)) || { value: String(row.menuId), label: row.menuName }
+                                    ? menuOptionMap.get(String(row.menuId)) ?? { value: String(row.menuId), label: row.menuName }
                                     : null
                                 }
                                 options={menuSelectOptions}
@@ -678,7 +684,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                           </div>
                           <div className="auto-right">
                             <div className="more-btn">
-                              <span className="icon-more" id={`more-btn-anchor-menu-${idx}`} />
+                              <button type="button" className="icon-more" id={`more-btn-anchor-menu-${idx}`} aria-label={`메뉴 #${idx + 1} 옵션`} />
                               <Tooltip
                                 className="option-list"
                                 anchorSelect={`#more-btn-anchor-menu-${idx}`}
