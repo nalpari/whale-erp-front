@@ -121,36 +121,36 @@ const PriceMasterSearch = ({
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; label: string }[] = []
+  const appliedTags: { key: string; value: string; category: string }[] = []
   if (appliedFilters.officeId != null) {
     const name = officeNameMap.get(appliedFilters.officeId)
-    if (name) appliedTags.push({ key: 'office', label: `본사: ${name}` })
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
   }
   if (appliedFilters.operationStatus) {
     const name = operationStatusCodeMap.get(appliedFilters.operationStatus)
-    if (name) appliedTags.push({ key: 'operationStatus', label: `운영여부: ${name}` })
+    if (name) appliedTags.push({ key: 'operationStatus', value: name, category: '운영여부' })
   }
   if (appliedFilters.menuClassificationCode) {
     const name = menuClassCodeMap.get(appliedFilters.menuClassificationCode)
-    if (name) appliedTags.push({ key: 'menuClassificationCode', label: `메뉴분류: ${name}` })
+    if (name) appliedTags.push({ key: 'menuClassificationCode', value: name, category: '메뉴분류' })
   }
   if (appliedFilters.menuName) {
-    appliedTags.push({ key: 'menuName', label: `메뉴명: ${appliedFilters.menuName}` })
+    appliedTags.push({ key: 'menuName', value: appliedFilters.menuName, category: '메뉴명' })
   }
   if (appliedFilters.priceAppliedAtFrom || appliedFilters.priceAppliedAtTo) {
     const from = formatDateLabel(appliedFilters.priceAppliedAtFrom)
     const to = formatDateLabel(appliedFilters.priceAppliedAtTo)
-    appliedTags.push({ key: 'priceAppliedAt', label: `반영일: ${from} ~ ${to}` })
+    appliedTags.push({ key: 'priceAppliedAt', value: `${from} ~ ${to}`, category: '반영일' })
   }
   if (appliedFilters.salePriceFrom || appliedFilters.salePriceTo) {
     const from = formatCurrencyLabel(appliedFilters.salePriceFrom)
     const to = formatCurrencyLabel(appliedFilters.salePriceTo)
-    appliedTags.push({ key: 'salePrice', label: `판매가: ${from} ~ ${to}` })
+    appliedTags.push({ key: 'salePrice', value: `${from} ~ ${to}`, category: '판매가' })
   }
   if (appliedFilters.discountPriceFrom || appliedFilters.discountPriceTo) {
     const from = formatCurrencyLabel(appliedFilters.discountPriceFrom)
     const to = formatCurrencyLabel(appliedFilters.discountPriceTo)
-    appliedTags.push({ key: 'discountPrice', label: `할인가: ${from} ~ ${to}` })
+    appliedTags.push({ key: 'discountPrice', value: `${from} ~ ${to}`, category: '할인가' })
   }
 
   const handleRemoveTag = (key: string) => {
@@ -264,22 +264,21 @@ const PriceMasterSearch = ({
           </div>
         ) : (
           <>
-            <div className="search-result">
+            <ul className="search-result-list">
               {appliedTags.map((tag) => (
-                <span key={tag.key} className="mr-2">
-                  {tag.label}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag.key)}
-                    className="ml-1 text-red-600 bg-transparent border-none cursor-pointer font-bold text-xs p-0"
-                  >
-                    &nbsp;✕
-                  </button>
-                </span>
+                <li key={tag.key} className="search-result-item">
+                  <div className="search-result-item-txt">
+                    <span>{tag.value}</span> ({tag.category})
+                  </div>
+                  <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+                </li>
               ))}
-              {appliedTags.length > 0 && <span className="mr-2"> / </span>}
-              검색결과 <span>{resultCount.toLocaleString()}건</span>
-            </div>
+              <li className="search-result-item">
+                <div className="search-result-item-txt">
+                  <span>{resultCount.toLocaleString()}건</span>
+                </div>
+              </li>
+            </ul>
             <button type="button" className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)} aria-label="검색 영역 열기/닫기"></button>
           </>
         )}
