@@ -33,7 +33,7 @@ export default function StorePromotionManage() {
   const [pageSize, setPageSize] = useState(50)
 
   // 적용된 필터 기준으로 점포 옵션 조회
-  const { data: storeOptions } = useStoreOptions(appliedFilters.officeId, appliedFilters.franchiseId)
+  const { data: storeOptions } = useStoreOptions(appliedFilters.officeId, appliedFilters.franchiseId, appliedFilters.officeId != null)
 
   const queryParams: StorePromotionListParams = {
     headOfficeId: appliedFilters.officeId ?? undefined,
@@ -63,6 +63,8 @@ export default function StorePromotionManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
+    setAppliedFilters(DEFAULT_FILTERS)
+    setPage(0)
   }
 
   const handleRegister = () => {

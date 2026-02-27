@@ -47,7 +47,7 @@ export default function PromotionSearch({
   }
 
   const handleSearch = () => {
-    const hasOfficeError = !filters.officeId
+    const hasOfficeError = filters.officeId == null
     setShowOfficeError(hasOfficeError)
     if (hasOfficeError) return
     onSearch()
@@ -70,10 +70,16 @@ export default function PromotionSearch({
           검색결과<span>{resultCount.toLocaleString()}건</span>
         </div>
         <ul className="search-result-list" />
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          aria-expanded={searchOpen}
+          aria-controls="promotion-search-panel"
+          onClick={() => setSearchOpen(!searchOpen)}
+        />
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
-        <div className="search-filed">
+        <div className="search-filed" id="promotion-search-panel">
           <table className="default-table">
             <colgroup>
               <col width="120px" />
