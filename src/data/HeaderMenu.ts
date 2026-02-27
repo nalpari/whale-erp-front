@@ -51,7 +51,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 37,
             name: '마스터용 가격 관리',
-            link: '#',
+            link: '/master/pricing/price-master',
           },
           {
             id: 38,
