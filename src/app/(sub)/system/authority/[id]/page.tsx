@@ -3,59 +3,24 @@
 import { useParams, useRouter } from 'next/navigation'
 
 import { getErrorMessage } from '@/lib/api'
+import type { AuthorityResponse } from '@/lib/schemas/authority'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 import { useAuthorityDetail, useDeleteAuthority } from '@/hooks/queries/use-authority-queries'
 import { useAuthorityForm } from '@/hooks/use-authority-form'
 
+/**
+ * 권한 수정 페이지 (Wrapper)
+ *
+ * authority 로딩 완료 후 Content를 렌더하여 useState 초기값에서 직접 사용
+ */
 export default function AuthorityEditPage() {
-  const router = useRouter()
   const params = useParams()
   const authorityId = Number(params.id)
   const isValidId = !Number.isNaN(authorityId) && authorityId > 0
 
-  // 권한 상세 조회
   const { data: authority, isLoading } = useAuthorityDetail(isValidId ? authorityId : 0)
-
-  // 권한 삭제 mutation
-  const { mutateAsync: deleteAuthority } = useDeleteAuthority()
-
-  // 폼 로직
-  const {
-    formData,
-    errors,
-    programTree,
-    handleFormChange,
-    handleProgramTreeChange,
-    handleSave,
-    handleList,
-  } = useAuthorityForm({
-    mode: 'edit',
-    authorityId,
-    initialAuthority: authority,
-  })
-
-  // 권한 관리자
-  const handleAuthorityManager = () => {
-    // TODO: 관리자 관리 페이지 구현 후 해당 권한을 가진 관리자 검색 결과 표시
-    console.log('권한 관리자 페이지로 이동 - 권한 ID:', authorityId)
-    // 구현 예정: router.push(`/system/admin?authorityId=${authorityId}`)
-  }
-
-  // 삭제
-  const handleDelete = async () => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
-
-    try {
-      await deleteAuthority(authorityId)
-      alert('권한이 삭제되었습니다.')
-      router.push('/system/authority')
-    } catch (error) {
-      alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
-      console.error('권한 삭제 실패:', error)
-    }
-  }
 
   if (!isValidId) {
     return (
@@ -77,6 +42,59 @@ export default function AuthorityEditPage() {
         <div className="contents-wrap">권한을 찾을 수 없습니다.</div>
       </div>
     )
+  }
+
+  return <AuthorityEditContent authorityId={authorityId} authority={authority} />
+}
+
+/**
+ * 권한 수정 콘텐츠 (Content)
+ *
+ * 확정된 authority를 받아 useAuthorityForm에서 바로 사용
+ */
+function AuthorityEditContent({
+  authorityId,
+  authority,
+}: {
+  authorityId: number
+  authority: AuthorityResponse
+}) {
+  const router = useRouter()
+
+  const { mutateAsync: deleteAuthority } = useDeleteAuthority()
+
+  const {
+    formData,
+    errors,
+    programTree,
+    handleFormChange,
+    handleProgramTreeChange,
+    handleSave,
+    handleList,
+  } = useAuthorityForm({
+    mode: 'edit',
+    authorityId,
+    initialAuthority: authority,
+  })
+
+  // 권한 관리자
+  const handleAuthorityManager = () => {
+    // TODO: 관리자 관리 페이지 구현 후 해당 권한을 가진 관리자 검색 결과 표시
+    console.log('권한 관리자 페이지로 이동 - 권한 ID:', authorityId)
+    // 구현 예정: router.push(`/system/admin?authorityId=${authorityId}`)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+
+    try {
+      await deleteAuthority(authorityId)
+      alert('권한이 삭제되었습니다.')
+      router.push('/system/authority')
+    } catch (error) {
+      alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
+      console.error('권한 삭제 실패:', error)
+    }
   }
 
   return (

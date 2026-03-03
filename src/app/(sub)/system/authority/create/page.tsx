@@ -1,16 +1,33 @@
 'use client'
 
+import type { Program } from '@/lib/schemas/program'
+import { useProgramList } from '@/hooks/queries/use-program-queries'
 import { useAuthorityForm } from '@/hooks/use-authority-form'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 
 /**
- * 권한 등록 페이지
+ * 권한 등록 페이지 (Wrapper)
  *
- * 권한 기본 정보 입력 및 프로그램별 권한 설정
+ * programList 로딩 후 Content를 렌더하여 useState 초기값에서 직접 사용
  */
 export default function AuthorityCreatePage() {
+  const { data: programList, isPending } = useProgramList('MNKND_001')
+
+  if (isPending) {
+    return <div></div>
+  }
+
+  return <AuthorityCreateContent programList={programList ?? []} />
+}
+
+/**
+ * 권한 등록 콘텐츠 (Content)
+ *
+ * 확정된 programList를 받아 useAuthorityForm에서 바로 사용
+ */
+function AuthorityCreateContent({ programList }: { programList: Program[] }) {
   const {
     formData,
     errors,
@@ -19,7 +36,7 @@ export default function AuthorityCreatePage() {
     handleProgramTreeChange,
     handleSave,
     handleList,
-  } = useAuthorityForm({ mode: 'create' })
+  } = useAuthorityForm({ mode: 'create', programList })
 
   return (
     <div className="data-wrap">

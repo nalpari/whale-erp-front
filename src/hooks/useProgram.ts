@@ -11,7 +11,7 @@ import {
 /**
  * 재귀로 모든 프로그램 ID 수집 (트리 전체 열기용)
  */
-const collectIds = (items: Program[]): number[] => {
+export const collectIds = (items: Program[]): number[] => {
   const ids: number[] = []
   for (const item of items) {
     if (item.id !== null) ids.push(item.id)

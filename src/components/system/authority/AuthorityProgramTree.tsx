@@ -1,9 +1,30 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
 import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
+
+/**
+ * 모든 프로그램 ID 수집 (재귀)
+ */
+function collectAllProgramIds(nodes: AuthorityDetailNode[]): number[] {
+  const ids: number[] = []
+  for (const node of nodes) {
+    ids.push(node.program_id)
+    if (node.children) {
+      ids.push(...collectAllProgramIds(node.children))
+    }
+  }
+  return ids
+}
+
+interface AuthorityProgramTreeProps {
+  programTree: AuthorityDetailNode[]
+  onChange: (tree: AuthorityDetailNode[]) => void
+  currentOwnerCode?: string
+  authorityId?: number
+}
 
 /**
  * 권한별 프로그램 트리 컴포넌트
@@ -17,20 +38,15 @@ import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/aut
  * @param currentOwnerCode - 현재 권한의 owner_code (권한 복사 필터링용)
  * @param authorityId - 권한 ID (수정 모드에서 낙관적 업데이트용)
  */
-interface AuthorityProgramTreeProps {
-  programTree: AuthorityDetailNode[]
-  onChange: (tree: AuthorityDetailNode[]) => void
-  currentOwnerCode?: string
-  authorityId?: number
-}
-
 export default function AuthorityProgramTree({
   programTree,
   onChange,
   currentOwnerCode: _currentOwnerCode,
   authorityId,
 }: AuthorityProgramTreeProps) {
-  const [openItems, setOpenItems] = useState<Set<number>>(new Set())
+  const [openItems, setOpenItems] = useState<Set<number>>(
+    () => new Set(collectAllProgramIds(programTree))
+  )
   const [activeFilter, setActiveFilter] = useState<AuthorityFilterType>(null)
 
   // 프로그램 권한 수정 mutation (낙관적 업데이트용)
@@ -41,27 +57,6 @@ export default function AuthorityProgramTree({
 
   // Race condition 방지: 최신 요청 ID 추적
   const latestRequestIdRef = useRef<number>(0)
-
-  // 모든 프로그램 ID 수집 (재귀)
-  const collectAllProgramIds = (nodes: AuthorityDetailNode[]): number[] => {
-    const ids: number[] = []
-    for (const node of nodes) {
-      ids.push(node.program_id)
-      if (node.children) {
-        ids.push(...collectAllProgramIds(node.children))
-      }
-    }
-    return ids
-  }
-
-  // 초기 로드 시 모든 토글 열기
-  useEffect(() => {
-    if (programTree.length > 0 && openItems.size === 0) {
-      const allIds = collectAllProgramIds(programTree)
-      setOpenItems(new Set(allIds))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when programTree changes
-  }, [programTree])
 
   // 권한 복사 관련 상태 (TODO: 2차 개발 시 활성화)
   const [copyAuthorityId] = useState<number | null>(null)
