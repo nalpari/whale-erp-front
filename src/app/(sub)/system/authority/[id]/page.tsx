@@ -20,7 +20,7 @@ export default function AuthorityEditPage() {
   const authorityId = Number(params.id)
   const isValidId = !Number.isNaN(authorityId) && authorityId > 0
 
-  const { data: authority, isLoading } = useAuthorityDetail(isValidId ? authorityId : 0)
+  const { data: authority, isLoading, isError } = useAuthorityDetail(isValidId ? authorityId : 0)
 
   if (!isValidId) {
     return (
@@ -33,6 +33,15 @@ export default function AuthorityEditPage() {
 
   if (isLoading) {
     return <div></div>
+  }
+
+  if (isError) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <div className="contents-wrap">권한 정보를 불러오는 데 실패했습니다.</div>
+      </div>
+    )
   }
 
   if (!authority) {

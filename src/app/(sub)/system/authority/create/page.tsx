@@ -13,10 +13,19 @@ import AuthorityProgramTree from '@/components/system/authority/AuthorityProgram
  * programList 로딩 후 Content를 렌더하여 useState 초기값에서 직접 사용
  */
 export default function AuthorityCreatePage() {
-  const { data: programList, isPending } = useProgramList('MNKND_001')
+  const { data: programList, isPending, isError } = useProgramList('MNKND_001')
 
   if (isPending) {
     return <div></div>
+  }
+
+  if (isError) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 등록" list={['홈', '시스템 관리', '권한 관리', '권한 등록']} />
+        <div className="contents-wrap">프로그램 목록을 불러오는 데 실패했습니다.</div>
+      </div>
+    )
   }
 
   return <AuthorityCreateContent programList={programList ?? []} />
