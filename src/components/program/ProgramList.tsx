@@ -257,7 +257,7 @@ export default function ProgramList() {
           </div>
         </div>
       </div>
-      {menuKindCodes.length > 0 && (
+      {(modalMode === 'edit' || modalProgram || menuKindCodes.length > 0) && (
         <ProgramFormModal
           key={isModalOpen ? `${modalMode}-${modalProgram?.id || 'new'}` : 'closed'}
           isOpen={isModalOpen}
