@@ -1,0 +1,140 @@
+'use client'
+
+import { useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Location from '@/components/ui/Location'
+import AdminForm, { getInitialFormData } from '@/components/system/admin/AdminForm'
+import type { AdminFormData } from '@/components/system/admin/AdminForm'
+import {
+  useAdminDetail,
+  useUpdateAdmin,
+  useDeleteAdmin,
+} from '@/hooks/queries/use-admin-queries'
+import { adminUpdateSchema } from '@/lib/schemas/admin'
+import type { AdminDetail } from '@/lib/schemas/admin'
+import { getErrorMessage } from '@/lib/api'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
+
+/**
+ * 관리자 상세/수정 페이지 (Wrapper)
+ */
+export default function AdminEditPage() {
+  const params = useParams()
+  const adminId = Number(params.id)
+  const isValidId = !Number.isNaN(adminId) && adminId > 0
+
+  const { data: admin, isLoading, isError } = useAdminDetail(isValidId ? adminId : 0)
+
+  if (!isValidId) {
+    return (
+      <div className="data-wrap">
+        <Location title="관리자 상세" list={['홈', '시스템 관리', '관리자 관리', '관리자 상세']} />
+        <div className="contents-wrap text-red-500">잘못된 관리자 ID입니다.</div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return <div></div>
+  }
+
+  if (isError) {
+    return (
+      <div className="data-wrap">
+        <Location title="관리자 상세" list={['홈', '시스템 관리', '관리자 관리', '관리자 상세']} />
+        <div className="contents-wrap text-red-500">관리자 정보를 불러오는 데 실패했습니다.</div>
+      </div>
+    )
+  }
+
+  if (!admin) {
+    return (
+      <div className="data-wrap">
+        <Location title="관리자 상세" list={['홈', '시스템 관리', '관리자 관리', '관리자 상세']} />
+        <div className="contents-wrap text-red-500">관리자를 찾을 수 없습니다.</div>
+      </div>
+    )
+  }
+
+  return <AdminEditContent adminId={adminId} admin={admin} />
+}
+
+/**
+ * 관리자 수정 콘텐츠 (Content)
+ */
+function AdminEditContent({
+  adminId,
+  admin,
+}: {
+  adminId: number
+  admin: AdminDetail
+}) {
+  const router = useRouter()
+  const { mutateAsync: updateAdmin } = useUpdateAdmin()
+  const { mutateAsync: deleteAdmin } = useDeleteAdmin()
+  const [formData, setFormData] = useState<AdminFormData>(() => getInitialFormData(admin))
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleChange = (data: Partial<AdminFormData>) => {
+    setFormData((prev) => ({ ...prev, ...data }))
+    const clearedErrors = { ...errors }
+    for (const key of Object.keys(data)) {
+      delete clearedErrors[key]
+    }
+    setErrors(clearedErrors)
+  }
+
+  const handleSave = async () => {
+    const result = adminUpdateSchema.safeParse({
+      ...formData,
+      authorityId: formData.authorityId ?? undefined,
+    })
+
+    if (!result.success) {
+      setErrors(formatZodFieldErrors(result.error))
+      return
+    }
+
+    try {
+      await updateAdmin({ id: adminId, data: result.data })
+      alert('관리자 정보가 수정되었습니다.')
+      router.push('/system/admin')
+    } catch (error) {
+      alert(`관리자 수정 실패: ${getErrorMessage(error)}`)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('삭제하시겠습니까?')) return
+
+    try {
+      await deleteAdmin(adminId)
+      alert('관리자가 삭제되었습니다.')
+      router.push('/system/admin')
+    } catch (error) {
+      alert(`관리자 삭제 실패: ${getErrorMessage(error)}`)
+    }
+  }
+
+  const handleList = () => {
+    router.push('/system/admin')
+  }
+
+  return (
+    <div className="data-wrap">
+      <Location title="관리자 상세" list={['홈', '시스템 관리', '관리자 관리', '관리자 상세']} />
+      <div className="contents-wrap">
+        <AdminForm
+          mode="edit"
+          formData={formData}
+          errors={errors}
+          admin={admin}
+          onChange={handleChange}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onList={handleList}
+        />
+      </div>
+    </div>
+  )
+}
