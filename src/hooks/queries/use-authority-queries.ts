@@ -73,6 +73,8 @@ export function useUpdateAuthority() {
  * 프로그램별 권한 수정
  */
 export function useUpdateProgramAuthority() {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: ({
       id,
@@ -83,7 +85,9 @@ export function useUpdateProgramAuthority() {
       programId: number
       data: AuthorityDetailUpdateRequest
     }) => updateProgramAuthority(id, programId, data),
-    // 캐시 무효화 없음: 트리 갱신은 AuthorityProgramTree.handlePermissionChange에서 서버 응답으로 직접 처리
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+    },
   })
 }
 
