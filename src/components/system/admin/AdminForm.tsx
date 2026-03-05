@@ -119,7 +119,10 @@ export default function AdminForm({
   const handleCheckLoginId = async () => {
     const loginIdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
     if (!formData.loginId || !loginIdRegex.test(formData.loginId)) {
-      alert('ID는 영문과 숫자를 포함하여 8자 이상이어야 합니다.')
+      onChange({ loginId: formData.loginId })
+      setIdCheckMessage('ID는 영문과 숫자를 포함하여 8자 이상이어야 합니다.')
+      setIdCheckPassed(false)
+      onIdCheckStatusChange?.(false)
       return
     }
 

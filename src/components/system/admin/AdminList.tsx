@@ -42,6 +42,54 @@ const DateCellRenderer = (params: ICellRendererParams<AdminRowDataInternal>) => 
   return <span>{formatDateYmd(params.value)}</span>
 }
 
+const columnDefs: ColDef<AdminRowDataInternal>[] = [
+  {
+    headerName: '#',
+    width: 60,
+    valueGetter: (params) => params.data?.rowNumber ?? 0,
+  },
+  {
+    headerName: '근무여부',
+    field: 'userType',
+    width: 100,
+    valueFormatter: (params) => getWorkStatusLabel(params.value),
+  },
+  {
+    headerName: 'ID',
+    field: 'loginId',
+    width: 130,
+  },
+  {
+    headerName: '관리자명',
+    field: 'name',
+    flex: 1,
+  },
+  {
+    headerName: '휴대폰번호',
+    field: 'mobilePhone',
+    width: 150,
+    cellRenderer: PhoneCellRenderer,
+  },
+  {
+    headerName: '이메일 주소',
+    field: 'email',
+    flex: 1.5,
+    valueGetter: (params) => params.data?.email || '-',
+  },
+  {
+    headerName: '권한',
+    field: 'authorityName',
+    flex: 1,
+    valueGetter: (params) => params.data?.authorityName || '-',
+  },
+  {
+    headerName: '등록일',
+    field: 'createdAt',
+    width: 120,
+    cellRenderer: DateCellRenderer,
+  },
+]
+
 interface AdminListProps {
   admins?: AdminListItem[]
   isLoading?: boolean
@@ -73,49 +121,6 @@ export default function AdminList({
   const handleNavigateToDetail = (id: number) => {
     router.push(`/system/admin/${id}`)
   }
-
-  const columnDefs: ColDef<AdminRowDataInternal>[] = [
-    {
-      headerName: '#',
-      width: 60,
-      valueGetter: (params) => params.data?.rowNumber ?? 0,
-    },
-    {
-      headerName: '근무여부',
-      field: 'userType',
-      width: 100,
-      valueFormatter: (params) => getWorkStatusLabel(params.value),
-    },
-    {
-      headerName: '관리자명',
-      field: 'name',
-      flex: 1,
-    },
-    {
-      headerName: '휴대폰번호',
-      field: 'mobilePhone',
-      width: 150,
-      cellRenderer: PhoneCellRenderer,
-    },
-    {
-      headerName: '이메일 주소',
-      field: 'email',
-      flex: 1.5,
-      valueGetter: (params) => params.data?.email || '-',
-    },
-    {
-      headerName: '권한',
-      field: 'authorityName',
-      flex: 1,
-      valueGetter: (params) => params.data?.authorityName || '-',
-    },
-    {
-      headerName: '등록일',
-      field: 'createdAt',
-      width: 120,
-      cellRenderer: DateCellRenderer,
-    },
-  ]
 
   return (
     <div className="data-list-wrap">

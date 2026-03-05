@@ -115,6 +115,7 @@ export type AdminUpdateRequest = z.infer<typeof adminUpdateSchema>
 export const adminListItemSchema = z.object({
   id: z.number(),
   userType: z.string().nullable(),
+  loginId: z.string(),
   name: z.string(),
   mobilePhone: z.string().nullable(),
   email: z.string().nullable(),
