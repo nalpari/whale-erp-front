@@ -89,7 +89,7 @@ export default function CustomerList({
     loginId: item.loginId,
     mobilePhone: item.mobilePhone || '-',
     socialAuthType: item.socialAuthType ? (socialAuthTypeMap[item.socialAuthType] || item.socialAuthType) : '없음',
-    joinDate: item.joinDate || '-',
+    joinDate: item.joinDate ? item.joinDate.replace('T', ' ').substring(0, 16) : '-',
   }))
 
   const handleNavigateToDetail = (id: number) => {
@@ -118,7 +118,7 @@ export default function CustomerList({
     {
       headerName: '회원 ID',
       field: 'loginId',
-      flex: 1,
+      width: 140,
     },
     {
       headerName: '휴대폰 번호',
@@ -133,7 +133,7 @@ export default function CustomerList({
     {
       headerName: '가입일시',
       field: 'joinDate',
-      width: 170,
+      flex: 1,
     },
   ]
 
