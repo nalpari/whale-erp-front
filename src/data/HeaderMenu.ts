@@ -240,7 +240,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 25,
         name: '관리자 관리',
-        link: '#',
+        link: '/system/admin',
       },
       {
         id: 26,

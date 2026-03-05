@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { authorityKeys, type AuthorityListParams } from './query-keys'
+import { adminKeys, authorityKeys, type AuthorityListParams } from './query-keys'
 import {
   fetchAuthorities,
   fetchAuthorityDetail,
@@ -45,8 +45,9 @@ export function useCreateAuthority() {
   return useMutation({
     mutationFn: (data: AuthorityCreateRequest) => createAuthority(data),
     onSuccess: () => {
-      // 목록 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
+      // 관리자 권한 SelectBox 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
     },
   })
 }
@@ -61,10 +62,10 @@ export function useUpdateAuthority() {
     mutationFn: ({ id, data }: { id: number; data: AuthorityUpdateRequest }) =>
       updateAuthority(id, data),
     onSuccess: (_, variables) => {
-      // 목록 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      // 상세 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+      // 관리자 권한 SelectBox 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
     },
   })
 }
@@ -100,10 +101,10 @@ export function useDeleteAuthority() {
   return useMutation({
     mutationFn: (id: number) => deleteAuthority(id),
     onSuccess: () => {
-      // 목록 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      // 모든 상세 쿼리 캐시 무효화
       queryClient.invalidateQueries({ queryKey: authorityKeys.details() })
+      // 관리자 권한 SelectBox 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
     },
   })
 }
