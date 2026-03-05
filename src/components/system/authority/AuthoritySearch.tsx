@@ -126,6 +126,7 @@ export default function AuthoritySearch({
                   storeId={null}
                   onChange={handleBpSelectChange}
                   isDisabled={isBpDisabled}
+                  autoSelect={false}
                 />
               </tr>
               <tr>

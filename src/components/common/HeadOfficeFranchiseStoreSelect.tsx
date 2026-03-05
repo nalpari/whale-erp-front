@@ -144,6 +144,8 @@ type HeadOfficeFranchiseStoreSelectProps = {
     fields?: OfficeFranchiseStoreField[] // 표시할 필드 조합
     onChange: (value: OfficeFranchiseStoreValue) => void // 선택된 값(또는 null)을 받아 상위 상태를 갱신
     isDisabled?: boolean // 전체 비활성화 여부
+    /** 단일 본사일 때 자동 선택/고정 여부 (기본 true). 검색 컨텍스트에서는 false로 설정하여 "전체" 선택 허용 */
+    autoSelect?: boolean
     /** bpTree 로드 후 다중 본사 여부를 알려주는 콜백 */
     onMultiOffice?: (isMulti: boolean) => void
 }
@@ -179,6 +181,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     fields,
     onChange,
     isDisabled = false,
+    autoSelect = true,
     onMultiOffice,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId } = useAuthStore()
@@ -197,7 +200,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
     //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false
     //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true
-    const isOfficeFixed = bpTree.length === 1
+    const isOfficeFixed = autoSelect && bpTree.length === 1
     const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
@@ -210,10 +213,11 @@ export default function HeadOfficeFranchiseStoreSelect({
     }, [bpLoading, bpCount])
 
     // 본사/가맹점 자동 선택 및 고정 로직
+    // - autoSelect=false: 자동 선택 안 함 (검색 컨텍스트에서 "전체" 허용)
     // - 단일 본사(사용자 소속): 항상 고정, 초기화해도 값 유지
     // - 다중 본사: 자동 선택 없음 (사용자가 직접 선택)
     useEffect(() => {
-        if (bpLoading || bpTree.length === 0) return
+        if (!autoSelect || bpLoading || bpTree.length === 0) return
 
         if (bpTree.length === 1) {
             // 단일 본사: 로그인 사용자의 소속 조직 → isHeadOfficeRequired와 무관하게 항상 고정
@@ -233,7 +237,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                 })
             }
         }
-    }, [bpLoading, bpTree, officeId, franchiseId])
+    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
