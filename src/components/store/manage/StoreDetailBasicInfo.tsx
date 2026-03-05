@@ -16,6 +16,7 @@ import {
 } from '@/components/common/ui'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useBusinessLicenseOcr } from '@/hooks/queries/use-ocr-queries'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
 const formatBusinessNumberInput = (value: string) => {
@@ -191,10 +192,38 @@ export const StoreDetailBasicInfo = ({
     return files
   }, [existingStoreImages, formState.storeImages])
 
-  // 사업자등록증 파일 추가 핸들러
+  const { mutate: ocrMutate } = useBusinessLicenseOcr()
+
+  // 사업자등록증 파일 추가 핸들러 (OCR 자동 실행)
   const handleBusinessFileAdd = (files: File[]) => {
     if (files.length > 0) {
       onBusinessFilesSelect(files)
+
+      const file = files[0]
+      const isOcrTarget = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)
+      if (isOcrTarget) {
+        ocrMutate(file, {
+          onSuccess: (response) => {
+            if (response.success && response.data) {
+              console.log('OCR 결과:', response.data)
+              const { representativeName, businessRegistrationNumber, address1 } = response.data
+              if (representativeName) onCeoNameChange(representativeName)
+              if (businessRegistrationNumber) onBusinessNumberChange(businessRegistrationNumber)
+              if (address1) {
+                const commaIndex = address1.indexOf(',')
+                if (commaIndex !== -1) {
+                  onAddressChange({
+                    address: address1.slice(0, commaIndex).trim(),
+                    addressDetail: address1.slice(commaIndex + 1).trim(),
+                  })
+                } else {
+                  onAddressChange({ address: address1, addressDetail: '' })
+                }
+              }
+            }
+          },
+        })
+      }
     }
   }
 
@@ -391,6 +420,7 @@ export const StoreDetailBasicInfo = ({
                     <span className="store-business-guide-text">
                       ※ 사업자등록증 등록 시 대표자, 사업자등록번호, 점포주소가 자동 입력됩니다.
                     </span>
+
                   </div>
                   <FileUpload
                     files={businessFiles}
