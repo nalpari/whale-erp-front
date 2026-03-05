@@ -264,6 +264,8 @@ export default function AdminForm({
                       value={formData.officePhone}
                       onChange={(e) => onChange({ officePhone: e.target.value })}
 
+                      error={!!errors.officePhone}
+                      helpText={errors.officePhone}
                       endAdornment={
                         <>
                           <span style={{ padding: '0 4px', whiteSpace: 'nowrap' }}>내선번호</span>
@@ -360,6 +362,8 @@ export default function AdminForm({
                       value={formData.email}
                       onChange={(e) => onChange({ email: e.target.value })}
 
+                      error={!!errors.email}
+                      helpText={errors.email}
                     />
                   </td>
                 </tr>

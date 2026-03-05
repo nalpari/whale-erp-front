@@ -69,11 +69,22 @@ const loginIdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
 // 비밀번호 유효성: 영문+숫자+특수문자(@$!%*#?&) 조합, 8~20자
 const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/
 
+// 휴대폰 번호 유효성: 숫자만 10~11자리
+const mobilePhoneRegex = /^\d{10,11}$/
+
+// 연락처 유효성: 숫자만 9~11자리
+const officePhoneRegex = /^\d{9,11}$/
+
+// 이메일 유효성
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 // 관리자 생성 스키마 (API request body와 일치)
 export const adminCreateSchema = z.object({
   name: z.string().min(1, '관리자명은 필수입니다'),
   userType: z.string().min(1, '근무여부를 선택해주세요'),
-  mobilePhone: z.string().min(1, '휴대폰 번호는 필수입니다'),
+  mobilePhone: z.string()
+    .min(1, '휴대폰 번호는 필수입니다')
+    .regex(mobilePhoneRegex, '유효하지 않은 전화번호입니다.'),
   loginId: z.string()
     .min(1, 'ID는 필수입니다')
     .regex(loginIdRegex, 'ID는 영문과 숫자를 포함하여 8자 이상이어야 합니다'),
@@ -83,9 +94,11 @@ export const adminCreateSchema = z.object({
   authorityId: z.number({ message: '권한을 선택해주세요' }).min(1, '권한을 선택해주세요'),
   department: z.string().optional(),
   rank: z.string().optional(),
-  officePhone: z.string().optional(),
+  officePhone: z.string().optional()
+    .refine((val) => !val || officePhoneRegex.test(val), '유효하지 않은 전화번호입니다.'),
   extensionNumber: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().optional()
+    .refine((val) => !val || emailRegex.test(val), '유효하지 않은 이메일입니다.'),
   inquiryResponderName: z.string().min(1, '1:1문의 답변자 네이밍은 필수입니다'),
 })
 
@@ -95,13 +108,17 @@ export type AdminCreateRequest = z.infer<typeof adminCreateSchema>
 export const adminUpdateSchema = z.object({
   name: z.string().min(1, '관리자명은 필수입니다'),
   userType: z.string().min(1, '근무여부를 선택해주세요'),
-  mobilePhone: z.string().min(1, '휴대폰 번호는 필수입니다'),
+  mobilePhone: z.string()
+    .min(1, '휴대폰 번호는 필수입니다')
+    .regex(mobilePhoneRegex, '유효하지 않은 전화번호입니다.'),
   authorityId: z.number({ message: '권한을 선택해주세요' }).min(1, '권한을 선택해주세요'),
   department: z.string().optional(),
   rank: z.string().optional(),
-  officePhone: z.string().optional(),
+  officePhone: z.string().optional()
+    .refine((val) => !val || officePhoneRegex.test(val), '유효하지 않은 전화번호입니다.'),
   extensionNumber: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().optional()
+    .refine((val) => !val || emailRegex.test(val), '유효하지 않은 이메일입니다.'),
   inquiryResponderName: z.string().min(1, '1:1문의 답변자 네이밍은 필수입니다'),
 })
 
