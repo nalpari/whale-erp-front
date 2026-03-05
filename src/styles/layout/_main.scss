@@ -466,6 +466,18 @@
       background: url('/assets/images/main/subscrip_icon_hover.svg') no-repeat center center;
     }
   }
+  &:disabled {
+    background-color: #e6eaed;
+    border: 1px solid #d0d7dd;
+    color: #999;
+    cursor: default;
+    &:hover {
+      .icon-subscribe {
+        background: url('/assets/images/main/subscrip_icon.svg') no-repeat center center;
+        background-size: cover;
+      }
+    }
+  }
 }
 
 .after-service-empty {
