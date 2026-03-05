@@ -6,7 +6,7 @@ import SearchSelect from '@/components/ui/common/SearchSelect'
 import { Input, useAlert } from '@/components/common/ui'
 import { useAuthorityOptions, useCheckAdminLoginId, useResetAdminPassword } from '@/hooks/queries/use-admin-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
-import { WORK_STATUS_OPTIONS } from '@/lib/schemas/admin'
+import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { AdminDetail } from '@/lib/schemas/admin'
 import { formatDateYmd } from '@/util/date-util'
 
@@ -117,7 +117,6 @@ export default function AdminForm({
 
   // ID 중복체크
   const handleCheckLoginId = async () => {
-    const loginIdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
     if (!formData.loginId || !loginIdRegex.test(formData.loginId)) {
       onChange({ loginId: formData.loginId })
       setIdCheckMessage('ID는 영문과 숫자를 포함하여 8자 이상이어야 합니다.')
@@ -170,7 +169,7 @@ export default function AdminForm({
               <button className="slidebox-btn" type="button" onClick={onDelete}>삭제</button>
             )}
             <button className="slidebox-btn" type="button" onClick={onSave}>저장</button>
-            <button className="slidebox-btn arr" onClick={() => setFormOpen(!formOpen)}>
+            <button className="slidebox-btn arr" type="button" onClick={() => setFormOpen(!formOpen)}>
               <i className="arr-icon"></i>
             </button>
           </div>

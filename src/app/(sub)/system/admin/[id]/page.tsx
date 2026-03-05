@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { redirect, useParams, useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import AdminForm, { getInitialFormData } from '@/components/system/admin/AdminForm'
 import type { AdminFormData } from '@/components/system/admin/AdminForm'
@@ -27,12 +27,7 @@ export default function AdminEditPage() {
   const { data: admin, isLoading, isError } = useAdminDetail(isValidId ? adminId : 0)
 
   if (!isValidId) {
-    return (
-      <div className="data-wrap">
-        <Location title="관리자 상세" list={['홈', '시스템 관리', '관리자 관리', '관리자 상세']} />
-        <div className="contents-wrap text-red-500">잘못된 관리자 ID입니다.</div>
-      </div>
-    )
+    redirect('/system/admin')
   }
 
   if (isLoading) {

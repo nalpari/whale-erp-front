@@ -64,7 +64,7 @@ export const POSITION_OPTIONS = [
 // ============================================
 
 // ID 유효성: 영문+숫자 조합, 8자 이상
-const loginIdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
+export const loginIdRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
 
 // 비밀번호 유효성: 영문+숫자+특수문자(@$!%*#?&) 조합, 8~20자
 const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/
