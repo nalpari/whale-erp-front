@@ -20,7 +20,7 @@ export default function AdminSearch({
   onSearch,
   resultCount = 0,
 }: AdminSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [localParams, setLocalParams] = useState<AdminSearchParams>(params)
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
@@ -92,7 +92,7 @@ export default function AdminSearch({
         <ul className="search-result-list">
           <li></li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)} aria-label="검색 조건 펼치기/접기"></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">

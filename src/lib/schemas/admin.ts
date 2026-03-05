@@ -138,11 +138,11 @@ export const adminDetailSchema = z.object({
   email: z.string().nullable(),
   authorityId: z.number().nullable(),
   authorityName: z.string().nullable(),
-  createdBy: z.number().nullable(),
+  createdByLoginId: z.string().nullable(),
   createdByName: z.string().nullable(),
   createdAt: z.string().nullable(),
   updatedAt: z.string().nullable(),
-  updatedBy: z.number().nullable(),
+  updatedByLoginId: z.string().nullable(),
   updatedByName: z.string().nullable(),
   inquiryResponderName: z.string().nullable(),
 })

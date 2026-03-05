@@ -50,7 +50,7 @@ export function getInitialFormData(admin?: AdminDetail | null): AdminFormData {
     name: '',
     userType: 'MSTWK_001',
     department: '',
-    rank: '',
+    rank: 'RNK_001',
     mobilePhone: '',
     officePhone: '',
     extensionNumber: '',
@@ -62,20 +62,6 @@ export function getInitialFormData(admin?: AdminDetail | null): AdminFormData {
   }
 }
 
-// ============================================
-// 전화번호 포맷 유틸
-// ============================================
-
-function formatPhoneDisplay(value: string): string {
-  const cleaned = value.replace(/\D/g, '')
-  if (cleaned.length === 11) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`
-  }
-  if (cleaned.length === 10) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
-  }
-  return cleaned
-}
 
 // ============================================
 // 컴포넌트
@@ -90,6 +76,7 @@ interface AdminFormProps {
   onSave: () => void
   onDelete?: () => void
   onList: () => void
+  onIdCheckStatusChange?: (checked: boolean) => void
 }
 
 export default function AdminForm({
@@ -101,15 +88,17 @@ export default function AdminForm({
   onSave,
   onDelete,
   onList,
+  onIdCheckStatusChange,
 }: AdminFormProps) {
   const { data: authorities = [] } = useAuthorityOptions()
   const { mutateAsync: checkLoginId } = useCheckAdminLoginId()
   const { mutateAsync: resetPassword } = useResetAdminPassword()
   const { children: rankChildren } = useCommonCode('RNK')
   const { alert, confirm } = useAlert()
-  const [idChecked, setIdChecked] = useState(false)
   const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null)
+  const [idCheckPassed, setIdCheckPassed] = useState(false)
   const [formOpen, setFormOpen] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
 
   const authorityOptions = authorities.map((auth) => ({
     value: String(auth.id),
@@ -136,14 +125,16 @@ export default function AdminForm({
 
     try {
       const isDuplicate = await checkLoginId(formData.loginId)
+      // 중복체크 결과 표시를 위해 기존 loginId 에러 클리어
+      onChange({ loginId: formData.loginId })
       if (isDuplicate) {
         setIdCheckMessage('사용할 수 없는 ID 입니다.')
-        setIdChecked(false)
-        alert('사용할 수 없는 ID 입니다.')
+        setIdCheckPassed(false)
+        onIdCheckStatusChange?.(false)
       } else {
         setIdCheckMessage('사용할 수 있는 ID 입니다.')
-        setIdChecked(true)
-        alert('사용할 수 있는 ID 입니다.')
+        setIdCheckPassed(true)
+        onIdCheckStatusChange?.(true)
       }
     } catch {
       alert('ID 중복 확인 중 오류가 발생했습니다.')
@@ -162,12 +153,6 @@ export default function AdminForm({
     } catch {
       await alert('비밀번호 초기화에 실패했습니다.')
     }
-  }
-
-  // 숫자만 입력 핸들러
-  const handlePhoneInput = (field: 'mobilePhone' | 'officePhone' | 'extensionNumber', value: string) => {
-    const numericOnly = value.replace(/\D/g, '')
-    onChange({ [field]: numericOnly })
   }
 
   return (
@@ -199,15 +184,12 @@ export default function AdminForm({
                 <tr>
                   <th>관리자명 <span className="red">*</span></th>
                   <td>
-                    <div className="mx-500">
-                      <input
-                        type="text"
-                        className={`input-frame ${errors.name ? 'err' : ''}`}
-                        value={formData.name}
-                        onChange={(e) => onChange({ name: e.target.value })}
-                      />
-                      {errors.name && <div className="warning-txt mt5" role="alert">* {errors.name}</div>}
-                    </div>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => onChange({ name: e.target.value })}
+                      error={!!errors.name}
+                      helpText={errors.name}
+                    />
                   </td>
                 </tr>
 
@@ -220,7 +202,7 @@ export default function AdminForm({
                         options={workStatusSelectOptions}
                         value={workStatusSelectOptions.find((opt) => opt.value === formData.userType) ?? null}
                         onChange={(opt) => onChange({ userType: opt?.value || 'MSTWK_001' })}
-                        placeholder="선택"
+
                         error={!!errors.userType}
                       />
                       {errors.userType && <div className="warning-txt mt5" role="alert">* {errors.userType}</div>}
@@ -232,14 +214,10 @@ export default function AdminForm({
                 <tr>
                   <th>부서</th>
                   <td>
-                    <div className="mx-500">
-                      <input
-                        type="text"
-                        className="input-frame"
-                        value={formData.department}
-                        onChange={(e) => onChange({ department: e.target.value })}
-                      />
-                    </div>
+                    <Input
+                      value={formData.department}
+                      onChange={(e) => onChange({ department: e.target.value })}
+                    />
                   </td>
                 </tr>
 
@@ -252,7 +230,7 @@ export default function AdminForm({
                         options={positionSelectOptions}
                         value={positionSelectOptions.find((opt) => opt.value === formData.rank) ?? positionSelectOptions[0]}
                         onChange={(opt) => onChange({ rank: opt?.value || '' })}
-                        placeholder="선택"
+
                       />
                     </div>
                   </td>
@@ -262,20 +240,15 @@ export default function AdminForm({
                 <tr>
                   <th>휴대폰 번호 <span className="red">*</span></th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="mx-500">
-                        <input
-                          type="text"
-                          className={`input-frame ${errors.mobilePhone ? 'err' : ''}`}
-                          value={formData.mobilePhone ? formatPhoneDisplay(formData.mobilePhone) : ''}
-                          onChange={(e) => handlePhoneInput('mobilePhone', e.target.value)}
-                          placeholder="숫자만 입력"
-                          maxLength={13}
-                        />
-                        {errors.mobilePhone && <div className="warning-txt mt5" role="alert">* {errors.mobilePhone}</div>}
-                      </div>
-                      <span className="text-sm text-gray-400 whitespace-nowrap">※ 숫자만 입력</span>
-                    </div>
+                    <Input
+                      type="cellphone"
+                      value={formData.mobilePhone}
+                      onChange={(e) => onChange({ mobilePhone: e.target.value })}
+
+                      error={!!errors.mobilePhone}
+                      helpText={errors.mobilePhone}
+                      endAdornment={<span className="text-sm text-gray-400 whitespace-nowrap">※ 숫자만 입력</span>}
+                    />
                   </td>
                 </tr>
 
@@ -283,30 +256,28 @@ export default function AdminForm({
                 <tr>
                   <th>연락처</th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="mx-500">
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.officePhone ? formatPhoneDisplay(formData.officePhone) : ''}
-                          onChange={(e) => handlePhoneInput('officePhone', e.target.value)}
-                          placeholder="숫자만 입력"
-                          maxLength={13}
-                        />
-                      </div>
-                      <span style={{ padding: '0 4px', whiteSpace: 'nowrap' }}>내선번호</span>
-                      <div style={{ width: '100px' }}>
-                        <input
-                          type="text"
-                          className="input-frame"
-                          value={formData.extensionNumber}
-                          onChange={(e) => handlePhoneInput('extensionNumber', e.target.value)}
-                          placeholder="내선번호"
-                          maxLength={6}
-                        />
-                      </div>
-                      <span className="text-sm text-gray-400 whitespace-nowrap">※ 숫자만 입력</span>
-                    </div>
+                    <Input
+                      type="cellphone"
+                      value={formData.officePhone}
+                      onChange={(e) => onChange({ officePhone: e.target.value })}
+
+                      endAdornment={
+                        <>
+                          <span style={{ padding: '0 4px', whiteSpace: 'nowrap' }}>내선번호</span>
+                          <div style={{ width: '100px' }}>
+                            <Input
+                              type="number"
+                              value={formData.extensionNumber}
+                              onChange={(e) => onChange({ extensionNumber: e.target.value })}
+
+                              maxLength={6}
+                              containerClassName="w-full"
+                            />
+                          </div>
+                          <span className="text-sm text-gray-400 whitespace-nowrap">※ 숫자만 입력</span>
+                        </>
+                      }
+                    />
                   </td>
                 </tr>
 
@@ -314,33 +285,32 @@ export default function AdminForm({
                 <tr>
                   <th>ID <span className="red">*</span></th>
                   <td>
-                    <div className="filed-flx">
-                      <div className="flex items-center gap-2 mx-500">
-                        <input
-                          type="text"
-                          className={`input-frame ${errors.loginId ? 'err' : ''}`}
-                          value={formData.loginId}
-                          onChange={(e) => {
-                            onChange({ loginId: e.target.value })
-                            setIdChecked(false)
-                            setIdCheckMessage(null)
-                          }}
-                          readOnly={mode === 'edit'}
-                          placeholder="영문+숫자 조합 8자 이상"
-                          style={{ flex: 1 }}
-                        />
-                        {mode === 'create' && (
-                          <button className="btn-form gray" onClick={handleCheckLoginId} type="button">
-                            중복체크
-                          </button>
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자를 조합하여 8자 이상 입력</span>
-                    </div>
-                    {errors.loginId && <div className="warning-txt mt5 mx-500" role="alert">* {errors.loginId}</div>}
+                    <Input
+                      value={formData.loginId}
+                      onChange={(e) => {
+                        onChange({ loginId: e.target.value })
+                        onIdCheckStatusChange?.(false)
+                        setIdCheckPassed(false)
+                        setIdCheckMessage(null)
+                      }}
+                      readOnly={mode === 'edit'}
+
+                      error={!!errors.loginId}
+                      helpText={errors.loginId}
+                      endAdornment={
+                        <>
+                          {mode === 'create' && (
+                            <button className="btn-form gray" onClick={handleCheckLoginId} type="button">
+                              중복체크
+                            </button>
+                          )}
+                          <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자를 조합하여 8자 이상 입력</span>
+                        </>
+                      }
+                    />
                     {idCheckMessage && !errors.loginId && (
-                      <div className={`mt5 mx-500 ${idChecked ? 'text-blue-600' : 'text-red-600'}`} style={{ fontSize: '12px' }}>
-                        {idCheckMessage}
+                      <div className={`mt5 mx-500 ${idCheckPassed ? 'text-blue-600 text-xs' : 'warning-txt'}`} role={idCheckPassed ? undefined : 'alert'}>
+                        {idCheckPassed ? idCheckMessage : `* ${idCheckMessage}`}
                       </div>
                     )}
                   </td>
@@ -351,19 +321,25 @@ export default function AdminForm({
                   <th>비밀번호 {mode === 'create' && <span className="red">*</span>}</th>
                   <td>
                     {mode === 'create' ? (
-                      <div className="filed-flx">
-                        <div className="mx-500">
-                          <input
-                            type="password"
-                            className={`input-frame ${errors.password ? 'err' : ''}`}
-                            value={formData.password}
-                            onChange={(e) => onChange({ password: e.target.value })}
-                            placeholder="영문+숫자+특수문자 조합 8~20자"
-                          />
-                          {errors.password && <div className="warning-txt mt5" role="alert">* {errors.password}</div>}
-                        </div>
-                        <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자와 특수문자를 조합하여 8자 이상 입력</span>
-                      </div>
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+
+                        value={formData.password}
+                        onChange={(e) => onChange({ password: e.target.value })}
+                        error={!!errors.password}
+                        helpText={errors.password}
+                        showClear={false}
+                        endAdornment={
+                          <>
+                            <button
+                              type="button"
+                              className={`input-icon-btn ${showPassword ? 'hide' : 'show'}`}
+                              onClick={() => setShowPassword(!showPassword)}
+                            />
+                            <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자와 특수문자를 조합하여 8자 이상 입력</span>
+                          </>
+                        }
+                      />
                     ) : (
                       <button className="btn-form gray" onClick={handleResetPassword} type="button">
                         비밀번호 초기화
@@ -376,15 +352,12 @@ export default function AdminForm({
                 <tr>
                   <th>이메일</th>
                   <td>
-                    <div className="mx-500">
-                      <input
-                        type="email"
-                        className="input-frame"
-                        value={formData.email}
-                        onChange={(e) => onChange({ email: e.target.value })}
-                        placeholder="이메일 주소"
-                      />
-                    </div>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => onChange({ email: e.target.value })}
+
+                    />
                   </td>
                 </tr>
 
@@ -402,7 +375,7 @@ export default function AdminForm({
                               : null
                           }
                           onChange={(opt) => onChange({ authorityId: opt ? Number(opt.value) : null })}
-                          placeholder="권한을 선택해주세요"
+
                           error={!!errors.authorityId}
                         />
                         {errors.authorityId && <div className="warning-txt mt5" role="alert">* {errors.authorityId}</div>}
@@ -416,17 +389,12 @@ export default function AdminForm({
                 <tr>
                   <th>1:1문의 답변자 네이밍 <span className="red">*</span></th>
                   <td>
-                    <div className="mx-500">
-                      <input
-                        type="text"
-                        className={`input-frame ${errors.inquiryResponderName ? 'err' : ''}`}
-                        value={formData.inquiryResponderName}
-                        onChange={(e) => onChange({ inquiryResponderName: e.target.value })}
-                      />
-                      {errors.inquiryResponderName && (
-                        <div className="warning-txt mt5" role="alert">* {errors.inquiryResponderName}</div>
-                      )}
-                    </div>
+                    <Input
+                      value={formData.inquiryResponderName}
+                      onChange={(e) => onChange({ inquiryResponderName: e.target.value })}
+                      error={!!errors.inquiryResponderName}
+                      helpText={errors.inquiryResponderName}
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -449,7 +417,7 @@ export default function AdminForm({
               <tr>
                 <th>등록자</th>
                 <td>
-                  <Input value={admin.createdBy ? `${admin.createdByName}(${admin.createdBy})` : '-'} disabled />
+                  <Input value={admin.createdByLoginId ? `${admin.createdByName}(${admin.createdByLoginId})` : '-'} disabled />
                 </td>
                 <th>등록일</th>
                 <td>
@@ -459,7 +427,7 @@ export default function AdminForm({
               <tr>
                 <th>최종 수정자</th>
                 <td>
-                  <Input value={admin.updatedBy ? `${admin.updatedByName}(${admin.updatedBy})` : '-'} disabled />
+                  <Input value={admin.updatedByLoginId ? `${admin.updatedByName}(${admin.updatedByLoginId})` : '-'} disabled />
                 </td>
                 <th>최종 수정일</th>
                 <td>

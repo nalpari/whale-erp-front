@@ -6,6 +6,8 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import { formatDateYmd } from '@/util/date-util'
 import type { AdminListItem } from '@/lib/schemas/admin'
+import { getWorkStatusLabel } from '@/lib/schemas/admin'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 interface AdminRowDataInternal extends AdminListItem {
   rowNumber: number
@@ -82,6 +84,7 @@ export default function AdminList({
       headerName: '근무여부',
       field: 'userType',
       width: 100,
+      valueFormatter: (params) => getWorkStatusLabel(params.value),
     },
     {
       headerName: '관리자명',
@@ -140,7 +143,7 @@ export default function AdminList({
       </div>
       <div className="data-list-bx">
         {isLoading ? (
-          <div></div>
+          <CubeLoader />
         ) : rowData.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">검색 결과가 없습니다.</div>

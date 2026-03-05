@@ -12,8 +12,9 @@ import {
 } from '@/hooks/queries/use-admin-queries'
 import { adminUpdateSchema } from '@/lib/schemas/admin'
 import type { AdminDetail } from '@/lib/schemas/admin'
-import { getErrorMessage } from '@/lib/api'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
+import CubeLoader from '@/components/common/ui/CubeLoader'
+import { useAlert } from '@/components/common/ui'
 
 /**
  * 관리자 상세/수정 페이지 (Wrapper)
@@ -35,7 +36,7 @@ export default function AdminEditPage() {
   }
 
   if (isLoading) {
-    return <div></div>
+    return <CubeLoader />
   }
 
   if (isError) {
@@ -72,6 +73,7 @@ function AdminEditContent({
   const router = useRouter()
   const { mutateAsync: updateAdmin } = useUpdateAdmin()
   const { mutateAsync: deleteAdmin } = useDeleteAdmin()
+  const { alert, confirm } = useAlert()
   const [formData, setFormData] = useState<AdminFormData>(() => getInitialFormData(admin))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -95,24 +97,26 @@ function AdminEditContent({
       return
     }
 
+    const confirmed = await confirm('저장하시겠습니까?')
+    if (!confirmed) return
+
     try {
       await updateAdmin({ id: adminId, data: result.data })
-      alert('관리자 정보가 수정되었습니다.')
       router.push('/system/admin')
-    } catch (error) {
-      alert(`관리자 수정 실패: ${getErrorMessage(error)}`)
+    } catch {
+      await alert('저장에 실패하였습니다. 잠시 후 다시 시도해주세요.')
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm('삭제하시겠습니까?')) return
+    const confirmed = await confirm('삭제하시겠습니까?')
+    if (!confirmed) return
 
     try {
       await deleteAdmin(adminId)
-      alert('관리자가 삭제되었습니다.')
       router.push('/system/admin')
-    } catch (error) {
-      alert(`관리자 삭제 실패: ${getErrorMessage(error)}`)
+    } catch {
+      await alert('삭제에 실패하였습니다. 잠시 후 다시 시도해주세요.')
     }
   }
 

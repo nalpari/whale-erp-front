@@ -84,7 +84,7 @@ export async function checkAdminLoginId(loginId: string): Promise<boolean> {
   const response = await getWithSchema(
     '/api/system/admins/check-login-id',
     adminIdCheckResponseSchema,
-    { params: { loginId } }
+    { params: { login_id: loginId } }
   )
   // API: true = 중복(사용불가), false = 사용가능
   return response.data

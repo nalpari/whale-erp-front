@@ -7,8 +7,8 @@ import AdminForm, { getInitialFormData } from '@/components/system/admin/AdminFo
 import type { AdminFormData } from '@/components/system/admin/AdminForm'
 import { useCreateAdmin } from '@/hooks/queries/use-admin-queries'
 import { adminCreateSchema } from '@/lib/schemas/admin'
-import { getErrorMessage } from '@/lib/api'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
+import { useAlert } from '@/components/common/ui'
 
 /**
  * 관리자 등록 페이지
@@ -16,9 +16,11 @@ import { formatZodFieldErrors } from '@/lib/zod-utils'
 export default function AdminCreatePage() {
   const router = useRouter()
   const { mutateAsync: createAdmin } = useCreateAdmin()
+  const { alert, confirm } = useAlert()
 
   const [formData, setFormData] = useState<AdminFormData>(getInitialFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [idChecked, setIdChecked] = useState(false)
 
   const handleChange = (data: Partial<AdminFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
@@ -37,17 +39,27 @@ export default function AdminCreatePage() {
       authorityId: formData.authorityId ?? undefined,
     })
 
-    if (!result.success) {
-      setErrors(formatZodFieldErrors(result.error))
+    const fieldErrors: Record<string, string> = result.success ? {} : formatZodFieldErrors(result.error)
+
+    if (!idChecked) {
+      fieldErrors.loginId = 'ID 중복 확인이 필요합니다.'
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors)
       return
     }
 
+    if (!result.success) return
+
+    const confirmed = await confirm('저장하시겠습니까?')
+    if (!confirmed) return
+
     try {
       await createAdmin(result.data)
-      alert('관리자가 등록되었습니다.')
       router.push('/system/admin')
-    } catch (error) {
-      alert(`관리자 등록 실패: ${getErrorMessage(error)}`)
+    } catch {
+      await alert('저장에 실패하였습니다. 잠시 후 다시 시도해주세요.')
     }
   }
 
@@ -66,6 +78,7 @@ export default function AdminCreatePage() {
           onChange={handleChange}
           onSave={handleSave}
           onList={handleList}
+          onIdCheckStatusChange={setIdChecked}
         />
       </div>
     </div>
