@@ -59,7 +59,7 @@ export default function CustomerEdit({ customerId }: CustomerEditProps) {
       }
       await updateMutation.mutateAsync({ id: customerId, data })
       await alert('회원 정보가 수정되었습니다.')
-      router.push(`/customer/account/${customerId}`)
+      router.push(`/master/customer/account/${customerId}`)
     } catch (err) {
       console.error('회원 수정 실패:', err)
       await alert('회원 수정에 실패했습니다.')

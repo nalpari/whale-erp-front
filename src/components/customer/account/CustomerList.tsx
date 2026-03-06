@@ -93,42 +93,42 @@ export default function CustomerList({
   }))
 
   const handleNavigateToDetail = (id: number) => {
-    router.push(`/customer/account/${id}`)
+    router.push(`/master/customer/account/${id}`)
   }
 
   // 컬럼 정의
   const columnDefs: ColDef<CustomerRowData>[] = [
     {
       headerName: '#',
-      width: 50,
+      flex: 1,
       valueGetter: (params) => params.data?.rowNumber ?? 0,
     },
     {
       headerName: '운영여부',
       field: 'isOperate',
-      width: 90,
+      flex: 1,
       cellRenderer: OperateStatusRenderer,
     },
     {
       headerName: '회원명',
       field: 'name',
-      width: 120,
+      flex: 1,
       cellRenderer: CustomerNameRenderer,
     },
     {
       headerName: '회원 ID',
       field: 'loginId',
-      width: 140,
+      flex: 1,
     },
     {
       headerName: '휴대폰 번호',
       field: 'mobilePhone',
-      width: 140,
+      flex: 1,
     },
     {
       headerName: '간편인증',
       field: 'socialAuthType',
-      width: 100,
+      flex: 1,
     },
     {
       headerName: '가입일시',

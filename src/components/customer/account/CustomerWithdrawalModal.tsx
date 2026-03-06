@@ -33,7 +33,7 @@ export default function CustomerWithdrawalModal({ isOpen, customerId, onClose }:
       await withdrawMutation.mutateAsync({ id: customerId, withdrawalReason })
       await alert('회원 탈퇴 처리가 완료되었습니다.')
       onClose()
-      router.push('/customer/account')
+      router.push('/master/customer/account')
     } catch (err) {
       console.error('회원 탈퇴 실패:', err)
       await alert('회원 탈퇴 처리에 실패했습니다.')
