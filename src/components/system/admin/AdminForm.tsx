@@ -8,26 +8,10 @@ import { useAuthorityOptions, useCheckAdminLoginId, useResetAdminPassword } from
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { AdminDetail } from '@/lib/schemas/admin'
+import type { AdminFormData } from '@/types/admin'
 import { formatDateYmd } from '@/util/date-util'
 
-// ============================================
-// 폼 데이터 타입
-// ============================================
-
-export interface AdminFormData {
-  name: string
-  userType: string
-  department: string
-  rank: string
-  mobilePhone: string
-  officePhone: string
-  extensionNumber: string
-  loginId: string
-  password: string
-  authorityId: number | null
-  email: string
-  inquiryResponderName: string
-}
+export type { AdminFormData }
 
 export function getInitialFormData(admin?: AdminDetail | null): AdminFormData {
   if (admin) {
@@ -156,8 +140,8 @@ export default function AdminForm({
     if (!confirmed) return
 
     try {
-      await resetPassword(admin.id)
-      await alert('비밀번호가 초기화 처리되었습니다. 초기화 비밀번호는 hc1234567 입니다.')
+      const tempPassword = await resetPassword(admin.id)
+      await alert(`비밀번호가 초기화 처리되었습니다. 초기화 비밀번호는 ${tempPassword} 입니다.`)
     } catch {
       await alert('비밀번호 초기화에 실패했습니다.')
     }
