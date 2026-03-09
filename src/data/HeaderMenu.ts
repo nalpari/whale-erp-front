@@ -22,7 +22,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
     link: '#',
     children: [
       {
-        id: 9,
+        id: 54,
         name: '회원 Master',
         link: '/master/customer/account',
       },
