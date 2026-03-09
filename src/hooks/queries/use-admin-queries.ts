@@ -72,9 +72,10 @@ export function useDeleteAdmin() {
 
   return useMutation({
     mutationFn: (id: number) => deleteAdmin(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      queryClient.cancelQueries({ queryKey: adminKeys.detail(id) })
+      queryClient.setQueryData(adminKeys.detail(id), null)
       queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.details() })
     },
   })
 }
