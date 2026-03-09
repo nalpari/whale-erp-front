@@ -10,19 +10,8 @@ import { apiResponseSchema } from '@/lib/schemas/api'
  * - 페이징: 1-based (pageNumber, pageSize)
  */
 
-// ============================================
-// 검색 파라미터
-// ============================================
-
-export interface AdminSearchParams {
-  admin_id?: number
-  user_type?: string // 'MSTWK_001' | 'MSTWK_002'
-  authority_id?: number
-  start_date?: string // yyyy-MM-dd
-  end_date?: string // yyyy-MM-dd
-  page?: number
-  size?: number
-}
+// 타입은 @/types/admin 에서 관리
+export type { AdminSearchParams, AdminFormData } from '@/types/admin'
 
 // ============================================
 // 근무여부 옵션 (공통코드)

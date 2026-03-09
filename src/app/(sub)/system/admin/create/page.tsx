@@ -41,7 +41,7 @@ export default function AdminCreatePage() {
 
     const fieldErrors: Record<string, string> = result.success ? {} : formatZodFieldErrors(result.error)
 
-    if (!idChecked) {
+    if (!idChecked && !fieldErrors.loginId) {
       fieldErrors.loginId = 'ID 중복 확인이 필요합니다.'
     }
 

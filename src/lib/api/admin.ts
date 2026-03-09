@@ -93,10 +93,11 @@ export async function checkAdminLoginId(loginId: string): Promise<boolean> {
 /**
  * 관리자 비밀번호 초기화
  * PATCH /api/system/admins/{id}/reset-password
- * 초기 비밀번호: hc1234567
+ * 서버에서 임시 비밀번호를 응답으로 반환
  */
-export async function resetAdminPassword(id: number): Promise<void> {
-  await api.patch(`/api/system/admins/${id}/reset-password`)
+export async function resetAdminPassword(id: number): Promise<string> {
+  const response = await api.patch<{ data: { password: string } }>(`/api/system/admins/${id}/reset-password`)
+  return response.data.data.password
 }
 
 /**
