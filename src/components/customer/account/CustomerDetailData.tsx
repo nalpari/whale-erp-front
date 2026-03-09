@@ -36,11 +36,11 @@ export default function CustomerDetailData({ customerId }: CustomerDetailDataPro
   }
 
   const handleList = () => {
-    router.push('/customer/account')
+    router.push('/master/customer/account')
   }
 
   const handleEdit = () => {
-    router.push(`/customer/account/${customerId}/edit`)
+    router.push(`/master/customer/account/${customerId}/edit`)
   }
 
   if (isLoading) {

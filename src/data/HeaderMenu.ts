@@ -22,6 +22,11 @@ export const HeaderMenu: HeaderMenuItem[] = [
     link: '#',
     children: [
       {
+        id: 54,
+        name: '회원 Master',
+        link: '/master/customer/account',
+      },
+      {
         id: 10,
         name: '파트너 정보 관리',
         link: '#',

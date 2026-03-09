@@ -18,22 +18,36 @@ export default function CustomerWithdrawalModal({ isOpen, customerId, onClose }:
   const [reasonType, setReasonType] = useState('')
   const [reasonDetail, setReasonDetail] = useState('')
 
+  const isDirectInput = reasonType === '직접 입력'
+
+  const withdrawalReason = isDirectInput ? reasonDetail.trim() : reasonType
+
+  const handleReasonTypeChange = (value: string) => {
+    setReasonType(value)
+    if (value !== '직접 입력') {
+      setReasonDetail('')
+    }
+  }
+
   const handleSubmit = async () => {
     if (!reasonType) {
       await alert('탈퇴 사유를 선택해주세요.')
       return
     }
-    if (!reasonDetail.trim()) {
+    if (isDirectInput && !reasonDetail.trim()) {
       await alert('탈퇴 사유를 입력해주세요.')
+      return
+    }
+    if (isDirectInput && withdrawalReason.length < 30) {
+      await alert(`탈퇴 사유는 최소 30글자 이상 입력해야 합니다. (현재 ${withdrawalReason.length}글자)`)
       return
     }
 
     try {
-      const withdrawalReason = `${reasonType}: ${reasonDetail}`
       await withdrawMutation.mutateAsync({ id: customerId, withdrawalReason })
       await alert('회원 탈퇴 처리가 완료되었습니다.')
       onClose()
-      router.push('/customer/account')
+      router.push('/master/customer/account')
     } catch (err) {
       console.error('회원 탈퇴 실패:', err)
       await alert('회원 탈퇴 처리에 실패했습니다.')
@@ -66,14 +80,13 @@ export default function CustomerWithdrawalModal({ isOpen, customerId, onClose }:
                   <select
                     className="select-form"
                     value={reasonType}
-                    onChange={(e) => setReasonType(e.target.value)}
+                    onChange={(e) => handleReasonTypeChange(e.target.value)}
                   >
                     <option value="">선택</option>
                     <option value="서비스 불만족">서비스 불만족</option>
-                    <option value="개인정보 우려">개인정보 우려</option>
-                    <option value="사용 빈도 낮음">사용 빈도 낮음</option>
-                    <option value="다른 서비스 이용">다른 서비스 이용</option>
-                    <option value="기타">기타</option>
+                    <option value="이용 필요성 감소">이용 필요성 감소</option>
+                    <option value="대체 서비스 이용">대체 서비스 이용</option>
+                    <option value="직접 입력">직접 입력</option>
                   </select>
                 </div>
               </div>
@@ -84,10 +97,17 @@ export default function CustomerWithdrawalModal({ isOpen, customerId, onClose }:
                 <div className="pop-form-filed">
                   <textarea
                     className="textarea-form"
-                    placeholder="탈퇴 사유를 입력해주세요."
+                    placeholder="탈퇴 사유를 입력해주세요. (최소 30글자)"
                     value={reasonDetail}
                     onChange={(e) => setReasonDetail(e.target.value)}
+                    disabled={!isDirectInput}
+                    style={{ opacity: isDirectInput ? 1 : 0.5 }}
                   />
+                  {isDirectInput && (
+                    <span style={{ fontSize: '12px', color: reasonDetail.trim().length < 30 ? '#e74c3c' : '#999', marginTop: '4px', display: 'block' }}>
+                      {reasonDetail.trim().length}/30글자
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
