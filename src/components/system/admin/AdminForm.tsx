@@ -94,6 +94,7 @@ export default function AdminForm({
   const { mutateAsync: checkLoginId } = useCheckAdminLoginId()
   const { mutateAsync: resetPassword } = useResetAdminPassword()
   const { children: rankChildren } = useCommonCode('RNK')
+  const { children: departmentChildren } = useCommonCode('ADMNF_DEPT')
   const { alert, confirm } = useAlert()
   const [idCheckMessage, setIdCheckMessage] = useState<string | null>(null)
   const [idCheckPassed, setIdCheckPassed] = useState(false)
@@ -109,6 +110,11 @@ export default function AdminForm({
     value: opt.value,
     label: opt.label,
   }))
+
+  const departmentSelectOptions = [
+    { value: '', label: '선택' },
+    ...departmentChildren.map((c) => ({ value: c.code, label: c.name })),
+  ]
 
   const positionSelectOptions = [
     { value: '', label: '선택' },
@@ -216,10 +222,13 @@ export default function AdminForm({
                 <tr>
                   <th>부서</th>
                   <td>
-                    <Input
-                      value={formData.department}
-                      onChange={(e) => onChange({ department: e.target.value })}
-                    />
+                    <div className="mx-500">
+                      <SearchSelect
+                        options={departmentSelectOptions}
+                        value={departmentSelectOptions.find((opt) => opt.value === formData.department) ?? departmentSelectOptions[0]}
+                        onChange={(opt) => onChange({ department: opt?.value || '' })}
+                      />
+                    </div>
                   </td>
                 </tr>
 
@@ -325,29 +334,31 @@ export default function AdminForm({
                   <th>비밀번호 {mode === 'create' && <span className="red">*</span>}</th>
                   <td>
                     {mode === 'create' ? (
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-
-                        value={formData.password}
-                        onChange={(e) => onChange({ password: e.target.value })}
-                        error={!!errors.password}
-                        helpText={errors.password}
-                        showClear={false}
-                        endAdornment={
-                          <>
+                      <div className="filed-flx">
+                        <div className="mx-500">
+                          <div className={`input-icon-frame${errors.password ? ' err' : ''}`}>
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              value={formData.password}
+                              onChange={(e) => onChange({ password: e.target.value })}
+                              aria-invalid={!!errors.password}
+                            />
                             <button
                               type="button"
                               className={`input-icon-btn ${showPassword ? 'hide' : 'show'}`}
                               onClick={() => setShowPassword(!showPassword)}
                             />
-                            <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자와 특수문자를 조합하여 8자 이상 입력</span>
-                          </>
-                        }
-                      />
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-400 whitespace-nowrap">※ 영문과 숫자와 특수문자를 조합하여 8자 이상 입력</span>
+                      </div>
                     ) : (
                       <button className="btn-form gray" onClick={handleResetPassword} type="button">
                         비밀번호 초기화
                       </button>
+                    )}
+                    {errors.password && (
+                      <div className="warning-txt mt5" role="alert">* {errors.password}</div>
                     )}
                   </td>
                 </tr>
