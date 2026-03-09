@@ -1,5 +1,6 @@
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
+import type { CustomerSearchParams } from '@/types/customer'
 
 export interface StoreListParams {
   office?: number
@@ -345,4 +346,12 @@ export const priceHistoryKeys = {
   all: ['price-histories'] as const,
   lists: () => [...priceHistoryKeys.all, 'list'] as const,
   list: (params: PriceHistoryListParams) => [...priceHistoryKeys.lists(), params] as const,
+}
+
+export const customerKeys = {
+  all: ['customers'] as const,
+  lists: () => [...customerKeys.all, 'list'] as const,
+  list: (params?: CustomerSearchParams) => [...customerKeys.lists(), params ?? null] as const,
+  details: () => [...customerKeys.all, 'detail'] as const,
+  detail: (id: number) => [...customerKeys.details(), id] as const,
 }

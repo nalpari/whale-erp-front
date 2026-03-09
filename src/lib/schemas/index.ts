@@ -28,3 +28,6 @@ export * from './common-code';
 
 // 가격 마스터 스키마
 export * from './price-master';
+
+// OCR 스키마
+export * from './ocr';
