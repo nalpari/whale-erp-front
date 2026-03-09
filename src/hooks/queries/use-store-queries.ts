@@ -205,8 +205,11 @@ export const useDeleteStore = () => {
 
   return useMutation({
     mutationFn: (storeId: number) => api.delete(`/api/v1/stores/${storeId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeKeys.all })
+    onSuccess: (_data, storeId) => {
+      queryClient.cancelQueries({ queryKey: storeKeys.detail(storeId) })
+      queryClient.setQueryData(storeKeys.detail(storeId), null)
+      queryClient.invalidateQueries({ queryKey: storeKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeKeys.options() })
     },
   })
 }

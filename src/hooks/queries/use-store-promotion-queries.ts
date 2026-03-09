@@ -73,8 +73,10 @@ export const useDeleteStorePromotion = () => {
       const response = await api.delete(`/api/master/promotion/store/${id}`)
       return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storePromotionKeys.all })
+    onSuccess: (_data, id) => {
+      queryClient.cancelQueries({ queryKey: storePromotionKeys.detail(id) })
+      queryClient.setQueryData(storePromotionKeys.detail(id), null)
+      queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
     },
   })
 }

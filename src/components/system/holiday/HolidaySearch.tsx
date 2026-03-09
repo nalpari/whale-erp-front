@@ -50,7 +50,7 @@ export default function HolidaySearch({
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과<span>{resultCount}건</span>
         </div>
@@ -114,6 +114,7 @@ export default function HolidaySearch({
                     )}
                   </div>
                 </td>
+                <td colSpan={4} style={{ backgroundColor: '#fff' }}></td>
               </tr>
             </tbody>
           </table>

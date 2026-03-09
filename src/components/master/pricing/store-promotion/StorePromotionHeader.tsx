@@ -7,9 +7,7 @@ import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
 import { Input } from '@/components/common/ui'
 import { useStorePromotionDetail, useDeleteStorePromotion } from '@/hooks/queries'
-import { useQueryClient } from '@tanstack/react-query'
-import { storePromotionKeys } from '@/hooks/queries/query-keys'
-import { PROMOTION_STATUS_LABEL } from '@/types/store-promotion'
+import { PROMOTION_STATUS_LABEL} from '@/types/store-promotion'
 import type { PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -27,7 +25,6 @@ export default function StorePromotionHeader() {
   const promotionId = parsedId && parsedId > 0 ? parsedId : null
 
   const { data: detail, isPending: loading, error } = useStorePromotionDetail(promotionId)
-  const queryClient = useQueryClient()
   const { mutateAsync: deletePromotion } = useDeleteStorePromotion()
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -38,7 +35,6 @@ export default function StorePromotionHeader() {
     if (!confirmed) return
     try {
       await deletePromotion(promotionId)
-      queryClient.removeQueries({ queryKey: storePromotionKeys.detail(promotionId) })
       router.push('/master/pricing/store-promotion')
     } catch {
       await alert('프로모션 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
