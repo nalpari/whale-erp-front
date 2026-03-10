@@ -189,7 +189,7 @@ export default function CustomerDetailData({ customerId }: CustomerDetailDataPro
                       <ul className="detail-data-list">
                         <li className="detail-data-item">
                           <span className="detail-data-text">
-                            {customer?.updatedByLoginId ? `${customer.updatedByName}(${customer.updatedByLoginId})` : '-'}
+                            {customer?.updatedByLoginId ? `${customer.updatedByName ?? '-'}(${customer.updatedByLoginId})` : '-'}
                           </span>
                         </li>
                       </ul>
