@@ -48,6 +48,8 @@ export interface CustomerDetailResponse {
   withdrawalReason: string | null
   createdAt: string | null
   updatedAt: string | null
+  updatedByName: string | null
+  updatedByLoginId: string | null
 }
 
 // 수정 요청

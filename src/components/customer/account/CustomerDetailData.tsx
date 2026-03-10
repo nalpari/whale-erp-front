@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import AnimateHeight from 'react-animate-height'
 import { useCustomerDetail } from '@/hooks/queries/use-customer-queries'
 import CustomerWithdrawalModal from './CustomerWithdrawalModal'
 
@@ -18,7 +17,6 @@ const socialAuthTypeMap: Record<string, string> = {
 
 export default function CustomerDetailData({ customerId }: CustomerDetailDataProps) {
   const router = useRouter()
-  const [headerInfoOpen, setHeaderInfoOpen] = useState(true)
   const [withdrawalModalOpen, setWithdrawalModalOpen] = useState(false)
 
   const {
@@ -70,18 +68,14 @@ export default function CustomerDetailData({ customerId }: CustomerDetailDataPro
       </div>
 
       {/* 회원 Header 정보 관리 */}
-      <div className={`slidebox-wrap ${headerInfoOpen ? '' : 'close'}`}>
+      <div className="slidebox-wrap">
         <div className="slidebox-header">
           <h2>회원 Master</h2>
           <div className="slidebox-btn-wrap">
             <button className="slidebox-btn" onClick={handleEdit}>수정</button>
-            <button className="slidebox-btn arr" onClick={() => setHeaderInfoOpen(!headerInfoOpen)}>
-              <i className="arr-icon"></i>
-            </button>
           </div>
         </div>
-        <AnimateHeight duration={300} height={headerInfoOpen ? 'auto' : 0}>
-          <div className="slidebox-body">
+        <div className="slidebox-body">
             <div className="detail-data-wrap">
               <table className="detail-data-table">
                 <colgroup>
@@ -151,7 +145,6 @@ export default function CustomerDetailData({ customerId }: CustomerDetailDataPro
               </table>
             </div>
           </div>
-        </AnimateHeight>
       </div>
 
       {/* 등록 및 수정 이력 */}
@@ -169,11 +162,35 @@ export default function CustomerDetailData({ customerId }: CustomerDetailDataPro
                 </colgroup>
                 <tbody>
                   <tr>
+                    <th>등록자</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">
+                            {customer?.name ? `${customer.name}(${customer.loginId})` : '-'}
+                          </span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
                     <th>등록일시</th>
                     <td>
                       <ul className="detail-data-list">
                         <li className="detail-data-item">
                           <span className="detail-data-text">{formatDateTime(customer?.createdAt)}</span>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>최종수정자</th>
+                    <td>
+                      <ul className="detail-data-list">
+                        <li className="detail-data-item">
+                          <span className="detail-data-text">
+                            {customer?.updatedByLoginId ? `${customer.updatedByName}(${customer.updatedByLoginId})` : '-'}
+                          </span>
                         </li>
                       </ul>
                     </td>
