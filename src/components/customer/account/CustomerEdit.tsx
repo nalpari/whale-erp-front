@@ -85,6 +85,24 @@ export default function CustomerEdit({ customerId }: CustomerEditProps) {
       <div className="content-wrap">
         <div className="slidebox-wrap">
           <div className="slidebox-header">
+            <button
+              onClick={() => router.back()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                marginRight: '8px',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 3L5 8L10 13" stroke="#f5f5f5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
             <h2>회원 정보 수정</h2>
           </div>
           <div className="slidebox-body">
