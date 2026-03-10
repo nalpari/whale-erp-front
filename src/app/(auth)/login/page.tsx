@@ -118,6 +118,18 @@ function LoginContent() {
         }
 
         setAuthCookie()
+
+        console.log('[Auth] 로그인 성공 - Zustand 상태:', {
+          accessToken: accessToken.substring(0, 20) + '...',
+          refreshToken: refreshToken.substring(0, 20) + '...',
+          authority: authority.programs,
+          affiliationId: String(authority.authorityId),
+          loginId: resLoginId,
+          name: resName,
+          mobilePhone,
+          subscriptionPlan: subscriptionPlanId ?? 0,
+        })
+
         router.push(redirectTarget);
       } else if (companies && companies.length > 0) {
         setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null }) => ({
@@ -169,6 +181,17 @@ function LoginContent() {
       }
 
       setAuthCookie()
+
+      console.log('[Auth] 조직 선택 후 로그인 성공 - Zustand 상태:', {
+        accessToken: pendingTokens.accessToken.substring(0, 20) + '...',
+        refreshToken: pendingTokens.refreshToken.substring(0, 20) + '...',
+        authority: data?.authority?.programs,
+        affiliationId: authority.id,
+        loginId: useAuthStore.getState().loginId,
+        name: useAuthStore.getState().name,
+        mobilePhone: useAuthStore.getState().mobilePhone,
+        subscriptionPlan: useAuthStore.getState().subscriptionPlan,
+      })
 
       setShowAuthorityModal(false);
       setPendingTokens(null);
