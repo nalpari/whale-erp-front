@@ -16,6 +16,7 @@ interface PromotionListProps {
   pageSize: number
   totalPages: number
   loading: boolean
+  error?: string
   storeName: string | null
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
@@ -28,6 +29,7 @@ export default function PromotionList({
   pageSize,
   totalPages,
   loading,
+  error,
   storeName,
   onPageChange,
   onPageSizeChange,
@@ -112,6 +114,7 @@ export default function PromotionList({
         </div>
       </div>
       <div className="data-list-bx">
+        {error && <div className="warning-txt">{error}</div>}
         {loading ? (
           <div className="cube-loader-overlay"><CubeLoader /></div>
         ) : rows.length === 0 ? (

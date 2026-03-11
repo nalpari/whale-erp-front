@@ -127,6 +127,7 @@ export default function HolidaySearch({
               <tr>
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
+                  autoSelect={false}
                   officeId={filters.officeId ?? null}
                   franchiseId={filters.franchiseId ?? null}
                   storeId={filters.storeId ?? null}

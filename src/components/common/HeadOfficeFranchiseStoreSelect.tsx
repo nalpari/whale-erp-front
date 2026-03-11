@@ -9,7 +9,7 @@
  *
  * ## 사용 예시
  *
- * ### 기본 사용 (본사/가맹점/점포 전부 표시) — StoreSearch.tsx 패턴
+ * ### 기본 사용 (본사/가맹점/점포 전부 표시) — StoreSearch, AttendanceSearch 패턴
  * ```tsx
  * <HeadOfficeFranchiseStoreSelect
  *   isHeadOfficeRequired={true}
@@ -17,31 +17,26 @@
  *   officeId={filters.officeId ?? null}
  *   franchiseId={filters.franchiseId ?? null}
  *   storeId={filters.storeId ?? null}
- *   onChange={(next) => {
- *     if (next.head_office) setShowOfficeError(false)
- *     onChange({
- *       officeId: next.head_office,
- *       franchiseId: next.franchise,
- *       storeId: next.store,
- *     })
- *   }}
+ *   onChange={(next) => { ... }}
+ *   onMultiOffice={handleMultiOffice}
  * />
  * ```
  *
- * ### 본사+가맹점만 (fields 제어) — AuthoritySearch.tsx 패턴
+ * ### 본사+점포만 (가맹점 생략) — StoreMenuSearch 패턴
  * ```tsx
  * <HeadOfficeFranchiseStoreSelect
- *   isHeadOfficeRequired={false}
- *   fields={['office', 'franchise']}
- *   officeId={params.officeId ?? null}
- *   franchiseId={params.franchiseId ?? null}
- *   storeId={null}
- *   onChange={handleBpSelectChange}
- *   isDisabled={isBpDisabled}
+ *   isHeadOfficeRequired={true}
+ *   showHeadOfficeError={showOfficeError}
+ *   fields={['office', 'store']}
+ *   officeId={filters.officeId ?? null}
+ *   franchiseId={null}
+ *   storeId={filters.storeId ?? null}
+ *   onChange={(next) => { ... }}
+ *   onMultiOffice={handleMultiOffice}
  * />
  * ```
  *
- * ### 점포 필수 입력 — WorkScheduleSearch.tsx 패턴
+ * ### 점포 필수 입력 — WorkScheduleSearch 패턴
  * ```tsx
  * <HeadOfficeFranchiseStoreSelect
  *   isHeadOfficeRequired={true}
@@ -52,10 +47,26 @@
  *   franchiseId={form.franchiseId ?? null}
  *   storeId={form.storeId ?? null}
  *   onChange={(next) => { ... }}
+ *   onMultiOffice={handleMultiOffice}
  * />
  * ```
  *
- * ### 폼(등록/수정) 내 사용 — AuthorityForm.tsx 패턴 (비활성화 옵션 포함)
+ * ### 자동 선택 비활성화 — HolidaySearch, CommonCodeSearch, AuthoritySearch 패턴
+ * 시스템 관리 페이지에서는 계정 유형에 관계없이 본사/가맹점을 고정하지 않는다.
+ * ```tsx
+ * <HeadOfficeFranchiseStoreSelect
+ *   isHeadOfficeRequired={false}
+ *   autoSelect={false}
+ *   fields={['office', 'franchise']}
+ *   officeId={localParams.officeId ?? null}
+ *   franchiseId={localParams.franchiseId ?? null}
+ *   storeId={null}
+ *   onChange={handleBpSelectChange}
+ *   isDisabled={isBpDisabled}
+ * />
+ * ```
+ *
+ * ### 폼(등록/수정) 내 사용 — AuthorityForm 패턴 (비활성화 옵션 포함)
  * ```tsx
  * <HeadOfficeFranchiseStoreSelect
  *   isHeadOfficeRequired={true}
@@ -72,17 +83,20 @@
  *
  * ---
  *
- * ## 계정 유형별 초기값 자동 설정
+ * ## 계정 유형별 자동 선택 (`autoSelect={true}` 기본값일 때)
  *
- * 로그인 사용자의 bpTree(본사/가맹점 트리) 구조에 따라 초기값이 자동 결정된다.
+ * ownerCode(Zustand auth-store)를 우선 사용하여 계정 유형을 판단한다.
+ * ownerCode가 없으면 bpTree 구조로 추론한다 (하위 호환).
  *
- * | 계정 유형             | bpTree 조건                                        | 본사               | 가맹점             | 점포        |
- * | --------------------- | -------------------------------------------------- | ------------------ | ------------------ | ----------- |
- * | 단일 본사 + 단일 가맹 | `bpTree.length === 1 && franchises.length === 1`   | 자동 고정(readOnly)| 자동 고정(readOnly)| 사용자 선택 |
- * | 단일 본사 + 다중 가맹 | `bpTree.length === 1 && franchises.length > 1`     | 자동 고정(readOnly)| 사용자 선택        | 사용자 선택 |
- * | 다중 본사             | `bpTree.length > 1`                                | 직접 선택 필요†    | 사용자 선택        | 사용자 선택 |
+ * | ownerCode       | 계정 유형 | 본사                | 가맹점             | 점포        |
+ * | --------------- | --------- | ------------------- | ------------------ | ----------- |
+ * | PRGRP_001_001   | 플랫폼    | 사용자 선택         | 사용자 선택        | 사용자 선택 |
+ * | PRGRP_002_001   | 본사      | 자동 고정(readOnly) | 사용자 선택        | 사용자 선택 |
+ * | PRGRP_002_002   | 가맹점    | 자동 고정(readOnly) | 자동 고정(readOnly)| 사용자 선택 |
+ * | (없음)          | 추론      | bpTree.length===1 시 고정 | 단일 가맹점 시 고정 | 사용자 선택 |
  *
- * (†) 다중 본사: 자동 선택 없음. onMultiOffice 콜백으로 상위 컴포넌트에 다중 본사 여부를 통보하며, 사용자가 직접 선택해야 한다.
+ * `autoSelect={false}` 설정 시 계정 유형과 무관하게 자동 선택/고정이 비활성화된다.
+ * 시스템 관리 페이지(휴일, 공통코드, 권한)에서 사용.
  *
  * ---
  *
@@ -92,21 +106,22 @@
  * - `useBpHeadOfficeTree()` → 본사/가맹점 트리 로드 → `buildOfficeOptions()`, `buildFranchiseOptions()`로 옵션 빌드
  * - `useStoreOptions(officeId, franchiseId)` → 선택된 본사/가맹점에 해당하는 점포 옵션 로드
  *
- * ### 자동 선택 useEffect 로직
- * - **단일 본사**: isHeadOfficeRequired 여부와 무관하게 항상 고정. 초기화 버튼 후에도 자동 복원(readOnly).
- *   단일 가맹점이면 가맹점도 함께 고정.
- * - **다중 본사**: 자동 선택 없음. onMultiOffice(true) 콜백으로 상위 컴포넌트에 통보하여
- *   상위가 검색 패널을 열거나 오류 상태를 표시하도록 위임한다.
+ * ### 자동 선택 useEffect 로직 (autoSelect=true 시)
+ * - `isOfficeFixed`: ownerCode가 본사(PRGRP_002_001) 또는 가맹점(PRGRP_002_002)이면 true.
+ *   ownerCode 없으면 bpTree.length === 1이면 true. 초기화 후에도 자동 복원(readOnly).
+ * - `isFranchiseFixed`: ownerCode가 가맹점(PRGRP_002_002)이면 true.
+ *   ownerCode 없으면 bpTree.length === 1 && franchises.length === 1이면 true.
+ * - **다중 본사**: 자동 선택 없음. onMultiOffice(true) 콜백으로 상위에 통보.
  *
  * ### 핵심 Ref
- * - `onChangeRef`: onChange 콜백의 안정적 참조 유지. useEffect 내에서 onChange를 호출하되
- *   의존성 배열에 넣지 않아 불필요한 effect 재실행을 방지.
- * - `onMultiOfficeRef`: onMultiOffice 콜백의 안정적 참조 유지. bpTree 로드 후 다중 본사 여부를 상위에 통보.
+ * - `onChangeRef`: onChange 콜백의 안정적 참조 유지. useEffect 내에서 호출 시
+ *   의존성 배열에서 제외하여 불필요한 effect 재실행 방지.
+ * - `onMultiOfficeRef`: onMultiOffice 콜백의 안정적 참조 유지. bpTree 로드 후 다중 본사 여부 통보.
  *
- * ### 상위→하위 초기화 (캐스케이드)
- * - 본사 변경 시: 새 본사의 가맹점 목록에 기존 가맹점이 없으면 가맹점 초기화 + 점포 항상 초기화
- * - 가맹점 변경 시: 점포 초기화
- * - 점포 변경 시: 본사/가맹점 유지
+ * ### 상위→하위 캐스케이드 초기화
+ * - 본사 변경 → 새 본사의 가맹점 목록에 기존 가맹점 없으면 가맹점 초기화, 점포는 항상 초기화
+ * - 가맹점 변경 → 점포 초기화
+ * - 점포 변경 → 본사/가맹점 유지
  *
  * ### 옵션 빌드 로직 (buildFranchiseOptions)
  * - `officeId === null` → bpTree 전체의 가맹점을 flatMap으로 표시 (전체 보기)

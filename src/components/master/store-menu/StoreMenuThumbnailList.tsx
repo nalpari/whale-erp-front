@@ -16,6 +16,7 @@ interface StoreMenuThumbnailListProps {
   pageSize: number
   totalPages: number
   loading: boolean
+  error?: string
   statusMap: Record<string, string>
   marketingMap: Record<string, string>
   menuPropertyMap: Record<string, string>
@@ -63,6 +64,7 @@ export default function StoreMenuThumbnailList({
   pageSize,
   totalPages,
   loading,
+  error,
   statusMap,
   marketingMap,
   menuPropertyMap,
@@ -134,6 +136,7 @@ export default function StoreMenuThumbnailList({
       </div>
 
       <div className="data-list-bx">
+        {error && <div className="warning-txt">{error}</div>}
         {loading ? (
           <div className="cube-loader-overlay">
             <CubeLoader />

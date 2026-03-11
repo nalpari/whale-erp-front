@@ -127,6 +127,7 @@ export default function CommonCodeSearch({
                 </td>
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
+                  autoSelect={false}
                   fields={['office', 'franchise']}
                   officeId={localParams.headOfficeId ?? null}
                   franchiseId={localParams.franchiseeId ?? null}
