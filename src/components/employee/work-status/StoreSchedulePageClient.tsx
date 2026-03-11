@@ -40,7 +40,7 @@ export default function StoreSchedulePageClient() {
   // 로컬 상태 (sessionStorage 저장 없음)
   const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [showStoreError, setShowStoreError] = useState(false);
+  const [showStoreError, setShowStoreError] = useState(!initialQuery.storeId);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
 
   const scheduleQuery = useStoreScheduleList(lastQuery, lastQuery !== null);
@@ -74,6 +74,18 @@ export default function StoreSchedulePageClient() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (lastQuery 변경 안 함)
   const handleReset = () => {
     setShowStoreError(false);
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    // 필수 필드(office, store, period) 제거 시 lastQuery 유지 → 목록 데이터 보존
+    if (key === 'office' || key === 'store' || key === 'period') return;
+    if (!lastQuery) return;
+    const nextQuery = { ...lastQuery };
+    if (key === 'franchise') delete nextQuery.franchiseId;
+    else if (key === 'employeeName') delete nextQuery.employeeName;
+    else if (key === 'dayType') delete nextQuery.dayType;
+    else return;
+    setLastQuery(nextQuery);
   };
 
   const handleDownloadExcel = async () => {
@@ -206,8 +218,10 @@ export default function StoreSchedulePageClient() {
         showStoreError={showStoreError}
         onStoreErrorChange={setShowStoreError}
         initialQuery={initialQuery}
+        appliedQuery={lastQuery}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <WorkScheduleTable
         schedules={schedules}

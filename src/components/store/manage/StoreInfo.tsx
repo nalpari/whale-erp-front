@@ -75,6 +75,24 @@ export default function StoreInfo() {
     setFilters(DEFAULT_FILTERS)
   }
 
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<StoreSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      status: { status: 'ALL' },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
+  }
+
   // 등록 페이지로 이동 전에 구독 플랜 점포 등록 가능 여부 확인
   const handleRegister = async () => {
     const { data, isError } = await checkSubscribePlan()
@@ -113,6 +131,7 @@ export default function StoreInfo() {
       <Location title="점포 정보 관리" list={BREADCRUMBS} />
       <StoreSearch
         filters={filters}
+        appliedFilters={appliedFilters}
         statusOptions={statusChildren.map((item) => ({ value: item.code, label: item.name }))}
         resultCount={totalCount}
         onChange={(next) =>
@@ -120,6 +139,7 @@ export default function StoreInfo() {
         }
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <StoreList
         rows={listData}

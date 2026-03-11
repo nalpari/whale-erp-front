@@ -65,6 +65,23 @@ export default function HolidayInfo() {
     setFilters(DEFAULT_FILTERS)
   }, [])
 
+  const handleRemoveFilter = useCallback((key: string) => {
+    const resetMap: Record<string, Partial<HolidaySearchFilters>> = {
+      year: { year: null },
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(year) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'year') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
+  }, [appliedFilters])
+
   const handleFilterChange = useCallback(
     (next: Partial<HolidaySearchFilters>) => {
       setFilters((prev) => ({ ...prev, ...next }))
@@ -113,10 +130,12 @@ export default function HolidayInfo() {
       <Location title="휴일 관리" list={BREADCRUMBS} />
       <HolidaySearch
         filters={filters}
+        appliedFilters={appliedFilters}
         resultCount={totalCount}
         onChange={handleFilterChange}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <HolidayList
         rows={listData}

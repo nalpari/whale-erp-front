@@ -4,6 +4,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 
 export interface HolidaySearchFilters {
   year: number | null
@@ -15,10 +16,12 @@ export interface HolidaySearchFilters {
 
 interface HolidaySearchProps {
   filters: HolidaySearchFilters
+  appliedFilters: HolidaySearchFilters
   resultCount: number
   onChange: (next: Partial<HolidaySearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  onRemoveFilter: (key: string) => void
 }
 
 const currentYear = new Date().getFullYear()
@@ -26,13 +29,48 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
 export default function HolidaySearch({
   filters,
+  appliedFilters,
   resultCount,
   onChange,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: HolidaySearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showYearError, setShowYearError] = useState(false)
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedFilters.officeId ?? null,
+    appliedFilters.franchiseId ?? null,
+    appliedFilters.officeId != null
+  )
+
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (appliedFilters.year != null) {
+    appliedTags.push({ key: 'year', value: `${appliedFilters.year}년`, category: '연도' })
+  }
+  if (appliedFilters.officeId != null) {
+    const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+  }
+  if (appliedFilters.franchiseId != null) {
+    const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' })
+  }
+  if (appliedFilters.storeId != null) {
+    const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
+    if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (key === 'year') {
+      setShowYearError(true)
+      setSearchOpen(true)
+    }
+    onRemoveFilter(key)
+  }
 
   const handleSearch = () => {
     if (!filters.year) {
@@ -41,6 +79,7 @@ export default function HolidaySearch({
     }
     setShowYearError(false)
     onSearch()
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
@@ -51,10 +90,21 @@ export default function HolidaySearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과<span>{resultCount}건</span>
-        </div>
-        <ul className="search-result-list" />
+        <ul className="search-result-list">
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
+        </ul>
         <button
           type="button"
           className="search-filed-btn"

@@ -93,6 +93,27 @@ export default function StoreMenuManage() {
     setFilters(DEFAULT_FILTERS)
   }
 
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<StoreMenuSearchFilters>> = {
+      office: { officeId: null, storeId: null, categoryId: null },
+      store: { storeId: null },
+      menuName: { menuName: '' },
+      operationStatus: { operationStatus: 'ALL' },
+      menuType: { menuType: 'ALL' },
+      menuClassificationCode: { menuClassificationCode: '' },
+      categoryId: { categoryId: null },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
+  }
+
   const listData = response?.content ?? []
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
@@ -194,6 +215,7 @@ export default function StoreMenuManage() {
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
       <StoreMenuSearch
         filters={filters}
+        appliedFilters={appliedFilters}
         operationStatusOptions={operationStatusOptions}
         menuTypeOptions={menuTypeOptions}
         menuClassificationOptions={menuClassificationOptions}
@@ -201,6 +223,7 @@ export default function StoreMenuManage() {
         onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <StoreMenuThumbnailList
         rows={listData}

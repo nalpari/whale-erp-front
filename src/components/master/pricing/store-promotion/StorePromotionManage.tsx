@@ -77,6 +77,25 @@ export default function StorePromotionManage() {
     setPage(0)
   }
 
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<PromotionSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      promotionStatus: { promotionStatus: '' },
+      menuName: { menuName: '' },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
+  }
+
   const handleRegister = () => {
     router.push('/master/pricing/store-promotion/detail')
   }
@@ -90,11 +109,13 @@ export default function StorePromotionManage() {
       <Location title="점포용 프로모션 가격 관리" list={BREADCRUMBS} />
       <PromotionSearch
         filters={filters}
+        appliedFilters={appliedFilters}
         promotionStatusOptions={PROMOTION_STATUS_OPTIONS}
         resultCount={totalCount}
         onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <PromotionList
         rows={listData}

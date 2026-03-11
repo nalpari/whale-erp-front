@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react'
 import { Input } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 
 export interface AttendanceSearchFilters {
   officeId?: number | null
@@ -30,6 +31,7 @@ export const DEFAULT_ATTENDANCE_FILTERS: AttendanceSearchFilters = {
 
 interface AttendanceSearchProps {
   filters: AttendanceSearchFilters
+  appliedFilters: AttendanceSearchFilters
   workStatusOptions: { value: string; label: string }[]
   employeeClassificationOptions: { value: string; label: string }[]
   empClassDisabled?: boolean
@@ -38,6 +40,7 @@ interface AttendanceSearchProps {
   onChange: (next: Partial<AttendanceSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  onRemoveFilter: (key: string) => void
 }
 
 const WORK_DAY_OPTIONS = [
@@ -48,6 +51,7 @@ const WORK_DAY_OPTIONS = [
 
 export default function AttendanceSearch({
   filters,
+  appliedFilters,
   workStatusOptions,
   employeeClassificationOptions,
   empClassDisabled = false,
@@ -56,9 +60,17 @@ export default function AttendanceSearch({
   onChange,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: AttendanceSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedFilters.officeId ?? null,
+    appliedFilters.franchiseId ?? null,
+    appliedFilters.officeId != null
+  )
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
@@ -81,11 +93,54 @@ export default function AttendanceSearch({
     [contractClassificationOptions]
   )
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (appliedFilters.officeId != null) {
+    const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+  }
+  if (appliedFilters.franchiseId != null) {
+    const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' })
+  }
+  if (appliedFilters.storeId != null) {
+    const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
+    if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' })
+  }
+  if (appliedFilters.workStatus && appliedFilters.workStatus !== 'ALL') {
+    const label = workStatusOptions.find((o) => o.value === appliedFilters.workStatus)?.label
+    if (label) appliedTags.push({ key: 'workStatus', value: label, category: '근무여부' })
+  }
+  if (appliedFilters.employeeName) {
+    appliedTags.push({ key: 'employeeName', value: appliedFilters.employeeName, category: '직원명' })
+  }
+  if (appliedFilters.workDays.length > 0) {
+    const dayLabels = appliedFilters.workDays.map((d) => WORK_DAY_OPTIONS.find((o) => o.value === d)?.label ?? d)
+    appliedTags.push({ key: 'workDays', value: dayLabels.join(', '), category: '근무요일' })
+  }
+  if (appliedFilters.employeeClassification && appliedFilters.employeeClassification !== 'ALL') {
+    const label = employeeClassificationOptions.find((o) => o.value === appliedFilters.employeeClassification)?.label
+    if (label) appliedTags.push({ key: 'employeeClassification', value: label, category: '직원 분류' })
+  }
+  if (appliedFilters.contractClassification && appliedFilters.contractClassification !== 'ALL') {
+    const label = contractClassificationOptions.find((o) => o.value === appliedFilters.contractClassification)?.label
+    if (label) appliedTags.push({ key: 'contractClassification', value: label, category: '계약 분류' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (key === 'office') {
+      setShowOfficeError(true)
+      setSearchOpen(true)
+    }
+    onRemoveFilter(key)
+  }
+
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
     setShowOfficeError(hasOfficeError)
     if (hasOfficeError) return
     onSearch()
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
@@ -104,10 +159,21 @@ export default function AttendanceSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과<span>{resultCount}건</span>
-        </div>
-        <ul className="search-result-list" />
+        <ul className="search-result-list">
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
+        </ul>
         <button
           className="search-filed-btn"
           onClick={() => setSearchOpen(!searchOpen)}

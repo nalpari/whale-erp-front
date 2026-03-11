@@ -248,7 +248,7 @@ export default function WorkSchedulePlan() {
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
-  const [showStoreError, setShowStoreError] = useState(false);
+  const [showStoreError, setShowStoreError] = useState(!searchParams.get('storeId'));
   const [employeeModal, setEmployeeModal] = useState<{
     mode: 'add' | 'replace';
     dayIndex: number;
@@ -336,6 +336,18 @@ export default function WorkSchedulePlan() {
   const handleReset = useCallback(() => {
     setShowStoreError(false);
   }, []);
+
+  const handleRemoveFilter = useCallback((key: string) => {
+    // 필수 필드(office, store, period) 제거 시 lastQuery 유지 → 목록 데이터 보존
+    if (key === 'office' || key === 'store' || key === 'period') return;
+    if (!lastQuery) return;
+    const nextQuery = { ...lastQuery };
+    if (key === 'franchise') delete nextQuery.franchiseId;
+    else if (key === 'employeeName') delete nextQuery.employeeName;
+    else if (key === 'dayType') delete nextQuery.dayType;
+    else return;
+    setLastQuery(nextQuery);
+  }, [lastQuery]);
 
   const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
     setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });
@@ -601,8 +613,10 @@ export default function WorkSchedulePlan() {
           showStoreError={showStoreError}
           onStoreErrorChange={setShowStoreError}
           initialQuery={initialQuery}
+          appliedQuery={lastQuery}
           onSearch={handleSearch}
           onReset={handleReset}
+          onRemoveFilter={handleRemoveFilter}
         />
         <div className="contents-body">
           <div className="content-wrap">

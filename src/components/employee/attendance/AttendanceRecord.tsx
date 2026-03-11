@@ -90,6 +90,27 @@ export default function AttendanceRecord() {
     setFilters(DEFAULT_ATTENDANCE_FILTERS)
   }
 
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<AttendanceSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      workStatus: { workStatus: 'ALL' },
+      employeeName: { employeeName: '' },
+      workDays: { workDays: [] },
+      employeeClassification: { employeeClassification: 'ALL' },
+      contractClassification: { contractClassification: 'ALL' },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
+  }
+
   const listData = response?.content ?? []
   const totalCount = response?.totalElements ?? 0
   const totalPages = response?.totalPages ?? 1
@@ -99,6 +120,7 @@ export default function AttendanceRecord() {
       <Location title="근태 기록" list={BREADCRUMBS} />
       <AttendanceSearch
         filters={filters}
+        appliedFilters={appliedFilters}
         workStatusOptions={workStatusChildren.map((c) => ({ value: c.code, label: c.name }))}
         employeeClassificationOptions={empClassList.map((c) => ({
           value: c.code,
@@ -113,6 +135,7 @@ export default function AttendanceRecord() {
         onChange={(next) => setFilters({ ...filters, ...next })}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <AttendanceList
         rows={listData}

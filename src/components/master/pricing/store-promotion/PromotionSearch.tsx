@@ -6,6 +6,7 @@ import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranch
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { Input } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 
 export interface PromotionSearchFilters {
   officeId: number | null
@@ -19,23 +20,77 @@ export interface PromotionSearchFilters {
 
 interface PromotionSearchProps {
   filters: PromotionSearchFilters
+  appliedFilters: PromotionSearchFilters
   promotionStatusOptions: SelectOption[]
   resultCount: number
   onChange: (next: Partial<PromotionSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  onRemoveFilter: (key: string) => void
+}
+
+const formatDateLabel = (date: Date | null): string => {
+  if (!date) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export default function PromotionSearch({
   filters,
+  appliedFilters,
   promotionStatusOptions,
   resultCount,
   onChange,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: PromotionSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedFilters.officeId,
+    appliedFilters.franchiseId,
+    appliedFilters.officeId != null
+  )
+
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (appliedFilters.officeId != null) {
+    const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+  }
+  if (appliedFilters.franchiseId != null) {
+    const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' })
+  }
+  if (appliedFilters.storeId != null) {
+    const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
+    if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' })
+  }
+  if (appliedFilters.promotionStatus) {
+    const label = promotionStatusOptions.find((o) => o.value === appliedFilters.promotionStatus)?.label
+    if (label) appliedTags.push({ key: 'promotionStatus', value: label, category: '프로모션 상태' })
+  }
+  if (appliedFilters.menuName) {
+    appliedTags.push({ key: 'menuName', value: appliedFilters.menuName, category: '메뉴명' })
+  }
+  if (appliedFilters.from || appliedFilters.to) {
+    const from = formatDateLabel(appliedFilters.from)
+    const to = formatDateLabel(appliedFilters.to)
+    appliedTags.push({ key: 'date', value: `${from} ~ ${to}`, category: '프로모션 기간' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (key === 'office') {
+      setShowOfficeError(true)
+      setSearchOpen(true)
+    }
+    onRemoveFilter(key)
+  }
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
@@ -66,10 +121,21 @@ export default function PromotionSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과<span>{resultCount.toLocaleString()}건</span>
-        </div>
-        <ul className="search-result-list" />
+        <ul className="search-result-list">
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
+        </ul>
         <button
           className="search-filed-btn"
           aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
