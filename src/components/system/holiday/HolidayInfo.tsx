@@ -6,7 +6,7 @@ import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
-import { useBpHeadOfficeTree, useHolidayList } from '@/hooks/queries'
+import { useHolidayList } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 
@@ -24,20 +24,17 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 export default function HolidayInfo() {
   const router = useRouter()
   const [isNavigating, startTransition] = useTransition()
-  const { accessToken, affiliationId } = useAuthStore()
-  const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
-  const isSingleOrg = bpTree.length === 1
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
 
   const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // 단일 조직(사용자 소속): auto-select된 본사/가맹점 값을 appliedFilters에 자동 반영
-  // 다중 조직(admin): 검색 버튼 클릭 시에만 반영
-  // 렌더 중 setState: 조건이 자기종결적(appliedFilters.officeId 설정 후 false)이므로 무한 렌더 없음
-  if (isSingleOrg && filters.officeId != null && appliedFilters.officeId == null) {
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
     setAppliedFilters(filters)
   }
 

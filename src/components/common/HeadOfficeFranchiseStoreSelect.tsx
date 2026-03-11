@@ -184,7 +184,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     autoSelect = true,
     onMultiOffice,
 }: HeadOfficeFranchiseStoreSelectProps) {
-    const { accessToken, affiliationId } = useAuthStore()
+    const { accessToken, affiliationId, ownerCode } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
@@ -195,13 +195,19 @@ export default function HeadOfficeFranchiseStoreSelect({
         onChangeRef.current = onChange
     }, [onChange])
 
-    // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
-    // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
-    //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
-    //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false
-    //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true
-    const isOfficeFixed = autoSelect && bpTree.length === 1
-    const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
+    // ownerCode 기반 계정 유형 판단, 없으면 bpTree 구조 추론 (하위 호환)
+    // 본사 계정(PRGRP_002_001): 본사 고정(readOnly), 가맹점은 자동 채움만 (고정 안 함)
+    // 가맹점 계정(PRGRP_002_002): 본사+가맹점 모두 고정(readOnly)
+    const isOfficeFixed = autoSelect && (
+        ownerCode
+            ? ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+            : bpTree.length === 1
+    )
+    const isFranchiseFixed = autoSelect && (
+        ownerCode
+            ? ownerCode === 'PRGRP_002_002'
+            : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
+    )
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
@@ -212,32 +218,34 @@ export default function HeadOfficeFranchiseStoreSelect({
         onMultiOfficeRef.current?.(bpCount > 1)
     }, [bpLoading, bpCount])
 
-    // 본사/가맹점 자동 선택 및 고정 로직
-    // - autoSelect=false: 자동 선택 안 함 (검색 컨텍스트에서 "전체" 허용)
-    // - 단일 본사(사용자 소속): 항상 고정, 초기화해도 값 유지
-    // - 다중 본사: 자동 선택 없음 (사용자가 직접 선택)
+    // 본사/가맹점 자동 선택
+    // - 본사(PRGRP_002_001): 본사만 고정, 가맹점은 auto-select 안 함
+    // - 가맹점(PRGRP_002_002): 본사+가맹점 모두 고정(readOnly), 초기화해도 유지
+    // - ownerCode 없음(하위 호환): bpTree 기반 추론
     useEffect(() => {
         if (!autoSelect || bpLoading || bpTree.length === 0) return
 
-        if (bpTree.length === 1) {
-            // 단일 본사: 로그인 사용자의 소속 조직 → isHeadOfficeRequired와 무관하게 항상 고정
+        if (isOfficeFixed) {
             const office = bpTree[0]
-            const autoFranchiseId = office.franchises.length === 1 ? office.franchises[0].id : null
 
-            // 초기화 버튼 후에도 고정값 자동 복원 (readOnly)
-            const needsUpdate =
-                officeId !== office.id ||
-                (autoFranchiseId !== null && franchiseId !== autoFranchiseId)
+            const officeNeedsUpdate = officeId !== office.id
+            // 가맹점 고정(가맹점 계정)일 때만 자동 선택/복원
+            const autoFranchiseId = isFranchiseFixed && office.franchises.length === 1
+                ? office.franchises[0].id
+                : null
+            const franchiseNeedsUpdate = isFranchiseFixed
+                && autoFranchiseId !== null
+                && franchiseId !== autoFranchiseId
 
-            if (needsUpdate) {
+            if (officeNeedsUpdate || franchiseNeedsUpdate) {
                 onChangeRef.current({
                     head_office: office.id,
-                    franchise: autoFranchiseId,
+                    franchise: autoFranchiseId ?? franchiseId ?? null,
                     store: null,
                 })
             }
         }
-    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId])
+    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId, isOfficeFixed, isFranchiseFixed])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

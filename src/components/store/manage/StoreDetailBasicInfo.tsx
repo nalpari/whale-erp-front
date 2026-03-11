@@ -2,6 +2,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import type { RefObject } from 'react'
 import { useMemo } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
@@ -143,14 +144,18 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
-  // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
-  // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
-  //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
-  //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false, isOwnerFixed=false
-  //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true, isOwnerFixed=true (FRANCHISE 고정)
-  const isOfficeFixed = bpTree.length === 1
-  const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
-  const isOwnerFixed = isOfficeFixed && bpTree[0]?.franchises.length === 0
+  // ownerCode 기반 계정 유형 판단, 없으면 bpTree 구조 추론 (하위 호환)
+  // 본사(PRGRP_002_001): 본사만 고정
+  // 가맹점(PRGRP_002_002): 본사+가맹점 고정
+  // 플랫폼(PRGRP_001_001) / 관리자: 고정 없음
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isOfficeFixed = ownerCode
+    ? ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+    : bpTree.length === 1
+  const isFranchiseFixed = ownerCode
+    ? ownerCode === 'PRGRP_002_002'
+    : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
+  const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
   const businessFiles = useMemo<FileItem[]>(() => {

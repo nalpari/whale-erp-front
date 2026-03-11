@@ -25,12 +25,20 @@ const DEFAULT_PAGE_SIZE = 50
 export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
 
   // 로컬 상태 (sessionStorage 저장 없음)
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)

@@ -11,6 +11,7 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui'
 import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
+import { useAuthStore } from '@/stores/auth-store'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
@@ -40,11 +41,20 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 
 export default function StoreMenuManage() {
   const router = useRouter()
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
 
   const queryParams: StoreMenuListParams = {
     bpId: appliedFilters.officeId ?? undefined,

@@ -8,6 +8,7 @@ import Location from '@/components/ui/Location'
 import { useStorePromotionList, useStoreOptions } from '@/hooks/queries'
 import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams, type PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
+import { useAuthStore } from '@/stores/auth-store'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -27,10 +28,19 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 
 export default function StorePromotionManage() {
   const router = useRouter()
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+
   const [filters, setFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
+    setAppliedFilters(filters)
+  }
 
   // 적용된 필터 기준으로 점포 옵션 조회
   const { data: storeOptions } = useStoreOptions(appliedFilters.officeId, appliedFilters.franchiseId, appliedFilters.officeId != null)
