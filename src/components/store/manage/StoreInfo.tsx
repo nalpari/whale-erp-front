@@ -10,6 +10,7 @@ import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
 import { useAuthStore } from '@/stores/auth-store'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
@@ -61,7 +62,8 @@ export default function StoreInfo() {
   useStoreOptions(filters.officeId, filters.franchiseId)
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isFetching: loading, error } = useStoreList(storeParams, canFetchList)
+  const { data: response, isFetching: loading, error: queryError } = useStoreList(storeParams, canFetchList)
+  const errorMessage = useQueryError(queryError)
   const { children: statusChildren } = useCommonCode('STOPR', true)
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
@@ -147,7 +149,7 @@ export default function StoreInfo() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error?.message}
+        error={errorMessage}
         statusMap={statusMap}
         onPageChange={(nextPage) => {
           setPage(nextPage)

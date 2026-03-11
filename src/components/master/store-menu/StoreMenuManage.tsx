@@ -12,6 +12,7 @@ import { useAlert } from '@/components/common/ui'
 import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
 import { useAuthStore } from '@/stores/auth-store'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
@@ -73,8 +74,9 @@ export default function StoreMenuManage() {
   }
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isPending } = useStoreMenuList(queryParams, canFetchList)
+  const { data: response, isPending, error: queryError } = useStoreMenuList(queryParams, canFetchList)
   const loading = canFetchList && isPending
+  const errorMessage = useQueryError(queryError)
 
   // 공통코드: 운영 여부(STOPR), 메뉴 타입(MNTYP), 메뉴 분류(MNCF), 마케팅(MKCF), 세트 여부(STST)
   const { children: statusChildren } = useCommonCode('STOPR', true)
@@ -231,6 +233,7 @@ export default function StoreMenuManage() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
+        error={errorMessage}
         statusMap={statusMap}
         marketingMap={marketingMap}
         menuPropertyMap={menuPropertyMap}

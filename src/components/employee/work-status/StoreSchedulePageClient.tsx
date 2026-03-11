@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
@@ -16,6 +16,7 @@ import {
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
+import { useQueryError } from '@/hooks/useQueryError';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
 import { parseNumberParam } from '@/util/param-util';
 import type { DayType, ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
@@ -50,19 +51,12 @@ export default function StoreSchedulePageClient() {
   const templateMutation = useStoreScheduleDownloadTemplate();
   const schedules = useMemo(() => scheduleQuery.data ?? [], [scheduleQuery.data]);
   const isLoading = scheduleQuery.isFetching;
+  const errorMessage = useQueryError(scheduleQuery.error);
 
   const resultCount = useMemo(
     () => schedules.reduce((sum, schedule) => sum + schedule.workerList.length, 0),
     [schedules]
   );
-  useEffect(() => {
-    if (!scheduleQuery.error) return;
-    const showError = async () => {
-      await alert(scheduleQuery.error.message);
-    };
-    showError();
-  }, [scheduleQuery.error, alert]);
-
   const handleSearch = async (query: StoreScheduleQuery) => {
     setLastQuery(query);
     if (query.storeId) {
@@ -226,6 +220,7 @@ export default function StoreSchedulePageClient() {
       <WorkScheduleTable
         schedules={schedules}
         isLoading={isLoading}
+        error={errorMessage}
         isDownloading={downloadMutation.isPending || templateMutation.isPending}
         onDownloadExcel={handleDownloadExcel}
         onOpenUploadExcel={handleOpenUploadExcel}

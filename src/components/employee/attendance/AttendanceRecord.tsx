@@ -11,6 +11,7 @@ import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-q
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
 import type { AttendanceListParams } from '@/types/attendance'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
 
@@ -76,10 +77,11 @@ export default function AttendanceRecord() {
     size: pageSize,
   }
 
-  const { data: response, isFetching: loading, error } = useAttendanceList(
+  const { data: response, isFetching: loading, error: queryError } = useAttendanceList(
     attendanceParams,
     canFetchList && Boolean(accessToken)
   )
+  const errorMessage = useQueryError(queryError)
 
   const handleSearch = () => {
     setAppliedFilters(filters)
@@ -143,7 +145,7 @@ export default function AttendanceRecord() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error?.message}
+        error={errorMessage}
         onPageChange={(nextPage) => setPage(nextPage)}
         onPageSizeChange={(size) => {
           if (size === pageSize) return

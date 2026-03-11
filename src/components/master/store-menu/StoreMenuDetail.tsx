@@ -16,6 +16,7 @@ import { isAxiosError } from 'axios'
 import type { StoreMenuCategory, StoreMenuOptionSet, StoreMenuUpdateRequest, StoreMenuFilePayload } from '@/types/store-menu'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '@/components/ui/common/DatePicker'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '점포용 메뉴 관리']
 
@@ -31,7 +32,8 @@ export default function StoreMenuDetail() {
   const menuIdParam = searchParams.get('id')
   const menuId = menuIdParam && /^\d+$/.test(menuIdParam) ? Number(menuIdParam) : null
 
-  const { data: detail, isPending: loading } = useStoreMenuDetail(menuId)
+  const { data: detail, isPending: loading, error } = useStoreMenuDetail(menuId)
+  const errorMessage = useQueryError(error)
   const { mutateAsync: updateMenu } = useUpdateStoreMenu()
   const { alert, confirm } = useAlert()
 
@@ -175,7 +177,8 @@ export default function StoreMenuDetail() {
           <CubeLoader />
         </div>
       )}
-      {!loading && !detail && (
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
+      {!loading && !detail && !error && (
         <div className="empty-wrap">
           <div className="empty-data">메뉴 정보를 찾을 수 없습니다.</div>
         </div>

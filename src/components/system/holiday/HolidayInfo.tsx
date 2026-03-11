@@ -7,8 +7,8 @@ import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/ho
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useHolidayList } from '@/hooks/queries'
-import { useAuthStore } from '@/stores/auth-store'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -24,19 +24,10 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 export default function HolidayInfo() {
   const router = useRouter()
   const [isNavigating, startTransition] = useTransition()
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
-
   const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
-
-  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
-  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
 
   const params: HolidayListParams = useMemo(
     () => ({
@@ -53,7 +44,8 @@ export default function HolidayInfo() {
 
   // 휴일 관리는 본사 필수가 아니므로 연도만 있으면 목록 조회 가능
   const canFetchList = !!appliedFilters.year
-  const { data: response, isPending: loading, error } = useHolidayList(params, canFetchList)
+  const { data: response, isPending: loading, error: queryError } = useHolidayList(params, canFetchList)
+  const errorMessage = useQueryError(queryError)
 
   const handleSearch = useCallback(() => {
     setAppliedFilters(filters)
@@ -143,7 +135,7 @@ export default function HolidayInfo() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error?.message}
+        error={errorMessage}
         onPageChange={setPage}
         onPageSizeChange={(size) => {
           setPageSize(size)

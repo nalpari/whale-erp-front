@@ -7,6 +7,7 @@ import AdminSearch from '@/components/system/admin/AdminSearch'
 import AdminList from '@/components/system/admin/AdminList'
 import { useAdminList } from '@/hooks/queries/use-admin-queries'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
+import { useQueryError } from '@/hooks/useQueryError'
 
 /**
  * 관리자 관리 메인 페이지
@@ -20,11 +21,12 @@ export default function AdminPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
-  const { data, isLoading, isError } = useAdminList({
+  const { data, isLoading, error: queryError } = useAdminList({
     ...searchParams,
     page,
     size: pageSize,
   })
+  const errorMessage = useQueryError(queryError)
 
   const handleSearch = (params: AdminSearchParams) => {
     setSearchParams(params)
@@ -52,10 +54,8 @@ export default function AdminPage() {
         onSearch={handleSearch}
         resultCount={data?.totalElements || 0}
       />
-      {isError && (
-        <div className="text-red-500 text-sm p-4">관리자 목록을 불러오는 데 실패했습니다.</div>
-      )}
       <AdminList
+        error={errorMessage}
         admins={data?.content || []}
         isLoading={isLoading}
         currentPage={page - 1} // AG Grid는 0-based

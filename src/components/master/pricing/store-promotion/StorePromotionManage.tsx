@@ -9,6 +9,7 @@ import { useStorePromotionList, useStoreOptions } from '@/hooks/queries'
 import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams, type PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAuthStore } from '@/stores/auth-store'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -58,7 +59,8 @@ export default function StorePromotionManage() {
   }
 
   const canFetchList = appliedFilters.officeId != null
-  const { data: response, isFetching: loading } = useStorePromotionList(queryParams, canFetchList)
+  const { data: response, isFetching: loading, error: queryError } = useStorePromotionList(queryParams, canFetchList)
+  const errorMessage = useQueryError(queryError)
 
   // 선택된 점포명 조회
   const storeName =
@@ -123,6 +125,7 @@ export default function StorePromotionManage() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
+        error={errorMessage}
         storeName={storeName}
         onPageChange={setPage}
         onPageSizeChange={(size) => {
