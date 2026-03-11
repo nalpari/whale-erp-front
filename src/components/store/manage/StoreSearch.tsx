@@ -135,7 +135,13 @@ export default function StoreSearch({
             </div>
           </li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          aria-expanded={searchOpen}
+          onClick={() => setSearchOpen(!searchOpen)}
+        />
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">

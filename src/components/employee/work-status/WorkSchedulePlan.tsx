@@ -346,8 +346,8 @@ export default function WorkSchedulePlan() {
     else if (key === 'employeeName') delete nextQuery.employeeName;
     else if (key === 'dayType') delete nextQuery.dayType;
     else return;
-    setLastQuery(nextQuery);
-  }, [lastQuery]);
+    void handleSearch(nextQuery);
+  }, [lastQuery, handleSearch]);
 
   const openAddEmployee = (dayIndex: number, afterWorkerId?: string) => {
     setEmployeeModal({ mode: 'add', dayIndex, workerId: afterWorkerId });

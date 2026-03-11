@@ -10,6 +10,7 @@ import { useAttendanceList } from '@/hooks/queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
 import type { AttendanceListParams } from '@/types/attendance'
 import { useQueryError } from '@/hooks/useQueryError'
 
@@ -27,7 +28,7 @@ export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+  const autoSelect = isAutoSelectAccount(ownerCode)
 
   // 로컬 상태 (sessionStorage 저장 없음)
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
@@ -37,9 +38,11 @@ export default function AttendanceRecord() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
+  // appliedFilters가 아직 초기 상태이고 filters에 officeId가 채워지면 파생값으로 대체
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)
@@ -55,24 +58,24 @@ export default function AttendanceRecord() {
   )
   const empClassList = settingsData?.codeMemoContent?.EMPLOYEE ?? []
 
-  const canFetchList = appliedFilters.officeId != null
+  const canFetchList = effectiveAppliedFilters.officeId != null
 
   const attendanceParams: AttendanceListParams = {
-    officeId: appliedFilters.officeId ?? undefined,
-    franchiseId: appliedFilters.franchiseId ?? undefined,
-    storeId: appliedFilters.storeId ?? undefined,
+    officeId: effectiveAppliedFilters.officeId ?? undefined,
+    franchiseId: effectiveAppliedFilters.franchiseId ?? undefined,
+    storeId: effectiveAppliedFilters.storeId ?? undefined,
     status:
-      appliedFilters.workStatus === 'ALL' ? undefined : appliedFilters.workStatus,
-    employeeName: appliedFilters.employeeName || undefined,
-    dayType: appliedFilters.workDays.length > 0 ? appliedFilters.workDays : undefined,
+      effectiveAppliedFilters.workStatus === 'ALL' ? undefined : effectiveAppliedFilters.workStatus,
+    employeeName: effectiveAppliedFilters.employeeName || undefined,
+    dayType: effectiveAppliedFilters.workDays.length > 0 ? effectiveAppliedFilters.workDays : undefined,
     employeeClassify:
-      appliedFilters.employeeClassification === 'ALL'
+      effectiveAppliedFilters.employeeClassification === 'ALL'
         ? undefined
-        : appliedFilters.employeeClassification,
+        : effectiveAppliedFilters.employeeClassification,
     contractClassify:
-      appliedFilters.contractClassification === 'ALL'
+      effectiveAppliedFilters.contractClassification === 'ALL'
         ? undefined
-        : appliedFilters.contractClassification,
+        : effectiveAppliedFilters.contractClassification,
     page,
     size: pageSize,
   }
@@ -105,7 +108,7 @@ export default function AttendanceRecord() {
     }
     const patch = resetMap[key]
     if (!patch) return
-    const nextFilters = { ...appliedFilters, ...patch }
+    const nextFilters = { ...effectiveAppliedFilters, ...patch }
     setFilters(nextFilters)
     // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
     if (key === 'office') return
@@ -122,7 +125,7 @@ export default function AttendanceRecord() {
       <Location title="근태 기록" list={BREADCRUMBS} />
       <AttendanceSearch
         filters={filters}
-        appliedFilters={appliedFilters}
+        appliedFilters={effectiveAppliedFilters}
         workStatusOptions={workStatusChildren.map((c) => ({ value: c.code, label: c.name }))}
         employeeClassificationOptions={empClassList.map((c) => ({
           value: c.code,

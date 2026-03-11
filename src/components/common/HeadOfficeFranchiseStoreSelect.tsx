@@ -133,6 +133,7 @@ import './custom-css/FormHelper.css'
 import { useEffect, useMemo, useRef } from 'react'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
 
@@ -215,12 +216,12 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 가맹점 계정(PRGRP_002_002): 본사+가맹점 모두 고정(readOnly)
     const isOfficeFixed = autoSelect && (
         ownerCode
-            ? ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+            ? ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
             : bpTree.length === 1
     )
     const isFranchiseFixed = autoSelect && (
         ownerCode
-            ? ownerCode === 'PRGRP_002_002'
+            ? ownerCode === OWNER_CODE.FRANCHISE
             : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
     )
 

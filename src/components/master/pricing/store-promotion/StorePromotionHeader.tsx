@@ -52,7 +52,7 @@ export default function StorePromotionHeader() {
         </div>
       )}
       {errorMessage && <div className="warning-txt">{errorMessage}</div>}
-      {!loading && detail && (
+      {!loading && detail && !errorMessage && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
             <div className="slidebox-header">
@@ -217,7 +217,7 @@ export default function StorePromotionHeader() {
           </div>
         </div>
       )}
-      {!loading && !detail && !error && <div className="data-empty">조회할 프로모션을 선택하세요.</div>}
+      {!loading && !detail && !errorMessage && <div className="data-empty">조회할 프로모션을 선택하세요.</div>}
     </div>
   )
 }

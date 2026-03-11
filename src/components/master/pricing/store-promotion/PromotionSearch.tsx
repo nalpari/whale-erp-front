@@ -18,6 +18,8 @@ export interface PromotionSearchFilters {
   to: Date | null
 }
 
+export type PromotionFilterTagKey = 'office' | 'franchise' | 'store' | 'promotionStatus' | 'menuName' | 'date'
+
 interface PromotionSearchProps {
   filters: PromotionSearchFilters
   appliedFilters: PromotionSearchFilters
@@ -26,7 +28,7 @@ interface PromotionSearchProps {
   onChange: (next: Partial<PromotionSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
-  onRemoveFilter: (key: string) => void
+  onRemoveFilter: (key: PromotionFilterTagKey) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -58,7 +60,7 @@ export default function PromotionSearch({
   )
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; value: string; category: string }[] = []
+  const appliedTags: { key: PromotionFilterTagKey; value: string; category: string }[] = []
   if (appliedFilters.officeId != null) {
     const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
     if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
@@ -84,7 +86,7 @@ export default function PromotionSearch({
     appliedTags.push({ key: 'date', value: `${from} ~ ${to}`, category: '프로모션 기간' })
   }
 
-  const handleRemoveTag = (key: string) => {
+  const handleRemoveTag = (key: PromotionFilterTagKey) => {
     if (key === 'office') {
       setShowOfficeError(true)
       setSearchOpen(true)

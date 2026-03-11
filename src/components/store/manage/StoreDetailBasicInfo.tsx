@@ -15,6 +15,7 @@ import {
   type FileItem,
   type RadioOption,
 } from '@/components/common/ui'
+import { OWNER_CODE } from '@/constants/owner-code'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBusinessLicenseOcr } from '@/hooks/queries/use-ocr-queries'
@@ -150,10 +151,10 @@ export const StoreDetailBasicInfo = ({
   // 플랫폼(PRGRP_001_001) / 관리자: 고정 없음
   const ownerCode = useAuthStore((s) => s.ownerCode)
   const isOfficeFixed = ownerCode
-    ? ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+    ? ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
     : bpTree.length === 1
   const isFranchiseFixed = ownerCode
-    ? ownerCode === 'PRGRP_002_002'
+    ? ownerCode === OWNER_CODE.FRANCHISE
     : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 

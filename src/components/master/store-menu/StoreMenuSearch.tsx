@@ -94,7 +94,13 @@ export default function StoreMenuSearch({
     !!filters.officeId
   )
 
-  // 카테고리 이름 원문 맵 (선택된 값 표시용)
+  // appliedFilters 기준 카테고리 조회 (태그 이름 표시용)
+  const { data: appliedCategories = [] } = useCategoryList(
+    { bpId: appliedFilters.officeId ?? undefined, depth: 1 },
+    !!appliedFilters.officeId
+  )
+
+  // 카테고리 이름 원문 맵 (필터 드롭다운 표시용)
   const categoryNameMap = useMemo(() => {
     const map: Record<string, string> = {}
     const collect = (items: Category[]) => {
@@ -108,6 +114,21 @@ export default function StoreMenuSearch({
     collect(categories)
     return map
   }, [categories])
+
+  // appliedFilters 기준 카테고리 이름 맵 (태그 표시용)
+  const appliedCategoryNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const collect = (items: Category[]) => {
+      for (const item of items) {
+        if (item.id != null) {
+          map[String(item.id)] = item.categoryName
+        }
+        if (item.children?.length) collect(item.children)
+      }
+    }
+    collect(appliedCategories)
+    return map
+  }, [appliedCategories])
 
   // 카테고리 트리를 평탄화하여 드롭다운 옵션 생성 (depth별 들여쓰기로 계층 표현)
   const categorySelectOptions: SelectOption[] = useMemo(() => {
@@ -154,7 +175,7 @@ export default function StoreMenuSearch({
     if (label) appliedTags.push({ key: 'menuClassificationCode', value: label, category: '메뉴 분류' })
   }
   if (appliedFilters.categoryId != null) {
-    const name = categoryNameMap[String(appliedFilters.categoryId)]
+    const name = appliedCategoryNameMap[String(appliedFilters.categoryId)]
     if (name) appliedTags.push({ key: 'categoryId', value: name, category: '카테고리' })
   }
   if (appliedFilters.from || appliedFilters.to) {
@@ -203,7 +224,10 @@ export default function StoreMenuSearch({
           </li>
         </ul>
         <button
+          type="button"
           className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          aria-expanded={searchOpen}
           onClick={() => setSearchOpen(!searchOpen)}
         />
       </div>

@@ -117,7 +117,7 @@ export default function PromotionList({
         {error && <div className="warning-txt">{error}</div>}
         {loading ? (
           <div className="cube-loader-overlay"><CubeLoader /></div>
-        ) : rows.length === 0 ? (
+        ) : !error && rows.length === 0 ? (
           <div className="empty-wrap">
             <div className="empty-data">검색 결과가 없습니다.</div>
           </div>

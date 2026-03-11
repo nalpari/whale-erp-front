@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import PromotionSearch, { type PromotionSearchFilters } from './PromotionSearch'
+import PromotionSearch, { type PromotionSearchFilters, type PromotionFilterTagKey } from './PromotionSearch'
 import PromotionList from './PromotionList'
 import Location from '@/components/ui/Location'
 import { useStorePromotionList, useStoreOptions } from '@/hooks/queries'
 import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams, type PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
 import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
@@ -30,7 +31,7 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 export default function StorePromotionManage() {
   const router = useRouter()
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isAutoSelectAccount = ownerCode === 'PRGRP_002_001' || ownerCode === 'PRGRP_002_002'
+  const autoSelect = isAutoSelectAccount(ownerCode)
 
   const [filters, setFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
@@ -39,7 +40,7 @@ export default function StorePromotionManage() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  if (isAutoSelectAccount && filters.officeId != null && appliedFilters.officeId == null) {
+  if (autoSelect && filters.officeId != null && appliedFilters.officeId == null) {
     setAppliedFilters(filters)
   }
 
@@ -79,7 +80,7 @@ export default function StorePromotionManage() {
     setPage(0)
   }
 
-  const handleRemoveFilter = (key: string) => {
+  const handleRemoveFilter = (key: PromotionFilterTagKey) => {
     const resetMap: Record<string, Partial<PromotionSearchFilters>> = {
       office: { officeId: null, franchiseId: null, storeId: null },
       franchise: { franchiseId: null, storeId: null },

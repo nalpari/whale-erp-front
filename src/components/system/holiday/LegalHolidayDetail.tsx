@@ -69,7 +69,7 @@ export default function LegalHolidayDetail() {
       {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {loading ? (
         <div className="p-4">데이터를 불러오는 중...</div>
-      ) : (
+      ) : errorMessage ? null : (
         <LegalHolidayForm
           key={`${year}-${legalData?.length ?? 0}`}
           year={year}

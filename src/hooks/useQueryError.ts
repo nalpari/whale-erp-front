@@ -14,17 +14,21 @@ export function useQueryError(
 ): string | undefined {
   const router = useRouter()
   const { alert } = useAlert()
-  const handledRef = useRef<Error | null>(null)
+  const handledRef = useRef(false)
 
   useEffect(() => {
-    if (!error || handledRef.current === error) return
+    if (!error) {
+      handledRef.current = false
+      return
+    }
+    if (handledRef.current) return
     if (isAxiosError(error) && error.response?.status === 403) {
-      handledRef.current = error
+      handledRef.current = true
       alert('접근 권한이 없습니다.').then(() => router.back())
     }
   }, [error, alert, router])
 
   if (!error) return undefined
-  if (isAxiosError(error) && error.response?.status === 403) return undefined
+  if (isAxiosError(error) && error.response?.status === 403) return fallbackMessage
   return fallbackMessage
 }

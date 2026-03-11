@@ -109,7 +109,7 @@ function LoginContent() {
         setAffiliationId(String(authority.authorityId));
         // ownerCode는 companies[] 배열에 포함됨
         const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
-        setOwnerCode(matchedCompany?.ownerCode ?? null);
+        setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
