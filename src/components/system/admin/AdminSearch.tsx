@@ -1,7 +1,7 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
 import { useAdminSelectOptions, useAuthorityOptions } from '@/hooks/queries/use-admin-queries'
@@ -22,12 +22,14 @@ export default function AdminSearch({
 }: AdminSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [localParams, setLocalParams] = useState<AdminSearchParams>(params)
+  const [prevParams, setPrevParams] = useState(params)
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
 
-  useEffect(() => {
+  if (params !== prevParams) {
+    setPrevParams(params)
     setLocalParams(params)
-  }, [params])
+  }
 
   const { data: adminOptions = [] } = useAdminSelectOptions()
   const { data: authorities = [] } = useAuthorityOptions()

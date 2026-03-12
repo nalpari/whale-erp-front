@@ -36,33 +36,34 @@ export default function StoreInfo() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  if (autoSelect && filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
 
   const { alert } = useAlert()
   const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
 
   const storeParams: StoreListParams = useMemo(
     () => ({
-      office: appliedFilters.officeId ?? undefined,
-      franchise: appliedFilters.franchiseId ?? undefined,
-      store: appliedFilters.storeId ?? undefined,
-      status: appliedFilters.status === 'ALL' ? undefined : appliedFilters.status,
-      from: formatDateYmdOrUndefined(appliedFilters.from),
-      to: formatDateYmdOrUndefined(appliedFilters.to),
+      office: effectiveAppliedFilters.officeId ?? undefined,
+      franchise: effectiveAppliedFilters.franchiseId ?? undefined,
+      store: effectiveAppliedFilters.storeId ?? undefined,
+      status: effectiveAppliedFilters.status === 'ALL' ? undefined : effectiveAppliedFilters.status,
+      from: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
+      to: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
       page,
       size: pageSize,
       sort: 'createdAt,desc',
     }),
-    [appliedFilters, page, pageSize]
+    [effectiveAppliedFilters, page, pageSize]
   )
 
   // HeadOfficeFranchiseStoreSelect 내부에서 동일 쿼리 키로 useStoreOptions를 호출하므로
   // 캐시 워밍 역할 — 본사/가맹점 변경 시 점포 옵션을 미리 가져와 드롭다운 지연을 줄인다.
   useStoreOptions(filters.officeId, filters.franchiseId)
 
-  const canFetchList = appliedFilters.officeId != null
+  const canFetchList = effectiveAppliedFilters.officeId != null
   const { data: response, isFetching: loading, error: queryError } = useStoreList(storeParams, canFetchList)
   const errorMessage = useQueryError(queryError)
   const { children: statusChildren } = useCommonCode('STOPR', true)
@@ -134,7 +135,7 @@ export default function StoreInfo() {
       <Location title="점포 정보 관리" list={BREADCRUMBS} />
       <StoreSearch
         filters={filters}
-        appliedFilters={appliedFilters}
+        appliedFilters={effectiveAppliedFilters}
         statusOptions={statusChildren.map((item) => ({ value: item.code, label: item.name }))}
         resultCount={totalCount}
         onChange={(next) =>

@@ -54,27 +54,28 @@ export default function StoreMenuManage() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  if (autoSelect && filters.officeId != null && appliedFilters.officeId == null) {
-    setAppliedFilters(filters)
-  }
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
 
   const queryParams: StoreMenuListParams = {
-    bpId: appliedFilters.officeId ?? undefined,
+    bpId: effectiveAppliedFilters.officeId ?? undefined,
     menuGroup: 'MNGRP_002',
-    storeId: appliedFilters.storeId ?? undefined,
-    menuName: appliedFilters.menuName || undefined,
+    storeId: effectiveAppliedFilters.storeId ?? undefined,
+    menuName: effectiveAppliedFilters.menuName || undefined,
     operationStatus:
-      appliedFilters.operationStatus === 'ALL' ? undefined : appliedFilters.operationStatus,
-    menuType: appliedFilters.menuType === 'ALL' ? undefined : appliedFilters.menuType,
-    menuClassificationCode: appliedFilters.menuClassificationCode || undefined,
-    categoryId: appliedFilters.categoryId ?? undefined,
-    createdAtFrom: formatDateYmdOrUndefined(appliedFilters.from),
-    createdAtTo: formatDateYmdOrUndefined(appliedFilters.to),
+      effectiveAppliedFilters.operationStatus === 'ALL' ? undefined : effectiveAppliedFilters.operationStatus,
+    menuType: effectiveAppliedFilters.menuType === 'ALL' ? undefined : effectiveAppliedFilters.menuType,
+    menuClassificationCode: effectiveAppliedFilters.menuClassificationCode || undefined,
+    categoryId: effectiveAppliedFilters.categoryId ?? undefined,
+    createdAtFrom: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
+    createdAtTo: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
     page,
     size: pageSize,
   }
 
-  const canFetchList = appliedFilters.officeId != null
+  const canFetchList = effectiveAppliedFilters.officeId != null
   const { data: response, isPending, error: queryError } = useStoreMenuList(queryParams, canFetchList)
   const loading = canFetchList && isPending
   const errorMessage = useQueryError(queryError)
@@ -162,7 +163,7 @@ export default function StoreMenuManage() {
 
   /** 선택된 메뉴들의 운영여부를 일괄 변경. ERR3034: 마스터 메뉴가 미운영이면 점포 메뉴 운영 전환 불가 */
   const handleBulkStatusChange = async (operationStatus: string) => {
-    const officeId = appliedFilters.officeId
+    const officeId = effectiveAppliedFilters.officeId
     if (selectedIds.size === 0 || officeId == null) return
 
     const menuIds = Array.from(selectedIds)
@@ -195,7 +196,7 @@ export default function StoreMenuManage() {
 
   /** 썸네일 리스트에서 변경된 노출순서를 일괄 저장 */
   const handleSaveDisplayOrder = async (changes: Map<number, string>) => {
-    const officeId = appliedFilters.officeId
+    const officeId = effectiveAppliedFilters.officeId
     if (changes.size === 0 || officeId == null) return
 
     const confirmed = await confirm('저장하시겠습니까?')
@@ -218,7 +219,7 @@ export default function StoreMenuManage() {
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
       <StoreMenuSearch
         filters={filters}
-        appliedFilters={appliedFilters}
+        appliedFilters={effectiveAppliedFilters}
         operationStatusOptions={operationStatusOptions}
         menuTypeOptions={menuTypeOptions}
         menuClassificationOptions={menuClassificationOptions}

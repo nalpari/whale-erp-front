@@ -29,6 +29,6 @@ export function useQueryError(
   }, [error, alert, router])
 
   if (!error) return undefined
-  if (isAxiosError(error) && error.response?.status === 403) return fallbackMessage
+  if (isAxiosError(error) && error.response?.status === 403) return undefined
   return fallbackMessage
 }
