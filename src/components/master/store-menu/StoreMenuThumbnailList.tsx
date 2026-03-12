@@ -16,6 +16,7 @@ interface StoreMenuThumbnailListProps {
   pageSize: number
   totalPages: number
   loading: boolean
+  error?: string
   statusMap: Record<string, string>
   marketingMap: Record<string, string>
   menuPropertyMap: Record<string, string>
@@ -63,6 +64,7 @@ export default function StoreMenuThumbnailList({
   pageSize,
   totalPages,
   loading,
+  error,
   statusMap,
   marketingMap,
   menuPropertyMap,
@@ -134,6 +136,7 @@ export default function StoreMenuThumbnailList({
       </div>
 
       <div className="data-list-bx">
+        {error && <div className="warning-txt">{error}</div>}
         {loading ? (
           <div className="cube-loader-overlay">
             <CubeLoader />
@@ -293,20 +296,24 @@ export default function StoreMenuThumbnailList({
                             </ul>
                           </td>
                         </tr>
-                        {menu.categories?.length > 0 && (
-                          <tr>
-                            <th>카테고리</th>
-                            <td>
-                              <ul className="thum-data-list">
-                                {menu.categories.map((cat, idx) => (
+                        <tr>
+                          <th>카테고리</th>
+                          <td>
+                            <ul className="thum-data-list">
+                              {menu.categories?.length > 0 ? (
+                                menu.categories.map((cat, idx) => (
                                   <li key={cat.menuCategoryId ?? cat.categoryId ?? `cat-${idx}`} className="thum-data-item">
                                     <span className="thum-data-text">{cat.name}</span>
                                   </li>
-                                ))}
-                              </ul>
-                            </td>
-                          </tr>
-                        )}
+                                ))
+                              ) : (
+                                <li className="thum-data-item">
+                                  <span className="thum-data-text">-</span>
+                                </li>
+                              )}
+                            </ul>
+                          </td>
+                        </tr>
                         <tr>
                           <th>등록일</th>
                           <td>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 
@@ -9,7 +9,6 @@ import {
   useCreateAuthority,
   useUpdateAuthority,
 } from '@/hooks/queries/use-authority-queries'
-import { useProgramList } from '@/hooks/queries/use-program-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import type {
   AuthorityCreateRequest,
@@ -18,6 +17,7 @@ import type {
   AuthorityResponse,
 } from '@/lib/schemas/authority'
 import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
+import type { Program } from '@/lib/schemas/program'
 
 /**
  * 로그인 시 저장된 권한 데이터를 권한 폼에서 사용하는 형식으로 변환
@@ -35,16 +35,33 @@ function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDet
   }))
 }
 
+/**
+ * 프로그램 목록을 권한 트리 구조로 변환
+ */
+function convertToTree(programs: Program[]): AuthorityDetailNode[] {
+  return programs
+    .filter((program): program is Program & { id: number } => program.id !== null)
+    .map((program) => ({
+      program_id: program.id,
+      program_name: program.name,
+      can_read: false,
+      can_create_delete: false,
+      can_update: false,
+      children: program.children ? convertToTree(program.children) : undefined,
+    }))
+}
+
 interface UseAuthorityFormOptions {
   mode: 'create' | 'edit'
   authorityId?: number
   initialAuthority?: AuthorityResponse
+  programList?: Program[]
 }
 
 /**
  * 권한 생성/수정 폼 공통 로직 훅
  */
-export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAuthorityFormOptions) {
+export function useAuthorityForm({ mode, authorityId, initialAuthority, programList }: UseAuthorityFormOptions) {
   const router = useRouter()
 
   // 폼 데이터 상태
@@ -73,15 +90,15 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
     if (mode === 'edit' && initialAuthority?.details) {
       return initialAuthority.details
     }
+    if (mode === 'create' && programList) {
+      return convertToTree(programList)
+    }
     return []
   })
 
   // 로그인 유저의 권한 정보 → 폼에서 사용하는 형식으로 변환
   const loginAuthority = useAuthStore((state) => state.authority)
   const myPermissions = loginAuthority ? toAuthorityDetailNodes(loginAuthority) : null
-
-  // 프로그램 목록 조회 (생성 모드에서만)
-  const { data: programList } = useProgramList('MNKND_001')
 
   // Mutations
   const { mutateAsync: createAuthority } = useCreateAuthority()
@@ -107,47 +124,6 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority }: UseAut
 
     return findInTree(myPermissions)
   }
-
-  // 생성 모드: 프로그램 목록을 트리 구조로 변환
-  useEffect(() => {
-    if (mode === 'create' && programList && programTree.length === 0) {
-      interface ProgramNode {
-        id: number | null
-        name: string
-        children?: ProgramNode[]
-      }
-
-      const convertToTree = (programs: ProgramNode[]): AuthorityDetailNode[] => {
-        return programs
-          .filter((program): program is ProgramNode & { id: number } => program.id !== null)
-          .map((program) => ({
-            program_id: program.id,
-            program_name: program.name,
-            can_read: false,
-            can_create_delete: false,
-            can_update: false,
-            children: program.children ? convertToTree(program.children) : undefined,
-          }))
-      }
-
-      setProgramTree(convertToTree(programList))
-    }
-  }, [mode, programList, programTree.length])
-
-  // 수정 모드: initialAuthority 변경 시 폼 데이터 및 프로그램 트리 초기화
-  useEffect(() => {
-    if (mode === 'edit' && initialAuthority) {
-      setFormData({
-        owner_code: initialAuthority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
-        head_office_id: initialAuthority.head_office_id ?? undefined,
-        franchisee_id: initialAuthority.franchisee_id ?? undefined,
-        name: initialAuthority.name,
-        is_used: initialAuthority.is_used,
-        description: initialAuthority.description || undefined,
-      })
-      setProgramTree(initialAuthority.details || [])
-    }
-  }, [mode, initialAuthority])
 
   // max_can_* 권한을 파생 값으로 계산
   const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {

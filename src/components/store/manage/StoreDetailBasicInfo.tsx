@@ -2,6 +2,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import type { RefObject } from 'react'
 import { useMemo } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
@@ -14,8 +15,10 @@ import {
   type FileItem,
   type RadioOption,
 } from '@/components/common/ui'
+import { OWNER_CODE } from '@/constants/owner-code'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useBusinessLicenseOcr } from '@/hooks/queries/use-ocr-queries'
 
 // 사업자등록번호 입력값을 000-00-00000 형식으로 보기 좋게 정리
 const formatBusinessNumberInput = (value: string) => {
@@ -142,14 +145,18 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
-  // 로그인 사용자 권한에 따른 비활성화 여부 (bpTree 구조 기반 추론)
-  // TODO: auth-store에 소속 조직 타입(organizationType: 'HEAD_OFFICE' | 'FRANCHISE')이
-  //       저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
-  //       - HEAD_OFFICE: isOfficeFixed=true, isFranchiseFixed=false, isOwnerFixed=false
-  //       - FRANCHISE: isOfficeFixed=true, isFranchiseFixed=true, isOwnerFixed=true (FRANCHISE 고정)
-  const isOfficeFixed = bpTree.length === 1
-  const isFranchiseFixed = isOfficeFixed && bpTree[0]?.franchises.length === 1
-  const isOwnerFixed = isOfficeFixed && bpTree[0]?.franchises.length === 0
+  // ownerCode 기반 계정 유형 판단, 없으면 bpTree 구조 추론 (하위 호환)
+  // 본사(PRGRP_002_001): 본사만 고정
+  // 가맹점(PRGRP_002_002): 본사+가맹점 고정
+  // 플랫폼(PRGRP_001_001) / 관리자: 고정 없음
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isOfficeFixed = ownerCode
+    ? ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+    : bpTree.length === 1
+  const isFranchiseFixed = ownerCode
+    ? ownerCode === OWNER_CODE.FRANCHISE
+    : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
+  const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)
   const businessFiles = useMemo<FileItem[]>(() => {
@@ -191,10 +198,38 @@ export const StoreDetailBasicInfo = ({
     return files
   }, [existingStoreImages, formState.storeImages])
 
-  // 사업자등록증 파일 추가 핸들러
+  const { mutate: ocrMutate } = useBusinessLicenseOcr()
+
+  // 사업자등록증 파일 추가 핸들러 (OCR 자동 실행)
   const handleBusinessFileAdd = (files: File[]) => {
     if (files.length > 0) {
       onBusinessFilesSelect(files)
+
+      const file = files[0]
+      const isOcrTarget = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)
+      if (isOcrTarget) {
+        ocrMutate(file, {
+          onSuccess: (response) => {
+            if (response.success && response.data) {
+              console.log('OCR 결과:', response.data)
+              const { representativeName, businessRegistrationNumber, address1 } = response.data
+              if (representativeName) onCeoNameChange(representativeName)
+              if (businessRegistrationNumber) onBusinessNumberChange(businessRegistrationNumber)
+              if (address1) {
+                const commaIndex = address1.indexOf(',')
+                if (commaIndex !== -1) {
+                  onAddressChange({
+                    address: address1.slice(0, commaIndex).trim(),
+                    addressDetail: address1.slice(commaIndex + 1).trim(),
+                  })
+                } else {
+                  onAddressChange({ address: address1, addressDetail: '' })
+                }
+              }
+            }
+          },
+        })
+      }
     }
   }
 
@@ -391,6 +426,7 @@ export const StoreDetailBasicInfo = ({
                     <span className="store-business-guide-text">
                       ※ 사업자등록증 등록 시 대표자, 사업자등록번호, 점포주소가 자동 입력됩니다.
                     </span>
+
                   </div>
                   <FileUpload
                     files={businessFiles}

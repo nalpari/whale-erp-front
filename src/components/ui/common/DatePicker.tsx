@@ -89,9 +89,11 @@ interface DatePickerProps {
   helpText?: string
   /** 비활성화 여부 */
   disabled?: boolean
+  /** 선택 가능한 최소 날짜 */
+  minDate?: Date | null
 }
 
-export default function DatePicker({ value, onChange, placeholder, error = false, helpText, disabled }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder, error = false, helpText, disabled, minDate }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? new Date())
   const isControlled = value !== undefined
   const currentValue = isControlled ? value : selectedDate
@@ -128,6 +130,7 @@ export default function DatePicker({ value, onChange, placeholder, error = false
           aria-describedby={helpText ? `${inputId}-help` : undefined}
           dayClassName={getDayClassName}
           disabled={disabled}
+          minDate={minDate ?? undefined}
         />
       </div>
       {helpText && (

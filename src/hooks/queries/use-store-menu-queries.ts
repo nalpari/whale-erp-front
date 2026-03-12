@@ -35,8 +35,10 @@ export const useDeleteStoreMenu = () => {
       )
       return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: storeMenuKeys.all })
+    onSuccess: (_data, id) => {
+      queryClient.cancelQueries({ queryKey: storeMenuKeys.detail(id) })
+      queryClient.setQueryData(storeMenuKeys.detail(id), null)
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.lists() })
     },
   })
 }

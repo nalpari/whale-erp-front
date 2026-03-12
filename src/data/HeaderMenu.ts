@@ -22,6 +22,11 @@ export const HeaderMenu: HeaderMenuItem[] = [
     link: '#',
     children: [
       {
+        id: 54,
+        name: '회원 Master',
+        link: '/master/customer/account',
+      },
+      {
         id: 10,
         name: '파트너 정보 관리',
         link: '#',
@@ -51,12 +56,17 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 37,
             name: '마스터용 가격 관리',
-            link: '#',
+            link: '/master/pricing/price-master',
+          },
+          {
+            id: 53,
+            name: '마스터용 가격 이력',
+            link: '/master/pricing/price-history',
           },
           {
             id: 38,
             name: '점포용 프로모션 가격 관리',
-            link: '#',
+            link: '/master/pricing/store-promotion',
           },
         ],
       },
@@ -235,7 +245,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 25,
         name: '관리자 관리',
-        link: '#',
+        link: '/system/admin',
       },
       {
         id: 26,

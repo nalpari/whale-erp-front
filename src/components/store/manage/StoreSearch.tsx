@@ -5,6 +5,9 @@ import { useMemo, useState } from 'react'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { RadioButtonGroup } from '@/components/common/ui'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 
 // 점포 검색 필터 상태
@@ -17,33 +20,87 @@ export interface StoreSearchFilters {
   to: Date | null
 }
 
-// 셀렉트 옵션 공통 타입
 // 검색 영역 컴포넌트 props
 interface StoreSearchProps {
   filters: StoreSearchFilters
+  appliedFilters: StoreSearchFilters
   statusOptions: { value: string; label: string }[]
   resultCount: number
   onChange: (next: Partial<StoreSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  onRemoveFilter: (key: string) => void
+}
+
+const formatDateLabel = (date: Date | null): string => {
+  if (!date) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 // 점포 목록 검색 영역 (본사 필수/기간 유효성 검사 포함)
 export default function StoreSearch({
   filters,
+  appliedFilters,
   statusOptions,
   resultCount,
   onChange,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: StoreSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedFilters.officeId ?? null,
+    appliedFilters.franchiseId ?? null,
+    appliedFilters.officeId != null
+  )
 
   const statusRadioOptions = useMemo(
     () => [{ value: 'ALL', label: '전체' }, ...statusOptions],
     [statusOptions]
   )
+
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
+  if (appliedFilters.officeId != null) {
+    const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사', removable: !isOfficeFixed })
+  }
+  if (appliedFilters.franchiseId != null) {
+    const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점', removable: !isFranchiseFixed })
+  }
+  if (appliedFilters.storeId != null) {
+    const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
+    if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' })
+  }
+  if (appliedFilters.status && appliedFilters.status !== 'ALL') {
+    const label = statusOptions.find((o) => o.value === appliedFilters.status)?.label
+    if (label) appliedTags.push({ key: 'status', value: label, category: '운영여부' })
+  }
+  if (appliedFilters.from || appliedFilters.to) {
+    const from = formatDateLabel(appliedFilters.from)
+    const to = formatDateLabel(appliedFilters.to)
+    appliedTags.push({ key: 'date', value: `${from} ~ ${to}`, category: '등록일' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (key === 'office') {
+      setShowOfficeError(true)
+      setSearchOpen(true)
+    }
+    onRemoveFilter(key)
+  }
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
@@ -59,6 +116,7 @@ export default function StoreSearch({
       return
     }
     onSearch()
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
@@ -68,11 +126,30 @@ export default function StoreSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과<span>{resultCount}건</span>
-        </div>
-        <ul className="search-result-list" />
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <ul className="search-result-list">
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              {tag.removable !== false && (
+                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              )}
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
+        </ul>
+        <button
+          type="button"
+          className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          aria-expanded={searchOpen}
+          onClick={() => setSearchOpen(!searchOpen)}
+        />
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">

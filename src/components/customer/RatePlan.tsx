@@ -142,8 +142,7 @@ export default function RatePlan() {
                   <button
                     type="button"
                     className="service-btn block"
-                    onClick={(e) => e.preventDefault()}
-                    aria-disabled="true"
+                    disabled={plan.id !== 'free'}
                   >
                     구독 하기
                     <i className="icon-subscribe" />

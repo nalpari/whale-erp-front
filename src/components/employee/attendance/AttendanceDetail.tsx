@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import type { AttendanceRecordItem, AttendanceRecordParams } from '@/types/attendance'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록', '상세']
 
@@ -62,6 +63,7 @@ export default function AttendanceDetail() {
     recordParams || { officeId: 0, employeeId: 0 },
     hydrated && Boolean(officeId && employeeId)
   )
+  const errorMessage = useQueryError(error)
 
   // 같은 날짜의 레코드를 그룹핑
   const groupedRecords = useMemo(() => {
@@ -215,10 +217,8 @@ export default function AttendanceDetail() {
             </table>
           </div>
           <div className="content-wrap">
-            {error && (
-              <div className="warning-txt">
-                데이터를 불러오는 중 오류가 발생했습니다: {error.message}
-              </div>
+            {errorMessage && (
+              <div className="warning-txt">{errorMessage}</div>
             )}
             {loading ? (
               <div className="cube-loader-overlay"><CubeLoader /></div>

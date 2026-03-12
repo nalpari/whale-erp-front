@@ -73,7 +73,7 @@ export default function Franchise() {
               </div>
               <div className="operation-tit">
                 Business Partner 가입하기
-                <Link href="/login" className="operation-btn" aria-label="Business Partner 가입하기" />
+                <Link href="/login?returnUrl=/customer/rate-plan" className="operation-btn" aria-label="Business Partner 가입하기" />
               </div>
               <div className="operation-desc">
                 WHALE ERP의 Business Partner에 가입하시고, 프랜차이즈 사업에 필요한 기능을 사용해 보세요.

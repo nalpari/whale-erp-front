@@ -10,7 +10,9 @@ import { useAttendanceList } from '@/hooks/queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
 import type { AttendanceListParams } from '@/types/attendance'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
 
@@ -25,12 +27,22 @@ const DEFAULT_PAGE_SIZE = 50
 export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const autoSelect = isAutoSelectAccount(ownerCode)
 
   // 로컬 상태 (sessionStorage 저장 없음)
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  // appliedFilters가 아직 초기 상태이고 filters에 officeId가 채워지면 파생값으로 대체
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)
@@ -46,33 +58,33 @@ export default function AttendanceRecord() {
   )
   const empClassList = settingsData?.codeMemoContent?.EMPLOYEE ?? []
 
-  const canFetchList = appliedFilters.officeId != null
+  const canFetchList = effectiveAppliedFilters.officeId != null
 
   const attendanceParams: AttendanceListParams = {
-    officeId: appliedFilters.officeId ?? undefined,
-    franchiseId: appliedFilters.franchiseId ?? undefined,
-    storeId: appliedFilters.storeId ?? undefined,
+    officeId: effectiveAppliedFilters.officeId ?? undefined,
+    franchiseId: effectiveAppliedFilters.franchiseId ?? undefined,
+    storeId: effectiveAppliedFilters.storeId ?? undefined,
     status:
-      appliedFilters.workStatus === 'ALL' ? undefined : appliedFilters.workStatus,
-    employeeName: appliedFilters.employeeName || undefined,
-    dayType: appliedFilters.workDays.length > 0 ? appliedFilters.workDays : undefined,
+      effectiveAppliedFilters.workStatus === 'ALL' ? undefined : effectiveAppliedFilters.workStatus,
+    employeeName: effectiveAppliedFilters.employeeName || undefined,
+    dayType: effectiveAppliedFilters.workDays.length > 0 ? effectiveAppliedFilters.workDays : undefined,
     employeeClassify:
-      appliedFilters.employeeClassification === 'ALL'
+      effectiveAppliedFilters.employeeClassification === 'ALL'
         ? undefined
-        : appliedFilters.employeeClassification,
+        : effectiveAppliedFilters.employeeClassification,
     contractClassify:
-      appliedFilters.contractClassification === 'ALL'
+      effectiveAppliedFilters.contractClassification === 'ALL'
         ? undefined
-        : appliedFilters.contractClassification,
+        : effectiveAppliedFilters.contractClassification,
     page,
     size: pageSize,
   }
 
-  const { data: response, isPending, error } = useAttendanceList(
+  const { data: response, isFetching: loading, error: queryError } = useAttendanceList(
     attendanceParams,
     canFetchList && Boolean(accessToken)
   )
-  const loading = canFetchList && isPending
+  const errorMessage = useQueryError(queryError)
 
   const handleSearch = () => {
     setAppliedFilters(filters)
@@ -81,6 +93,27 @@ export default function AttendanceRecord() {
 
   const handleReset = () => {
     setFilters(DEFAULT_ATTENDANCE_FILTERS)
+  }
+
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<AttendanceSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      workStatus: { workStatus: 'ALL' },
+      employeeName: { employeeName: '' },
+      workDays: { workDays: [] },
+      employeeClassification: { employeeClassification: 'ALL' },
+      contractClassification: { contractClassification: 'ALL' },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...effectiveAppliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
   }
 
   const listData = response?.content ?? []
@@ -92,6 +125,7 @@ export default function AttendanceRecord() {
       <Location title="근태 기록" list={BREADCRUMBS} />
       <AttendanceSearch
         filters={filters}
+        appliedFilters={effectiveAppliedFilters}
         workStatusOptions={workStatusChildren.map((c) => ({ value: c.code, label: c.name }))}
         employeeClassificationOptions={empClassList.map((c) => ({
           value: c.code,
@@ -106,6 +140,7 @@ export default function AttendanceRecord() {
         onChange={(next) => setFilters({ ...filters, ...next })}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <AttendanceList
         rows={listData}
@@ -113,7 +148,7 @@ export default function AttendanceRecord() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error?.message}
+        error={errorMessage}
         onPageChange={(nextPage) => setPage(nextPage)}
         onPageSizeChange={(size) => {
           if (size === pageSize) return

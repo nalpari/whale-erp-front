@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 
 import type { Program } from '@/lib/schemas/program'
-import { useProgram } from '@/hooks/useProgram'
+import { useProgram, collectIds } from '@/hooks/useProgram'
 import DraggableTree, { type DragHandleProps } from '@/components/common/DraggableTree'
 import ProgramFormModal from '@/components/program/ProgramFormModal'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
@@ -34,7 +34,6 @@ export default function ProgramList() {
     handleSearch,
     toggleItem,
     setOpenItems,
-    expandAll,
     openModal,
     closeModal,
     handleSubmit,
@@ -43,13 +42,16 @@ export default function ProgramList() {
     findProgramParents,
   } = useProgram()
 
+  // 프로그램 ID 목록을 문자열 키로 변환 — 속성 변경(이름 등)에는 반응하지 않고,
+  // 구조 변경(메뉴 구분 전환으로 다른 프로그램 로드)에만 새 키 생성
+  const programIdsKey = programs.length > 0 ? collectIds(programs).join(',') : ''
+
   // 초기 로드 또는 메뉴 구분 변경 시 트리 전체 열기
   useEffect(() => {
-    if (programs.length > 0) {
-      expandAll()
+    if (programIdsKey) {
+      setOpenItems(new Set(programIdsKey.split(',').map(Number)))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- expandAll은 매 렌더마다 새로 생성되므로 제외
-  }, [selectedMenuKind, programs.length])
+  }, [selectedMenuKind, programIdsKey, setOpenItems])
 
   // 검색 키워드 하이라이트 (대소문자 구분 없음)
   const highlightKeyword = (text: string, keyword: string) => {
@@ -255,17 +257,19 @@ export default function ProgramList() {
           </div>
         </div>
       </div>
-      <ProgramFormModal
-        key={isModalOpen ? `${modalMode}-${modalProgram?.id || 'new'}` : 'closed'}
-        isOpen={isModalOpen}
-        mode={modalMode}
-        onClose={closeModal}
-        onSubmit={handleSubmit}
-        level1Name={level1Name}
-        level2Name={level2Name}
-        parentMenuKind={modalMode === 'create' && modalProgram ? modalProgram.menu_kind : undefined}
-        editData={modalMode === 'edit' ? modalProgram : null}
-      />
+      {(modalMode === 'edit' || modalProgram || menuKindCodes.length > 0) && (
+        <ProgramFormModal
+          key={isModalOpen ? `${modalMode}-${modalProgram?.id || 'new'}` : 'closed'}
+          isOpen={isModalOpen}
+          mode={modalMode}
+          onClose={closeModal}
+          onSubmit={handleSubmit}
+          level1Name={level1Name}
+          level2Name={level2Name}
+          parentMenuKind={modalMode === 'create' && modalProgram ? modalProgram.menu_kind : undefined}
+          editData={modalMode === 'edit' ? modalProgram : null}
+        />
+      )}
     </div>
   )
 }

@@ -25,3 +25,9 @@ export * from './introduction';
 
 // 공통코드 스키마
 export * from './common-code';
+
+// 가격 마스터 스키마
+export * from './price-master';
+
+// OCR 스키마
+export * from './ocr';

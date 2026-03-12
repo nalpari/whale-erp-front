@@ -3,25 +3,75 @@
 import { useParams, useRouter } from 'next/navigation'
 
 import { getErrorMessage } from '@/lib/api'
+import type { AuthorityResponse } from '@/lib/schemas/authority'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 import { useAuthorityDetail, useDeleteAuthority } from '@/hooks/queries/use-authority-queries'
 import { useAuthorityForm } from '@/hooks/use-authority-form'
 
+/**
+ * 권한 수정 페이지 (Wrapper)
+ *
+ * authority 로딩 완료 후 Content를 렌더하여 useState 초기값에서 직접 사용
+ */
 export default function AuthorityEditPage() {
-  const router = useRouter()
   const params = useParams()
   const authorityId = Number(params.id)
   const isValidId = !Number.isNaN(authorityId) && authorityId > 0
 
-  // 권한 상세 조회
-  const { data: authority, isLoading } = useAuthorityDetail(isValidId ? authorityId : 0)
+  const { data: authority, isLoading, isError } = useAuthorityDetail(isValidId ? authorityId : 0)
 
-  // 권한 삭제 mutation
+  if (!isValidId) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <div className="contents-wrap">잘못된 권한 ID입니다.</div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return <div></div>
+  }
+
+  if (isError) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <div className="contents-wrap">권한 정보를 불러오는 데 실패했습니다.</div>
+      </div>
+    )
+  }
+
+  if (!authority) {
+    return (
+      <div className="data-wrap">
+        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <div className="contents-wrap">권한을 찾을 수 없습니다.</div>
+      </div>
+    )
+  }
+
+  return <AuthorityEditContent authorityId={authorityId} authority={authority} />
+}
+
+/**
+ * 권한 수정 콘텐츠 (Content)
+ *
+ * 확정된 authority를 받아 useAuthorityForm에서 바로 사용
+ */
+function AuthorityEditContent({
+  authorityId,
+  authority,
+}: {
+  authorityId: number
+  authority: AuthorityResponse
+}) {
+  const router = useRouter()
+
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
 
-  // 폼 로직
   const {
     formData,
     errors,
@@ -43,7 +93,6 @@ export default function AuthorityEditPage() {
     // 구현 예정: router.push(`/system/admin?authorityId=${authorityId}`)
   }
 
-  // 삭제
   const handleDelete = async () => {
     if (!confirm('정말 삭제하시겠습니까?')) return
 
@@ -55,28 +104,6 @@ export default function AuthorityEditPage() {
       alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
       console.error('권한 삭제 실패:', error)
     }
-  }
-
-  if (!isValidId) {
-    return (
-      <div className="data-wrap">
-        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
-        <div className="contents-wrap">잘못된 권한 ID입니다.</div>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return <div></div>
-  }
-
-  if (!authority) {
-    return (
-      <div className="data-wrap">
-        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
-        <div className="contents-wrap">권한을 찾을 수 없습니다.</div>
-      </div>
-    )
   }
 
   return (
