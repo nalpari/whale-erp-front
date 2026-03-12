@@ -30,10 +30,15 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
   } = useEmployeeDetail(employeeId)
 
   // React 19 + TanStack Query: useEffect 대신 useQuery로 권한 목록 조회
+  // 직원의 본사/가맹점 조직 ID를 기반으로 해당 조직의 권한만 조회
   const { data: authorities = [] } = useQuery<AuthorityItem[]>({
-    queryKey: ['authorities', 'PRGRP_002'],
-    queryFn: () => getAuthoritiesByOrganization('PRGRP_002'),
-    enabled: !!employeeId,
+    queryKey: ['authorities', 'PRGRP_002', employee?.headOfficeOrganizationId, employee?.franchiseOrganizationId],
+    queryFn: () => getAuthoritiesByOrganization(
+      'PRGRP_002',
+      employee?.headOfficeOrganizationId,
+      employee?.franchiseOrganizationId ?? undefined
+    ),
+    enabled: !!employee?.headOfficeOrganizationId,
     staleTime: 5 * 60 * 1000, // 5분
   })
 

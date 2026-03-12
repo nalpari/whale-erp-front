@@ -321,12 +321,12 @@ export interface AuthorityItem {
 // 권한 목록 조회 (조직별)
 export async function getAuthoritiesByOrganization(
   ownerGroup: string,
-  headOfficeCode?: string,
-  franchiseeCode?: string
+  headOfficeId?: number,
+  franchiseeId?: number
 ): Promise<AuthorityItem[]> {
-  const params: Record<string, string> = { owner_group: ownerGroup }
-  if (headOfficeCode) params.head_office_code = headOfficeCode
-  if (franchiseeCode) params.franchisee_code = franchiseeCode
+  const params: Record<string, string | number> = { owner_group: ownerGroup }
+  if (headOfficeId) params.head_office_id = headOfficeId
+  if (franchiseeId) params.franchisee_id = franchiseeId
 
   const response = await api.get<{ data: { content: AuthorityItem[] } }>('/api/system/authorities', { params })
   return response.data.data.content
