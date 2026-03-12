@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import { useContractDetail, useDeleteContract, useSendContractEmail } from '@/hooks/queries/use-contract-queries'
 import { useAlert } from '@/components/common/ui'
+import { useQueryError } from '@/hooks/useQueryError'
 
 interface EmployContractDetailDataProps {
   contractId?: number
@@ -41,6 +42,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     contractId ?? 0,
     !!contractId
   )
+  const errorMessage = useQueryError(error, '근로 계약 정보를 불러오는데 실패했습니다.')
 
   // 삭제 및 이메일 전송 mutation
   const { mutateAsync: deleteContract, isPending: isDeleting } = useDeleteContract()
@@ -196,12 +198,10 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
   }
 
   // 에러 상태
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="master-detail-data">
-        <div style={{ padding: '40px', textAlign: 'center', color: 'red' }}>
-          근로 계약 정보를 불러오는데 실패했습니다.
-        </div>
+        <div className="warning-txt">{errorMessage}</div>
         <div style={{ textAlign: 'center' }}>
           <button className="btn-form basic" onClick={handleList}>목록으로 돌아가기</button>
         </div>

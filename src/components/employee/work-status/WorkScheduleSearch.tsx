@@ -6,9 +6,11 @@ import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
-import { useEmployeeInfoList } from '@/hooks/queries';
+import { useEmployeeInfoList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
+import { useAuthStore } from '@/stores/auth-store';
+import { OWNER_CODE } from '@/constants/owner-code';
 
 type WorkScheduleSearchProps = {
   resultCount: number;
@@ -24,8 +26,10 @@ type WorkScheduleSearchProps = {
     from?: string;
     to?: string;
   };
+  appliedQuery: StoreScheduleQuery | null;
   onSearch: (query: StoreScheduleQuery) => void;
   onReset: () => void;
+  onRemoveFilter: (key: string) => void;
 };
 
 const getDefaultRange = () => {
@@ -55,11 +59,24 @@ export default function WorkScheduleSearch({
   showStoreError = false,
   onStoreErrorChange,
   initialQuery,
+  appliedQuery,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: WorkScheduleSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(true);
   const [showOfficeError, setShowOfficeError] = useState(false);
+
+  const ownerCode = useAuthStore((s) => s.ownerCode);
+  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE;
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE;
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree();
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedQuery?.officeId ?? null,
+    appliedQuery?.franchiseId ?? null,
+    appliedQuery?.officeId != null
+  );
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
@@ -174,6 +191,62 @@ export default function WorkScheduleSearch({
     onSearch(query);
   }, [autoSearchKey, initialQuery, onSearch]);
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = [];
+  if (appliedQuery) {
+    const officeName = bpTree.find((o) => o.id === appliedQuery.officeId)?.name;
+    if (officeName) appliedTags.push({ key: 'office', value: officeName, category: '본사', removable: !isOfficeFixed });
+    if (appliedQuery.franchiseId != null) {
+      const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedQuery.franchiseId);
+      if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점', removable: !isFranchiseFixed });
+    }
+    if (appliedQuery.storeId != null) {
+      const store = storeOptionsList.find((s) => s.id === appliedQuery.storeId);
+      if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' });
+    }
+    if (appliedQuery.employeeName) {
+      appliedTags.push({ key: 'employeeName', value: appliedQuery.employeeName, category: '직원명' });
+    }
+    if (appliedQuery.dayType) {
+      const dayLabel = DAY_OPTIONS.find((o) => o.value === appliedQuery.dayType)?.label;
+      if (dayLabel) appliedTags.push({ key: 'dayType', value: dayLabel, category: '요일' });
+    }
+    if (appliedQuery.from || appliedQuery.to) {
+      appliedTags.push({ key: 'period', value: `${appliedQuery.from ?? ''} ~ ${appliedQuery.to ?? ''}`, category: '기간' });
+    }
+  }
+
+  const handleRemoveTag = (key: string) => {
+    const nextForm = { ...form };
+
+    if (key === 'office') {
+      nextForm.officeId = null;
+      nextForm.franchiseId = null;
+      nextForm.storeId = null;
+      setShowOfficeError(true);
+      onStoreErrorChange?.(true);
+      setSearchOpen(true);
+    } else if (key === 'store') {
+      nextForm.storeId = null;
+      onStoreErrorChange?.(true);
+      setSearchOpen(true);
+    } else if (key === 'period') {
+      nextForm.from = '';
+      nextForm.to = '';
+      setShowPeriodError(true);
+      setSearchOpen(true);
+    } else if (key === 'franchise') {
+      nextForm.franchiseId = null;
+    } else if (key === 'employeeName') {
+      nextForm.employeeName = '';
+    } else if (key === 'dayType') {
+      nextForm.dayType = '';
+    }
+
+    setForm(nextForm);
+    onRemoveFilter(key);
+  };
+
   const handleSearch = () => {
     const hasOfficeError = !form.officeId;
     const hasStoreError = !form.storeId;
@@ -204,6 +277,7 @@ export default function WorkScheduleSearch({
       query.dayType = form.dayType as DayType;
     }
     onSearch(query);
+    setSearchOpen(false);
   };
 
   const handleReset = () => {
@@ -217,12 +291,22 @@ export default function WorkScheduleSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          조회 결과
-          <span>{isLoading ? '조회 중' : `${resultCount}건`}</span>
-        </div>
         <ul className="search-result-list">
-          <li />
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              {tag.removable !== false && (
+                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              )}
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{isLoading ? '조회 중' : `${resultCount.toLocaleString()}건`}</span>
+            </div>
+          </li>
         </ul>
         <button
           className="search-filed-btn"

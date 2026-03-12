@@ -8,6 +8,7 @@ import { useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import { useHolidayOwner, useCreateHoliday, useUpdateHoliday, useDeleteHoliday, useStoreOptions, holidayKeys } from '@/hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
+import { useQueryError } from '@/hooks/useQueryError'
 import type {
   HolidayResponse,
   HolidayResponseInfo,
@@ -100,14 +101,16 @@ export default function HolidayDetail() {
   const orgId = franchiseId ?? headOfficeId
   const hasOwner = !!orgId || !!storeId
 
-  const { data: holidayData, isPending: loading } = useHolidayOwner(
+  const { data: holidayData, isPending: loading, error } = useHolidayOwner(
     { year, orgId, storeId },
     hasOwner
   )
+  const errorMessage = useQueryError(error)
 
   return (
     <div className="data-wrap">
       <Location title="휴일 관리" list={BREADCRUMBS} />
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {loading ? (
         <div className="p-4">데이터를 불러오는 중...</div>
       ) : (

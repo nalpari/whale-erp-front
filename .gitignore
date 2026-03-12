@@ -43,6 +43,8 @@ next-env.d.ts
 
 # Claude
 .mcp.json
+.claude
+.bkit
 
 # TestSprite
 /testsprite_tests

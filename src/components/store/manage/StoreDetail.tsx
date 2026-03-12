@@ -20,6 +20,7 @@ import {
 import { useStoreFiles } from '@/hooks/store/useStoreFiles'
 import { UploadFile } from '@/types/upload-files'
 import { formatDateYmd } from '@/util/date-util'
+import { useQueryError } from '@/hooks/useQueryError'
 
 // 점포 상세/등록 페이지 진입 컴포넌트
 export default function StoreDetail() {
@@ -29,7 +30,8 @@ export default function StoreDetail() {
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const isEditMode = !!storeId
 
-  const { data: detail, isPending: loading } = useStoreDetail(storeId)
+  const { data: detail, isPending: loading, error } = useStoreDetail(storeId)
+  const errorMessage = useQueryError(error)
 
   const breadcrumbs = useMemo(() => ['Home', '가맹점 및 점포 관리', '점포 정보 관리'], [])
 
@@ -37,6 +39,7 @@ export default function StoreDetail() {
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />
       {isEditMode && loading && !detail && <div className="data-loading">점포 정보를 불러오는 중...</div>}
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {(!isEditMode || detail) && (
         <StoreDetailForm
           key={detail?.storeInfo.id ?? (storeId ? `loading-${storeId}` : 'new')}

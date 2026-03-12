@@ -93,6 +93,7 @@ const columnDefs: ColDef<AdminRowDataInternal>[] = [
 interface AdminListProps {
   admins?: AdminListItem[]
   isLoading?: boolean
+  error?: string
   currentPage?: number
   totalPages?: number
   pageSize?: number
@@ -104,6 +105,7 @@ interface AdminListProps {
 export default function AdminList({
   admins = [],
   isLoading = false,
+  error,
   currentPage = 0,
   totalPages = 0,
   pageSize = 50,
@@ -147,6 +149,7 @@ export default function AdminList({
         </div>
       </div>
       <div className="data-list-bx">
+        {error && <div className="warning-txt">{error}</div>}
         {isLoading ? (
           <CubeLoader />
         ) : rowData.length === 0 ? (

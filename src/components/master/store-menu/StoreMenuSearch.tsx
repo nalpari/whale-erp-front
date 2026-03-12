@@ -9,7 +9,10 @@ import { RadioButtonGroup } from '@/components/common/ui'
 import Input from '@/components/common/ui/Input'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useCategoryList } from '@/hooks/queries/use-category-queries'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import type { Category } from '@/types/category'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 export interface StoreMenuSearchFilters {
   officeId?: number | null
@@ -25,6 +28,7 @@ export interface StoreMenuSearchFilters {
 
 interface StoreMenuSearchProps {
   filters: StoreMenuSearchFilters
+  appliedFilters: StoreMenuSearchFilters
   operationStatusOptions: { value: string; label: string }[]
   menuTypeOptions: { value: string; label: string }[]
   menuClassificationOptions: { value: string; label: string }[]
@@ -32,10 +36,20 @@ interface StoreMenuSearchProps {
   onChange: (next: Partial<StoreMenuSearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  onRemoveFilter: (key: string) => void
+}
+
+const formatDateLabel = (date: Date | null): string => {
+  if (!date) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export default function StoreMenuSearch({
   filters,
+  appliedFilters,
   operationStatusOptions,
   menuTypeOptions,
   menuClassificationOptions,
@@ -43,9 +57,20 @@ export default function StoreMenuSearch({
   onChange,
   onSearch,
   onReset,
+  onRemoveFilter,
 }: StoreMenuSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
+
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: storeOptionsList = [] } = useStoreOptions(
+    appliedFilters.officeId ?? null,
+    null,
+    appliedFilters.officeId != null
+  )
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
@@ -74,7 +99,13 @@ export default function StoreMenuSearch({
     !!filters.officeId
   )
 
-  // 카테고리 이름 원문 맵 (선택된 값 표시용)
+  // appliedFilters 기준 카테고리 조회 (태그 이름 표시용)
+  const { data: appliedCategories = [] } = useCategoryList(
+    { bpId: appliedFilters.officeId ?? undefined, depth: 1 },
+    !!appliedFilters.officeId
+  )
+
+  // 카테고리 이름 원문 맵 (필터 드롭다운 표시용)
   const categoryNameMap = useMemo(() => {
     const map: Record<string, string> = {}
     const collect = (items: Category[]) => {
@@ -88,6 +119,21 @@ export default function StoreMenuSearch({
     collect(categories)
     return map
   }, [categories])
+
+  // appliedFilters 기준 카테고리 이름 맵 (태그 표시용)
+  const appliedCategoryNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const collect = (items: Category[]) => {
+      for (const item of items) {
+        if (item.id != null) {
+          map[String(item.id)] = item.categoryName
+        }
+        if (item.children?.length) collect(item.children)
+      }
+    }
+    collect(appliedCategories)
+    return map
+  }, [appliedCategories])
 
   // 카테고리 트리를 평탄화하여 드롭다운 옵션 생성 (depth별 들여쓰기로 계층 표현)
   const categorySelectOptions: SelectOption[] = useMemo(() => {
@@ -108,6 +154,49 @@ export default function StoreMenuSearch({
     return options
   }, [categories])
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
+  if (appliedFilters.officeId != null) {
+    const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사', removable: !isOfficeFixed })
+  }
+  if (appliedFilters.storeId != null) {
+    const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
+    if (store) appliedTags.push({ key: 'store', value: store.storeName, category: '점포' })
+  }
+  if (appliedFilters.menuName) {
+    appliedTags.push({ key: 'menuName', value: appliedFilters.menuName, category: '메뉴명' })
+  }
+  if (appliedFilters.operationStatus && appliedFilters.operationStatus !== 'ALL') {
+    const label = operationStatusOptions.find((o) => o.value === appliedFilters.operationStatus)?.label
+    if (label) appliedTags.push({ key: 'operationStatus', value: label, category: '운영여부' })
+  }
+  if (appliedFilters.menuType && appliedFilters.menuType !== 'ALL') {
+    const label = menuTypeOptions.find((o) => o.value === appliedFilters.menuType)?.label
+    if (label) appliedTags.push({ key: 'menuType', value: label, category: '메뉴 타입' })
+  }
+  if (appliedFilters.menuClassificationCode) {
+    const label = menuClassificationOptions.find((o) => o.value === appliedFilters.menuClassificationCode)?.label
+    if (label) appliedTags.push({ key: 'menuClassificationCode', value: label, category: '메뉴 분류' })
+  }
+  if (appliedFilters.categoryId != null) {
+    const name = appliedCategoryNameMap[String(appliedFilters.categoryId)]
+    if (name) appliedTags.push({ key: 'categoryId', value: name, category: '카테고리' })
+  }
+  if (appliedFilters.from || appliedFilters.to) {
+    const from = formatDateLabel(appliedFilters.from)
+    const to = formatDateLabel(appliedFilters.to)
+    appliedTags.push({ key: 'date', value: `${from} ~ ${to}`, category: '등록일' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (key === 'office') {
+      setShowOfficeError(true)
+      setSearchOpen(true)
+    }
+    onRemoveFilter(key)
+  }
+
   const handleSearch = () => {
     const hasOfficeError = !filters.officeId
     setShowOfficeError(hasOfficeError)
@@ -124,14 +213,28 @@ export default function StoreMenuSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{resultCount}건</span>
-        </div>
         <ul className="search-result-list">
-          <li />
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              {tag.removable !== false && (
+                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              )}
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
         <button
+          type="button"
           className="search-filed-btn"
+          aria-label={searchOpen ? '검색 조건 닫기' : '검색 조건 열기'}
+          aria-expanded={searchOpen}
           onClick={() => setSearchOpen(!searchOpen)}
         />
       </div>

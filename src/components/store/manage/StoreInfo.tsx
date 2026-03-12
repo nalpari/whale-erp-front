@@ -9,6 +9,9 @@ import { useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListPar
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
+import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
@@ -23,36 +26,46 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 
 export default function StoreInfo() {
   const router = useRouter()
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const autoSelect = isAutoSelectAccount(ownerCode)
 
   const [filters, setFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
+
   const { alert } = useAlert()
   const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
 
   const storeParams: StoreListParams = useMemo(
     () => ({
-      office: appliedFilters.officeId ?? undefined,
-      franchise: appliedFilters.franchiseId ?? undefined,
-      store: appliedFilters.storeId ?? undefined,
-      status: appliedFilters.status === 'ALL' ? undefined : appliedFilters.status,
-      from: formatDateYmdOrUndefined(appliedFilters.from),
-      to: formatDateYmdOrUndefined(appliedFilters.to),
+      office: effectiveAppliedFilters.officeId ?? undefined,
+      franchise: effectiveAppliedFilters.franchiseId ?? undefined,
+      store: effectiveAppliedFilters.storeId ?? undefined,
+      status: effectiveAppliedFilters.status === 'ALL' ? undefined : effectiveAppliedFilters.status,
+      from: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
+      to: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
       page,
       size: pageSize,
       sort: 'createdAt,desc',
     }),
-    [appliedFilters, page, pageSize]
+    [effectiveAppliedFilters, page, pageSize]
   )
 
   // HeadOfficeFranchiseStoreSelect 내부에서 동일 쿼리 키로 useStoreOptions를 호출하므로
   // 캐시 워밍 역할 — 본사/가맹점 변경 시 점포 옵션을 미리 가져와 드롭다운 지연을 줄인다.
   useStoreOptions(filters.officeId, filters.franchiseId)
 
-  const canFetchList = appliedFilters.officeId != null
-  const { data: response, isFetching: loading, error } = useStoreList(storeParams, canFetchList)
+  const canFetchList = effectiveAppliedFilters.officeId != null
+  const { data: response, isFetching: loading, error: queryError } = useStoreList(storeParams, canFetchList)
+  const errorMessage = useQueryError(queryError)
   const { children: statusChildren } = useCommonCode('STOPR', true)
 
   // 검색 적용: 현재 입력값을 적용값으로 확정하고 1페이지부터 조회
@@ -64,6 +77,24 @@ export default function StoreInfo() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
+  }
+
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<StoreSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      status: { status: 'ALL' },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
   }
 
   // 등록 페이지로 이동 전에 구독 플랜 점포 등록 가능 여부 확인
@@ -104,6 +135,7 @@ export default function StoreInfo() {
       <Location title="점포 정보 관리" list={BREADCRUMBS} />
       <StoreSearch
         filters={filters}
+        appliedFilters={effectiveAppliedFilters}
         statusOptions={statusChildren.map((item) => ({ value: item.code, label: item.name }))}
         resultCount={totalCount}
         onChange={(next) =>
@@ -111,6 +143,7 @@ export default function StoreInfo() {
         }
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <StoreList
         rows={listData}
@@ -118,7 +151,7 @@ export default function StoreInfo() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
-        error={error?.message}
+        error={errorMessage}
         statusMap={statusMap}
         onPageChange={(nextPage) => {
           setPage(nextPage)
