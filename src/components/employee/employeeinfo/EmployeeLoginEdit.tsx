@@ -11,7 +11,7 @@ import {
   useUpdateEmployeeLoginInfo,
   useWithdrawEmployeeMember
 } from '@/hooks/queries/use-employee-queries'
-import { getAuthoritiesByOrganization, type AuthorityItem } from '@/lib/api/employee'
+import { getEmployeeBpAuthorities, type EmployeeBpAuthority } from '@/lib/api/employee'
 
 interface EmployeeLoginEditProps {
   employeeId?: number
@@ -20,7 +20,7 @@ interface EmployeeLoginEditProps {
 export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps) {
   const router = useRouter()
   const [loginInfoOpen, setLoginInfoOpen] = useState(true)
-  const [selectedAuthorityId, setSelectedAuthorityId] = useState<number | null>(null)
+  const [selectedAuthorityId, setSelectedAuthorityId] = useState<number | null | undefined>(undefined)
 
   // TanStack Query 훅들
   const {
@@ -29,16 +29,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     error: employeeError
   } = useEmployeeDetail(employeeId)
 
-  // React 19 + TanStack Query: useEffect 대신 useQuery로 권한 목록 조회
-  // 직원의 본사/가맹점 조직 ID를 기반으로 해당 조직의 권한만 조회
-  const { data: authorities = [] } = useQuery<AuthorityItem[]>({
-    queryKey: ['authorities', 'PRGRP_002', employee?.headOfficeOrganizationId, employee?.franchiseOrganizationId],
-    queryFn: () => getAuthoritiesByOrganization(
-      'PRGRP_002',
-      employee?.headOfficeOrganizationId,
-      employee?.franchiseOrganizationId ?? undefined
-    ),
-    enabled: !!employee?.headOfficeOrganizationId,
+  // 직원 소속 조직의 BP 권한 목록 조회 (백엔드에서 직접 필터링)
+  const { data: authorities = [] } = useQuery<EmployeeBpAuthority[]>({
+    queryKey: ['employee-bp-authorities', employeeId],
+    queryFn: () => getEmployeeBpAuthorities(employeeId!),
+    enabled: !!employeeId,
     staleTime: 5 * 60 * 1000, // 5분
   })
 
@@ -61,6 +56,11 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
       label: auth.name
     }))
   ], [authorities])
+
+  // 사용자가 아직 변경하지 않았으면(undefined) employee의 현재 권한 사용
+  const effectiveAuthorityId = selectedAuthorityId === undefined
+    ? (employee?.currentBpAuthorityId ?? null)
+    : selectedAuthorityId
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-'
@@ -115,7 +115,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     try {
       await updateLoginInfoMutation.mutateAsync({
         employeeInfoId: employeeId,
-        request: { partnerOfficeAuthorityId: selectedAuthorityId }
+        request: { partnerOfficeAuthorityId: effectiveAuthorityId }
       })
       await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
@@ -224,7 +224,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
                       <div className="mx-200">
                         <SearchSelect
                           options={authorityOptions}
-                          value={authorityOptions.find(opt => opt.value === String(selectedAuthorityId || '')) || null}
+                          value={authorityOptions.find(opt => opt.value === String(effectiveAuthorityId || '')) || null}
                           onChange={(opt) => setSelectedAuthorityId(opt?.value ? Number(opt.value) : null)}
                           placeholder="선택하세요"
                         />

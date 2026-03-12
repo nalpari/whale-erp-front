@@ -313,9 +313,24 @@ export async function deleteEmployee(employeeInfoId: number): Promise<void> {
 export interface AuthorityItem {
   id: number
   name: string
-  ownerCode: string
-  isUsed: boolean
+  owner_code: string
+  is_used: boolean
   description?: string
+  head_office_id?: number | null
+  franchisee_id?: number | null
+}
+
+// 직원 소속 조직의 BP 권한 목록 조회
+export interface EmployeeBpAuthority {
+  id: number
+  name: string
+}
+
+export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<EmployeeBpAuthority[]> {
+  const response = await api.get<{ data: EmployeeBpAuthority[] }>(
+    `/api/employee/info/${employeeInfoId}/bp-authorities`
+  )
+  return response.data.data
 }
 
 // 권한 목록 조회 (조직별)
