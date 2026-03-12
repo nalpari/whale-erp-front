@@ -9,6 +9,8 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 import { useEmployeeInfoList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
+import { useAuthStore } from '@/stores/auth-store';
+import { OWNER_CODE } from '@/constants/owner-code';
 
 type WorkScheduleSearchProps = {
   resultCount: number;
@@ -64,6 +66,10 @@ export default function WorkScheduleSearch({
 }: WorkScheduleSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true);
   const [showOfficeError, setShowOfficeError] = useState(false);
+
+  const ownerCode = useAuthStore((s) => s.ownerCode);
+  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE;
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE;
 
   const { data: bpTree = [] } = useBpHeadOfficeTree();
   const { data: storeOptionsList = [] } = useStoreOptions(
@@ -186,13 +192,13 @@ export default function WorkScheduleSearch({
   }, [autoSearchKey, initialQuery, onSearch]);
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; value: string; category: string }[] = [];
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = [];
   if (appliedQuery) {
     const officeName = bpTree.find((o) => o.id === appliedQuery.officeId)?.name;
-    if (officeName) appliedTags.push({ key: 'office', value: officeName, category: '본사' });
+    if (officeName) appliedTags.push({ key: 'office', value: officeName, category: '본사', removable: !isOfficeFixed });
     if (appliedQuery.franchiseId != null) {
       const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedQuery.franchiseId);
-      if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' });
+      if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점', removable: !isFranchiseFixed });
     }
     if (appliedQuery.storeId != null) {
       const store = storeOptionsList.find((s) => s.id === appliedQuery.storeId);
@@ -291,7 +297,9 @@ export default function WorkScheduleSearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              {tag.removable !== false && (
+                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              )}
             </li>
           ))}
           <li className="search-result-item">

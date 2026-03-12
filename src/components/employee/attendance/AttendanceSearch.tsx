@@ -6,6 +6,8 @@ import { Input } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 export interface AttendanceSearchFilters {
   officeId?: number | null
@@ -65,6 +67,10 @@ export default function AttendanceSearch({
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(
     appliedFilters.officeId ?? null,
@@ -94,14 +100,14 @@ export default function AttendanceSearch({
   )
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; value: string; category: string }[] = []
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
   if (appliedFilters.officeId != null) {
     const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
-    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사', removable: !isOfficeFixed })
   }
   if (appliedFilters.franchiseId != null) {
     const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
-    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' })
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점', removable: !isFranchiseFixed })
   }
   if (appliedFilters.storeId != null) {
     const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
@@ -165,7 +171,9 @@ export default function AttendanceSearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              {tag.removable !== false && (
+                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              )}
             </li>
           ))}
           <li className="search-result-item">
