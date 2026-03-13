@@ -2,7 +2,7 @@
 import AnimateHeight from 'react-animate-height'
 import { useState, useMemo } from 'react'
 import RangeDatePicker, { DateRange } from '../../ui/common/RangeDatePicker'
-import { Input } from '@/components/common/ui'
+import { Input, RadioButtonGroup } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { CustomerSearchParams } from '@/types/customer'
 import { format } from 'date-fns'
@@ -26,6 +26,13 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
     joinDateFrom: '',
     joinDateTo: '',
   })
+
+  // 운영여부 옵션
+  const operateOptions = [
+    { value: '', label: '전체' },
+    { value: '1', label: '운영' },
+    { value: '0', label: '탈퇴' },
+  ]
 
   // 간편인증 옵션
   const socialAuthOptions: SelectOption[] = useMemo(() => [
@@ -98,29 +105,12 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
                 <th>운영여부</th>
                 <td>
                   <div className="data-filed">
-                    <div className="btn-group" style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        type="button"
-                        className={`btn-form ${formData.isOperate === null ? 'basic' : 'gray'}`}
-                        onClick={() => setFormData(prev => ({ ...prev, isOperate: null }))}
-                      >
-                        전체
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-form ${formData.isOperate === 1 ? 'basic' : 'gray'}`}
-                        onClick={() => setFormData(prev => ({ ...prev, isOperate: 1 }))}
-                      >
-                        운영
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-form ${formData.isOperate === 0 ? 'basic' : 'gray'}`}
-                        onClick={() => setFormData(prev => ({ ...prev, isOperate: 0 }))}
-                      >
-                        탈퇴
-                      </button>
-                    </div>
+                    <RadioButtonGroup
+                      options={operateOptions}
+                      value={formData.isOperate === null ? '' : String(formData.isOperate)}
+                      onChange={(value) => setFormData(prev => ({ ...prev, isOperate: value === '' ? null : Number(value) }))}
+                      name="isOperate"
+                    />
                   </div>
                 </td>
                 <th>회원명</th>
