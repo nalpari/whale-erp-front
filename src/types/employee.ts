@@ -72,6 +72,7 @@ export interface EmployeeInfoDetailResponse {
   memberId?: number | null
   memberLoginId?: string | null
   memberAuthorityNames?: string[] | null
+  currentBpAuthorityId?: number | null
   memberCreatedAt?: string | null
   workplaceType: WorkplaceType
   headOfficeOrganizationId: number

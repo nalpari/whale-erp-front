@@ -75,6 +75,7 @@ export const employeeKeys = {
   certificates: (employeeId: number) => [...employeeKeys.all, 'certificate', employeeId] as const,
   byType: (params: { headOfficeId: number; franchiseId?: number; employeeType: string }) =>
     [...employeeKeys.all, 'by-type', params] as const,
+  bpAuthorities: (employeeId?: number) => [...employeeKeys.all, 'bpAuthorities', employeeId] as const,
   minimumWage: (year: number) => [...employeeKeys.all, 'minimum-wage', year] as const,
   commonCode: (headOfficeId?: number | null, franchiseId?: number | null) =>
     [...employeeKeys.all, 'common-code', { headOfficeId, franchiseId }] as const,

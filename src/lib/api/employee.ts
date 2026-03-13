@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import api, { getWithSchema } from '@/lib/api'
 import type {
   PostEmployeeInfoRequest,
   EmployeeInfoResponse,
@@ -11,6 +11,12 @@ import type {
   EmployeeCertificateResponse,
   SaveEmployeeCertificatesRequest
 } from '@/types/employee'
+import {
+  employeeBpAuthorityListResponseSchema,
+  authorityItemListResponseSchema,
+  type EmployeeBpAuthority,
+  type AuthorityItem,
+} from '@/lib/schemas/authority'
 
 // 직원 등록
 export async function createEmployee(data: PostEmployeeInfoRequest): Promise<EmployeeInfoResponse> {
@@ -309,27 +315,33 @@ export async function deleteEmployee(employeeInfoId: number): Promise<void> {
 
 // ========== 권한 관련 API ==========
 
-// 권한 목록 응답 타입
-export interface AuthorityItem {
-  id: number
-  name: string
-  ownerCode: string
-  isUsed: boolean
-  description?: string
+export type { EmployeeBpAuthority, AuthorityItem }
+
+// 직원 소속 조직의 BP 권한 목록 조회
+export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<EmployeeBpAuthority[]> {
+  const response = await getWithSchema(
+    `/api/employee/info/${employeeInfoId}/bp-authorities`,
+    employeeBpAuthorityListResponseSchema
+  )
+  return response.data
 }
 
 // 권한 목록 조회 (조직별)
 export async function getAuthoritiesByOrganization(
   ownerGroup: string,
-  headOfficeCode?: string,
-  franchiseeCode?: string
+  headOfficeId?: number,
+  franchiseeId?: number
 ): Promise<AuthorityItem[]> {
-  const params: Record<string, string> = { owner_group: ownerGroup }
-  if (headOfficeCode) params.head_office_code = headOfficeCode
-  if (franchiseeCode) params.franchisee_code = franchiseeCode
+  const params: Record<string, string | number> = { owner_group: ownerGroup }
+  if (headOfficeId) params.head_office_id = headOfficeId
+  if (franchiseeId) params.franchisee_id = franchiseeId
 
-  const response = await api.get<{ data: { content: AuthorityItem[] } }>('/api/system/authorities', { params })
-  return response.data.data.content
+  const response = await getWithSchema(
+    '/api/system/authorities',
+    authorityItemListResponseSchema,
+    { params }
+  )
+  return response.data.content
 }
 
 // 직원 로그인 정보 업데이트 요청 타입
