@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import api, { getWithSchema } from '@/lib/api'
 import type {
   PostEmployeeInfoRequest,
   EmployeeInfoResponse,
@@ -309,28 +309,22 @@ export async function deleteEmployee(employeeInfoId: number): Promise<void> {
 
 // ========== 권한 관련 API ==========
 
-// 권한 목록 응답 타입
-export interface AuthorityItem {
-  id: number
-  name: string
-  owner_code: string
-  is_used: boolean
-  description?: string
-  head_office_id?: number | null
-  franchisee_id?: number | null
-}
+import {
+  employeeBpAuthorityListResponseSchema,
+  authorityItemListResponseSchema,
+  type EmployeeBpAuthority,
+  type AuthorityItem,
+} from '@/lib/schemas/authority'
+
+export type { EmployeeBpAuthority, AuthorityItem }
 
 // 직원 소속 조직의 BP 권한 목록 조회
-export interface EmployeeBpAuthority {
-  id: number
-  name: string
-}
-
 export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<EmployeeBpAuthority[]> {
-  const response = await api.get<{ data: EmployeeBpAuthority[] }>(
-    `/api/employee/info/${employeeInfoId}/bp-authorities`
+  const response = await getWithSchema(
+    `/api/employee/info/${employeeInfoId}/bp-authorities`,
+    employeeBpAuthorityListResponseSchema
   )
-  return response.data.data
+  return response.data
 }
 
 // 권한 목록 조회 (조직별)
@@ -343,8 +337,12 @@ export async function getAuthoritiesByOrganization(
   if (headOfficeId) params.head_office_id = headOfficeId
   if (franchiseeId) params.franchisee_id = franchiseeId
 
-  const response = await api.get<{ data: { content: AuthorityItem[] } }>('/api/system/authorities', { params })
-  return response.data.data.content
+  const response = await getWithSchema(
+    '/api/system/authorities',
+    authorityItemListResponseSchema,
+    { params }
+  )
+  return response.data.content
 }
 
 // 직원 로그인 정보 업데이트 요청 타입

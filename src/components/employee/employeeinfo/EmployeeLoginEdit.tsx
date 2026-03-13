@@ -58,8 +58,9 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
   ], [authorities])
 
   // 사용자가 아직 변경하지 않았으면(undefined) employee의 현재 권한 사용
+  // currentBpAuthorityId가 undefined이면 그대로 undefined 유지 (PATCH에서 필드 생략)
   const effectiveAuthorityId = selectedAuthorityId === undefined
-    ? (employee?.currentBpAuthorityId ?? null)
+    ? employee?.currentBpAuthorityId
     : selectedAuthorityId
 
   const formatDate = (dateString?: string | null) => {
@@ -115,7 +116,9 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
     try {
       await updateLoginInfoMutation.mutateAsync({
         employeeInfoId: employeeId,
-        request: { partnerOfficeAuthorityId: effectiveAuthorityId }
+        request: effectiveAuthorityId !== undefined
+          ? { partnerOfficeAuthorityId: effectiveAuthorityId }
+          : {}
       })
       await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)

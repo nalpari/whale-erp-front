@@ -149,3 +149,30 @@ export type AuthorityResponse = z.infer<typeof authorityResponseSchema>
 export const authorityListResponseSchema = pagedApiResponseSchema(authorityListItemSchema)
 
 export const authorityDetailResponseSchema = apiResponseSchema(authorityResponseSchema)
+
+// 직원 BP 권한 스키마 (GET /api/employee/info/{id}/bp-authorities)
+export const employeeBpAuthoritySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+})
+
+export type EmployeeBpAuthority = z.infer<typeof employeeBpAuthoritySchema>
+
+export const employeeBpAuthorityListResponseSchema = apiResponseSchema(z.array(employeeBpAuthoritySchema))
+
+// 권한 목록 조회 (조직별) 응답용 아이템 스키마
+export const authorityItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  owner_code: z.string(),
+  is_used: z.boolean(),
+  description: z.string().optional(),
+  head_office_id: z.number().nullable().optional(),
+  franchisee_id: z.number().nullable().optional(),
+})
+
+export type AuthorityItem = z.infer<typeof authorityItemSchema>
+
+export const authorityItemListResponseSchema = apiResponseSchema(
+  z.object({ content: z.array(authorityItemSchema) })
+)
