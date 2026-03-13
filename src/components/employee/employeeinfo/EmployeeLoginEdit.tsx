@@ -12,6 +12,7 @@ import {
   useWithdrawEmployeeMember
 } from '@/hooks/queries/use-employee-queries'
 import { getEmployeeBpAuthorities, type EmployeeBpAuthority } from '@/lib/api/employee'
+import { employeeKeys } from '@/hooks/queries/query-keys'
 
 interface EmployeeLoginEditProps {
   employeeId?: number
@@ -31,7 +32,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
 
   // 직원 소속 조직의 BP 권한 목록 조회 (백엔드에서 직접 필터링)
   const { data: authorities = [] } = useQuery<EmployeeBpAuthority[]>({
-    queryKey: ['employee-bp-authorities', employeeId],
+    queryKey: employeeKeys.bpAuthorities(employeeId),
     queryFn: () => getEmployeeBpAuthorities(employeeId!),
     enabled: !!employeeId,
     staleTime: 5 * 60 * 1000, // 5분

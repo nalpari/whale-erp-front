@@ -11,6 +11,12 @@ import type {
   EmployeeCertificateResponse,
   SaveEmployeeCertificatesRequest
 } from '@/types/employee'
+import {
+  employeeBpAuthorityListResponseSchema,
+  authorityItemListResponseSchema,
+  type EmployeeBpAuthority,
+  type AuthorityItem,
+} from '@/lib/schemas/authority'
 
 // 직원 등록
 export async function createEmployee(data: PostEmployeeInfoRequest): Promise<EmployeeInfoResponse> {
@@ -308,13 +314,6 @@ export async function deleteEmployee(employeeInfoId: number): Promise<void> {
 }
 
 // ========== 권한 관련 API ==========
-
-import {
-  employeeBpAuthorityListResponseSchema,
-  authorityItemListResponseSchema,
-  type EmployeeBpAuthority,
-  type AuthorityItem,
-} from '@/lib/schemas/authority'
 
 export type { EmployeeBpAuthority, AuthorityItem }
 
