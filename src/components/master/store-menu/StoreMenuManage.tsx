@@ -11,6 +11,9 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui'
 import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
+import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
@@ -40,31 +43,42 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 
 export default function StoreMenuManage() {
   const router = useRouter()
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const autoSelect = isAutoSelectAccount(ownerCode)
+
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
+
   const queryParams: StoreMenuListParams = {
-    bpId: appliedFilters.officeId ?? undefined,
+    bpId: effectiveAppliedFilters.officeId ?? undefined,
     menuGroup: 'MNGRP_002',
-    storeId: appliedFilters.storeId ?? undefined,
-    menuName: appliedFilters.menuName || undefined,
+    storeId: effectiveAppliedFilters.storeId ?? undefined,
+    menuName: effectiveAppliedFilters.menuName || undefined,
     operationStatus:
-      appliedFilters.operationStatus === 'ALL' ? undefined : appliedFilters.operationStatus,
-    menuType: appliedFilters.menuType === 'ALL' ? undefined : appliedFilters.menuType,
-    menuClassificationCode: appliedFilters.menuClassificationCode || undefined,
-    categoryId: appliedFilters.categoryId ?? undefined,
-    createdAtFrom: formatDateYmdOrUndefined(appliedFilters.from),
-    createdAtTo: formatDateYmdOrUndefined(appliedFilters.to),
+      effectiveAppliedFilters.operationStatus === 'ALL' ? undefined : effectiveAppliedFilters.operationStatus,
+    menuType: effectiveAppliedFilters.menuType === 'ALL' ? undefined : effectiveAppliedFilters.menuType,
+    menuClassificationCode: effectiveAppliedFilters.menuClassificationCode || undefined,
+    categoryId: effectiveAppliedFilters.categoryId ?? undefined,
+    createdAtFrom: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
+    createdAtTo: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
     page,
     size: pageSize,
   }
 
-  const canFetchList = appliedFilters.officeId != null
-  const { data: response, isPending } = useStoreMenuList(queryParams, canFetchList)
+  const canFetchList = effectiveAppliedFilters.officeId != null
+  const { data: response, isPending, error: queryError } = useStoreMenuList(queryParams, canFetchList)
   const loading = canFetchList && isPending
+  const errorMessage = useQueryError(queryError)
 
   // 공통코드: 운영 여부(STOPR), 메뉴 타입(MNTYP), 메뉴 분류(MNCF), 마케팅(MKCF), 세트 여부(STST)
   const { children: statusChildren } = useCommonCode('STOPR', true)
@@ -81,6 +95,27 @@ export default function StoreMenuManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
+  }
+
+  const handleRemoveFilter = (key: string) => {
+    const resetMap: Record<string, Partial<StoreMenuSearchFilters>> = {
+      office: { officeId: null, storeId: null, categoryId: null },
+      store: { storeId: null },
+      menuName: { menuName: '' },
+      operationStatus: { operationStatus: 'ALL' },
+      menuType: { menuType: 'ALL' },
+      menuClassificationCode: { menuClassificationCode: '' },
+      categoryId: { categoryId: null },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
+    setPage(0)
   }
 
   const listData = response?.content ?? []
@@ -128,7 +163,7 @@ export default function StoreMenuManage() {
 
   /** 선택된 메뉴들의 운영여부를 일괄 변경. ERR3034: 마스터 메뉴가 미운영이면 점포 메뉴 운영 전환 불가 */
   const handleBulkStatusChange = async (operationStatus: string) => {
-    const officeId = appliedFilters.officeId
+    const officeId = effectiveAppliedFilters.officeId
     if (selectedIds.size === 0 || officeId == null) return
 
     const menuIds = Array.from(selectedIds)
@@ -161,7 +196,7 @@ export default function StoreMenuManage() {
 
   /** 썸네일 리스트에서 변경된 노출순서를 일괄 저장 */
   const handleSaveDisplayOrder = async (changes: Map<number, string>) => {
-    const officeId = appliedFilters.officeId
+    const officeId = effectiveAppliedFilters.officeId
     if (changes.size === 0 || officeId == null) return
 
     const confirmed = await confirm('저장하시겠습니까?')
@@ -184,6 +219,7 @@ export default function StoreMenuManage() {
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
       <StoreMenuSearch
         filters={filters}
+        appliedFilters={effectiveAppliedFilters}
         operationStatusOptions={operationStatusOptions}
         menuTypeOptions={menuTypeOptions}
         menuClassificationOptions={menuClassificationOptions}
@@ -191,6 +227,7 @@ export default function StoreMenuManage() {
         onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <StoreMenuThumbnailList
         rows={listData}
@@ -198,6 +235,7 @@ export default function StoreMenuManage() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
+        error={errorMessage}
         statusMap={statusMap}
         marketingMap={marketingMap}
         menuPropertyMap={menuPropertyMap}

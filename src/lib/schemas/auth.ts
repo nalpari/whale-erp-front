@@ -21,6 +21,7 @@ export const loginRequestSchema = z.object({
 export const authoritySchema = z.object({
   id: z.string(),
   name: z.string(),
+  ownerCode: z.string().optional(),
 });
 
 /**
@@ -72,6 +73,7 @@ export const authStateSchema = z.object({
   refreshToken: z.string().nullable(),
   authority: z.custom<LoginAuthorityProgram[]>().nullable(),
   affiliationId: z.string().nullable(),
+  ownerCode: z.string().nullable(),
   loginId: z.string().nullable(),
   name: z.string().nullable(),
   mobilePhone: z.string().nullable(),

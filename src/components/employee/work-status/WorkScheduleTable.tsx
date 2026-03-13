@@ -9,6 +9,7 @@ import CubeLoader from '@/components/common/ui/CubeLoader';
 type WorkScheduleTableProps = {
   schedules: ScheduleResponse[];
   isLoading: boolean;
+  error?: string;
   isDownloading?: boolean;
   onDownloadExcel: () => void;
   onOpenUploadExcel: () => void;
@@ -58,6 +59,7 @@ const sortWorkersByRule = (workers: WorkerResponse[]) =>
 export default function WorkScheduleTable({
   schedules,
   isLoading,
+  error,
   isDownloading,
   onDownloadExcel,
   onOpenUploadExcel,
@@ -84,6 +86,7 @@ export default function WorkScheduleTable({
               계획 수립
             </button>
           </div>
+          {error && <div className="warning-txt">{error}</div>}
           {isLoading ? (
             <div className="cube-loader-overlay"><CubeLoader /></div>
           ) : sortedSchedules.length === 0 ? (

@@ -8,11 +8,13 @@ interface LoginResponse {
   authority?: {
     authorityId: number
     programs: LoginAuthorityProgram[]
+    ownerCode?: string
   }
   companies?: Array<{
     authorityId: number
     companyName: string | null
     brandName: string | null
+    ownerCode?: string
   }>
   loginId?: string
   name?: string
@@ -42,6 +44,7 @@ interface AuthoritySelectRequest {
 interface AuthoritySelectResponse {
   authority?: {
     programs: LoginAuthorityProgram[]
+    ownerCode?: string
   }
 }
 

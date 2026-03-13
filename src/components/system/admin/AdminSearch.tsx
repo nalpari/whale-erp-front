@@ -20,10 +20,16 @@ export default function AdminSearch({
   onSearch,
   resultCount = 0,
 }: AdminSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(true)
   const [localParams, setLocalParams] = useState<AdminSearchParams>(params)
+  const [prevParams, setPrevParams] = useState(params)
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
+
+  if (params !== prevParams) {
+    setPrevParams(params)
+    setLocalParams(params)
+  }
 
   const { data: adminOptions = [] } = useAdminSelectOptions()
   const { data: authorities = [] } = useAuthorityOptions()
@@ -42,8 +48,47 @@ export default function AdminSearch({
     ...WORK_STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
   ]
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (params.admin_id != null) {
+    const label = adminSelectOptions.find((o) => o.value === String(params.admin_id))?.label
+    if (label) appliedTags.push({ key: 'admin', value: label, category: '관리자' })
+  }
+  if (params.user_type) {
+    const label = workStatusSelectOptions.find((o) => o.value === params.user_type)?.label
+    if (label) appliedTags.push({ key: 'workStatus', value: label, category: '근무여부' })
+  }
+  if (params.authority_id != null) {
+    const label = authoritySelectOptions.find((o) => o.value === String(params.authority_id))?.label
+    if (label) appliedTags.push({ key: 'authority', value: label, category: '권한' })
+  }
+  if (params.start_date || params.end_date) {
+    const from = params.start_date ?? ''
+    const to = params.end_date ?? ''
+    appliedTags.push({ key: 'date', value: `${from} ~ ${to}`, category: '등록일' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    const resetMap: Record<string, Partial<AdminSearchParams>> = {
+      admin: { admin_id: undefined },
+      workStatus: { user_type: undefined },
+      authority: { authority_id: undefined },
+      date: { start_date: undefined, end_date: undefined },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextParams = { ...localParams, ...patch }
+    setLocalParams(nextParams)
+    if (key === 'date') {
+      setStartDate(null)
+      setEndDate(null)
+    }
+    onSearch(nextParams)
+  }
+
   const handleSearch = () => {
     onSearch(localParams)
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
@@ -86,11 +131,20 @@ export default function AdminSearch({
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{resultCount}건</span>
-        </div>
         <ul className="search-result-list">
-          <li></li>
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
         <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)} aria-label="검색 조건 펼치기/접기"></button>
       </div>

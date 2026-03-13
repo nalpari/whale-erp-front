@@ -38,6 +38,7 @@ function LoginContent() {
   const setTokens = useAuthStore((state) => state.setTokens);
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
+  const setOwnerCode = useAuthStore((state) => state.setOwnerCode);
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
   const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
@@ -107,6 +108,9 @@ function LoginContent() {
 
         setAuthority(authority.programs);
         setAffiliationId(String(authority.authorityId));
+        // ownerCode는 companies[] 배열에 포함됨
+        const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
+        setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
@@ -138,9 +142,10 @@ function LoginContent() {
           router.push(redirectTarget);
         }
       } else if (companies && companies.length > 0) {
-        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null }) => ({
+        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string }) => ({
           id: String(c.authorityId),
           name: c.companyName || c.brandName || `회사 ${c.authorityId}`,
+          ownerCode: c.ownerCode,
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
@@ -179,6 +184,7 @@ function LoginContent() {
       }
 
       setAffiliationId(authority.id);
+      setOwnerCode(data.authority?.ownerCode ?? authority.ownerCode ?? null);
       setTokens(pendingTokens.accessToken, pendingTokens.refreshToken);
 
       if (rememberMe) {

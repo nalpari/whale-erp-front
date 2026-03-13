@@ -6,6 +6,7 @@ import PlanPricingList from './PlanPricingList'
 import { usePlanDetail } from '@/hooks/queries'
 import { useState } from 'react'
 import AnimateHeight from 'react-animate-height'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['과금관리', 'ERP 요금제 관리', 'ERP요금제 정보 관리']
 
@@ -16,6 +17,7 @@ interface PlanDetailProps {
 export default function PlanDetail({ planTypeId }: PlanDetailProps) {
     const router = useRouter()
     const { data: plan, isPending, error } = usePlanDetail(planTypeId)
+    const errorMessage = useQueryError(error)
     const [slideboxOpen, setSlideboxOpen] = useState(true)
 
 
@@ -32,13 +34,11 @@ export default function PlanDetail({ planTypeId }: PlanDetailProps) {
         )
     }
 
-    if (error) {
+    if (errorMessage) {
         return (
             <div className="data-wrap">
                 <Location title="ERP요금제 정보 관리" list={BREADCRUMBS} />
-                <div className="error-wrap">
-                    <div className="form-helper error">오류가 발생했습니다: {error.message}</div>
-                </div>
+                <div className="warning-txt">{errorMessage}</div>
             </div>
         )
     }

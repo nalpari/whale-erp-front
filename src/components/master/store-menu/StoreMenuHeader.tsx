@@ -6,6 +6,7 @@ import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert, ImageUpload } from '@/components/common/ui'
 import { useStoreMenuDetail, useDeleteStoreMenu } from '@/hooks/queries'
+import { useQueryError } from '@/hooks/useQueryError'
 import { useCommonCode} from '@/hooks/useCommonCode'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -27,6 +28,7 @@ export default function StoreMenuHeader() {
   const menuId = menuIdParam && /^\d+$/.test(menuIdParam) ? Number(menuIdParam) : null
 
   const { data: detail, isPending: loading, error } = useStoreMenuDetail(menuId)
+  const errorMessage = useQueryError(error, '메뉴 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.')
   const { mutateAsync: deleteMenu } = useDeleteStoreMenu()
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -74,7 +76,7 @@ export default function StoreMenuHeader() {
           <CubeLoader />
         </div>
       )}
-      {!loading && error && <div className="warning-txt">메뉴 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</div>}
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
