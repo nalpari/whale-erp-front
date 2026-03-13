@@ -212,14 +212,19 @@ export const StoreDetailBasicInfo = ({
           onSuccess: (response) => {
             if (response.success && response.data) {
               console.log('OCR 결과:', response.data)
-              const { representativeName, businessRegistrationNumber, address1, address2 } = response.data
+              const { representativeName, businessRegistrationNumber, businessAddress } = response.data
               if (representativeName) onCeoNameChange(representativeName)
               if (businessRegistrationNumber) onBusinessNumberChange(businessRegistrationNumber)
-              if (address1) {
-                onAddressChange({
-                  address: address1.trim(),
-                  addressDetail: address2?.trim() ?? '',
-                })
+              if (businessAddress) {
+                const commaIndex = businessAddress.indexOf(',')
+                if (commaIndex !== -1) {
+                  onAddressChange({
+                    address: businessAddress.slice(0, commaIndex).trim(),
+                    addressDetail: businessAddress.slice(commaIndex + 1).trim(),
+                  })
+                } else {
+                  onAddressChange({ address: businessAddress.trim(), addressDetail: '' })
+                }
               }
             }
           },
