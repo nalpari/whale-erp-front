@@ -204,11 +204,20 @@ export default function CategoryTree({
             <div className="hierarchy-txt">드래그 앤 드롭을 사용하여 동일 레벨 내 순서를 변경할 수 있습니다.</div>
           </div>
           <div className="data-header-right">
+            <button className="btn-form basic s" onClick={() => openModal('create')}>
+              <i className="plus"></i> 최상위 추가
+            </button>
             <button className="btn-form gray s" onClick={() => setOpenItems(new Set())}>
               All Close
             </button>
-            <button className="btn-form basic s" onClick={() => openModal('create')}>
-              <i className="plus"></i> 대분류 추가
+            <button className="btn-form gray s" onClick={() => {
+              const allIds = new Set<number>()
+              for (const cat of categories) {
+                if (cat.id !== null) allIds.add(cat.id)
+              }
+              setOpenItems(allIds)
+            }}>
+              All Open
             </button>
           </div>
         </div>
