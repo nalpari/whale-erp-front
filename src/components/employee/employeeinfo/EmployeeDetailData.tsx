@@ -11,6 +11,7 @@ import {
 } from '@/hooks/queries/use-employee-queries'
 import { getDownloadUrl, getFile } from '@/lib/api/file'
 import { useAlert } from '@/components/common/ui'
+import { useQueryError } from '@/hooks/useQueryError'
 
 // 파일 정보 인터페이스
 interface FileInfo {
@@ -53,7 +54,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const careers = careersData ?? []
   const certificates = certificatesData ?? []
   const loading = isEmployeeLoading
-  const error = employeeError ? '직원 정보를 불러오는데 실패했습니다.' : null
+  const errorMessage = useQueryError(employeeError, '직원 정보를 불러오는데 실패했습니다.')
 
   // 파일 정보 조회
   useEffect(() => {
@@ -189,10 +190,10 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
     )
   }
 
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="master-detail-data">
-        <div style={{ textAlign: 'center', padding: '40px', color: 'red' }}>{error}</div>
+        <div className="warning-txt">{errorMessage}</div>
       </div>
     )
   }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import { useAlert } from '@/components/common/ui'
 import { useStoreDetail, useDeleteStore } from '@/hooks/queries'
+import { useQueryError } from '@/hooks/useQueryError'
 import { OperatingHourInfo } from '@/types/store'
 import AnimateHeight from 'react-animate-height'
 
@@ -48,6 +49,7 @@ export default function StoreHeader() {
   const storeIdParam = searchParams.get('id')
   const storeId = storeIdParam ? Number(storeIdParam) : null
   const { data: detail, isPending: loading, error } = useStoreDetail(storeId)
+  const errorMessage = useQueryError(error)
   const { mutateAsync: deleteStore } = useDeleteStore()
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -95,7 +97,7 @@ export default function StoreHeader() {
     <div className="data-wrap">
       <Location title="점포 정보 관리" list={breadcrumbs} />
       {loading && <div className="data-loading">상세 정보를 불러오는 중...</div>}
-      {error && <div className="warning-txt">{error.message}</div>}
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {!loading && detail && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>

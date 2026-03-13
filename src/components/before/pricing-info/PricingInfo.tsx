@@ -114,10 +114,14 @@ export default function PricingInfo() {
                     <div className="plan-btn-wrap">
                       {plan.isCurrentPlan ? (
                         <div className="service-btn block use-plan">이용중</div>
-                      ) : (
+                      ) : plan.grade === 'Free' ? (
                         <Link href="/login?returnUrl=/customer/rate-plan" className="service-btn block">
                           구독 하기 <i className="icon-subscribe" />
                         </Link>
+                      ) : (
+                        <button type="button" className="service-btn block" disabled>
+                          구독 하기 <i className="icon-subscribe" />
+                        </button>
                       )}
                     </div>
                   </div>

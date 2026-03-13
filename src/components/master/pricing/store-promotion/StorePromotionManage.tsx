@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import PromotionSearch, { type PromotionSearchFilters } from './PromotionSearch'
+import PromotionSearch, { type PromotionSearchFilters, type PromotionFilterTagKey } from './PromotionSearch'
 import PromotionList from './PromotionList'
 import Location from '@/components/ui/Location'
 import { useStorePromotionList, useStoreOptions } from '@/hooks/queries'
 import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams, type PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
+import { useAuthStore } from '@/stores/auth-store'
+import { isAutoSelectAccount } from '@/constants/owner-code'
+import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -27,34 +30,45 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 
 export default function StorePromotionManage() {
   const router = useRouter()
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const autoSelect = isAutoSelectAccount(ownerCode)
+
   const [filters, setFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
+  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
+  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
+  const effectiveAppliedFilters =
+    autoSelect && filters.officeId != null && appliedFilters.officeId == null
+      ? filters
+      : appliedFilters
+
   // 적용된 필터 기준으로 점포 옵션 조회
-  const { data: storeOptions } = useStoreOptions(appliedFilters.officeId, appliedFilters.franchiseId, appliedFilters.officeId != null)
+  const { data: storeOptions } = useStoreOptions(effectiveAppliedFilters.officeId, effectiveAppliedFilters.franchiseId, effectiveAppliedFilters.officeId != null)
 
   const queryParams: StorePromotionListParams = {
-    headOfficeId: appliedFilters.officeId ?? undefined,
-    franchiseId: appliedFilters.franchiseId ?? undefined,
-    storeId: appliedFilters.storeId ?? undefined,
-    status: appliedFilters.promotionStatus || undefined,
-    menuName: appliedFilters.menuName || undefined,
-    startDate: formatDateYmdOrUndefined(appliedFilters.from),
-    endDate: formatDateYmdOrUndefined(appliedFilters.to),
+    headOfficeId: effectiveAppliedFilters.officeId ?? undefined,
+    franchiseId: effectiveAppliedFilters.franchiseId ?? undefined,
+    storeId: effectiveAppliedFilters.storeId ?? undefined,
+    status: effectiveAppliedFilters.promotionStatus || undefined,
+    menuName: effectiveAppliedFilters.menuName || undefined,
+    startDate: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
+    endDate: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
     page,
     size: pageSize,
   }
 
-  const canFetchList = appliedFilters.officeId != null
-  const { data: response, isFetching: loading } = useStorePromotionList(queryParams, canFetchList)
+  const canFetchList = effectiveAppliedFilters.officeId != null
+  const { data: response, isFetching: loading, error: queryError } = useStorePromotionList(queryParams, canFetchList)
+  const errorMessage = useQueryError(queryError)
 
   // 선택된 점포명 조회
   const storeName =
-    !appliedFilters.storeId || !storeOptions
+    !effectiveAppliedFilters.storeId || !storeOptions
       ? null
-      : storeOptions.find((s) => s.id === appliedFilters.storeId)?.storeName ?? null
+      : storeOptions.find((s) => s.id === effectiveAppliedFilters.storeId)?.storeName ?? null
 
   const handleSearch = () => {
     setAppliedFilters(filters)
@@ -64,6 +78,25 @@ export default function StorePromotionManage() {
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
     setAppliedFilters(DEFAULT_FILTERS)
+    setPage(0)
+  }
+
+  const handleRemoveFilter = (key: PromotionFilterTagKey) => {
+    const resetMap: Record<string, Partial<PromotionSearchFilters>> = {
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
+      store: { storeId: null },
+      promotionStatus: { promotionStatus: '' },
+      menuName: { menuName: '' },
+      date: { from: null, to: null },
+    }
+    const patch = resetMap[key]
+    if (!patch) return
+    const nextFilters = { ...appliedFilters, ...patch }
+    setFilters(nextFilters)
+    // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
+    if (key === 'office') return
+    setAppliedFilters(nextFilters)
     setPage(0)
   }
 
@@ -80,11 +113,13 @@ export default function StorePromotionManage() {
       <Location title="점포용 프로모션 가격 관리" list={BREADCRUMBS} />
       <PromotionSearch
         filters={filters}
+        appliedFilters={effectiveAppliedFilters}
         promotionStatusOptions={PROMOTION_STATUS_OPTIONS}
         resultCount={totalCount}
         onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
         onSearch={handleSearch}
         onReset={handleReset}
+        onRemoveFilter={handleRemoveFilter}
       />
       <PromotionList
         rows={listData}
@@ -92,6 +127,7 @@ export default function StorePromotionManage() {
         pageSize={pageSize}
         totalPages={totalPages}
         loading={loading}
+        error={errorMessage}
         storeName={storeName}
         onPageChange={setPage}
         onPageSizeChange={(size) => {

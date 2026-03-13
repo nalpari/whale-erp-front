@@ -1,4 +1,6 @@
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+import type { AdminSearchParams } from '@/lib/schemas/admin'
+import type { CustomerSearchParams } from '@/types/customer'
 
 export interface StoreListParams {
   office?: number
@@ -231,6 +233,21 @@ export const holidayKeys = {
 
 export type AuthorityListParams = AuthoritySearchParams
 
+export interface AdminListParams extends AdminSearchParams {
+  page?: number
+  size?: number
+}
+
+export const adminKeys = {
+  all: ['admins'] as const,
+  lists: () => [...adminKeys.all, 'list'] as const,
+  list: (params: AdminListParams) => [...adminKeys.lists(), params] as const,
+  details: () => [...adminKeys.all, 'detail'] as const,
+  detail: (id: number) => [...adminKeys.details(), id] as const,
+  selectOptions: () => [...adminKeys.all, 'select-options'] as const,
+  authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
+}
+
 export const authorityKeys = {
   all: ['authorities'] as const,
   lists: () => [...authorityKeys.all, 'list'] as const,
@@ -329,4 +346,12 @@ export const priceHistoryKeys = {
   all: ['price-histories'] as const,
   lists: () => [...priceHistoryKeys.all, 'list'] as const,
   list: (params: PriceHistoryListParams) => [...priceHistoryKeys.lists(), params] as const,
+}
+
+export const customerKeys = {
+  all: ['customers'] as const,
+  lists: () => [...customerKeys.all, 'list'] as const,
+  list: (params?: CustomerSearchParams) => [...customerKeys.lists(), params ?? null] as const,
+  details: () => [...customerKeys.all, 'detail'] as const,
+  detail: (id: number) => [...customerKeys.details(), id] as const,
 }

@@ -14,6 +14,7 @@ import {
   holidayKeys,
 } from '@/hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
+import { useQueryError } from '@/hooks/useQueryError'
 import type { LegalHolidayResponse, LegalHolidayRequest } from '@/types/holiday'
 import { formatDateYmd } from '@/util/date-util'
 
@@ -59,14 +60,16 @@ export default function LegalHolidayDetail() {
   const searchParams = useSearchParams()
   const initialYear = Number(searchParams.get('year')) || currentYear
   const [year, setYear] = useState(initialYear)
-  const { data: legalData, isPending: loading } = useLegalHolidayList(year)
+  const { data: legalData, isPending: loading, error } = useLegalHolidayList(year)
+  const errorMessage = useQueryError(error)
 
   return (
     <div className="data-wrap">
       <Location title="법정공휴일 관리" list={BREADCRUMBS} />
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
       {loading ? (
         <div className="p-4">데이터를 불러오는 중...</div>
-      ) : (
+      ) : errorMessage ? null : (
         <LegalHolidayForm
           key={`${year}-${legalData?.length ?? 0}`}
           year={year}

@@ -7,9 +7,8 @@ import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
 import { Input } from '@/components/common/ui'
 import { useStorePromotionDetail, useDeleteStorePromotion } from '@/hooks/queries'
-import { useQueryClient } from '@tanstack/react-query'
-import { storePromotionKeys } from '@/hooks/queries/query-keys'
-import { PROMOTION_STATUS_LABEL } from '@/types/store-promotion'
+import { useQueryError } from '@/hooks/useQueryError'
+import { PROMOTION_STATUS_LABEL} from '@/types/store-promotion'
 import type { PromotionStatus } from '@/types/store-promotion'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -27,7 +26,7 @@ export default function StorePromotionHeader() {
   const promotionId = parsedId && parsedId > 0 ? parsedId : null
 
   const { data: detail, isPending: loading, error } = useStorePromotionDetail(promotionId)
-  const queryClient = useQueryClient()
+  const errorMessage = useQueryError(error, '프로모션 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.')
   const { mutateAsync: deletePromotion } = useDeleteStorePromotion()
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -38,7 +37,6 @@ export default function StorePromotionHeader() {
     if (!confirmed) return
     try {
       await deletePromotion(promotionId)
-      queryClient.removeQueries({ queryKey: storePromotionKeys.detail(promotionId) })
       router.push('/master/pricing/store-promotion')
     } catch {
       await alert('프로모션 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
@@ -53,10 +51,8 @@ export default function StorePromotionHeader() {
           <CubeLoader />
         </div>
       )}
-      {!loading && error && (
-        <div className="warning-txt">프로모션 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</div>
-      )}
-      {!loading && detail && (
+      {errorMessage && <div className="warning-txt">{errorMessage}</div>}
+      {!loading && detail && !errorMessage && (
         <div className="master-detail-data">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
             <div className="slidebox-header">
@@ -221,7 +217,7 @@ export default function StorePromotionHeader() {
           </div>
         </div>
       )}
-      {!loading && !detail && !error && <div className="data-empty">조회할 프로모션을 선택하세요.</div>}
+      {!loading && !detail && !errorMessage && <div className="data-empty">조회할 프로모션을 선택하세요.</div>}
     </div>
   )
 }
