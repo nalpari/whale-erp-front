@@ -75,7 +75,7 @@ const BpForm = ({ id }: BpFormProps) => {
     setForm({
       bpoprType: bp.bpoprType,
       pfType: bp.pfType,
-      masterId: bp.masterId?.toString() ?? '',
+      masterId: bp.masterId ?? '',
       companyName: bp.companyName ?? '',
       brandName: bp.brandName ?? '',
       businessRegistrationNumber: bp.businessRegistrationNumber ?? '',
@@ -404,7 +404,7 @@ const BpForm = ({ id }: BpFormProps) => {
                       <td>
                         {isEditMode ? (
                           <Input
-                            value={bp?.masterId ?? bp?.organizationCode ?? '-'}
+                            value={bp?.masterId ?? '-'}
                             readOnly
                           />
                         ) : (

@@ -86,7 +86,8 @@ api.interceptors.request.use((config) => {
   const url = config.url || '';
 
   // auth 관련 API는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
-  if (url.startsWith('/api/auth/')) {
+  // 단, change-password는 JWT 인증이 필요하므로 제외
+  if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
     if (typeof window !== 'undefined') {
       config.headers['currentPath'] = window.location.pathname;
     }

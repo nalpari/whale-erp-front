@@ -23,7 +23,7 @@ export interface BpDetailResponse {
     id: number
     bpoprType: string
     pfType: string
-    masterId: number | null
+    masterId: string | null
     companyName: string
     organizationType: 'HEAD_OFFICE' | 'FRANCHISE'
     parentOrganizationId: number | null
