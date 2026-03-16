@@ -330,7 +330,7 @@ function LoginContent() {
               <div className="login-signup-desc">요금제 선택하고 가입하기</div>
             </div>
             <div className="login-signup-btn-wrap">
-              <button type="button" className="login-signup-btn">가입하기</button>
+              <button type="button" className="login-signup-btn" onClick={() => router.push('/signup')}>가입하기</button>
             </div>
           </div>
 

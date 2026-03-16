@@ -7,10 +7,8 @@ import Location from '@/components/ui/Location'
 import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import { useOperatingHeadOffices, useInviteFranchise } from '@/hooks/queries'
+import { useBusinessVerification } from '@/hooks/queries/use-business-verification'
 import type { BpInvitationFormData } from '@/types/bp'
-
-const BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate'
-const BUSINESS_VALIDATE_KEY = 'AsoOkjYzxLNpwF0ZK5rGPOIX5cp3e4Kp3P9A5VkILMZdy2Cx7Rwt5%2FB2qqLbmD%2FtEt38CvjYKB8ElFeRhFfrfQ%3D%3D'
 
 const initialForm: BpInvitationFormData = {
   headOfficeId: null,
@@ -36,8 +34,9 @@ const BpInvitationManage = () => {
   const [form, setForm] = useState<BpInvitationFormData>(initialForm)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isVerified, setIsVerified] = useState(false)
-  const [verifying, setVerifying] = useState(false)
   const [startDateValue, setStartDateValue] = useState<Date | null>(null)
+
+  const businessVerification = useBusinessVerification()
 
   const { data: headOffices = [] } = useOperatingHeadOffices()
   const { mutateAsync: inviteFranchise } = useInviteFranchise()
@@ -88,23 +87,14 @@ const BpInvitationManage = () => {
   const handleVerify = useCallback(async () => {
     if (!validateVerification()) return
 
-    setVerifying(true)
     try {
-      const response = await axios.post(
-        `${BUSINESS_VALIDATE_URL}?serviceKey=${BUSINESS_VALIDATE_KEY}`,
-        {
-          businesses: [
-            {
-              b_no: form.businessRegistrationNumber,
-              start_dt: form.startDate,
-              p_nm: form.representativeName,
-            },
-          ],
-        }
-      )
+      const result = await businessVerification.mutateAsync({
+        businessRegistrationNumber: form.businessRegistrationNumber,
+        startDate: form.startDate,
+        representativeName: form.representativeName,
+      })
 
-      const result = response.data?.data?.[0]
-      if (result?.valid === '01') {
+      if (result.isValid) {
         setIsVerified(true)
         setErrors((prev) => {
           const next = { ...prev }
@@ -124,10 +114,8 @@ const BpInvitationManage = () => {
         ...prev,
         verification: '사업자등록번호 인증에 실패했습니다. 잠시 후 다시 시도해주세요.',
       }))
-    } finally {
-      setVerifying(false)
     }
-  }, [form.businessRegistrationNumber, form.startDate, form.representativeName, validateVerification])
+  }, [form.businessRegistrationNumber, form.startDate, form.representativeName, validateVerification, businessVerification])
 
   const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {}
@@ -287,9 +275,9 @@ const BpInvitationManage = () => {
                           className="btn-form outline s"
                           onClick={handleVerify}
                           type="button"
-                          disabled={verifying || isVerified}
+                          disabled={businessVerification.isPending || isVerified}
                         >
-                          {verifying ? '인증중...' : isVerified ? '인증완료' : '인증하기'}
+                          {businessVerification.isPending ? '인증중...' : isVerified ? '인증완료' : '인증하기'}
                         </button>
                       </div>
                       {errors.businessRegistrationNumber && (
