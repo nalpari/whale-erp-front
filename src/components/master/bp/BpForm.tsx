@@ -172,7 +172,13 @@ const BpForm = ({ id }: BpFormProps) => {
     const bpId = partnerBpId ? Number(partnerBpId) : null
     setForm((prev) => ({
       ...prev,
-      pfSaveRequest: bpId ? [{ partnerBusinessPartnerId: bpId }] : [],
+      pfSaveRequest: bpId
+        ? [{
+            id: prev.pfSaveRequest?.[0]?.id,
+            organizationId: prev.pfSaveRequest?.[0]?.organizationId,
+            partnerBusinessPartnerId: bpId,
+          }]
+        : [],
     }))
   }
 
