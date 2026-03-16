@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SignupFormData } from '@/types/signup'
+import type { DaumPostcodeData } from '@/components/common/ui/AddressSearch'
 import { step4Schema } from '@/lib/schemas/signup'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
-import { usePublicCommonCodeHierarchy } from '@/hooks/queries/use-signup-queries'
+import { useBpTypCodes } from '@/hooks/queries/use-signup-queries'
 import FileUpload, { type FileItem } from '@/components/common/ui/FileUpload'
 
 interface Props {
@@ -48,7 +49,7 @@ export default function SignupStep04({ formData, updateFormData, setStep }: Prop
     formData.logoFile ? [{ name: formData.logoFile.name, file: formData.logoFile }] : []
   )
   const detailRef = useRef<HTMLInputElement>(null)
-  const { data: bpTypeCodes = [] } = usePublicCommonCodeHierarchy('BPTYP')
+  const { data: bpTypeCodes = [] } = useBpTypCodes()
   const isInvitation = formData.verificationMethod === 'invitation-code'
 
   const handleLogoAdd = useCallback((files: File[]) => {
@@ -73,10 +74,8 @@ export default function SignupStep04({ formData, updateFormData, setStep }: Prop
     const width = 500
     const height = 600
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (window as any).daum.Postcode({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      oncomplete: (data: any) => {
+    new window.daum!.Postcode({
+      oncomplete: (data: DaumPostcodeData) => {
         let fullAddress = data.address
         let extraAddress = ''
 

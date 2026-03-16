@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BusinessType, SignupFormData } from '@/types/signup'
 import { step3Schema } from '@/lib/schemas/signup'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
 
 interface Props {
   formData: SignupFormData
@@ -33,15 +35,19 @@ const BUSINESS_TYPES: { value: BusinessType; label: string; desc: string; id: st
 
 export default function SignupStep03({ formData, updateFormData, setStep }: Props) {
   const router = useRouter()
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const isInvitation = formData.verificationMethod === 'invitation-code'
 
   const handleNext = () => {
+    setErrors({})
+
     const result = step3Schema.safeParse({
       businessType: formData.businessType,
       mainMenu: formData.mainMenu,
     })
 
     if (!result.success) {
+      setErrors(formatZodFieldErrors(result.error))
       return
     }
 
@@ -116,6 +122,9 @@ export default function SignupStep03({ formData, updateFormData, setStep }: Prop
             </div>
           </div>
         </div>
+        {errors.businessType && (
+          <div className="signup-txt-message err">※ {errors.businessType}</div>
+        )}
       </div>
       <div className="introduction-btn-wrap">
         <button type="button" className="introduction-btn gray" onClick={handleCancel}>

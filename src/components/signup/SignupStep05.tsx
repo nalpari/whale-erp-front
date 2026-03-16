@@ -7,7 +7,7 @@ import { step5Schema, step5MasterIdSchema, step5PasswordSchema } from '@/lib/sch
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { useSignup } from '@/hooks/queries/use-signup-queries'
 import { useAlert } from '@/components/common/ui/Alert'
-import api from '@/lib/api'
+import api, { getErrorMessage } from '@/lib/api'
 
 interface Props {
   formData: SignupFormData
@@ -70,7 +70,7 @@ export default function SignupStep05({ formData, updateFormData, setStep }: Prop
       verificationMethod: formData.verificationMethod,
       businessRegistrationNumber: formData.businessRegistrationNumber,
       representativeName: formData.representativeName,
-      businessType: formData.businessType as 'HEAD_OFFICE' | 'FRANCHISE' | 'GENERAL',
+      businessType: (formData.businessType || 'HEAD_OFFICE') as 'HEAD_OFFICE' | 'FRANCHISE' | 'GENERAL',
       mainMenu: formData.mainMenu,
       companyName: isInvitation ? (formData.invitationData?.headOfficeName ?? '') : formData.companyName,
       brandName: isInvitation ? (formData.invitationData?.headOfficeBrandName ?? '') : formData.brandName,
@@ -87,8 +87,7 @@ export default function SignupStep05({ formData, updateFormData, setStep }: Prop
       await signup.mutateAsync(request)
       router.push('/login')
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string } } }
-      await alert(err.response?.data?.message || '회원가입 중 오류가 발생했습니다.')
+      await alert(getErrorMessage(error, '회원가입 중 오류가 발생했습니다.'))
     }
   }
 

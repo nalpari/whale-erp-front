@@ -1,8 +1,4 @@
 import { useMutation } from '@tanstack/react-query'
-import axios from 'axios'
-
-const BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate'
-const BUSINESS_VALIDATE_KEY = 'AsoOkjYzxLNpwF0ZK5rGPOIX5cp3e4Kp3P9A5VkILMZdy2Cx7Rwt5%2FB2qqLbmD%2FtEt38CvjYKB8ElFeRhFfrfQ%3D%3D'
 
 export interface BusinessVerificationInput {
   /** 사업자등록번호 (10자리 숫자) */
@@ -38,6 +34,7 @@ const validateInput = (input: BusinessVerificationInput): string | null => {
 /**
  * 국세청 사업자등록번호 인증 공통 훅
  *
+ * Next.js API route(/api/business-verification)를 통해 서버사이드에서 국세청 API 호출
  * BpInvitationManage, Signup Step01 등에서 공통으로 사용
  */
 export const useBusinessVerification = () => {
@@ -48,24 +45,19 @@ export const useBusinessVerification = () => {
         throw new Error(validationError)
       }
 
-      const response = await axios.post(
-        `${BUSINESS_VALIDATE_URL}?serviceKey=${BUSINESS_VALIDATE_KEY}`,
-        {
-          businesses: [
-            {
-              b_no: input.businessRegistrationNumber,
-              start_dt: input.startDate,
-              p_nm: input.representativeName,
-            },
-          ],
-        }
-      )
+      const response = await fetch('/api/business-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
 
-      const result = response.data?.data?.[0]
-      return {
-        isValid: result?.valid === '01',
-        rawResult: result,
+      const json = await response.json()
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || '사업자 인증에 실패했습니다.')
       }
+
+      return json.data
     },
   })
 }

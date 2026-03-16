@@ -21,7 +21,7 @@ export const useVerifyInvitation = () => {
 }
 
 /** 영업분류(BPTYP) 코드 조회 (비인증, 백엔드 public API 직접 호출) */
-export const usePublicCommonCodeHierarchy = (_code: string) => {
+export const useBpTypCodes = () => {
   return useQuery<{ code: string; name: string }[]>({
     queryKey: ['public-bptyp-codes'],
     queryFn: async () => {
