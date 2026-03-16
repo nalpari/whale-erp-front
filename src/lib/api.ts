@@ -161,8 +161,9 @@ api.interceptors.response.use(
     }
 
     // auth 관련 API (refresh, login 등)에서 401이면 바로 로그아웃
+    // 단, change-password는 JWT 인증이 필요하므로 토큰 갱신 시도
     const url = originalRequest.url || '';
-    if (url.startsWith('/api/auth/')) {
+    if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
       forceLogout();
       return Promise.reject(error);
     }
