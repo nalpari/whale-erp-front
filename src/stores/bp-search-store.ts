@@ -61,7 +61,7 @@ export const useBpSearchStore = create<BpSearchState>()((set, get) => ({
     if (resetValue) {
       const { appliedFilters } = get()
       const nextFilters = { ...appliedFilters, ...resetValue }
-      set({ filters: nextFilters, appliedFilters: nextFilters })
+      set({ filters: nextFilters, appliedFilters: nextFilters, page: 0 })
     }
   },
 
