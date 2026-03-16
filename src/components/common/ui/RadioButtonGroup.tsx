@@ -64,7 +64,7 @@ export default function RadioButtonGroup<T extends string = string>({
       )}
 
       {/* 라디오 버튼 그룹 */}
-      <div className="radio-wrap" role="radiogroup" aria-label={label}>
+      <div className="radio-wrap" role="radiogroup" aria-label={label} style={{ flexWrap: 'wrap' }}>
         {options.map((option) => {
           const isSelected = value === option.value
           const optionId = `${groupId}-${option.value}`

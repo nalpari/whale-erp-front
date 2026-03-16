@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import BeforeHeader from '@/components/ui/common/BeforeHeader'
 import BeforeFooter from '@/components/ui/common/BeforeFooter'
+import { AlertProvider } from '@/components/common/ui/Alert'
 
 interface PublicLayoutProps {
   children: ReactNode
@@ -9,10 +10,12 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
 
   return (
-    <div className="main-wrap">
-      <BeforeHeader />
-      <div className="container">{children}</div>
-      <BeforeFooter />
-    </div>
+    <AlertProvider>
+      <div className="main-wrap">
+        <BeforeHeader />
+        <div className="container">{children}</div>
+        <BeforeFooter />
+      </div>
+    </AlertProvider>
   )
 }
