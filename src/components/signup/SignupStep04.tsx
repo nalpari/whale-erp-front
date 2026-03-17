@@ -7,6 +7,7 @@ import { step4Schema } from '@/lib/schemas/signup'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import { useBpTypCodes } from '@/hooks/queries/use-signup-queries'
 import FileUpload, { type FileItem } from '@/components/common/ui/FileUpload'
+import { useAlert } from '@/components/common/ui/Alert'
 
 interface Props {
   formData: SignupFormData
@@ -19,7 +20,7 @@ let isScriptLoading = false
 const scriptLoadCallbacks: (() => void)[] = []
 
 const loadDaumPostcodeScript = (): Promise<void> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (isScriptLoaded) {
       resolve()
       return
@@ -39,11 +40,16 @@ const loadDaumPostcodeScript = (): Promise<void> => {
       scriptLoadCallbacks.forEach((cb) => cb())
       scriptLoadCallbacks.length = 0
     }
+    script.onerror = () => {
+      isScriptLoading = false
+      reject(new Error('주소 검색 스크립트를 불러올 수 없습니다.'))
+    }
     document.head.appendChild(script)
   })
 }
 
 export default function SignupStep04({ formData, updateFormData, setStep }: Props) {
+  const { alert } = useAlert()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [logoFiles, setLogoFiles] = useState<FileItem[]>(() =>
     formData.logoFile ? [{ name: formData.logoFile.name, file: formData.logoFile }] : []
@@ -69,12 +75,20 @@ export default function SignupStep04({ formData, updateFormData, setStep }: Prop
   }, [])
 
   const handleOpenPostcode = async () => {
-    await loadDaumPostcodeScript()
+    try {
+      await loadDaumPostcodeScript()
+    } catch {
+      await alert('주소 검색 서비스를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
+
+    const PostcodeCtor = window.daum?.Postcode
+    if (!PostcodeCtor) return
 
     const width = 500
     const height = 600
 
-    new window.daum!.Postcode({
+    new PostcodeCtor({
       oncomplete: (data: DaumPostcodeData) => {
         let fullAddress = data.address
         let extraAddress = ''

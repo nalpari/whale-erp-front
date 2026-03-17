@@ -14,8 +14,14 @@ export const useBusinessLicenseOcr = () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || '사업자등록증 인식에 실패했습니다.')
+        let errorMessage = '사업자등록증 인식에 실패했습니다.'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        throw new Error(errorMessage)
       }
 
       return response.json()

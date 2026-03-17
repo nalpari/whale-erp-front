@@ -105,8 +105,8 @@ api.interceptors.request.use((config) => {
         accessToken = parsed.state?.accessToken;
         affiliationId = affiliationId || parsed.state?.affiliationId;
       }
-    } catch {
-      // localStorage 파싱 실패 시 무시
+    } catch (e) {
+      console.warn('[api interceptor] localStorage 인증 정보 읽기 실패:', e)
     }
   }
 

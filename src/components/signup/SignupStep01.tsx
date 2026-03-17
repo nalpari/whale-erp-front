@@ -127,7 +127,12 @@ export default function SignupStep01({ formData, updateFormData, setStep }: Prop
               ...(companyName && { companyName }),
               ...addressUpdate,
             })
+          } else {
+            setVerificationError('사업자등록증 인식에 실패했습니다. 정보를 직접 입력해주세요.')
           }
+        },
+        onError: () => {
+          setVerificationError('사업자등록증 이미지 처리 중 오류가 발생했습니다. 정보를 직접 입력해주세요.')
         },
       })
     }
