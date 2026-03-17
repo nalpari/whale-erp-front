@@ -52,6 +52,7 @@ export const useBpSearchStore = create<BpSearchState>()((set, get) => ({
 
   removeFilter: (key) => {
     const resetMap: Record<string, Partial<BpSearchFilters>> = {
+      office: { officeId: null, franchiseId: null },
       bpoprType: { bpoprType: '' },
       subscriptionPlanType: { subscriptionPlanType: '' },
       representativeName: { representativeName: '' },

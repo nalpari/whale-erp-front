@@ -15,7 +15,7 @@ interface Props {
   setStep: (step: number) => void
 }
 
-export default function SignupStep01({ formData, updateFormData, setStep }: Props) {
+const SignupStep01 = ({ formData, updateFormData, setStep }: Props) => {
   const [tab, setTab] = useState<1 | 2>(formData.verificationMethod === 'invitation-code' ? 2 : 1)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [verificationError, setVerificationError] = useState('')
@@ -312,3 +312,5 @@ export default function SignupStep01({ formData, updateFormData, setStep }: Prop
     </div>
   )
 }
+
+export default SignupStep01

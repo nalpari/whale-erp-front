@@ -15,7 +15,7 @@ interface Props {
   setStep: (step: number) => void
 }
 
-export default function SignupStep05({ formData, updateFormData, setStep }: Props) {
+const SignupStep05 = ({ formData, updateFormData, setStep }: Props) => {
   const router = useRouter()
   const { alert } = useAlert()
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -258,3 +258,5 @@ export default function SignupStep05({ formData, updateFormData, setStep }: Prop
     </div>
   )
 }
+
+export default SignupStep05

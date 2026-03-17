@@ -8,7 +8,7 @@ interface Props {
   setStep: (step: number) => void
 }
 
-export default function SignupStep02({ formData, updateFormData, setStep }: Props) {
+const SignupStep02 = ({ formData, updateFormData, setStep }: Props) => {
   return (
     <div className="signup-wrap">
       <div className="signup-form-wrap">
@@ -73,3 +73,5 @@ export default function SignupStep02({ formData, updateFormData, setStep }: Prop
     </div>
   )
 }
+
+export default SignupStep02

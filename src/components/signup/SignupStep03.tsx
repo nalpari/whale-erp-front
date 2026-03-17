@@ -33,7 +33,7 @@ const BUSINESS_TYPES: { value: BusinessType; label: string; desc: string; id: st
   },
 ]
 
-export default function SignupStep03({ formData, updateFormData, setStep }: Props) {
+const SignupStep03 = ({ formData, updateFormData, setStep }: Props) => {
   const router = useRouter()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const isInvitation = formData.verificationMethod === 'invitation-code'
@@ -137,3 +137,5 @@ export default function SignupStep03({ formData, updateFormData, setStep }: Prop
     </div>
   )
 }
+
+export default SignupStep03

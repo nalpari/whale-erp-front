@@ -1,6 +1,6 @@
 'use client'
 
-export default function SignupStep06() {
+const SignupStep06 = () => {
   return (
     <div className="signup-wrap">
       <div className="signup-form-wrap">
@@ -106,3 +106,5 @@ export default function SignupStep06() {
     </div>
   )
 }
+
+export default SignupStep06

@@ -48,7 +48,7 @@ const loadDaumPostcodeScript = (): Promise<void> => {
   })
 }
 
-export default function SignupStep04({ formData, updateFormData, setStep }: Props) {
+const SignupStep04 = ({ formData, updateFormData, setStep }: Props) => {
   const { alert } = useAlert()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [logoFiles, setLogoFiles] = useState<FileItem[]>(() =>
@@ -285,3 +285,5 @@ export default function SignupStep04({ formData, updateFormData, setStep }: Prop
     </div>
   )
 }
+
+export default SignupStep04

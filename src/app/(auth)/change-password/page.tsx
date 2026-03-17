@@ -11,7 +11,7 @@ import "../login/login.css";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/;
 
-export default function ChangePasswordPage() {
+const ChangePasswordPage = () => {
   const router = useRouter();
   const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
   const { alert } = useAlert();
@@ -155,3 +155,5 @@ export default function ChangePasswordPage() {
     </div>
   );
 }
+
+export default ChangePasswordPage

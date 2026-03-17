@@ -11,7 +11,7 @@ import SignupStep04 from './SignupStep04'
 import SignupStep05 from './SignupStep05'
 import SignupStep06 from './SignupStep06'
 
-export default function SignupLayout() {
+const SignupLayout = () => {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<SignupFormData>(initialSignupFormData)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -78,3 +78,5 @@ export default function SignupLayout() {
     </div>
   )
 }
+
+export default SignupLayout
