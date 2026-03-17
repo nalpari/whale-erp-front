@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChangePasswordMutation } from "@/hooks/queries/use-change-password-mutation";
+import { getErrorMessage } from "@/lib/api";
 import "../login/login.css";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/;
@@ -52,11 +53,8 @@ export default function ChangePasswordPage() {
       setPasswordChangeRequired(false);
       alert("비밀번호가 변경되었습니다.");
       router.replace("/logined-main");
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message =
-        axiosError.response?.data?.message ?? "비밀번호 변경에 실패했습니다.";
-      alert(message);
+    } catch (error) {
+      alert(getErrorMessage(error, "비밀번호 변경에 실패했습니다."));
     }
   };
 

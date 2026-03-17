@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import axios from 'axios'
 import Location from '@/components/ui/Location'
 import { Input, useAlert } from '@/components/common/ui'
+import { getErrorMessage } from '@/lib/api'
 import DatePicker from '@/components/ui/common/DatePicker'
 import { useOperatingHeadOffices, useInviteFranchise } from '@/hooks/queries'
 import { useBusinessVerification } from '@/hooks/queries/use-business-verification'
@@ -158,10 +158,7 @@ const BpInvitationManage = () => {
       await alert('가맹점 초대가 완료되었습니다.')
       router.push('/master/bp')
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message ?? '가맹점 초대에 실패했습니다.'
-        await alert(msg)
-      }
+      await alert(getErrorMessage(err, '가맹점 초대에 실패했습니다.'))
     }
   }, [form, validate, inviteFranchise, alert, router])
 

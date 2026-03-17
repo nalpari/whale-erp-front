@@ -13,7 +13,7 @@ interface ChangePasswordResponse {
 /**
  * 비밀번호 변경 mutation 훅
  */
-export function useChangePasswordMutation() {
+export const useChangePasswordMutation = () => {
   return useMutation({
     mutationFn: async (data: ChangePasswordRequest) => {
       const response = await api.put<{ data: ChangePasswordResponse }>(
