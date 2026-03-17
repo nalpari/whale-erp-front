@@ -20,6 +20,7 @@ interface LoginResponse {
   name?: string
   mobilePhone?: string
   subscriptionPlanId?: number
+  passwordChangeRequired?: boolean
 }
 
 /**

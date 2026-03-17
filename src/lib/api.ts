@@ -86,7 +86,8 @@ api.interceptors.request.use((config) => {
   const url = config.url || '';
 
   // auth 관련 API는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
-  if (url.startsWith('/api/auth/')) {
+  // 단, change-password는 JWT 인증이 필요하므로 제외
+  if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
     if (typeof window !== 'undefined') {
       config.headers['currentPath'] = window.location.pathname;
     }
@@ -104,8 +105,8 @@ api.interceptors.request.use((config) => {
         accessToken = parsed.state?.accessToken;
         affiliationId = affiliationId || parsed.state?.affiliationId;
       }
-    } catch {
-      // localStorage 파싱 실패 시 무시
+    } catch (e) {
+      console.warn('[api interceptor] localStorage 인증 정보 읽기 실패:', e)
     }
   }
 
@@ -160,8 +161,9 @@ api.interceptors.response.use(
     }
 
     // auth 관련 API (refresh, login 등)에서 401이면 바로 로그아웃
+    // 단, change-password는 JWT 인증이 필요하므로 토큰 갱신 시도
     const url = originalRequest.url || '';
-    if (url.startsWith('/api/auth/')) {
+    if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
       forceLogout();
       return Promise.reject(error);
     }
