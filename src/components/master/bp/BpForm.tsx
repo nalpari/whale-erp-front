@@ -4,18 +4,18 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import Location from '@/components/ui/Location'
-import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert, Input } from '@/components/common/ui'
 import ImageUpload, { type ImageItem } from '@/components/common/ui/ImageUpload'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect from '@/components/ui/common/SearchSelect'
-import { useBpDetail, useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries'
+import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries'
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
 import api, { getErrorMessage } from '@/lib/api'
-import type { BpFormData } from '@/types/bp'
+import type { BpDetailResponse, BpFormData } from '@/types/bp'
 
 interface BpFormProps {
   id?: number
+  bp?: BpDetailResponse
 }
 
 const INITIAL_FORM: BpFormData = {
@@ -34,31 +34,54 @@ const INITIAL_FORM: BpFormData = {
   pfSaveRequest: [],
 }
 
-const INITIAL_ADDRESS: AddressData = {
-  address: '',
-  addressDetail: '',
-}
+const mapBpToForm = (bp: BpDetailResponse): BpFormData => ({
+  bpoprType: bp.bpoprType,
+  pfType: bp.pfType,
+  masterId: bp.masterId ?? '',
+  companyName: bp.companyName ?? '',
+  brandName: bp.brandName ?? '',
+  businessRegistrationNumber: bp.businessRegistrationNumber ?? '',
+  address1: bp.address1 ?? '',
+  address2: bp.address2 ?? '',
+  representativeName: bp.representativeName ?? '',
+  representativeMobilePhone: bp.representativeMobilePhone ?? '',
+  representativeEmail: bp.representativeEmail ?? '',
+  bpType: bp.bpType ?? '',
+  pfSaveRequest: bp.pfList?.map((pf) => ({
+    id: pf.id,
+    organizationId: pf.bpId,
+    partnerBusinessPartnerId: pf.partnerBpId,
+  })) ?? [],
+})
 
-const BpForm = ({ id }: BpFormProps) => {
+const mapBpToLogoImages = (bp: BpDetailResponse): { expand: ImageItem[]; contract: ImageItem[] } => ({
+  expand: bp.lnbLogoExpandFile
+    ? [{ id: bp.lnbLogoExpandFile.id, name: bp.lnbLogoExpandFile.originalFileName, url: bp.lnbLogoExpandFile.publicUrl }]
+    : [],
+  contract: bp.lnbLogoContractFile
+    ? [{ id: bp.lnbLogoContractFile.id, name: bp.lnbLogoContractFile.originalFileName, url: bp.lnbLogoContractFile.publicUrl }]
+    : [],
+})
+
+const BpForm = ({ id, bp }: BpFormProps) => {
   const router = useRouter()
   const { alert, confirm } = useAlert()
   const isEditMode = !!id
 
+  const initialLogo = bp ? mapBpToLogoImages(bp) : { expand: [], contract: [] }
+
   const [slideboxOpen, setSlideboxOpen] = useState(true)
-  const [form, setForm] = useState<BpFormData>(INITIAL_FORM)
-  const [address, setAddress] = useState<AddressData>(INITIAL_ADDRESS)
-  const [expandLogoImages, setExpandLogoImages] = useState<ImageItem[]>([])
-  const [contractLogoImages, setContractLogoImages] = useState<ImageItem[]>([])
+  const [form, setForm] = useState<BpFormData>(() => bp ? mapBpToForm(bp) : INITIAL_FORM)
+  const [expandLogoImages, setExpandLogoImages] = useState<ImageItem[]>(initialLogo.expand)
+  const [contractLogoImages, setContractLogoImages] = useState<ImageItem[]>(initialLogo.contract)
   const [expandLogoFile, setExpandLogoFile] = useState<File | undefined>()
   const [contractLogoFile, setContractLogoFile] = useState<File | undefined>()
   const [deleteExpandFileId, setDeleteExpandFileId] = useState<number | undefined>()
   const [deleteContractFileId, setDeleteContractFileId] = useState<number | undefined>()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [masterIdCheckMessage, setMasterIdCheckMessage] = useState('')
-  const [initialized, setInitialized] = useState(!isEditMode)
 
   // API hooks
-  const { data: bp, isPending } = useBpDetail(id)
   const { mutateAsync: createBp } = useCreateBp()
   const { mutateAsync: updateBp } = useUpdateBp()
 
@@ -69,40 +92,6 @@ const BpForm = ({ id }: BpFormProps) => {
 
   // 본사 목록 (Partner Function용)
   const { data: headOffices = [] } = useOperatingHeadOffices()
-
-  // 수정 모드: 기존 데이터 초기화
-  if (isEditMode && bp && !initialized) {
-    setForm({
-      bpoprType: bp.bpoprType,
-      pfType: bp.pfType,
-      masterId: bp.masterId ?? '',
-      companyName: bp.companyName ?? '',
-      brandName: bp.brandName ?? '',
-      businessRegistrationNumber: bp.businessRegistrationNumber ?? '',
-      address1: bp.address1 ?? '',
-      address2: bp.address2 ?? '',
-      representativeName: bp.representativeName ?? '',
-      representativeMobilePhone: bp.representativeMobilePhone ?? '',
-      representativeEmail: bp.representativeEmail ?? '',
-      bpType: bp.bpType ?? '',
-      pfSaveRequest: bp.pfList?.map((pf) => ({
-        id: pf.id,
-        organizationId: pf.bpId,
-        partnerBusinessPartnerId: pf.partnerBpId,
-      })) ?? [],
-    })
-    setAddress({
-      address: bp.address1 ?? '',
-      addressDetail: bp.address2 ?? '',
-    })
-    if (bp.lnbLogoExpandFile) {
-      setExpandLogoImages([{ id: bp.lnbLogoExpandFile.id, name: bp.lnbLogoExpandFile.originalFileName, url: bp.lnbLogoExpandFile.publicUrl }])
-    }
-    if (bp.lnbLogoContractFile) {
-      setContractLogoImages([{ id: bp.lnbLogoContractFile.id, name: bp.lnbLogoContractFile.originalFileName, url: bp.lnbLogoContractFile.publicUrl }])
-    }
-    setInitialized(true)
-  }
 
   const isFranchise = form.pfType === 'PF_002'
   const isHeadOffice = form.pfType === 'PF_001'
@@ -134,9 +123,11 @@ const BpForm = ({ id }: BpFormProps) => {
     }
   }
 
+  // address는 form에서 파생
+  const address: AddressData = { address: form.address1, addressDetail: form.address2 }
+
   // 주소 변경
   const handleAddressChange = (data: AddressData) => {
-    setAddress(data)
     setForm((prev) => ({
       ...prev,
       address1: data.address,
@@ -314,24 +305,7 @@ const BpForm = ({ id }: BpFormProps) => {
     }
   }
 
-  // 로딩 상태
-  if (isEditMode && isPending) {
-    return (
-      <div className="data-wrap">
-        <Location title={locationTitle} list={breadcrumbs} />
-        <div className="cube-loader-overlay"><CubeLoader /></div>
-      </div>
-    )
-  }
 
-  if (isEditMode && !bp) {
-    return (
-      <div className="data-wrap">
-        <Location title={locationTitle} list={breadcrumbs} />
-        <div className="empty-wrap"><div className="empty-data">데이터를 찾을 수 없습니다.</div></div>
-      </div>
-    )
-  }
 
   return (
     <div className="data-wrap">
