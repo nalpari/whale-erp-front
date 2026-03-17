@@ -4,6 +4,14 @@ const BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/val
 const BUSINESS_VALIDATE_KEY = process.env.BUSINESS_VALIDATE_KEY ?? ''
 
 export async function POST(request: NextRequest) {
+  if (!BUSINESS_VALIDATE_KEY) {
+    console.error('BUSINESS_VALIDATE_KEY environment variable is not set')
+    return NextResponse.json(
+      { success: false, error: '사업자 인증 서비스가 설정되지 않았습니다.' },
+      { status: 503 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { businessRegistrationNumber, startDate, representativeName } = body
@@ -31,6 +39,14 @@ export async function POST(request: NextRequest) {
         }),
       }
     )
+
+    if (!response.ok) {
+      console.error(`Business validation API returned ${response.status}`)
+      return NextResponse.json(
+        { success: false, error: `외부 인증 서비스 오류 (${response.status})` },
+        { status: 502 }
+      )
+    }
 
     const data = await response.json()
     const result = data?.data?.[0]
