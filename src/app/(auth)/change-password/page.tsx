@@ -12,7 +12,6 @@ const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#
 export default function ChangePasswordPage() {
   const router = useRouter();
   const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
-  const accessToken = useAuthStore((state) => state.accessToken);
   const changePasswordMutation = useChangePasswordMutation();
 
   const [newPassword, setNewPassword] = useState("");
@@ -20,12 +19,6 @@ export default function ChangePasswordPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // 로그인하지 않은 상태면 로그인 페이지로
-  if (!accessToken) {
-    router.replace("/login");
-    return null;
-  }
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
