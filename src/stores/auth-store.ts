@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthStore>()(
       setUserInfo: (loginId, name, mobilePhone) =>
         set({ loginId, name, mobilePhone }),
       setPasswordChangeRequired: (required) => set({ passwordChangeRequired: required }),
-      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, ownerCode: null, loginId: null, name: null, mobilePhone: null, subscriptionPlan: 0 }),
+      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, ownerCode: null, loginId: null, name: null, mobilePhone: null, passwordChangeRequired: false, subscriptionPlan: 0 }),
     }),
     {
       name: 'auth-storage',
