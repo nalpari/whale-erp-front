@@ -39,6 +39,7 @@ export const bpKeys = {
   headOffices: () => [...bpKeys.all, 'head-offices'] as const,
   details: () => [...bpKeys.all, 'detail'] as const,
   detail: (id: number) => [...bpKeys.details(), id] as const,
+  myOrganization: (affiliationId: string | null) => [...bpKeys.all, 'my-organization', affiliationId] as const,
 }
 
 export const commonCodeKeys = {

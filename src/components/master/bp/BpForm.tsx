@@ -54,30 +54,23 @@ const mapBpToForm = (bp: BpDetailResponse): BpFormData => ({
   })) ?? [],
 })
 
-const mapBpToLogoImages = (bp: BpDetailResponse): { expand: ImageItem[]; contract: ImageItem[] } => ({
-  expand: bp.lnbLogoExpandFile
+const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
+  bp.lnbLogoExpandFile
     ? [{ id: bp.lnbLogoExpandFile.id, name: bp.lnbLogoExpandFile.originalFileName, url: bp.lnbLogoExpandFile.publicUrl }]
-    : [],
-  contract: bp.lnbLogoContractFile
-    ? [{ id: bp.lnbLogoContractFile.id, name: bp.lnbLogoContractFile.originalFileName, url: bp.lnbLogoContractFile.publicUrl }]
-    : [],
-})
+    : []
 
 const BpForm = ({ id, bp }: BpFormProps) => {
   const router = useRouter()
   const { alert, confirm } = useAlert()
   const isEditMode = !!id
 
-  const initialLogo = bp ? mapBpToLogoImages(bp) : { expand: [], contract: [] }
+  const initialLogoImages = bp ? mapBpToLogoImages(bp) : []
 
   const [slideboxOpen, setSlideboxOpen] = useState(true)
   const [form, setForm] = useState<BpFormData>(() => bp ? mapBpToForm(bp) : INITIAL_FORM)
-  const [expandLogoImages, setExpandLogoImages] = useState<ImageItem[]>(initialLogo.expand)
-  const [contractLogoImages, setContractLogoImages] = useState<ImageItem[]>(initialLogo.contract)
+  const [expandLogoImages, setExpandLogoImages] = useState<ImageItem[]>(initialLogoImages)
   const [expandLogoFile, setExpandLogoFile] = useState<File | undefined>()
-  const [contractLogoFile, setContractLogoFile] = useState<File | undefined>()
   const [deleteExpandFileId, setDeleteExpandFileId] = useState<number | undefined>()
-  const [deleteContractFileId, setDeleteContractFileId] = useState<number | undefined>()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [masterIdCheckMessage, setMasterIdCheckMessage] = useState('')
 
@@ -165,10 +158,10 @@ const BpForm = ({ id, bp }: BpFormProps) => {
       ...prev,
       pfSaveRequest: bpId
         ? [{
-            id: prev.pfSaveRequest?.[0]?.id,
-            organizationId: prev.pfSaveRequest?.[0]?.organizationId,
-            partnerBusinessPartnerId: bpId,
-          }]
+          id: prev.pfSaveRequest?.[0]?.id,
+          organizationId: prev.pfSaveRequest?.[0]?.organizationId,
+          partnerBusinessPartnerId: bpId,
+        }]
         : [],
     }))
   }
@@ -219,20 +212,6 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     setExpandLogoFile(undefined)
     setExpandLogoImages([])
   }
-  const handleContractLogoAdd = (files: File[]) => {
-    const file = files[0]
-    const existingId = contractLogoImages[0]?.id
-    if (existingId) setDeleteContractFileId(Number(existingId))
-    setContractLogoFile(file)
-    setContractLogoImages([{ name: file.name, file }])
-  }
-  const handleContractLogoRemove = (_index: number) => {
-    const existingId = contractLogoImages[0]?.id
-    if (existingId) setDeleteContractFileId(Number(existingId))
-    setContractLogoFile(undefined)
-    setContractLogoImages([])
-  }
-
   // 검증
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -285,9 +264,7 @@ const BpForm = ({ id, bp }: BpFormProps) => {
           id: id!,
           data: form,
           lnbLogoExpandFile: expandLogoFile,
-          lnbLogoContractFile: contractLogoFile,
           deleteLnbLogoExpandFileId: deleteExpandFileId,
-          deleteLnbLogoContractFileId: deleteContractFileId,
         })
         await alert('수정되었습니다.')
         router.push(`/master/bp/${id}`)
@@ -295,7 +272,6 @@ const BpForm = ({ id, bp }: BpFormProps) => {
         const result = await createBp({
           data: form,
           lnbLogoExpandFile: expandLogoFile,
-          lnbLogoContractFile: contractLogoFile,
         })
         await alert('등록되었습니다.')
         router.push(`/master/bp/${result.id}`)
@@ -522,7 +498,7 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                       </td>
                     </tr>
                     <tr>
-                      <th>LNB 로고 (확장)</th>
+                      <th>LNB 로고</th>
                       <td>
                         <ImageUpload
                           images={expandLogoImages}
@@ -530,18 +506,6 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                           onRemove={handleExpandLogoRemove}
                           accept="image/*"
                           guideText="확장 로고 이미지를 업로드하세요."
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <th>LNB 로고 (축소)</th>
-                      <td>
-                        <ImageUpload
-                          images={contractLogoImages}
-                          onAdd={handleContractLogoAdd}
-                          onRemove={handleContractLogoRemove}
-                          accept="image/*"
-                          guideText="축소 로고 이미지를 업로드하세요."
                         />
                       </td>
                     </tr>

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { HeaderMenu } from '@/data/HeaderMenu'
 import AnimateHeight from 'react-animate-height'
 import { SupportMenu } from '@/data/SupportMenu'
+import { useMyOrganizationBp } from '@/hooks/queries/use-bp-queries'
 
 export default function Lnb({
   isOpen,
@@ -17,6 +18,10 @@ export default function Lnb({
   menuType?: 'header' | 'support';
 }) {
   const pathname = usePathname()
+  const { data: myBp } = useMyOrganizationBp()
+
+  const logoUrl = myBp?.lnbLogoExpandFile?.publicUrl ?? null
+  const brandName = myBp?.brandName ?? null
 
   // 메뉴 리스트 설정
   const menuList = menuType === 'support' ? SupportMenu : HeaderMenu
@@ -72,11 +77,28 @@ export default function Lnb({
       <button className="lnb-toggle-btn" onClick={() => setIsOpen(!isOpen)}></button>
       <div className="lnb-header">
         <Link href="/logined-main" className="lnb-logo">
-          <Image src="/assets/images/ui/lnb_logo.svg" alt="logo" width={54} height={54} priority />
-          <div className="lnb-logo-text">
-            <span className="logo-main">whale ERP</span>
-            <span>management System</span>
-          </div>
+          {logoUrl ? (
+            <>
+              <Image
+                src={logoUrl}
+                alt="logo"
+                width={54}
+                height={54}
+                style={{ objectFit: 'contain', borderRadius: 8 }}
+              />
+              <div className="lnb-logo-text">
+                <span className="logo-main">{brandName || 'whale ERP'}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <Image src="/assets/images/ui/lnb_logo.svg" alt="logo" width={54} height={54} priority />
+              <div className="lnb-logo-text">
+                <span className="logo-main">whale ERP</span>
+                <span>management System</span>
+              </div>
+            </>
+          )}
         </Link>
       </div>
       <div className="lnb-menu-info">

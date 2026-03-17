@@ -1,8 +1,31 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { bpKeys } from './query-keys'
+import { useAuthStore } from '@/stores/auth-store'
 import type { ApiResponse, PageResponse } from '@/lib/schemas/api'
 import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } from '@/types/bp'
+
+/**
+ * 현재 조직의 BP 정보 조회 훅.
+ * - 사이드바 로고/브랜드명 표시용
+ * - affiliation 헤더로 현재 조직의 BP 자동 필터링
+ * - affiliationId를 query key에 포함하여 조직 전환 시 캐시 분리
+ */
+export const useMyOrganizationBp = () => {
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  return useQuery({
+    queryKey: bpKeys.myOrganization(affiliationId),
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
+        '/api/master/bp',
+        { params: { page: 0, size: 1 } }
+      )
+      return response.data.data?.content?.[0] ?? null
+    },
+    enabled: !!affiliationId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
 
 /**
  * BP 본사 트리 조회 훅.
