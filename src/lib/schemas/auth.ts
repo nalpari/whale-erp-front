@@ -31,6 +31,7 @@ export const loginResponseDataSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   authorities: z.array(authoritySchema),
+  passwordChangeRequired: z.boolean().optional(),
 });
 
 /**
@@ -76,6 +77,7 @@ export const authStateSchema = z.object({
   loginId: z.string().nullable(),
   name: z.string().nullable(),
   mobilePhone: z.string().nullable(),
+  passwordChangeRequired: z.boolean(),
 });
 
 /**
