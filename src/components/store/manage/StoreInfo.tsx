@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { type StoreSearchFilters } from '@/components/store/manage/StoreSearch'
 import Location from '@/components/ui/Location'
-import { useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListParams } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListParams } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
@@ -27,7 +27,15 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 export default function StoreInfo() {
   const router = useRouter()
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const autoSelect = isAutoSelectAccount(ownerCode)
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+
+  // ownerCode 기반 자동 선택 판단 + Zustand 하이드레이션 전 bpTree 구조 fallback
+  const autoSelect = ownerCode
+    ? isAutoSelectAccount(ownerCode)
+    : bpTree.length === 1
 
   const [filters, setFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
@@ -36,12 +44,16 @@ export default function StoreInfo() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  const effectiveAppliedFilters =
-    autoSelect && filters.officeId != null && appliedFilters.officeId == null
-      ? filters
-      : appliedFilters
+  // useMemo: React Compiler 자동 메모이제이션과 충돌 방지를 위해 명시적 의존성 선언
+  const effectiveAppliedFilters = useMemo(
+    () =>
+      autoSelect && filters.officeId != null && appliedFilters.officeId == null
+        ? filters
+        : appliedFilters,
+    [autoSelect, filters, appliedFilters]
+  )
 
-  const { alert } = useAlert()
+  const { alert, confirm } = useAlert()
   const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
 
   const storeParams: StoreListParams = useMemo(
@@ -107,12 +119,16 @@ export default function StoreInfo() {
     }
 
     if (!data.canSave) {
-      await alert(
+      const confirmed = await confirm(
         data.planName
           ? `${data.planName} 플랜의 점포 등록 한도에 도달했습니다. 점포를 추가하려면 플랜 업그레이드가 필요합니다.`
           : '점포를 등록하기 위해서는 회원 등급 업그레이드가 필요합니다.'
       )
-      return
+      if (!confirmed) return
+      if (confirmed) {
+        router.push('/customer/rate-plan')
+        return
+      }
     }
 
     router.push('/store/info/detail')

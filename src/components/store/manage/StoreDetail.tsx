@@ -63,6 +63,7 @@ interface StoreDetailFormProps {
 
 // 상세 폼(저장/검증/입력 포함) 본체
 function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDetailFormProps) {
+  const router = useRouter()
   const { alert, confirm } = useAlert()
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
 
@@ -152,14 +153,6 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
         </div>
       )}
       <div className="detail-wrap">
-        <div className="detail-header">
-          <div className="detail-actions" style={{ justifyContent: 'flex-end', gap: '8px', marginBottom: '12px' }}>
-            <button className="btn-form basic" type="button" onClick={handleSubmit} disabled={saving}>
-              저장
-            </button>
-          </div>
-        </div>
-
         <StoreDetailBasicInfo
           isOpen={storeInfoOpen}
           isEditMode={isEditMode}
@@ -213,6 +206,9 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onRemoveNewImage={handleRemoveNewImage}
           onToggleDeleteImage={toggleDeleteImage}
           onExistingFileDownload={handleExistingFileDownload}
+          onSave={handleSubmit}
+          onList={() => router.push('/store/info')}
+          saving={saving}
         />
 
         <StoreDetailOperatingHours

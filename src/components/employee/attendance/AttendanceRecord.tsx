@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
 import { DEFAULT_ATTENDANCE_FILTERS, type AttendanceSearchFilters } from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
-import { useAttendanceList } from '@/hooks/queries'
+import { useAttendanceList, useBpHeadOfficeTree } from '@/hooks/queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
@@ -28,7 +28,14 @@ export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const autoSelect = isAutoSelectAccount(ownerCode)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+
+  // ownerCode 기반 자동 선택 판단 + Zustand 하이드레이션 전 bpTree 구조 fallback
+  const autoSelect = ownerCode
+    ? isAutoSelectAccount(ownerCode)
+    : bpTree.length === 1
 
   // 로컬 상태 (sessionStorage 저장 없음)
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
@@ -39,10 +46,14 @@ export default function AttendanceRecord() {
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
   // appliedFilters가 아직 초기 상태이고 filters에 officeId가 채워지면 파생값으로 대체
-  const effectiveAppliedFilters =
-    autoSelect && filters.officeId != null && appliedFilters.officeId == null
-      ? filters
-      : appliedFilters
+  // useMemo: React Compiler 자동 메모이제이션과 충돌 방지를 위해 명시적 의존성 선언
+  const effectiveAppliedFilters = useMemo(
+    () =>
+      autoSelect && filters.officeId != null && appliedFilters.officeId == null
+        ? filters
+        : appliedFilters,
+    [autoSelect, filters, appliedFilters]
+  )
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)

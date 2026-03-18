@@ -211,19 +211,15 @@ export default function HeadOfficeFranchiseStoreSelect({
         onChangeRef.current = onChange
     }, [onChange])
 
-    // ownerCode 기반 계정 유형 판단, 없으면 bpTree 구조 추론 (하위 호환)
-    // 본사 계정(PRGRP_002_001): 본사 고정(readOnly), 가맹점은 자동 채움만 (고정 안 함)
-    // 가맹점 계정(PRGRP_002_002): 본사+가맹점 모두 고정(readOnly)
-    const isOfficeFixed = autoSelect && (
-        ownerCode
-            ? ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-            : bpTree.length === 1
-    )
-    const isFranchiseFixed = autoSelect && (
-        ownerCode
-            ? ownerCode === OWNER_CODE.FRANCHISE
-            : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
-    )
+    // --- 고정(readOnly) vs 자동 선택(값만 채움) 분리 ---
+    // 고정: ownerCode가 명확한 경우에만. 드롭다운 비활성화 + 초기화해도 복원.
+    // 자동 선택: 고정 대상 + ownerCode 없이 bpTree가 1개인 경우. 값만 채우고 변경 가능.
+    const isOfficeFixed = autoSelect
+        && (ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE)
+    const isFranchiseFixed = autoSelect && ownerCode === OWNER_CODE.FRANCHISE
+
+    // 자동 선택 대상: 고정 대상 포함 + ownerCode 없을 때 bpTree 단일 본사
+    const shouldAutoSelectOffice = isOfficeFixed || (autoSelect && !ownerCode && bpTree.length === 1)
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
@@ -234,17 +230,18 @@ export default function HeadOfficeFranchiseStoreSelect({
         onMultiOfficeRef.current?.(bpCount > 1)
     }, [bpLoading, bpCount])
 
-    // 본사/가맹점 자동 선택
-    // - 본사(PRGRP_002_001): 본사만 고정, 가맹점은 auto-select 안 함
-    // - 가맹점(PRGRP_002_002): 본사+가맹점 모두 고정(readOnly), 초기화해도 유지
-    // - ownerCode 없음(하위 호환): bpTree 기반 추론
+    // 본사/가맹점 자동 선택 (값 채우기)
+    // - 본사(PRGRP_002_001): 본사 값 설정 + 고정(readOnly)
+    // - 가맹점(PRGRP_002_002): 본사+가맹점 값 설정 + 고정(readOnly)
+    // - ownerCode 없음 + 본사 1개: 본사 값만 설정 (고정 안 함, 변경 가능)
     useEffect(() => {
         if (!autoSelect || bpLoading || bpTree.length === 0) return
 
-        if (isOfficeFixed) {
+        if (shouldAutoSelectOffice) {
             const office = bpTree[0]
 
-            const officeNeedsUpdate = officeId !== office.id
+            // officeId가 null/undefined이면 항상 업데이트 (초기 진입 시 자동 조회 보장)
+            const officeNeedsUpdate = officeId == null || officeId !== office.id
             // 가맹점 고정(가맹점 계정)일 때만 자동 선택/복원
             const autoFranchiseId = isFranchiseFixed && office.franchises.length === 1
                 ? office.franchises[0].id
@@ -261,7 +258,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                 })
             }
         }
-    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId, isOfficeFixed, isFranchiseFixed])
+    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

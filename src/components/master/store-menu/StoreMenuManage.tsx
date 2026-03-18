@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import StoreMenuSearch, { type StoreMenuSearchFilters } from './StoreMenuSearch'
 import StoreMenuThumbnailList from './StoreMenuThumbnailList'
-import { useStoreMenuList, useBulkUpdateOperationStatus, useBulkUpdateDisplayOrder } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreMenuList, useBulkUpdateOperationStatus, useBulkUpdateDisplayOrder } from '@/hooks/queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui'
@@ -44,7 +44,15 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 export default function StoreMenuManage() {
   const router = useRouter()
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const autoSelect = isAutoSelectAccount(ownerCode)
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+
+  // ownerCode 기반 자동 선택 판단 + Zustand 하이드레이션 전 bpTree 구조 fallback
+  const autoSelect = ownerCode
+    ? isAutoSelectAccount(ownerCode)
+    : bpTree.length === 1
 
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
@@ -54,10 +62,14 @@ export default function StoreMenuManage() {
 
   // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
   // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  const effectiveAppliedFilters =
-    autoSelect && filters.officeId != null && appliedFilters.officeId == null
-      ? filters
-      : appliedFilters
+  // useMemo: React Compiler 자동 메모이제이션과 충돌 방지를 위해 명시적 의존성 선언
+  const effectiveAppliedFilters = useMemo(
+    () =>
+      autoSelect && filters.officeId != null && appliedFilters.officeId == null
+        ? filters
+        : appliedFilters,
+    [autoSelect, filters, appliedFilters]
+  )
 
   const queryParams: StoreMenuListParams = {
     bpId: effectiveAppliedFilters.officeId ?? undefined,
