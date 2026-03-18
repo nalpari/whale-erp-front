@@ -20,6 +20,9 @@ export default function StorePromotionLayout({ children }: { children: React.Rea
         router.replace('/')
       })
     }
+    return () => {
+      alertShownRef.current = false
+    }
   }, [isFranchise, alert, router])
 
   if (!ownerCode || isFranchise) return null
