@@ -19,9 +19,9 @@ import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 export interface AuthorityDetailNode {
   program_id: number
   program_name: string
-  can_read?: boolean
-  can_create_delete?: boolean
-  can_update?: boolean
+  can_read?: boolean | null
+  can_create_delete?: boolean | null
+  can_update?: boolean | null
   // 생성 모드에서 본인이 가진 최대 권한 (UI 제한용)
   max_can_read?: boolean
   max_can_create_delete?: boolean
@@ -114,9 +114,9 @@ export const authorityDetailNodeSchema: z.ZodType<AuthorityDetailNode> = z.lazy(
   z.object({
     program_id: z.number(),
     program_name: z.string(),
-    can_read: z.boolean().optional(),
-    can_create_delete: z.boolean().optional(),
-    can_update: z.boolean().optional(),
+    can_read: z.boolean().nullable().optional(),
+    can_create_delete: z.boolean().nullable().optional(),
+    can_update: z.boolean().nullable().optional(),
     children: z.array(authorityDetailNodeSchema).optional(),
   })
 )

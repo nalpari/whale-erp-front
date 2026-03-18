@@ -15,11 +15,11 @@ const toAttendancePage = (payload: unknown): PageResponse<AttendanceListItem> =>
       content: payload as AttendanceListItem[],
       totalElements: payload.length,
       totalPages: payload.length === 0 ? 0 : 1,
-      size: payload.length,
-      number: 0,
-      first: true,
-      last: true,
-      empty: payload.length === 0,
+      pageSize: payload.length,
+      pageNumber: 1,
+      isFirst: true,
+      isLast: true,
+      hasNext: false,
     }
   }
 
@@ -33,23 +33,23 @@ const toAttendancePage = (payload: unknown): PageResponse<AttendanceListItem> =>
     if (content) {
       const totalElements =
         typeof record.totalElements === 'number' ? record.totalElements : content.length
-      const size =
-        typeof record.size === 'number' && record.size > 0 ? record.size : content.length || 1
+      const pageSize =
+        typeof record.pageSize === 'number' && record.pageSize > 0 ? record.pageSize : content.length || 1
       const totalPages =
-        typeof record.totalPages === 'number' ? record.totalPages : Math.ceil(totalElements / size)
-      const number = typeof record.number === 'number' ? record.number : 0
-      const first = typeof record.first === 'boolean' ? record.first : true
-      const last = typeof record.last === 'boolean' ? record.last : true
-      const empty = typeof record.empty === 'boolean' ? record.empty : content.length === 0
+        typeof record.totalPages === 'number' ? record.totalPages : Math.ceil(totalElements / pageSize)
+      const pageNumber = typeof record.pageNumber === 'number' ? record.pageNumber : 1
+      const isFirst = typeof record.isFirst === 'boolean' ? record.isFirst : true
+      const isLast = typeof record.isLast === 'boolean' ? record.isLast : true
+      const hasNext = typeof record.hasNext === 'boolean' ? record.hasNext : false
       return {
         content: content as AttendanceListItem[],
         totalElements,
         totalPages,
-        size,
-        number,
-        first,
-        last,
-        empty,
+        pageSize,
+        pageNumber,
+        isFirst,
+        isLast,
+        hasNext,
       }
     }
   }
@@ -58,11 +58,11 @@ const toAttendancePage = (payload: unknown): PageResponse<AttendanceListItem> =>
     content: [],
     totalElements: 0,
     totalPages: 0,
-    size: 0,
-    number: 0,
-    first: true,
-    last: true,
-    empty: true,
+    pageSize: 0,
+    pageNumber: 1,
+    isFirst: true,
+    isLast: true,
+    hasNext: false,
   }
 }
 
