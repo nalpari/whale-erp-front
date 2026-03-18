@@ -17,7 +17,7 @@ export default function StorePromotionLayout({ children }: { children: React.Rea
     if (isFranchise && !alertShownRef.current) {
       alertShownRef.current = true
       alert('접근 권한이 없습니다.').then(() => {
-        router.replace('/')
+        router.replace('/logined-main')
       })
     }
     return () => {

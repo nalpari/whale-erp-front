@@ -3,7 +3,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
 import { useMemo, useState } from 'react'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { RadioButtonGroup } from '@/components/common/ui'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -30,6 +30,7 @@ interface StoreSearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: string) => void
+  onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -50,6 +51,7 @@ export default function StoreSearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: StoreSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -181,6 +183,7 @@ export default function StoreSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
+                  onAutoSelect={onAutoSelect}
                 />
               </tr>
               <tr>

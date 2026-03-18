@@ -1,16 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
 import { DEFAULT_ATTENDANCE_FILTERS, type AttendanceSearchFilters } from '@/components/employee/attendance/AttendanceSearch'
 import AttendanceList from '@/components/employee/attendance/AttendanceList'
 import Location from '@/components/ui/Location'
-import { useAttendanceList, useBpHeadOfficeTree } from '@/hooks/queries'
+import { useAttendanceList } from '@/hooks/queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { useAuthStore } from '@/stores/auth-store'
-import { isAutoSelectAccount } from '@/constants/owner-code'
+import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { AttendanceListParams } from '@/types/attendance'
 import { useQueryError } from '@/hooks/useQueryError'
 
@@ -27,15 +27,6 @@ const DEFAULT_PAGE_SIZE = 50
 export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const affiliationId = useAuthStore((s) => s.affiliationId)
-  const isReady = Boolean(accessToken && affiliationId)
-  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
-
-  // ownerCode 기반 자동 선택 판단 + Zustand 하이드레이션 전 bpTree 구조 fallback
-  const autoSelect = ownerCode
-    ? isAutoSelectAccount(ownerCode)
-    : bpTree.length === 1
 
   // 로컬 상태 (sessionStorage 저장 없음)
   const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
@@ -43,17 +34,16 @@ export default function AttendanceRecord() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
-  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
-  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  // appliedFilters가 아직 초기 상태이고 filters에 officeId가 채워지면 파생값으로 대체
-  // useMemo: React Compiler 자동 메모이제이션과 충돌 방지를 위해 명시적 의존성 선언
-  const effectiveAppliedFilters = useMemo(
-    () =>
-      autoSelect && filters.officeId != null && appliedFilters.officeId == null
-        ? filters
-        : appliedFilters,
-    [autoSelect, filters, appliedFilters]
-  )
+  // 본사/가맹점 계정: HeadOfficeFranchiseStoreSelect 자동선택 시 appliedFilters 직접 세팅
+  // 이미 검색이 수행된 적 있으면 무시 (초기화 시 자동선택 재발동 방지)
+  const handleAutoSelect = (value: OfficeFranchiseStoreValue) => {
+    if (appliedFilters.officeId != null) return
+    setAppliedFilters({
+      ...DEFAULT_ATTENDANCE_FILTERS,
+      officeId: value.head_office,
+      franchiseId: value.franchise,
+    })
+  }
 
   // 공통코드 조회: 근무여부, 계약분류
   const { children: workStatusChildren } = useCommonCode('EMPWK', true)
@@ -69,24 +59,24 @@ export default function AttendanceRecord() {
   )
   const empClassList = settingsData?.codeMemoContent?.EMPLOYEE ?? []
 
-  const canFetchList = effectiveAppliedFilters.officeId != null
+  const canFetchList = appliedFilters.officeId != null
 
   const attendanceParams: AttendanceListParams = {
-    officeId: effectiveAppliedFilters.officeId ?? undefined,
-    franchiseId: effectiveAppliedFilters.franchiseId ?? undefined,
-    storeId: effectiveAppliedFilters.storeId ?? undefined,
+    officeId: appliedFilters.officeId ?? undefined,
+    franchiseId: appliedFilters.franchiseId ?? undefined,
+    storeId: appliedFilters.storeId ?? undefined,
     status:
-      effectiveAppliedFilters.workStatus === 'ALL' ? undefined : effectiveAppliedFilters.workStatus,
-    employeeName: effectiveAppliedFilters.employeeName || undefined,
-    dayType: effectiveAppliedFilters.workDays.length > 0 ? effectiveAppliedFilters.workDays : undefined,
+      appliedFilters.workStatus === 'ALL' ? undefined : appliedFilters.workStatus,
+    employeeName: appliedFilters.employeeName || undefined,
+    dayType: appliedFilters.workDays.length > 0 ? appliedFilters.workDays : undefined,
     employeeClassify:
-      effectiveAppliedFilters.employeeClassification === 'ALL'
+      appliedFilters.employeeClassification === 'ALL'
         ? undefined
-        : effectiveAppliedFilters.employeeClassification,
+        : appliedFilters.employeeClassification,
     contractClassify:
-      effectiveAppliedFilters.contractClassification === 'ALL'
+      appliedFilters.contractClassification === 'ALL'
         ? undefined
-        : effectiveAppliedFilters.contractClassification,
+        : appliedFilters.contractClassification,
     page,
     size: pageSize,
   }
@@ -119,7 +109,7 @@ export default function AttendanceRecord() {
     }
     const patch = resetMap[key]
     if (!patch) return
-    const nextFilters = { ...effectiveAppliedFilters, ...patch }
+    const nextFilters = { ...appliedFilters, ...patch }
     setFilters(nextFilters)
     // 필수값(office) 제거 시 appliedFilters는 유지 → 목록 데이터 보존
     if (key === 'office') return
@@ -136,7 +126,7 @@ export default function AttendanceRecord() {
       <Location title="근태 기록" list={BREADCRUMBS} />
       <AttendanceSearch
         filters={filters}
-        appliedFilters={effectiveAppliedFilters}
+        appliedFilters={appliedFilters}
         workStatusOptions={workStatusChildren.map((c) => ({ value: c.code, label: c.name }))}
         employeeClassificationOptions={empClassList.map((c) => ({
           value: c.code,
@@ -152,6 +142,7 @@ export default function AttendanceRecord() {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelect={handleAutoSelect}
       />
       <AttendanceList
         rows={listData}

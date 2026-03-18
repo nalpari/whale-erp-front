@@ -164,6 +164,8 @@ type HeadOfficeFranchiseStoreSelectProps = {
     autoSelect?: boolean
     /** bpTree 로드 후 다중 본사 여부를 알려주는 콜백 */
     onMultiOffice?: (isMulti: boolean) => void
+    /** 자동 선택 발생 시 호출되는 콜백 (본사/가맹점 계정 첫 진입 시 appliedFilters 동기화용) */
+    onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 /** bpTree의 본사 목록을 SearchSelect 옵션 형태로 변환 */
@@ -199,6 +201,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     isDisabled = false,
     autoSelect = true,
     onMultiOffice,
+    onAutoSelect,
 }: HeadOfficeFranchiseStoreSelectProps) {
     const { accessToken, affiliationId, ownerCode } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
@@ -210,6 +213,9 @@ export default function HeadOfficeFranchiseStoreSelect({
     useEffect(() => {
         onChangeRef.current = onChange
     }, [onChange])
+
+    const onAutoSelectRef = useRef(onAutoSelect)
+    useEffect(() => { onAutoSelectRef.current = onAutoSelect }, [onAutoSelect])
 
     // --- 고정(readOnly) vs 자동 선택(값만 채움) 분리 ---
     // 고정: ownerCode가 명확한 경우에만. 드롭다운 비활성화 + 초기화해도 복원.
@@ -251,11 +257,13 @@ export default function HeadOfficeFranchiseStoreSelect({
                 && franchiseId !== autoFranchiseId
 
             if (officeNeedsUpdate || franchiseNeedsUpdate) {
-                onChangeRef.current({
+                const value: OfficeFranchiseStoreValue = {
                     head_office: office.id,
                     franchise: autoFranchiseId ?? franchiseId ?? null,
                     store: null,
-                })
+                }
+                onChangeRef.current(value)
+                onAutoSelectRef.current?.(value)
             }
         }
     }, [autoSelect, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed])
