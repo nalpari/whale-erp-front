@@ -15,6 +15,7 @@ import type {
   AuthorityUpdateRequest,
   AuthorityDetailNode,
   AuthorityResponse,
+  OwnerCode,
 } from '@/lib/schemas/authority'
 import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
 import type { Program } from '@/lib/schemas/program'
@@ -56,19 +57,21 @@ interface UseAuthorityFormOptions {
   authorityId?: number
   initialAuthority?: AuthorityResponse
   programList?: Program[]
+  listPath?: string
+  defaultOwnerCode?: OwnerCode
 }
 
 /**
  * 권한 생성/수정 폼 공통 로직 훅
  */
-export function useAuthorityForm({ mode, authorityId, initialAuthority, programList }: UseAuthorityFormOptions) {
+export function useAuthorityForm({ mode, authorityId, initialAuthority, programList, listPath = '/system/authority', defaultOwnerCode = 'PRGRP_001_001' }: UseAuthorityFormOptions) {
   const router = useRouter()
 
   // 폼 데이터 상태
   const [formData, setFormData] = useState<Partial<AuthorityCreateRequest>>(() => {
     if (mode === 'edit' && initialAuthority) {
       return {
-        owner_code: initialAuthority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
+        owner_code: initialAuthority.owner_code as OwnerCode,
         head_office_id: initialAuthority.head_office_id ?? undefined,
         franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
@@ -77,7 +80,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
       }
     }
     return {
-      owner_code: 'PRGRP_001_001',
+      owner_code: defaultOwnerCode,
       is_used: true,
     }
   })
@@ -255,7 +258,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
 
         // 성공 시 목록으로 이동
         alert('권한이 등록되었습니다.')
-        router.push('/system/authority')
+        router.push(listPath)
       } else {
         // 수정 모드
         if (!authorityId) {
@@ -279,7 +282,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
 
         // 성공 시 목록으로 이동
         alert('권한이 수정되었습니다.')
-        router.push('/system/authority')
+        router.push(listPath)
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -293,7 +296,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
 
   // 목록으로 이동
   const handleList = () => {
-    router.push('/system/authority')
+    router.push(listPath)
   }
 
   return {

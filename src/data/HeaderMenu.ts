@@ -217,7 +217,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 22,
         name: '권한 관리',
-        link: '/system/authority',
+        link: '/settings/authority',
       },
       {
         id: 23,

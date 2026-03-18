@@ -11,11 +11,11 @@ import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 
 /**
- * 권한 수정 페이지 (Wrapper)
+ * 환경설정 > 권한 상세 페이지 (Wrapper)
  *
- * authority 로딩 완료 후 Content를 렌더하여 useState 초기값에서 직접 사용
+ * 본사/가맹점 관리자용 - 권한 소유 숨김
  */
-export default function AuthorityEditPage() {
+export default function SettingsAuthorityEditPage() {
   const params = useParams()
   const authorityId = Number(params.id)
   const isValidId = !Number.isNaN(authorityId) && authorityId > 0
@@ -25,7 +25,7 @@ export default function AuthorityEditPage() {
   if (!isValidId) {
     return (
       <div className="data-wrap">
-        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <Location title="권한 상세" list={['홈', '환경 설정', '권한 관리', '권한 상세']} />
         <div className="contents-wrap">잘못된 권한 ID입니다.</div>
       </div>
     )
@@ -38,7 +38,7 @@ export default function AuthorityEditPage() {
   if (isError) {
     return (
       <div className="data-wrap">
-        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <Location title="권한 상세" list={['홈', '환경 설정', '권한 관리', '권한 상세']} />
         <div className="contents-wrap">권한 정보를 불러오는 데 실패했습니다.</div>
       </div>
     )
@@ -47,21 +47,16 @@ export default function AuthorityEditPage() {
   if (!authority) {
     return (
       <div className="data-wrap">
-        <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+        <Location title="권한 상세" list={['홈', '환경 설정', '권한 관리', '권한 상세']} />
         <div className="contents-wrap">권한을 찾을 수 없습니다.</div>
       </div>
     )
   }
 
-  return <AuthorityEditContent authorityId={authorityId} authority={authority} />
+  return <SettingsAuthorityEditContent authorityId={authorityId} authority={authority} />
 }
 
-/**
- * 권한 수정 콘텐츠 (Content)
- *
- * 확정된 authority를 받아 useAuthorityForm에서 바로 사용
- */
-function AuthorityEditContent({
+function SettingsAuthorityEditContent({
   authorityId,
   authority,
 }: {
@@ -79,12 +74,16 @@ function AuthorityEditContent({
     handleFormChange,
     handleProgramTreeChange,
     handleSave,
-    handleList,
   } = useAuthorityForm({
     mode: 'edit',
     authorityId,
     initialAuthority: authority,
+    listPath: '/settings/authority',
   })
+
+  const handleList = () => {
+    router.push('/settings/authority')
+  }
 
   // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
   const handleAuthorityManager = () => {
@@ -97,7 +96,7 @@ function AuthorityEditContent({
     try {
       await deleteAuthority(authorityId)
       alert('권한이 삭제되었습니다.')
-      router.push('/system/authority')
+      router.push('/settings/authority')
     } catch (error) {
       alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
       console.error('권한 삭제 실패:', error)
@@ -106,7 +105,7 @@ function AuthorityEditContent({
 
   return (
     <div className="data-wrap">
-      <Location title="권한 상세" list={['홈', '시스템 관리', '권한 관리', '권한 상세']} />
+      <Location title="권한 상세" list={['홈', '환경 설정', '권한 관리', '권한 상세']} />
       <div className="contents-wrap">
         <AuthorityForm
           mode="edit"
@@ -122,6 +121,7 @@ function AuthorityEditContent({
           onDelete={handleDelete}
           onSave={handleSave}
           errors={errors}
+          context="bp"
         >
           <AuthorityProgramTree
             programTree={programTree}

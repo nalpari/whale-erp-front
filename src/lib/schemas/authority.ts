@@ -49,13 +49,19 @@ export interface AuthoritySearchParams {
 
 // AuthorityListItem, AuthorityResponse 타입은 Zod 스키마에서 추론 (하단 참조)
 
+/**
+ * 권한 소유 코드 타입
+ */
+export const OWNER_CODES = ['PRGRP_001_001', 'PRGRP_002_001', 'PRGRP_002_002'] as const
+export type OwnerCode = typeof OWNER_CODES[number]
+
 // ============================================
 // Zod 스키마
 // ============================================
 
 // 권한 생성 스키마
 export const authorityCreateSchema = z.object({
-  owner_code: z.enum(['PRGRP_001_001', 'PRGRP_002_001', 'PRGRP_002_002'], {
+  owner_code: z.enum(OWNER_CODES, {
     message: '권한 소유를 선택해주세요',
   }),
   head_office_id: z.number().optional(),
