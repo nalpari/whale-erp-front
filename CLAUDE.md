@@ -270,6 +270,7 @@ Dual styling system:
 - 커밋 전 `pnpm lint` 실행
 - TypeScript strict mode 준수
 - `any` 타입 사용 금지
+- `unknown` 타입 사용 금지 — 구체적인 타입 또는 제네릭으로 대체할 것
 
 ### React Compiler 규칙 (중요)
 이 프로젝트는 `next.config.ts`에서 `reactCompiler: true`로 React Compiler를 활성화하고 있다.
