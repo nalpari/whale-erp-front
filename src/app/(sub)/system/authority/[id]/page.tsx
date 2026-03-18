@@ -86,11 +86,9 @@ function AuthorityEditContent({
     initialAuthority: authority,
   })
 
-  // 권한 관리자
+  // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
   const handleAuthorityManager = () => {
-    // TODO: 관리자 관리 페이지 구현 후 해당 권한을 가진 관리자 검색 결과 표시
-    console.log('권한 관리자 페이지로 이동 - 권한 ID:', authorityId)
-    // 구현 예정: router.push(`/system/admin?authorityId=${authorityId}`)
+    router.push(`/system/admin?authorityId=${authorityId}`)
   }
 
   const handleDelete = async () => {
