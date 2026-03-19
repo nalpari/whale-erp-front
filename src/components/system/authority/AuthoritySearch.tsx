@@ -100,8 +100,12 @@ export default function AuthoritySearch({
         <div className="search-filed">
           <table className="default-table">
             <colgroup>
-              <col width="120px" />
-              <col />
+              {context !== 'bp' && (
+                <>
+                  <col width="120px" />
+                  <col />
+                </>
+              )}
               <col width="120px" />
               <col />
               <col width="120px" />
@@ -152,7 +156,7 @@ export default function AuthoritySearch({
                   </div>
                 </td>
                 <th>운영여부</th>
-                <td colSpan={3}>
+                <td colSpan={context !== 'bp' ? 3 : 1}>
                   <RadioButtonGroup
                     options={[
                       { value: 'all', label: '전체' },
