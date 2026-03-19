@@ -9,6 +9,7 @@ import { useAuthorityForm } from '@/hooks/use-authority-form'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
+import { useAlert } from '@/components/common/ui'
 
 /**
  * 권한 수정 페이지 (Wrapper)
@@ -69,6 +70,7 @@ function AuthorityEditContent({
   authority: AuthorityResponse
 }) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
 
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
 
@@ -92,14 +94,15 @@ function AuthorityEditContent({
   }
 
   const handleDelete = async () => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    const confirmed = await confirm('정말 삭제하시겠습니까?')
+    if (!confirmed) return
 
     try {
       await deleteAuthority(authorityId)
-      alert('권한이 삭제되었습니다.')
+      await alert('권한이 삭제되었습니다.')
       router.push('/system/authority')
     } catch (error) {
-      alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
+      await alert(getErrorMessage(error))
       console.error('권한 삭제 실패:', error)
     }
   }
