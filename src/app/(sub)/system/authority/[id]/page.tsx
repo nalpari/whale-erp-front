@@ -20,7 +20,7 @@ import CubeLoader from '@/components/common/ui/CubeLoader'
 export default function AuthorityEditPage() {
   const params = useParams()
   const authorityId = Number(params.id)
-  const isValidId = !Number.isNaN(authorityId) && authorityId > 0
+  const isValidId = Number.isInteger(authorityId) && authorityId > 0
 
   const { data: authority, isLoading, isError } = useAuthorityDetail(isValidId ? authorityId : 0)
 
