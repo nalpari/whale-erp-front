@@ -10,11 +10,13 @@ import {
   useUpdateAuthority,
 } from '@/hooks/queries/use-authority-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAlert } from '@/components/common/ui'
 import type {
   AuthorityCreateRequest,
   AuthorityUpdateRequest,
   AuthorityDetailNode,
   AuthorityResponse,
+  OwnerCode,
 } from '@/lib/schemas/authority'
 import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
 import type { Program } from '@/lib/schemas/program'
@@ -56,19 +58,22 @@ interface UseAuthorityFormOptions {
   authorityId?: number
   initialAuthority?: AuthorityResponse
   programList?: Program[]
+  listPath?: string
+  defaultOwnerCode?: OwnerCode
 }
 
 /**
  * 권한 생성/수정 폼 공통 로직 훅
  */
-export function useAuthorityForm({ mode, authorityId, initialAuthority, programList }: UseAuthorityFormOptions) {
+export function useAuthorityForm({ mode, authorityId, initialAuthority, programList, listPath = '/system/authority', defaultOwnerCode = 'PRGRP_001_001' }: UseAuthorityFormOptions) {
   const router = useRouter()
+  const { alert } = useAlert()
 
   // 폼 데이터 상태
   const [formData, setFormData] = useState<Partial<AuthorityCreateRequest>>(() => {
     if (mode === 'edit' && initialAuthority) {
       return {
-        owner_code: initialAuthority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
+        owner_code: initialAuthority.owner_code as OwnerCode,
         head_office_id: initialAuthority.head_office_id ?? undefined,
         franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
@@ -77,7 +82,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
       }
     }
     return {
-      owner_code: 'PRGRP_001_001',
+      owner_code: defaultOwnerCode,
       is_used: true,
     }
   })
@@ -254,8 +259,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
         await createAuthority(validated)
 
         // 성공 시 목록으로 이동
-        alert('권한이 등록되었습니다.')
-        router.push('/system/authority')
+        await alert('권한이 등록되었습니다.')
+        router.push(listPath)
       } else {
         // 수정 모드
         if (!authorityId) {
@@ -278,14 +283,14 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
         // 프로그램별 권한은 체크박스 클릭 시 실시간으로 업데이트됨 (낙관적 업데이트)
 
         // 성공 시 목록으로 이동
-        alert('권한이 수정되었습니다.')
-        router.push('/system/authority')
+        await alert('권한이 수정되었습니다.')
+        router.push(listPath)
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        alert(`입력값 검증 실패:\n${formatZodError(error)}`)
+        await alert(`입력값 검증 실패:\n${formatZodError(error)}`)
       } else {
-        alert(`권한 ${mode === 'create' ? '등록' : '수정'} 실패: ${getErrorMessage(error)}`)
+        await alert(getErrorMessage(error))
       }
       console.error(`권한 ${mode === 'create' ? '등록' : '수정'} 실패:`, error)
     }
@@ -293,7 +298,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
 
   // 목록으로 이동
   const handleList = () => {
-    router.push('/system/authority')
+    router.push(listPath)
   }
 
   return {

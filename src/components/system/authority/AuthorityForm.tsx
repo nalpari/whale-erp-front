@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 
 import { RadioButtonGroup } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
-import type { AuthorityCreateRequest, AuthorityUpdateRequest } from '@/lib/schemas/authority'
+import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
 
 interface AuthorityFormProps {
   mode: 'create' | 'edit'
@@ -16,6 +16,7 @@ interface AuthorityFormProps {
   onAuthorityManager?: () => void
   children?: ReactNode
   errors?: Record<string, string>
+  context?: 'platform' | 'bp'
 }
 
 export default function AuthorityForm({
@@ -28,6 +29,7 @@ export default function AuthorityForm({
   onAuthorityManager,
   children,
   errors = {},
+  context,
 }: AuthorityFormProps) {
   // 현재 폼 데이터
   const formData = {
@@ -46,7 +48,7 @@ export default function AuthorityForm({
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
-      owner_code: value as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
+      owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
     }
@@ -106,25 +108,27 @@ export default function AuthorityForm({
               {showFranchise && <col />}
             </colgroup>
             <tbody>
-              <tr>
-                <th>
-                  권한 소유 <span className="red">*</span>
-                </th>
-                <td colSpan={showFranchise ? 3 : undefined}>
-                  <RadioButtonGroup
-                    options={[
-                      { value: 'PRGRP_001_001', label: '플랫폼' },
-                      { value: 'PRGRP_002_001', label: '본사' },
-                      { value: 'PRGRP_002_002', label: '가맹점' },
-                    ]}
-                    value={formData.owner_code}
-                    onChange={handleOwnerCodeChange}
-                    disabled={mode === 'edit'}
-                    name="authority-owner"
-                  />
-                  {errors.owner_code && <div className="warning-txt mt5" role="alert">* {errors.owner_code}</div>}
-                </td>
-              </tr>
+              {context !== 'bp' && (
+                <tr>
+                  <th>
+                    권한 소유 <span className="red">*</span>
+                  </th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <RadioButtonGroup
+                      options={[
+                        { value: 'PRGRP_001_001', label: '플랫폼' },
+                        { value: 'PRGRP_002_001', label: '본사' },
+                        { value: 'PRGRP_002_002', label: '가맹점' },
+                      ]}
+                      value={formData.owner_code}
+                      onChange={handleOwnerCodeChange}
+                      disabled={mode === 'edit'}
+                      name="authority-owner"
+                    />
+                    {errors.owner_code && <div className="warning-txt mt5" role="alert">* {errors.owner_code}</div>}
+                  </td>
+                </tr>
+              )}
               {showHeadOffice && (
                 <tr>
                   <HeadOfficeFranchiseStoreSelect
