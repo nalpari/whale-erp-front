@@ -34,9 +34,11 @@ const toAttendancePage = (payload: unknown): PageResponse<AttendanceListItem> =>
       const totalElements =
         typeof record.totalElements === 'number' ? record.totalElements : content.length
       const pageSize =
-        typeof record.pageSize === 'number' && record.pageSize > 0 ? record.pageSize : content.length || 1
+        typeof record.pageSize === 'number' && record.pageSize > 0
+          ? record.pageSize
+          : (typeof record.size === 'number' && record.size > 0 ? record.size : content.length)
       const totalPages =
-        typeof record.totalPages === 'number' ? record.totalPages : Math.ceil(totalElements / pageSize)
+        typeof record.totalPages === 'number' ? record.totalPages : (pageSize > 0 ? Math.ceil(totalElements / pageSize) : 0)
       const pageNumber = typeof record.pageNumber === 'number' ? record.pageNumber : 1
       const isFirst = typeof record.isFirst === 'boolean' ? record.isFirst : true
       const isLast = typeof record.isLast === 'boolean' ? record.isLast : true
