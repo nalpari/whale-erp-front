@@ -4,6 +4,7 @@ import type { Program } from '@/lib/schemas/program'
 import { useProgramList } from '@/hooks/queries/use-program-queries'
 import { useAuthorityForm } from '@/hooks/use-authority-form'
 import Location from '@/components/ui/Location'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 
@@ -16,7 +17,7 @@ export default function SettingsAuthorityCreatePage() {
   const { data: programList, isPending, isError } = useProgramList('MNKND_001')
 
   if (isPending) {
-    return <div></div>
+    return <div className="cube-loader-overlay"><CubeLoader /></div>
   }
 
   if (isError) {

@@ -10,6 +10,7 @@ import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
 import { useAlert } from '@/components/common/ui'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 /**
  * 환경설정 > 권한 상세 페이지 (Wrapper)
@@ -33,7 +34,7 @@ export default function SettingsAuthorityEditPage() {
   }
 
   if (isLoading) {
-    return <div></div>
+    return <div className="cube-loader-overlay"><CubeLoader /></div>
   }
 
   if (isError) {
