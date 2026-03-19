@@ -31,7 +31,7 @@ export default function SettingsAuthorityPage() {
   })
 
   const handleSearch = (params: AuthoritySearchParams) => {
-    setSearchParams(params)
+    setSearchParams({ ...params, owner_group: 'PRGRP_002' })
     setPage(1)
   }
 
