@@ -4,6 +4,7 @@ import { Tooltip } from 'react-tooltip'
 import Location from '@/components/ui/Location'
 import { useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import {
   usePayrollStatementSettings,
   useSavePayrollStatementSettings,
@@ -13,7 +14,6 @@ import {
   type PayrollStatementSettingsContent,
   type BonusCategory,
 } from '@/lib/api/payrollStatementSettings'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '@/lib/constants/organization'
 
 // 상여금 분류 행 컴포넌트
 interface BonusCategoryRowProps {
@@ -122,27 +122,24 @@ export default function PayrollStatementSettings() {
   const { alert } = useAlert()
 
   // 본사/가맹점 선택
-  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
-  const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
+  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number | null>(null)
+  const [selectedFranchiseId, setSelectedFranchiseId] = useState<number | null>(null)
+
+  const handleBpSelectChange = (value: OfficeFranchiseStoreValue) => {
+    setSelectedHeadOfficeId(value.head_office)
+    setSelectedFranchiseId(value.franchise)
+  }
 
   // 급여명세서 설정
   const [localSettings, setLocalSettings] = useState<PayrollStatementSettingsContent | null>(null)
 
   // TanStack Query hooks
-  const { data: fetchedSettings, isPending: isLoading, refetch } = usePayrollStatementSettings(
-    { headOfficeId: selectedHeadOfficeId, franchiseId: selectedFranchiseId },
-    true
+  const hasSelection = selectedHeadOfficeId !== null
+  const { data: fetchedSettings, isPending: isLoading } = usePayrollStatementSettings(
+    { headOfficeId: selectedHeadOfficeId ?? undefined, franchiseId: selectedFranchiseId ?? undefined },
+    hasSelection
   )
   const saveMutation = useSavePayrollStatementSettings()
-
-  // Select options
-  const headOfficeOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '따름인' },
-  ], [])
-
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '2', label: '을지로3가점' },
-  ], [])
 
   const monthOptions: SelectOption[] = useMemo(() => [
     { value: 'CURRENT', label: '당월' },
@@ -157,12 +154,6 @@ export default function PayrollStatementSettings() {
     setLocalSettings(fetchedSettings)
   }
 
-  // 검색
-  const handleSearch = () => {
-    setLocalSettings(null)
-    refetch()
-  }
-
   // 저장
   const handleSave = async () => {
     // 빈 값인 상여금 분류 제거
@@ -175,10 +166,15 @@ export default function PayrollStatementSettings() {
       bonusCategories: filteredBonusCategories
     }
 
+    if (!selectedHeadOfficeId) {
+      await alert('본사를 선택해주세요.')
+      return
+    }
+
     try {
       await saveMutation.mutateAsync({
         headOfficeId: selectedHeadOfficeId,
-        franchiseId: selectedFranchiseId,
+        franchiseId: selectedFranchiseId ?? undefined,
         settings: updatedSettings
       })
       setLocalSettings(updatedSettings)
@@ -289,30 +285,14 @@ export default function PayrollStatementSettings() {
               </colgroup>
               <tbody>
                 <tr>
-                  <th>본사/가맹점 선택</th>
-                  <td>
-                    <div className="filed-flx">
-                      <div className="block" style={{ maxWidth: '250px' }}>
-                        <SearchSelect
-                          options={headOfficeOptions}
-                          value={headOfficeOptions.find(o => o.value === String(selectedHeadOfficeId)) || null}
-                          onChange={(opt) => setSelectedHeadOfficeId(Number(opt?.value || DEFAULT_HEAD_OFFICE_ID))}
-                          placeholder="본사 선택"
-                        />
-                      </div>
-                      <div className="block" style={{ maxWidth: '250px' }}>
-                        <SearchSelect
-                          options={franchiseOptions}
-                          value={franchiseOptions.find(o => o.value === String(selectedFranchiseId)) || null}
-                          onChange={(opt) => setSelectedFranchiseId(Number(opt?.value || DEFAULT_FRANCHISE_ID))}
-                          placeholder="가맹점 선택"
-                        />
-                      </div>
-                      <button className="btn-form basic" onClick={handleSearch} disabled={isLoading}>
-                        {isLoading ? '조회중...' : '검색'}
-                      </button>
-                    </div>
-                  </td>
+                  <HeadOfficeFranchiseStoreSelect
+                    isHeadOfficeRequired={false}
+                    fields={['office', 'franchise']}
+                    officeId={selectedHeadOfficeId}
+                    franchiseId={selectedFranchiseId}
+                    storeId={null}
+                    onChange={handleBpSelectChange}
+                  />
                 </tr>
               </tbody>
             </table>

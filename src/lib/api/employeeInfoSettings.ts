@@ -45,9 +45,11 @@ export async function getEmployeeInfoCommonCode(
   params?: GetEmployeeInfoCommonCodeParams
 ): Promise<EmployeeInfoCommonCodeResponse | null> {
   try {
-    const defaultParams = {
+    const defaultParams: Record<string, number> = {
       headOfficeId: params?.headOfficeId ?? DEFAULT_HEAD_OFFICE_ID,
-      franchiseId: params?.franchiseId ?? DEFAULT_FRANCHISE_ID
+    }
+    if (params?.franchiseId != null) {
+      defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: EmployeeInfoCommonCodeResponse | null }>(
       '/api/employee/info/common-code',

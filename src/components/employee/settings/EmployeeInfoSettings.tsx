@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import {
@@ -25,10 +25,7 @@ import {
 } from '@/hooks/queries/use-employee-settings-queries'
 import type { ClassificationItem as ApiClassificationItem } from '@/lib/api/employeeInfoSettings'
 import { useAlert } from '@/components/common/ui'
-import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-
-const DEFAULT_HEAD_OFFICE_ID = 1
-const DEFAULT_FRANCHISE_ID = 2
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 // 탭 타입 정의
 type TabType = 'employee' | 'rank' | 'position'
@@ -216,25 +213,22 @@ export default function EmployeeInfoSettings() {
   const [activeTab, setActiveTab] = useState<TabType>(getInitialTab())
 
   // 본사/가맹점 선택
-  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number>(DEFAULT_HEAD_OFFICE_ID)
-  const [selectedFranchiseId, setSelectedFranchiseId] = useState<number>(DEFAULT_FRANCHISE_ID)
+  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number | null>(null)
+  const [selectedFranchiseId, setSelectedFranchiseId] = useState<number | null>(null)
 
-  // SearchSelect options
-  const headOfficeOptions: SelectOption[] = useMemo(() => [
-    { value: '1', label: '따름인' },
-  ], [])
-
-  const franchiseOptions: SelectOption[] = useMemo(() => [
-    { value: '2', label: '을지로3가점' },
-  ], [])
+  const handleBpSelectChange = (value: OfficeFranchiseStoreValue) => {
+    setSelectedHeadOfficeId(value.head_office)
+    setSelectedFranchiseId(value.franchise)
+  }
 
   // TanStack Query 훅
-  const { data: settingsData, isPending: isLoading, refetch } = useEmployeeInfoSettings(
+  const hasSelection = selectedHeadOfficeId !== null
+  const { data: settingsData, isPending: isLoading } = useEmployeeInfoSettings(
     {
-      headOfficeId: selectedHeadOfficeId,
-      franchiseId: selectedFranchiseId
+      headOfficeId: selectedHeadOfficeId ?? undefined,
+      franchiseId: selectedFranchiseId ?? undefined
     },
-    true
+    hasSelection
   )
   const saveSettingsMutation = useSaveEmployeeInfoSettings()
   const isSaving = saveSettingsMutation.isPending
@@ -410,17 +404,16 @@ export default function EmployeeInfoSettings() {
     }
   }
 
-  // 검색
-  const handleSearch = () => {
-    refetch()
-  }
-
   // 저장
   const handleSave = async () => {
     try {
+      if (!selectedHeadOfficeId) {
+        await alert('본사를 선택해주세요.')
+        return
+      }
       await saveSettingsMutation.mutateAsync({
         headOfficeId: selectedHeadOfficeId,
-        franchiseId: selectedFranchiseId,
+        franchiseId: selectedFranchiseId ?? undefined,
         codeMemoContent: {
           EMPLOYEE: uiToApiClassifications(employeeClassifications),
           RANK: uiToApiClassifications(rankClassifications),
@@ -448,30 +441,14 @@ export default function EmployeeInfoSettings() {
             </colgroup>
             <tbody>
               <tr>
-                <th>본사/가맹점 선택</th>
-                <td>
-                  <div className="filed-flx">
-                    <div className="block" style={{ maxWidth: '250px' }}>
-                      <SearchSelect
-                        options={headOfficeOptions}
-                        value={headOfficeOptions.find(o => o.value === String(selectedHeadOfficeId)) || null}
-                        onChange={(opt) => setSelectedHeadOfficeId(opt ? Number(opt.value) : DEFAULT_HEAD_OFFICE_ID)}
-                        placeholder="본사 선택"
-                      />
-                    </div>
-                    <div className="block" style={{ maxWidth: '250px' }}>
-                      <SearchSelect
-                        options={franchiseOptions}
-                        value={franchiseOptions.find(o => o.value === String(selectedFranchiseId)) || null}
-                        onChange={(opt) => setSelectedFranchiseId(opt ? Number(opt.value) : DEFAULT_FRANCHISE_ID)}
-                        placeholder="가맹점 선택"
-                      />
-                    </div>
-                    <button className="btn-form basic" onClick={handleSearch} disabled={isLoading}>
-                      {isLoading ? '조회중...' : '검색'}
-                    </button>
-                  </div>
-                </td>
+                <HeadOfficeFranchiseStoreSelect
+                  isHeadOfficeRequired={false}
+                  fields={['office', 'franchise']}
+                  officeId={selectedHeadOfficeId}
+                  franchiseId={selectedFranchiseId}
+                  storeId={null}
+                  onChange={handleBpSelectChange}
+                />
               </tr>
             </tbody>
           </table>

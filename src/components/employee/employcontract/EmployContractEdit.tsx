@@ -611,19 +611,24 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                     <th>전자계약 진행 상태</th>
                     <td>
                       <div className="data-filed" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <label className="switch-toggle">
+                        <span>전자계약서</span>
+                        <div className="toggle-btn">
                           <input
                             type="checkbox"
+                            id="toggle-electronic-contract"
                             checked={formData.isElectronicContract}
                             onChange={(e) => handleInputChange('isElectronicContract', e.target.checked)}
                           />
-                          <span className="slider"></span>
-                        </label>
-                        <span>전자계약서</span>
+                          <label className="slider" htmlFor="toggle-electronic-contract"></label>
+                        </div>
                         {formData.isElectronicContract && (
-                          <span style={{ padding: '4px 12px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-                            {formData.electronicContractStatus}
-                          </span>
+                          <input
+                            type="text"
+                            className="input-frame"
+                            value={formData.electronicContractStatus}
+                            readOnly
+                            style={{ width: '120px' }}
+                          />
                         )}
                       </div>
                     </td>

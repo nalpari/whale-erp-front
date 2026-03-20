@@ -1,5 +1,5 @@
 import api from '../api'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '../constants/organization'
+import { DEFAULT_HEAD_OFFICE_ID } from '../constants/organization'
 
 // 상여금 분류 타입 (UI용)
 export interface BonusCategory {
@@ -144,9 +144,11 @@ export async function getPayrollStatementSettingsCode(
   params?: GetPayrollStatementSettingsCodeParams
 ): Promise<PayrollStatementSettingsContent> {
   try {
-    const defaultParams = {
+    const defaultParams: Record<string, number> = {
       headOfficeId: params?.headOfficeId ?? DEFAULT_HEAD_OFFICE_ID,
-      franchiseId: params?.franchiseId ?? DEFAULT_FRANCHISE_ID
+    }
+    if (params?.franchiseId != null) {
+      defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: PayrollStatementSettingsCodeResponse | null }>(
       '/api/employee/payroll/regular/common-code',
