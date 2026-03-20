@@ -96,7 +96,7 @@ function LoginContent() {
     try {
       const data = await loginMutation.mutateAsync(validation.data);
 
-      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, subscriptionPlanId, passwordChangeRequired } = data;
+      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, avatar, subscriptionPlanId, passwordChangeRequired } = data;
 
       // 권한 처리
       if (authority) {
@@ -112,7 +112,7 @@ function LoginContent() {
         const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
-        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
 
@@ -148,7 +148,7 @@ function LoginContent() {
           ownerCode: c.ownerCode,
         })));
         setPendingTokens({ accessToken, refreshToken });
-        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
         setShowAuthorityModal(true);
