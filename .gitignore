@@ -56,7 +56,6 @@ next-env.d.ts
 .auto-claude/
 
 # Codex
-AGENTS.md
 
 # zenflow
 .zenflow

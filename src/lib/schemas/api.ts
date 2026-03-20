@@ -20,11 +20,11 @@ export const pageResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
     content: z.array(itemSchema),
     totalElements: z.number(),
     totalPages: z.number(),
-    size: z.number(),
-    number: z.number(),
-    first: z.boolean(),
-    last: z.boolean(),
-    empty: z.boolean(),
+    pageSize: z.number(),
+    pageNumber: z.number(),
+    isFirst: z.boolean(),
+    isLast: z.boolean(),
+    hasNext: z.boolean(),
   });
 
 /**
@@ -63,11 +63,11 @@ export type PageResponse<T> = {
   content: T[];
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  pageSize: number;
+  pageNumber: number;
+  isFirst: boolean;
+  isLast: boolean;
+  hasNext: boolean;
 };
 
 export type ApiError = z.infer<typeof apiErrorSchema>;

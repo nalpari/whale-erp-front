@@ -9,7 +9,14 @@ export default function MyData() {
   const [myDataOpen, setMyDataOpen] = useState(false)
   const router = useRouter()
   const clearAuth = useAuthStore((state) => state.clearAuth)
+  const name = useAuthStore((state) => state.name)
+  const loginId = useAuthStore((state) => state.loginId)
+  const avatar = useAuthStore((state) => state.avatar)
   const openMyPage = useMyPageStore((state) => state.openMyPage)
+
+  const avatarUrl = avatar
+    ? `https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/profile_image/avatar0${avatar}.svg`
+    : null
 
   const handleLogout = () => {
     clearAuth()
@@ -24,11 +31,13 @@ export default function MyData() {
   return (
     <div className={`my-data ${myDataOpen ? 'act' : ''}`}>
       <div className="my-data-wrap">
-        <div className="my-icon">
-          <Image src="/assets/images/common/my_icon.png" alt="my-data-icon" fill />
-        </div>
+        {avatarUrl && (
+          <div className="my-icon">
+            <Image src={avatarUrl} alt="my-data-icon" fill />
+          </div>
+        )}
         <div className="data-info">
-          <div className="data-name">김지영 <span>(HC-1234567)</span></div>
+          <div className="data-name">{name ?? '-'} <span>({loginId ?? '-'})</span></div>
         </div>
         <button className="data-arrow" onClick={() => setMyDataOpen(!myDataOpen)}></button>
       </div>

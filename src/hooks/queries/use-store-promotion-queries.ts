@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { storePromotionKeys } from './query-keys'
+import { storePromotionKeys, storeMenuKeys } from './query-keys'
 import type { ApiResponse } from '@/lib/schemas/api'
 import type {
   StorePromotionListParams,
@@ -46,6 +46,8 @@ export const useCreateStorePromotion = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.details() })
     },
   })
 }
@@ -61,6 +63,8 @@ export const useUpdateStorePromotion = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
       queryClient.invalidateQueries({ queryKey: storePromotionKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.details() })
     },
   })
 }
@@ -77,6 +81,8 @@ export const useDeleteStorePromotion = () => {
       queryClient.cancelQueries({ queryKey: storePromotionKeys.detail(id) })
       queryClient.setQueryData(storePromotionKeys.detail(id), null)
       queryClient.invalidateQueries({ queryKey: storePromotionKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: storeMenuKeys.details() })
     },
   })
 }

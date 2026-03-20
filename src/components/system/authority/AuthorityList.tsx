@@ -79,6 +79,7 @@ interface AuthorityListProps {
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
   onRegister?: () => void
+  detailBasePath?: string
 }
 
 export default function AuthorityList({
@@ -90,6 +91,7 @@ export default function AuthorityList({
   onPageChange,
   onPageSizeChange,
   onRegister,
+  detailBasePath = '/system/authority',
 }: AuthorityListProps) {
   const router = useRouter()
 
@@ -101,7 +103,7 @@ export default function AuthorityList({
 
   // 권한 상세 페이지로 이동
   const handleNavigateToDetail = (id: number) => {
-    router.push(`/system/authority/${id}`)
+    router.push(`${detailBasePath}/${id}`)
   }
 
   // 컬럼 정의

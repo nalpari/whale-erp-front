@@ -1,11 +1,12 @@
 'use client'
 
-import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
-import { RadioButtonGroup } from '@/components/common/ui'
-import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
+import AnimateHeight from 'react-animate-height'
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
+import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import { RadioButtonGroup } from '@/components/common/ui'
 
 /**
  * 권한 관리 검색 컴포넌트
@@ -20,12 +21,16 @@ interface AuthoritySearchProps {
   params: AuthoritySearchParams
   onSearch: (params: AuthoritySearchParams) => void
   resultCount?: number
+  context?: 'platform' | 'bp'
+  onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 export default function AuthoritySearch({
   params,
   onSearch,
   resultCount = 0,
+  context,
+  onAutoSelect,
 }: AuthoritySearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [localParams, setLocalParams] = useState<AuthoritySearchParams>(params)
@@ -73,7 +78,7 @@ export default function AuthoritySearch({
 
   const handleReset = () => {
     const resetParams: AuthoritySearchParams = {
-      owner_group: ownerGroupOptions[0]?.code || 'PRGRP_001',
+      owner_group: context === 'bp' ? 'PRGRP_002' : (ownerGroupOptions[0]?.code || 'PRGRP_001'),
     }
     setLocalParams(resetParams)
     // 초기화는 검색 조건만 리셋, 검색 버튼을 눌러야 실제 검색 실행
@@ -95,8 +100,12 @@ export default function AuthoritySearch({
         <div className="search-filed">
           <table className="default-table">
             <colgroup>
-              <col width="120px" />
-              <col />
+              {context !== 'bp' && (
+                <>
+                  <col width="120px" />
+                  <col />
+                </>
+              )}
               <col width="120px" />
               <col />
               <col width="120px" />
@@ -104,20 +113,24 @@ export default function AuthoritySearch({
             </colgroup>
             <tbody>
               <tr>
-                <th>
-                  권한 Group <span className="red">*</span>
-                </th>
-                <td>
-                  <RadioButtonGroup
-                    options={ownerGroupOptions.map((option) => ({
-                      value: option.code,
-                      label: option.name,
-                    }))}
-                    value={localParams.owner_group}
-                    onChange={handleOwnerGroupChange}
-                    name="owner_group"
-                  />
-                </td>
+                {context !== 'bp' && (
+                  <>
+                    <th>
+                      권한 Group <span className="red">*</span>
+                    </th>
+                    <td>
+                      <RadioButtonGroup
+                        options={ownerGroupOptions.map((option) => ({
+                          value: option.code,
+                          label: option.name,
+                        }))}
+                        value={localParams.owner_group}
+                        onChange={handleOwnerGroupChange}
+                        name="owner_group"
+                      />
+                    </td>
+                  </>
+                )}
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
                   fields={['office', 'franchise']}
@@ -125,8 +138,9 @@ export default function AuthoritySearch({
                   franchiseId={localParams.franchisee_id ?? null}
                   storeId={null}
                   onChange={handleBpSelectChange}
-                  isDisabled={isBpDisabled}
-                  autoSelect={false}
+                  isDisabled={context === 'bp' ? false : isBpDisabled}
+                  autoSelect={context === 'bp'}
+                  onAutoSelect={onAutoSelect}
                 />
               </tr>
               <tr>
@@ -142,7 +156,7 @@ export default function AuthoritySearch({
                   </div>
                 </td>
                 <th>운영여부</th>
-                <td colSpan={3}>
+                <td colSpan={context !== 'bp' ? 3 : 1}>
                   <RadioButtonGroup
                     options={[
                       { value: 'all', label: '전체' },

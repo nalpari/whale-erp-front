@@ -19,7 +19,9 @@ interface LoginResponse {
   loginId?: string
   name?: string
   mobilePhone?: string
+  avatar?: string | null
   subscriptionPlanId?: number
+  passwordChangeRequired?: boolean
 }
 
 /**

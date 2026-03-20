@@ -29,7 +29,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 10,
         name: '파트너 정보 관리',
-        link: '#',
+        link: '/master/bp',
       },
       {
         id: 11,
@@ -217,7 +217,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 22,
         name: '권한 관리',
-        link: '/system/authority',
+        link: '/settings/authority',
       },
       {
         id: 23,

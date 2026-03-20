@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -13,7 +15,7 @@ pnpm lint      # ESLint 검사 (flat config, eslint.config.mjs)
 
 ## Tech Stack
 
-- **Next.js 16** with App Router (`src/app/`)
+- **Next.js 16.2** with App Router (`src/app/`)
 - **React 19** with React Compiler enabled (`next.config.ts`)
 - **Tailwind CSS 4** via `@tailwindcss/postcss`
 - **TypeScript** in strict mode
@@ -270,6 +272,7 @@ Dual styling system:
 - 커밋 전 `pnpm lint` 실행
 - TypeScript strict mode 준수
 - `any` 타입 사용 금지
+- `unknown` 타입 사용 금지 — 구체적인 타입 또는 제네릭으로 대체할 것
 
 ### React Compiler 규칙 (중요)
 이 프로젝트는 `next.config.ts`에서 `reactCompiler: true`로 React Compiler를 활성화하고 있다.
@@ -288,4 +291,8 @@ Dual styling system:
 - `pnpm lint`로 검출되며, `eslint-disable` 처리 대신 규칙에 맞게 코드를 수정할 것
 
 ### Memo
-- 태스크가 끝나면 린트체크, 타입체크, 빌드체크를 수행해줘.
+- 모든 답변과 추론과정은 한국어로 작성한다.
+- task가 끝나면 서브 에이전트를 사용해서 린트체크, 타입체크, 빌드체크를 수행한다.
+- 린트체크시 오류가 있으면 반드시 해결하고 넘어가도록 하고, 경고가 있더라도 해결하려고 노력한다.
+- 커밋시에 접두사는 영어로 나머지 타이틀과 내용은 한국어로 작성한다.
+- task 완료시 CLAUDE.md 및 README.md 문서에 업데이트가 필요하면 진행한다.

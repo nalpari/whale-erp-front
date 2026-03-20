@@ -19,9 +19,9 @@ import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 export interface AuthorityDetailNode {
   program_id: number
   program_name: string
-  can_read?: boolean
-  can_create_delete?: boolean
-  can_update?: boolean
+  can_read?: boolean | null
+  can_create_delete?: boolean | null
+  can_update?: boolean | null
   // 생성 모드에서 본인이 가진 최대 권한 (UI 제한용)
   max_can_read?: boolean
   max_can_create_delete?: boolean
@@ -49,13 +49,19 @@ export interface AuthoritySearchParams {
 
 // AuthorityListItem, AuthorityResponse 타입은 Zod 스키마에서 추론 (하단 참조)
 
+/**
+ * 권한 소유 코드 타입
+ */
+export const OWNER_CODES = ['PRGRP_001_001', 'PRGRP_002_001', 'PRGRP_002_002'] as const
+export type OwnerCode = typeof OWNER_CODES[number]
+
 // ============================================
 // Zod 스키마
 // ============================================
 
 // 권한 생성 스키마
 export const authorityCreateSchema = z.object({
-  owner_code: z.enum(['PRGRP_001_001', 'PRGRP_002_001', 'PRGRP_002_002'], {
+  owner_code: z.enum(OWNER_CODES, {
     message: '권한 소유를 선택해주세요',
   }),
   head_office_id: z.number().optional(),
@@ -114,9 +120,9 @@ export const authorityDetailNodeSchema: z.ZodType<AuthorityDetailNode> = z.lazy(
   z.object({
     program_id: z.number(),
     program_name: z.string(),
-    can_read: z.boolean().optional(),
-    can_create_delete: z.boolean().optional(),
-    can_update: z.boolean().optional(),
+    can_read: z.boolean().nullable().optional(),
+    can_create_delete: z.boolean().nullable().optional(),
+    can_update: z.boolean().nullable().optional(),
     children: z.array(authorityDetailNodeSchema).optional(),
   })
 )

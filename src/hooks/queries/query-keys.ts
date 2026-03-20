@@ -1,4 +1,5 @@
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import type { CustomerSearchParams } from '@/types/customer'
 
@@ -32,8 +33,13 @@ export const fileKeys = {
 
 export const bpKeys = {
   all: ['bp'] as const,
+  lists: () => [...bpKeys.all, 'list'] as const,
+  list: (params: BpListParams) => [...bpKeys.lists(), params] as const,
   headOfficeTree: () => [...bpKeys.all, 'head-office-tree'] as const,
-  detail: (id: number) => [...bpKeys.all, 'detail', id] as const,
+  headOffices: () => [...bpKeys.all, 'head-offices'] as const,
+  details: () => [...bpKeys.all, 'detail'] as const,
+  detail: (id: number) => [...bpKeys.details(), id] as const,
+  myOrganization: (affiliationId: string | null) => [...bpKeys.all, 'my-organization', affiliationId] as const,
 }
 
 export const commonCodeKeys = {

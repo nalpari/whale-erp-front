@@ -87,6 +87,9 @@ interface StoreDetailBasicInfoProps {
   onRemoveNewImage: (index: number) => void
   onToggleDeleteImage: (fileId: number) => void
   onExistingFileDownload: (file: UploadFile) => void
+  onSave: () => void
+  onList: () => void
+  saving?: boolean
 }
 
 const storeOwnerOptions: RadioOption<StoreFormState['storeOwner']>[] = [
@@ -132,6 +135,9 @@ export const StoreDetailBasicInfo = ({
   onRemoveNewImage,
   onToggleDeleteImage,
   onExistingFileDownload,
+  onSave,
+  onList,
+  saving,
 }: StoreDetailBasicInfoProps) => {
   // 본사 옵션
   const officeOptions = useMemo<SelectOption[]>(
@@ -212,18 +218,18 @@ export const StoreDetailBasicInfo = ({
           onSuccess: (response) => {
             if (response.success && response.data) {
               console.log('OCR 결과:', response.data)
-              const { representativeName, businessRegistrationNumber, address1 } = response.data
+              const { representativeName, businessRegistrationNumber, businessAddress } = response.data
               if (representativeName) onCeoNameChange(representativeName)
               if (businessRegistrationNumber) onBusinessNumberChange(businessRegistrationNumber)
-              if (address1) {
-                const commaIndex = address1.indexOf(',')
+              if (businessAddress) {
+                const commaIndex = businessAddress.indexOf(',')
                 if (commaIndex !== -1) {
                   onAddressChange({
-                    address: address1.slice(0, commaIndex).trim(),
-                    addressDetail: address1.slice(commaIndex + 1).trim(),
+                    address: businessAddress.slice(0, commaIndex).trim(),
+                    addressDetail: businessAddress.slice(commaIndex + 1).trim(),
                   })
                 } else {
-                  onAddressChange({ address: address1, addressDetail: '' })
+                  onAddressChange({ address: businessAddress.trim(), addressDetail: '' })
                 }
               }
             }
@@ -305,6 +311,8 @@ export const StoreDetailBasicInfo = ({
       <div className="slidebox-header">
         <h2>점포 정보</h2>
         <div className="slidebox-btn-wrap">
+          <button className="slidebox-btn" onClick={onList}>목록</button>
+          <button className="slidebox-btn" onClick={onSave} disabled={saving}>저장</button>
           <button className="slidebox-btn arr" onClick={onToggleOpen}>
             <i className="arr-icon"></i>
           </button>

@@ -41,6 +41,7 @@ function LoginContent() {
   const setOwnerCode = useAuthStore((state) => state.setOwnerCode);
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
+  const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
 
   const loginMutation = useLoginMutation();
   const authoritySelectMutation = useAuthoritySelectMutation();
@@ -95,7 +96,7 @@ function LoginContent() {
     try {
       const data = await loginMutation.mutateAsync(validation.data);
 
-      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, subscriptionPlanId } = data;
+      const { accessToken, refreshToken, authority, companies, loginId: resLoginId, name: resName, mobilePhone, avatar, subscriptionPlanId, passwordChangeRequired } = data;
 
       // 권한 처리
       if (authority) {
@@ -111,8 +112,9 @@ function LoginContent() {
         const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
-        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        if (passwordChangeRequired) setPasswordChangeRequired(true);
 
         // 아이디 저장 처리
         if (rememberMe) {
@@ -134,7 +136,11 @@ function LoginContent() {
           subscriptionPlan: subscriptionPlanId ?? 0,
         })
 
-        router.push(redirectTarget);
+        if (passwordChangeRequired) {
+          router.push('/change-password');
+        } else {
+          router.push(redirectTarget);
+        }
       } else if (companies && companies.length > 0) {
         setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string }) => ({
           id: String(c.authorityId),
@@ -142,8 +148,9 @@ function LoginContent() {
           ownerCode: c.ownerCode,
         })));
         setPendingTokens({ accessToken, refreshToken });
-        setUserInfo(resLoginId || '', resName || '', mobilePhone || '');
+        setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
         if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        if (passwordChangeRequired) setPasswordChangeRequired(true);
         setShowAuthorityModal(true);
       } else {
         alert("로그인에 문제가 생겼습니다. 관리자에게 문의하세요.");
@@ -203,7 +210,12 @@ function LoginContent() {
       setPendingTokens(null);
       setSelectedAuthorityId(null);
 
-      router.push(redirectTarget);
+      const passwordRequired = useAuthStore.getState().passwordChangeRequired;
+      if (passwordRequired) {
+        router.push('/change-password');
+      } else {
+        router.push(redirectTarget);
+      }
     } catch {
       setSelectedAuthorityId(null);
       alert("권한 정보를 가져오는데 실패했습니다.");
@@ -318,7 +330,7 @@ function LoginContent() {
               <div className="login-signup-desc">요금제 선택하고 가입하기</div>
             </div>
             <div className="login-signup-btn-wrap">
-              <button type="button" className="login-signup-btn">가입하기</button>
+              <button type="button" className="login-signup-btn" onClick={() => router.push('/signup')}>가입하기</button>
             </div>
           </div>
 

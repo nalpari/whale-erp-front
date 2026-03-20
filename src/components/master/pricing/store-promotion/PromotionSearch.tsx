@@ -2,7 +2,7 @@
 
 import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { Input } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
@@ -31,6 +31,7 @@ interface PromotionSearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: PromotionFilterTagKey) => void
+  onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -50,6 +51,7 @@ export default function PromotionSearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: PromotionSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -183,6 +185,7 @@ export default function PromotionSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
+                  onAutoSelect={onAutoSelect}
                 />
               </tr>
               {/* 2행: 프로모션 상태, 메뉴명, 프로모션 기간 */}

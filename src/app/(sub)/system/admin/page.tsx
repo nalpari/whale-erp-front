@@ -1,23 +1,34 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import type { AdminSearchParams } from '@/lib/schemas/admin'
+import { useAdminList } from '@/hooks/queries/use-admin-queries'
+import { useQueryError } from '@/hooks/useQueryError'
 import Location from '@/components/ui/Location'
 import AdminSearch from '@/components/system/admin/AdminSearch'
 import AdminList from '@/components/system/admin/AdminList'
-import { useAdminList } from '@/hooks/queries/use-admin-queries'
-import type { AdminSearchParams } from '@/lib/schemas/admin'
-import { useQueryError } from '@/hooks/useQueryError'
 
 /**
  * 관리자 관리 메인 페이지
  *
  * 관리자 검색, 목록 조회, 등록 페이지 이동 기능 제공
+ * URL 쿼리 파라미터 authorityId가 있으면 해당 권한으로 초기 검색
  */
-export default function AdminPage() {
+function AdminContent() {
   const router = useRouter()
+  const urlSearchParams = useSearchParams()
 
-  const [searchParams, setSearchParams] = useState<AdminSearchParams>({})
+  const initialAuthorityId = urlSearchParams.get('authorityId')
+  const [searchParams, setSearchParams] = useState<AdminSearchParams>(() => {
+    if (initialAuthorityId) {
+      const id = Number(initialAuthorityId)
+      if (!Number.isNaN(id) && id > 0) {
+        return { authority_id: id }
+      }
+    }
+    return {}
+  })
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
@@ -66,5 +77,13 @@ export default function AdminPage() {
         onRegister={handleRegister}
       />
     </>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense>
+      <AdminContent />
+    </Suspense>
   )
 }

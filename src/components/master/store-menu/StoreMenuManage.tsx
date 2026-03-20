@@ -11,8 +11,7 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui'
 import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
-import { useAuthStore } from '@/stores/auth-store'
-import { isAutoSelectAccount } from '@/constants/owner-code'
+import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
@@ -43,8 +42,6 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 
 export default function StoreMenuManage() {
   const router = useRouter()
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const autoSelect = isAutoSelectAccount(ownerCode)
 
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreMenuSearchFilters>(DEFAULT_FILTERS)
@@ -52,30 +49,33 @@ export default function StoreMenuManage() {
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
-  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
-  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  const effectiveAppliedFilters =
-    autoSelect && filters.officeId != null && appliedFilters.officeId == null
-      ? filters
-      : appliedFilters
+  // 본사/가맹점 계정: HeadOfficeFranchiseStoreSelect 자동선택 시 appliedFilters 직접 세팅
+  // 이미 검색이 수행된 적 있으면 무시 (초기화 시 자동선택 재발동 방지)
+  const handleAutoSelect = (value: OfficeFranchiseStoreValue) => {
+    if (appliedFilters.officeId != null) return
+    setAppliedFilters({
+      ...DEFAULT_FILTERS,
+      officeId: value.head_office,
+    })
+  }
 
   const queryParams: StoreMenuListParams = {
-    bpId: effectiveAppliedFilters.officeId ?? undefined,
+    bpId: appliedFilters.officeId ?? undefined,
     menuGroup: 'MNGRP_002',
-    storeId: effectiveAppliedFilters.storeId ?? undefined,
-    menuName: effectiveAppliedFilters.menuName || undefined,
+    storeId: appliedFilters.storeId ?? undefined,
+    menuName: appliedFilters.menuName || undefined,
     operationStatus:
-      effectiveAppliedFilters.operationStatus === 'ALL' ? undefined : effectiveAppliedFilters.operationStatus,
-    menuType: effectiveAppliedFilters.menuType === 'ALL' ? undefined : effectiveAppliedFilters.menuType,
-    menuClassificationCode: effectiveAppliedFilters.menuClassificationCode || undefined,
-    categoryId: effectiveAppliedFilters.categoryId ?? undefined,
-    createdAtFrom: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
-    createdAtTo: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
+      appliedFilters.operationStatus === 'ALL' ? undefined : appliedFilters.operationStatus,
+    menuType: appliedFilters.menuType === 'ALL' ? undefined : appliedFilters.menuType,
+    menuClassificationCode: appliedFilters.menuClassificationCode || undefined,
+    categoryId: appliedFilters.categoryId ?? undefined,
+    createdAtFrom: formatDateYmdOrUndefined(appliedFilters.from),
+    createdAtTo: formatDateYmdOrUndefined(appliedFilters.to),
     page,
     size: pageSize,
   }
 
-  const canFetchList = effectiveAppliedFilters.officeId != null
+  const canFetchList = appliedFilters.officeId != null
   const { data: response, isPending, error: queryError } = useStoreMenuList(queryParams, canFetchList)
   const loading = canFetchList && isPending
   const errorMessage = useQueryError(queryError)
@@ -163,7 +163,7 @@ export default function StoreMenuManage() {
 
   /** 선택된 메뉴들의 운영여부를 일괄 변경. ERR3034: 마스터 메뉴가 미운영이면 점포 메뉴 운영 전환 불가 */
   const handleBulkStatusChange = async (operationStatus: string) => {
-    const officeId = effectiveAppliedFilters.officeId
+    const officeId = appliedFilters.officeId
     if (selectedIds.size === 0 || officeId == null) return
 
     const menuIds = Array.from(selectedIds)
@@ -196,7 +196,7 @@ export default function StoreMenuManage() {
 
   /** 썸네일 리스트에서 변경된 노출순서를 일괄 저장 */
   const handleSaveDisplayOrder = async (changes: Map<number, string>) => {
-    const officeId = effectiveAppliedFilters.officeId
+    const officeId = appliedFilters.officeId
     if (changes.size === 0 || officeId == null) return
 
     const confirmed = await confirm('저장하시겠습니까?')
@@ -219,7 +219,7 @@ export default function StoreMenuManage() {
       <Location title="메뉴 정보 관리" list={BREADCRUMBS} />
       <StoreMenuSearch
         filters={filters}
-        appliedFilters={effectiveAppliedFilters}
+        appliedFilters={appliedFilters}
         operationStatusOptions={operationStatusOptions}
         menuTypeOptions={menuTypeOptions}
         menuClassificationOptions={menuClassificationOptions}
@@ -228,6 +228,7 @@ export default function StoreMenuManage() {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelect={handleAutoSelect}
       />
       <StoreMenuThumbnailList
         rows={listData}
