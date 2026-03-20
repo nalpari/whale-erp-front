@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -13,7 +15,7 @@ pnpm lint      # ESLint 검사 (flat config, eslint.config.mjs)
 
 ## Tech Stack
 
-- **Next.js 16** with App Router (`src/app/`)
+- **Next.js 16.2** with App Router (`src/app/`)
 - **React 19** with React Compiler enabled (`next.config.ts`)
 - **Tailwind CSS 4** via `@tailwindcss/postcss`
 - **TypeScript** in strict mode
