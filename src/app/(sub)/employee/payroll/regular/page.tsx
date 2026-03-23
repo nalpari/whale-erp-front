@@ -20,6 +20,7 @@ export default function FullTimePayrollPage() {
   const [searchParams, setSearchParams] = useState<SearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const [hasSearched, setHasSearched] = useState(false)
 
   // TanStack Query로 급여명세서 목록 조회
   const { data: payrollData, isPending: isLoading, refetch } = useFullTimePayrollList({
@@ -57,11 +58,13 @@ export default function FullTimePayrollPage() {
   const handleSearch = useCallback((params: SearchParams) => {
     setSearchParams(params)
     setCurrentPage(0)
+    setHasSearched(true)
   }, [])
 
   const handleReset = useCallback(() => {
     setSearchParams({})
     setCurrentPage(0)
+    setHasSearched(false)
   }, [])
 
   const handlePageChange = (page: number) => {
@@ -86,8 +89,8 @@ export default function FullTimePayrollPage() {
         totalCount={totalCount}
       />
       <FullTimePayrollList
-        payrolls={payrolls}
-        isLoading={isLoading}
+        payrolls={hasSearched ? payrolls : []}
+        isLoading={hasSearched && isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}

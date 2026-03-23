@@ -17,6 +17,7 @@ export default function EmployeePage() {
     page: 0,
     size: 50
   })
+  const [hasSearched, setHasSearched] = useState(false)
 
   // TanStack Query로 직원 목록 조회
   const {
@@ -48,6 +49,7 @@ export default function EmployeePage() {
   const handleSearch = (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => {
     const newParams = { ...params, page: 0, size: searchParams.size }
     setSearchParams(newParams)
+    setHasSearched(true)
   }
 
   // 페이지 변경
@@ -63,6 +65,7 @@ export default function EmployeePage() {
   // 초기화
   const handleReset = () => {
     setSearchParams({ page: 0, size: searchParams.size })
+    setHasSearched(false)
   }
 
   // 코드를 이름으로 변환한 직원 목록
@@ -86,8 +89,8 @@ export default function EmployeePage() {
         totalCount={employeeData?.totalElements ?? 0}
       />
       <EmployeeList
-        employees={employeesWithNames}
-        isLoading={isLoading}
+        employees={hasSearched ? employeesWithNames : []}
+        isLoading={hasSearched && isLoading}
         currentPage={employeeData?.number ?? 0}
         totalPages={employeeData?.totalPages ?? 0}
         pageSize={searchParams.size || 50}

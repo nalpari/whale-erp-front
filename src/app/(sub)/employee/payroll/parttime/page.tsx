@@ -39,6 +39,7 @@ export default function PartTimePayrollPage() {
   const [searchParams, setSearchParams] = useState<SearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const [hasSearched, setHasSearched] = useState(false)
 
   // 직원 분류 목록 조회 (employeeClassificationName이 null인 경우 fallback)
   const { data: classifications = [] } = useEmployeeClassifications()
@@ -89,11 +90,13 @@ export default function PartTimePayrollPage() {
   const handleSearch = (params: SearchParams) => {
     setSearchParams(params)
     setCurrentPage(0)
+    setHasSearched(true)
   }
 
   const handleReset = () => {
     setSearchParams({})
     setCurrentPage(0)
+    setHasSearched(false)
   }
 
   const handlePageChange = (page: number) => {
@@ -114,8 +117,8 @@ export default function PartTimePayrollPage() {
         totalCount={totalCount}
       />
       <PartTimePayrollList
-        payrolls={payrolls}
-        isLoading={isLoading}
+        payrolls={hasSearched ? payrolls : []}
+        isLoading={hasSearched && isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}

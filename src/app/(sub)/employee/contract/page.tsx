@@ -65,6 +65,7 @@ export default function EmployContractPage() {
   const [searchParams, setSearchParams] = useState<ContractSearchParams>({})
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const [hasSearched, setHasSearched] = useState(false)
 
   // TanStack Query로 목록 조회
   const { data: response, isPending: isLoading } = useContractList({
@@ -87,12 +88,14 @@ export default function EmployContractPage() {
     queryClient.invalidateQueries({ queryKey: contractKeys.lists() })
     setSearchParams(searchParamsOnly as ContractSearchParams)
     setCurrentPage(0)
+    setHasSearched(true)
   }, [queryClient])
 
   // 초기화
   const handleReset = () => {
     setSearchParams({})
     setCurrentPage(0)
+    setHasSearched(false)
   }
 
   // 페이지 변경
@@ -120,8 +123,8 @@ export default function EmployContractPage() {
         totalCount={totalCount}
       />
       <EmployContractList
-        contracts={contracts}
-        isLoading={isLoading}
+        contracts={hasSearched ? contracts : []}
+        isLoading={hasSearched && isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
