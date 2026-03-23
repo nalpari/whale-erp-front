@@ -8,7 +8,7 @@ const formatPrice = (price: number) =>
 
 export default function MyPageTab02() {
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
-  const { data: plansData, isPending } = usePlansList({ size: 100 }, subscriptionPlan > 0)
+  const { data: plansData, isPending, isError } = usePlansList({ size: 100 }, subscriptionPlan > 0)
 
   const plan = plansData?.content?.find((p) => p.planId === subscriptionPlan) ?? null
 
@@ -16,6 +16,14 @@ export default function MyPageTab02() {
     return (
       <div className="flex items-center justify-center py-20">
         <span className="text-gray-500">데이터를 불러오는 중...</span>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <span className="text-gray-500">구독 정보를 불러오는 데 실패했습니다.</span>
       </div>
     )
   }
