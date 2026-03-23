@@ -1,5 +1,5 @@
 import api from '../api'
-import { DEFAULT_HEAD_OFFICE_ID, DEFAULT_FRANCHISE_ID } from '../constants/organization'
+import { DEFAULT_HEAD_OFFICE_ID } from '../constants/organization'
 
 // 기타 항목 타입
 export interface OtherItem {
@@ -58,9 +58,11 @@ export async function getLaborContractSettingsCode(
   params?: GetLaborContractSettingsCodeParams
 ): Promise<LaborContractSettingsCodeResponse | null> {
   try {
-    const defaultParams = {
+    const defaultParams: Record<string, number> = {
       headOfficeId: params?.headOfficeId ?? DEFAULT_HEAD_OFFICE_ID,
-      franchiseId: params?.franchiseId ?? DEFAULT_FRANCHISE_ID
+    }
+    if (params?.franchiseId != null) {
+      defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: LaborContractSettingsCodeResponse | null }>(
       '/api/employee/contract/common-code',
