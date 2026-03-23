@@ -38,7 +38,9 @@ const mapBpToForm = (bp: BpDetailResponse): BpFormData => ({
     id: pf.id,
     organizationId: pf.bpId,
     partnerBusinessPartnerId: pf.partnerBpId,
-  })) ?? [],
+  })) ?? (bp.organizationType === 'FRANCHISE' && bp.parentOrganizationId
+    ? [{ organizationId: bp.id, partnerBusinessPartnerId: bp.parentOrganizationId }]
+    : []),
 })
 
 /** 기존 LNB 로고를 ImageItem으로 변환 */
