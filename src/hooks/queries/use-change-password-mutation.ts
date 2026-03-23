@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
 
 interface ChangePasswordRequest {
+  currentPassword?: string
   newPassword: string
 }
 
