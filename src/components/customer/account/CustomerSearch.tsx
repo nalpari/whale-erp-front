@@ -6,6 +6,7 @@ import { Input, RadioButtonGroup } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { CustomerSearchParams } from '@/types/customer'
 import { format } from 'date-fns'
+import { useCustomerSearchStore } from '@/stores/search-stores'
 
 interface CustomerSearchProps {
   onSearch: (params: Omit<CustomerSearchParams, 'page' | 'size'>) => void
@@ -37,10 +38,25 @@ const buildSearchParams = (data: FormData): Omit<CustomerSearchParams, 'page' | 
   return params
 }
 
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  isOperate: (sp.isOperate as number) ?? null,
+  name: (sp.name as string) || '',
+  loginId: (sp.loginId as string) || '',
+  mobilePhone: (sp.mobilePhone as string) || '',
+  socialAuthType: (sp.socialAuthType as string) || '',
+  joinDateFrom: (sp.joinDateFrom as string) || '',
+  joinDateTo: (sp.joinDateTo as string) || '',
+})
+
 export default function CustomerSearch({ onSearch, onReset, totalCount }: CustomerSearchProps) {
+  const store = useCustomerSearchStore()
   const [searchOpen, setSearchOpen] = useState(false)
-  const [formData, setFormData] = useState<FormData>({ ...initialFormData })
-  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(null)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
 
   // 운영여부 옵션
   const operateOptions = [

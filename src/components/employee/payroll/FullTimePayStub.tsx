@@ -1192,6 +1192,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
             삭제
           </button>
         )}
+        <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
         <button
           className="btn-form basic"
           onClick={handleSave}

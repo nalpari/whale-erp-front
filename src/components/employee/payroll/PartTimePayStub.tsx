@@ -677,6 +677,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         {isEditMode && (
           <>
             <button className="btn-form outline s" onClick={handleGoToWorkTimeEdit}>근무 시간 수정</button>
+            <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
             <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
               {isLoading ? '저장 중...' : '저장'}
             </button>

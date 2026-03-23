@@ -11,6 +11,7 @@ import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-q
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useEmployeeInfoSearchStore } from '@/stores/search-stores'
 
 interface EmployeeSearchProps {
   onSearch: (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => void
@@ -55,12 +56,33 @@ const buildSearchParams = (data: FormData, isEmployeeClassificationEnabled: bool
   return params
 }
 
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeOrganizationId: (sp.headOfficeOrganizationId as number) ?? null,
+  franchiseOrganizationId: (sp.franchiseOrganizationId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.employeeName as string) || '',
+  employeeClassification: (sp.employeeClassification as string) || '',
+  contractClassification: (sp.contractClassification as string) || '',
+  adminAuthority: (sp.adminAuthority as string) || '',
+  memberStatus: (sp.memberStatus as string) || '',
+  hireDateFrom: (sp.hireDateFrom as string) || '',
+  hireDateTo: (sp.hireDateTo as string) || '',
+  healthCheckExpiryFrom: (sp.healthCheckExpiryFrom as string) || '',
+  healthCheckExpiryTo: (sp.healthCheckExpiryTo as string) || '',
+})
+
 export default function EmployeeSearch({ onSearch, onReset, totalCount }: EmployeeSearchProps) {
+  const store = useEmployeeInfoSearchStore()
   const [searchOpen, setSearchOpen] = useState(false)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  const [formData, setFormData] = useState<FormData>({ ...initialFormData })
-  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(null)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
 
   // BP 본사 트리 조회 (본사명 표시용)
   const { data: bpTree = [] } = useBpHeadOfficeTree()

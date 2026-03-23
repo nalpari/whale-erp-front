@@ -567,6 +567,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
             {id !== 'new' && (
               <button className="btn-form gray" onClick={handleDelete}>삭제</button>
             )}
+            <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
             <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
               {isSaving ? '저장중...' : '저장'}
             </button>

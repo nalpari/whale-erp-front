@@ -78,6 +78,7 @@ export default function CustomerEdit({ customerId }: CustomerEditProps) {
     <div className="master-detail-data">
       {/* 상단 버튼 */}
       <div className="detail-top-btn" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+        <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
         <button className="btn-form basic" onClick={handleSave}>저장</button>
       </div>
 

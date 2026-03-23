@@ -7,6 +7,7 @@ import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePick
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useEmployContractSearchStore } from '@/stores/search-stores'
 
 interface EmployContractSearchProps {
   onSearch?: (params: Record<string, unknown>) => void
@@ -31,11 +32,42 @@ const initialFormData = {
 
 type FormData = typeof initialFormData
 
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeOrganizationId: (sp.headOfficeId as number) ?? null,
+  franchiseOrganizationId: (sp.franchiseId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.memberName as string) || '',
+  workDays: Array.isArray(sp.workDays) ? (sp.workDays as string[]).map(d => {
+    const mapping: Record<string, string> = { WEEKDAY: 'weekday', SATURDAY: 'saturday', SUNDAY: 'sunday' }
+    return mapping[d] || d
+  }) : [],
+  employeeClassification: (sp.memberClassification as string) || '',
+  contractClassification: (sp.contractClassification as string) || '',
+  contractStatus: (() => {
+    const statusMapping: Record<string, string> = { WRITING: 'drafting', PROGRESS: 'in_progress', COMPLETE: 'completed' }
+    return statusMapping[(sp.contractStatus as string) || ''] || ''
+  })(),
+  electronicContract: (() => {
+    const ec = sp.electronicContract
+    if (Array.isArray(ec) && ec[0] === 'Y') return 'electronic'
+    if (Array.isArray(ec) && ec[0] === 'N') return 'paper'
+    return ''
+  })(),
+  contractDateFrom: sp.contractStartDt ? new Date(sp.contractStartDt as string) : null,
+  contractDateTo: sp.contractEndDt ? new Date(sp.contractEndDt as string) : null,
+})
+
 export default function EmployContractSearch({ onSearch, onReset, totalCount = 0 }: EmployContractSearchProps) {
+  const store = useEmployContractSearchStore()
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  const [formData, setFormData] = useState<FormData>({ ...initialFormData, workDays: [] })
-  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(null)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData, workDays: [] }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
 
   // BP 본사 트리 조회 (본사명 표시용)
   const { data: bpTree = [] } = useBpHeadOfficeTree()

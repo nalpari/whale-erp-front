@@ -7,6 +7,7 @@ import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePick
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoCommonCode } from '@/hooks/queries/use-employee-settings-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useFullTimePayrollSearchStore } from '@/stores/search-stores'
 
 interface FullTimePayrollSearchProps {
   onSearch: (params: SearchParams) => void
@@ -57,13 +58,36 @@ const buildSearchParams = (data: FormData, dateRange: DateRange): SearchParams =
   return params
 }
 
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeId: (sp.headOfficeId as number) ?? null,
+  franchiseId: (sp.franchiseId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.employeeName as string) || '',
+  employeeClassification: (sp.employeeClassification as string) || '',
+})
+
+const restoreDateRange = (sp: Record<string, unknown>): DateRange => ({
+  startDate: sp.startDate ? new Date(sp.startDate as string) : null,
+  endDate: sp.endDate ? new Date(sp.endDate as string) : null,
+})
+
 export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }: FullTimePayrollSearchProps) {
+  const store = useFullTimePayrollSearchStore()
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  const [formData, setFormData] = useState<FormData>({ ...initialFormData })
-  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
-  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(null)
-  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | null>(null)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    store.hasSearched ? restoreDateRange(store.searchParams) : { startDate: null, endDate: null }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | null>(() =>
+    store.hasSearched ? restoreDateRange(store.searchParams) : null
+  )
 
   // BP 본사 트리 조회 (본사명 표시용)
   const { data: bpTree = [] } = useBpHeadOfficeTree()

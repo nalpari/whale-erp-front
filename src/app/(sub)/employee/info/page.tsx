@@ -1,35 +1,33 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import Location from '@/components/ui/Location'
 import EmployeeSearch from '@/components/employee/employeeinfo/EmployeeSearch'
 import EmployeeList from '@/components/employee/employeeinfo/EmployeeList'
 import { useEmployeeInfoList } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
+import { useEmployeeInfoSearchStore } from '@/stores/search-stores'
 import type { EmployeeSearchParams } from '@/types/employee'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 
-// 코드-이름 매핑 타입
 type CodeNameMap = Record<string, string>
 
 export default function EmployeePage() {
-  // 검색 파라미터
-  const [searchParams, setSearchParams] = useState<EmployeeSearchParams>({
-    page: 0,
-    size: 50
-  })
-  const [hasSearched, setHasSearched] = useState(false)
+  const store = useEmployeeInfoSearchStore()
 
-  // TanStack Query로 직원 목록 조회
+  const queryParams: EmployeeSearchParams = {
+    ...store.searchParams,
+    page: store.page,
+    size: store.pageSize,
+  }
+
   const {
     data: employeeData,
     isPending: isLoading,
     refetch
-  } = useEmployeeInfoList(searchParams)
+  } = useEmployeeInfoList(queryParams)
 
-  // TanStack Query로 직원 분류 공통코드 조회
   const { data: settingsData } = useEmployeeInfoSettings()
 
-  // 코드-이름 매핑 메모이제이션
   const employeeCodeMap = useMemo<CodeNameMap>(() => {
     if (!settingsData?.codeMemoContent?.EMPLOYEE) return {}
     const empMap: CodeNameMap = {}
@@ -45,30 +43,24 @@ export default function EmployeePage() {
     'CNTCFWK_003': '기타'
   }), [])
 
-  // 검색 실행
   const handleSearch = (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => {
-    const newParams = { ...params, page: 0, size: searchParams.size }
-    setSearchParams(newParams)
-    setHasSearched(true)
+    store.setSearchParams(params)
+    store.setPage(0)
+    store.setHasSearched(true)
   }
 
-  // 페이지 변경
   const handlePageChange = (page: number) => {
-    setSearchParams(prev => ({ ...prev, page }))
+    store.setPage(page)
   }
 
-  // 페이지 사이즈 변경
   const handlePageSizeChange = (size: number) => {
-    setSearchParams(prev => ({ ...prev, page: 0, size }))
+    store.setPageSize(size)
   }
 
-  // 초기화
   const handleReset = () => {
-    setSearchParams({ page: 0, size: searchParams.size })
-    setHasSearched(false)
+    store.reset()
   }
 
-  // 코드를 이름으로 변환한 직원 목록
   const employees = employeeData?.content ?? []
   const employeesWithNames = employees.map((emp) => ({
     ...emp,
@@ -89,11 +81,11 @@ export default function EmployeePage() {
         totalCount={employeeData?.totalElements ?? 0}
       />
       <EmployeeList
-        employees={hasSearched ? employeesWithNames : []}
-        isLoading={hasSearched && isLoading}
+        employees={store.hasSearched ? employeesWithNames : []}
+        isLoading={store.hasSearched && isLoading}
         currentPage={employeeData?.number ?? 0}
         totalPages={employeeData?.totalPages ?? 0}
-        pageSize={searchParams.size || 50}
+        pageSize={store.pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         onRefresh={() => refetch()}

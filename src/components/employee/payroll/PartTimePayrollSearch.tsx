@@ -6,6 +6,7 @@ import Input from '@/components/common/ui/Input'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { usePartTimePayrollSearchStore } from '@/stores/search-stores'
 
 interface PartTimePayrollSearchProps {
   onSearch: (params: SearchParams) => void
@@ -54,15 +55,42 @@ const buildSearchParams = (data: FormData, workDays: string[], dateRange: DateRa
   return params
 }
 
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeId: (sp.headOfficeId as number) ?? null,
+  franchiseId: (sp.franchiseId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.employeeName as string) || '',
+})
+
 export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }: PartTimePayrollSearchProps) {
+  const store = usePartTimePayrollSearchStore()
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
-  const [formData, setFormData] = useState<FormData>({ ...initialFormData })
-  const [selectedWorkDays, setSelectedWorkDays] = useState<string[]>(['WEEKDAY'])
-  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
-  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(null)
-  const [appliedWorkDays, setAppliedWorkDays] = useState<string[] | null>(null)
-  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | null>(null)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [selectedWorkDays, setSelectedWorkDays] = useState<string[]>(() =>
+    store.hasSearched && Array.isArray(store.searchParams.workDays) ? store.searchParams.workDays as string[] : ['WEEKDAY']
+  )
+  const [dateRange, setDateRange] = useState<DateRange>(() =>
+    store.hasSearched ? {
+      startDate: store.searchParams.startDate ? new Date(store.searchParams.startDate as string) : null,
+      endDate: store.searchParams.endDate ? new Date(store.searchParams.endDate as string) : null,
+    } : { startDate: null, endDate: null }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
+  const [appliedWorkDays, setAppliedWorkDays] = useState<string[] | null>(() =>
+    store.hasSearched && Array.isArray(store.searchParams.workDays) ? store.searchParams.workDays as string[] : null
+  )
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRange | null>(() =>
+    store.hasSearched ? {
+      startDate: store.searchParams.startDate ? new Date(store.searchParams.startDate as string) : null,
+      endDate: store.searchParams.endDate ? new Date(store.searchParams.endDate as string) : null,
+    } : null
+  )
 
   // BP 본사 트리 조회 (본사명 표시용)
   const { data: bpTree = [] } = useBpHeadOfficeTree()
