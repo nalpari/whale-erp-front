@@ -125,7 +125,7 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
 
   // 전체 삭제
   const handleDeleteAll = async () => {
-    if (!(await confirm('모든 자격증 정보를 삭제하시겠습니까?'))) {
+    if (!(await confirm('모두 삭제하시겠습니까?'))) {
       return
     }
 

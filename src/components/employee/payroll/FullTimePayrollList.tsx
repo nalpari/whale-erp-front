@@ -198,8 +198,8 @@ export default function FullTimePayrollList({
   }
 
   // 이메일 전송 핸들러
-  const handleSendEmail = async (id: number, employeeName: string) => {
-    if (!(await confirm(`${employeeName}님에게 급여명세서를 이메일로 전송하시겠습니까?`))) return
+  const handleSendEmail = async (id: number, _employeeName: string) => {
+    if (!(await confirm('이메일을 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(id)

@@ -122,7 +122,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
 
   // 전체 삭제
   const handleDeleteAll = async () => {
-    if (!(await confirm('모든 경력 정보를 삭제하시겠습니까?'))) {
+    if (!(await confirm('모두 삭제하시겠습니까?'))) {
       return
     }
 
