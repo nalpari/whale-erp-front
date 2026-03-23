@@ -16,7 +16,8 @@ import {
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
-import { useQueryError } from '@/hooks/useQueryError';
+import { useQueryError } from '@/hooks/useQueryError'
+import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
 import { parseNumberParam } from '@/util/param-util';
 import type { DayType, ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
@@ -27,19 +28,47 @@ export default function StoreSchedulePageClient() {
   const { alert } = useAlert();
   const queryClient = useQueryClient();
 
-  // URL 파라미터에서 초기 검색 조건 파싱
-  const initialQuery = useMemo(() => ({
-    officeId: parseNumberParam(searchParams.get('officeId')),
-    franchiseId: parseNumberParam(searchParams.get('franchiseId')),
-    storeId: parseNumberParam(searchParams.get('storeId')),
-    employeeName: searchParams.get('employeeName') ?? '',
-    dayType: (searchParams.get('dayType') as DayType | '') ?? '',
-    from: searchParams.get('from') ?? undefined,
-    to: searchParams.get('to') ?? undefined,
-  }), [searchParams]);
+  const { savedFilters: savedQuery, saveFilters: saveQuery, clearFilters: clearQuery } =
+    useSearchFilterStorage<StoreScheduleQuery>('work-schedule-search')
 
-  // 로컬 상태 (sessionStorage 저장 없음)
-  const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  // URL 파라미터에서 초기 검색 조건 파싱 (URL이 있으면 URL 우선, 없으면 savedQuery fallback)
+  const hasUrlParams = searchParams.has('officeId')
+  const initialQuery = useMemo(() => {
+    if (hasUrlParams) {
+      return {
+        officeId: parseNumberParam(searchParams.get('officeId')),
+        franchiseId: parseNumberParam(searchParams.get('franchiseId')),
+        storeId: parseNumberParam(searchParams.get('storeId')),
+        employeeName: searchParams.get('employeeName') ?? '',
+        dayType: (searchParams.get('dayType') as DayType | '') ?? '',
+        from: searchParams.get('from') ?? undefined,
+        to: searchParams.get('to') ?? undefined,
+      }
+    }
+    if (savedQuery) {
+      return {
+        officeId: savedQuery.officeId ?? null,
+        franchiseId: savedQuery.franchiseId ?? null,
+        storeId: savedQuery.storeId ?? null,
+        employeeName: savedQuery.employeeName ?? '',
+        dayType: (savedQuery.dayType as DayType | '') ?? '',
+        from: savedQuery.from,
+        to: savedQuery.to,
+      }
+    }
+    return {
+      officeId: null as number | null,
+      franchiseId: null as number | null,
+      storeId: null as number | null,
+      employeeName: '',
+      dayType: '' as DayType | '',
+      from: undefined as string | undefined,
+      to: undefined as string | undefined,
+    }
+  }, [hasUrlParams, searchParams, savedQuery])
+
+  const [lastQuery, _setLastQuery] = useState<StoreScheduleQuery | null>(null);
+  const setLastQuery = (next: StoreScheduleQuery | null) => { _setLastQuery(next); if (next) saveQuery(next) }
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
@@ -68,6 +97,7 @@ export default function StoreSchedulePageClient() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (lastQuery 변경 안 함)
   const handleReset = () => {
     setShowStoreError(false);
+    clearQuery();
   };
 
   const handleRemoveFilter = (key: string) => {

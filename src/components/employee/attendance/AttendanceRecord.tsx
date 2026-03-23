@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { AttendanceListParams } from '@/types/attendance'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
 
@@ -28,9 +29,13 @@ export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
 
-  // 로컬 상태 (sessionStorage 저장 없음)
-  const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
+  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<AttendanceSearchFilters>(
+    'attendance-search',
+  )
+
+  const [filters, setFilters] = useState<AttendanceSearchFilters>(savedFilters ?? DEFAULT_ATTENDANCE_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<AttendanceSearchFilters>(savedFilters ?? DEFAULT_ATTENDANCE_FILTERS)
+  const setAppliedFilters = (next: AttendanceSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
@@ -94,6 +99,7 @@ export default function AttendanceRecord() {
 
   const handleReset = () => {
     setFilters(DEFAULT_ATTENDANCE_FILTERS)
+    clearFilters()
   }
 
   const handleRemoveFilter = (key: string) => {

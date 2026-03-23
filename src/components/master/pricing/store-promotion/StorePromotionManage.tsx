@@ -10,6 +10,7 @@ import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -29,9 +30,14 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 
 export default function StorePromotionManage() {
   const router = useRouter()
+  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<PromotionSearchFilters>(
+    'store-promotion-search',
+    { dateFields: ['from', 'to'] },
+  )
 
-  const [filters, setFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: PromotionSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -78,7 +84,8 @@ export default function StorePromotionManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
-    setAppliedFilters(DEFAULT_FILTERS)
+    _setAppliedFilters(DEFAULT_FILTERS)
+    clearFilters()
     setPage(0)
   }
 

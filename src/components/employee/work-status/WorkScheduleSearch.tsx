@@ -64,7 +64,7 @@ export default function WorkScheduleSearch({
   onReset,
   onRemoveFilter,
 }: WorkScheduleSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(!initialQuery?.storeId);
   const [showOfficeError, setShowOfficeError] = useState(false);
 
   const ownerCode = useAuthStore((s) => s.ownerCode);
