@@ -128,6 +128,7 @@ export default function PayrollStatementSettings() {
   const handleBpSelectChange = (value: OfficeFranchiseStoreValue) => {
     setSelectedHeadOfficeId(value.head_office)
     setSelectedFranchiseId(value.franchise)
+    setLocalSettings(null)
   }
 
   // 급여명세서 설정
