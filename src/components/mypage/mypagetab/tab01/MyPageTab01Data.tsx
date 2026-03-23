@@ -1,23 +1,60 @@
+'use client'
 import Image from "next/image";
+import { useAuthStore } from "@/stores/auth-store";
+import { useCommonCodeHierarchy } from "@/hooks/queries/use-common-code-queries";
+import type { BpDetailResponse } from "@/types/bp";
 
-export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMode: boolean) => void }) {
+interface MyPageTab01DataProps {
+  bp: BpDetailResponse
+  setEditMode: (editMode: boolean) => void
+}
+
+/**
+ * 사업자정보 조회 화면.
+ * - BP 데이터와 auth store의 사용자 정보를 결합하여 표시한다.
+ */
+export default function MyPageTab01Data({ bp, setEditMode }: MyPageTab01DataProps) {
+  const { avatar, name, loginId } = useAuthStore()
+
+  // 공통코드로 bpoprType, bpType 한글명 조회
+  const { data: bpoprCodes = [] } = useCommonCodeHierarchy('BPOPR')
+  const { data: bpTypeCodes = [] } = useCommonCodeHierarchy('BPTYP')
+
+  const bpoprName = bpoprCodes.find((c) => c.code === bp.bpoprType)?.name ?? bp.bpoprType
+  const bpTypeName = bpTypeCodes.find((c) => c.code === bp.bpType)?.name ?? bp.bpType ?? '-'
+  const organizationTypeName = bp.organizationType === 'HEAD_OFFICE' ? '본점' : '가맹점'
+  const avatarSrc = avatar
+    ? `/assets/images/ui/avatar0${avatar}.svg`
+    : '/assets/images/ui/avatar01.svg'
+  const fullAddress = [bp.address1, bp.address2].filter(Boolean).join(', ')
+
+  const handleCopyId = async () => {
+    const idToCopy = bp.masterId ?? loginId
+    if (!idToCopy) return
+    try {
+      await navigator.clipboard.writeText(idToCopy)
+    } catch {
+      // 클립보드 API 미지원 환경 (HTTP, 권한 거부 등) — 무시
+    }
+  }
+
   return (
     <div className="mypage-data-wrap">
       <div className="mypage-data-info">
         <div className="mypage-img">
-          <Image src="/assets/images/ui/avatar01.svg" alt="mypage-img" width={64} height={64} />
+          <Image src={avatarSrc} alt="mypage-img" width={64} height={64} />
         </div>
         <div className="mypage-info">
-          <div className="mypage-name">안녕하세요, 김철수님</div>
+          <div className="mypage-name">안녕하세요, {name ?? '-'}님</div>
           <div className="mypage-info-wrap">
             <div className="my-id">
               <span className="id-tit">Master ID</span>
-              <span className="id-data">Hc-1234567</span>
+              <span className="id-data">{bp.masterId ?? loginId ?? '-'}</span>
             </div>
             <div className="mypage-info-badge">
-              <button className="id-copy">ID 복사</button>
-              <span className="badge blue">운영</span>
-              <span className="badge grey">본점</span>
+              <button className="id-copy" onClick={handleCopyId}>ID 복사</button>
+              <span className="badge blue">{bpoprName}</span>
+              <span className="badge grey">{organizationTypeName}</span>
             </div>
           </div>
         </div>
@@ -34,11 +71,13 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">주식회사 따름인</span>
+                    <span className="data-text">{bp.companyName}</span>
                   </li>
-                  <li className="data-item">
-                    <span className="data-text">을지로3가점</span>
-                  </li>
+                  {bp.franchiseStoreName && (
+                    <li className="data-item">
+                      <span className="data-text">{bp.franchiseStoreName}</span>
+                    </li>
+                  )}
                 </ul>
               </td>
             </tr>
@@ -47,7 +86,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">힘이나는커피생활 을지로3가점</span>
+                    <span className="data-text">{bp.brandName || '-'}</span>
                   </li>
                 </ul>
               </td>
@@ -57,7 +96,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">105-87-123450</span>
+                    <span className="data-text">{formatBusinessNumber(bp.businessRegistrationNumber)}</span>
                   </li>
                 </ul>
               </td>
@@ -67,7 +106,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">서울 중구 삼봉로98, 1층 2호</span>
+                    <span className="data-text">{fullAddress || '-'}</span>
                   </li>
                 </ul>
               </td>
@@ -77,7 +116,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">010-2222-4444</span>
+                    <span className="data-text">{formatPhoneNumber(bp.representativeMobilePhone) || '-'}</span>
                   </li>
                 </ul>
               </td>
@@ -87,7 +126,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">abc@abc.co.kr</span>
+                    <span className="data-text">{bp.representativeEmail || '-'}</span>
                   </li>
                 </ul>
               </td>
@@ -97,7 +136,7 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <span className="data-text">일반음식점</span>
+                    <span className="data-text">{bpTypeName}</span>
                   </li>
                 </ul>
               </td>
@@ -107,7 +146,16 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    <button className="data-btn">힘이나는커피생활CI.pdf</button>
+                    {bp.lnbLogoExpandFile?.publicUrl ? (
+                      <button
+                        className="data-btn"
+                        onClick={() => window.open(bp.lnbLogoExpandFile!.publicUrl, '_blank')}
+                      >
+                        {bp.lnbLogoExpandFile.originalFileName}
+                      </button>
+                    ) : (
+                      <span className="data-text">-</span>
+                    )}
                   </li>
                 </ul>
               </td>
@@ -120,4 +168,26 @@ export default function MyPageTab01Data({ setEditMode }: { setEditMode: (editMod
       </div>
     </div>
   )
+}
+
+/** 사업자등록번호 포맷 (1234567890 -> 123-45-67890) */
+function formatBusinessNumber(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+  }
+  return value
+}
+
+/** 휴대폰번호 포맷 (01012345678 -> 010-1234-5678) */
+function formatPhoneNumber(value: string | null): string {
+  if (!value) return ''
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+  }
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return value
 }
