@@ -4,8 +4,8 @@ import { useAlert } from '@/components/common/ui'
 import { useChangePasswordMutation } from '@/hooks/queries/use-change-password-mutation'
 import { useMyPageStore } from '@/stores/mypage-store'
 import { getErrorMessage } from '@/lib/api'
-
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,20}$/
+import { changePasswordSchema } from '@/lib/schemas/forms'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
 
 export default function MyPageTab06() {
   const { alert, confirm } = useAlert()
@@ -23,26 +23,13 @@ export default function MyPageTab06() {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const validate = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!currentPassword.trim()) {
-      newErrors.currentPassword = '현재 비밀번호를 입력해 주세요.'
+    const result = changePasswordSchema.safeParse({ currentPassword, newPassword, confirmPassword })
+    if (result.success) {
+      setErrors({})
+      return true
     }
-    if (!newPassword.trim()) {
-      newErrors.newPassword = '신규 비밀번호를 입력해 주세요.'
-    } else if (!PASSWORD_REGEX.test(newPassword)) {
-      newErrors.newPassword = '8~20자, 영문+숫자+특수문자 조합으로 입력해 주세요.'
-    } else if (newPassword === currentPassword) {
-      newErrors.newPassword = '현재 비밀번호와 다른 비밀번호를 입력해 주세요.'
-    }
-    if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = '비밀번호 확인을 입력해 주세요.'
-    } else if (confirmPassword !== newPassword) {
-      newErrors.confirmPassword = '신규 비밀번호와 일치하지 않습니다.'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setErrors(formatZodFieldErrors(result.error))
+    return false
   }
 
   const clearError = (field: string) => {
@@ -102,7 +89,7 @@ export default function MyPageTab06() {
               <div className="filed-input">
                 <div className="input-icon-log-frame">
                   <input
-                    placeholder="8자 이상 영문과 숫자, 특수문자 조합으로 입력해 주세요"
+                    placeholder="영문+숫자+특수문자(@$!%*#?&), 8~20자"
                     type={showNew ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => { setNewPassword(e.target.value); clearError('newPassword') }}

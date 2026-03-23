@@ -24,7 +24,7 @@ export default function MyPageTab01Data({ bp, setEditMode }: MyPageTab01DataProp
   const bpTypeName = bpTypeCodes.find((c) => c.code === bp.bpType)?.name ?? bp.bpType ?? '-'
   const organizationTypeName = bp.organizationType === 'HEAD_OFFICE' ? '본점' : '가맹점'
   const avatarSrc = avatar
-    ? `https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/profile_image/avatar0${avatar}.svg`
+    ? `/assets/images/ui/avatar0${avatar}.svg`
     : '/assets/images/ui/avatar01.svg'
   const fullAddress = [bp.address1, bp.address2].filter(Boolean).join(', ')
 

@@ -8,6 +8,8 @@ import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import { useUpdateBp } from '@/hooks/queries/use-bp-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { getErrorMessage } from '@/lib/api'
+import { bpEditFormSchema } from '@/lib/schemas/forms'
+import { formatZodFieldErrors } from '@/lib/zod-utils'
 import type { BpDetailResponse, BpFormData } from '@/types/bp'
 
 const AVATAR_OPTIONS = ['1', '2', '3', '4'] as const
@@ -56,7 +58,7 @@ const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
  */
 export default function MyPageTab01Edit({ bp, setEditMode }: MyPageTab01EditProps) {
   const { alert, confirm } = useAlert()
-  const { avatar, loginId, name: userName, mobilePhone, setUserInfo } = useAuthStore()
+  const { avatar, loginId, name: userName, setUserInfo } = useAuthStore()
 
   // 폼 상태
   const [form, setForm] = useState<BpFormData>(() => mapBpToForm(bp))
@@ -121,29 +123,20 @@ export default function MyPageTab01Edit({ bp, setEditMode }: MyPageTab01EditProp
 
   // 검증
   const validate = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!form.companyName.trim()) newErrors.companyName = '회사명을 입력해 주세요.'
-    if (!form.businessRegistrationNumber.trim()) {
-      newErrors.businessRegistrationNumber = '사업자등록번호를 입력해 주세요.'
-    } else if (!/^\d{10}$/.test(form.businessRegistrationNumber)) {
-      newErrors.businessRegistrationNumber = '사업자등록번호는 10자리 숫자만 입력 가능합니다.'
+    const result = bpEditFormSchema.safeParse({
+      companyName: form.companyName,
+      businessRegistrationNumber: form.businessRegistrationNumber,
+      address1: form.address1,
+      representativeMobilePhone: form.representativeMobilePhone,
+      representativeEmail: form.representativeEmail,
+      bpType: form.bpType,
+    })
+    if (result.success) {
+      setErrors({})
+      return true
     }
-    if (!form.address1.trim()) newErrors.address1 = '주소를 입력해 주세요.'
-    if (!form.representativeMobilePhone.trim()) {
-      newErrors.representativeMobilePhone = '휴대폰번호를 입력해 주세요.'
-    } else if (!/^01[016789]\d{7,8}$/.test(form.representativeMobilePhone)) {
-      newErrors.representativeMobilePhone = '휴대폰번호 형식이 올바르지 않습니다. (예: 01012345678)'
-    }
-    if (!form.representativeEmail.trim()) {
-      newErrors.representativeEmail = '이메일을 입력해 주세요.'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.representativeEmail)) {
-      newErrors.representativeEmail = '이메일 형식이 올바르지 않습니다.'
-    }
-    if (!form.bpType) newErrors.bpType = 'BP 타입을 선택해 주세요.'
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setErrors(formatZodFieldErrors(result.error))
+    return false
   }
 
   // 저장
@@ -160,8 +153,8 @@ export default function MyPageTab01Edit({ bp, setEditMode }: MyPageTab01EditProp
         lnbLogoExpandFile: expandLogoFile,
         deleteLnbLogoExpandFileId: deleteExpandFileId,
       })
-      // 아바타 변경 시 auth store 업데이트
-      setUserInfo(loginId ?? '', userName ?? '', mobilePhone ?? '', selectedAvatar)
+      // auth store 업데이트 (폼에서 수정된 값 반영)
+      setUserInfo(loginId ?? '', userName ?? '', form.representativeMobilePhone, selectedAvatar)
       await alert('수정되었습니다.')
       setEditMode(false)
     } catch (error) {
