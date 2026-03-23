@@ -639,6 +639,7 @@ export default function LaborContractSettings() {
                   franchiseId={selectedFranchiseId}
                   storeId={null}
                   onChange={handleBpSelectChange}
+                  autoSelect={false}
                 />
               </tr>
             </tbody>

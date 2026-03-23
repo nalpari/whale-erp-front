@@ -292,6 +292,7 @@ export default function PayrollStatementSettings() {
                     franchiseId={selectedFranchiseId}
                     storeId={null}
                     onChange={handleBpSelectChange}
+                    autoSelect={false}
                   />
                 </tr>
               </tbody>

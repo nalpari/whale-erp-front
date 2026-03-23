@@ -448,6 +448,7 @@ export default function EmployeeInfoSettings() {
                   franchiseId={selectedFranchiseId}
                   storeId={null}
                   onChange={handleBpSelectChange}
+                  autoSelect={false}
                 />
               </tr>
             </tbody>
