@@ -248,7 +248,7 @@ export default function WorkSchedulePlan() {
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
-  const [showStoreError, setShowStoreError] = useState(!searchParams.get('storeId'));
+  const [showStoreError, setShowStoreError] = useState(false);
   const [employeeModal, setEmployeeModal] = useState<{
     mode: 'add' | 'replace';
     dayIndex: number;

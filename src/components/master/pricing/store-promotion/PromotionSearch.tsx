@@ -105,9 +105,6 @@ export default function PromotionSearch({
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
       setSearchOpen(true)
-      setShowOfficeError(true)
-    } else {
-      setShowOfficeError(false)
     }
   }
 

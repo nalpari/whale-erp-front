@@ -107,7 +107,6 @@ export default function StoreSearch({
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
       setSearchOpen(true)
-      setShowOfficeError(true)
     }
   }
 

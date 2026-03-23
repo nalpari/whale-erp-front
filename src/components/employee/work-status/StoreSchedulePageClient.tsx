@@ -41,7 +41,7 @@ export default function StoreSchedulePageClient() {
   // 로컬 상태 (sessionStorage 저장 없음)
   const [lastQuery, setLastQuery] = useState<StoreScheduleQuery | null>(null);
   const [isUploadOpen, setUploadOpen] = useState(false);
-  const [showStoreError, setShowStoreError] = useState(!initialQuery.storeId);
+  const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
 
   const scheduleQuery = useStoreScheduleList(lastQuery, lastQuery !== null);

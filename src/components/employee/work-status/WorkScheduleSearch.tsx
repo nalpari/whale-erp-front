@@ -81,8 +81,6 @@ export default function WorkScheduleSearch({
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
       setSearchOpen(true);
-      setShowOfficeError(true);
-      onStoreErrorChange?.(true);
     }
   };
   const [showPeriodError, setShowPeriodError] = useState(false);
@@ -406,7 +404,7 @@ export default function WorkScheduleSearch({
                     endDatePlaceholder="종료일"
                   />
                   {showPeriodError && (
-                    <span className="warning-txt">기간을 선택해주세요.</span>
+                    <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                   )}
                 </td>
               </tr>

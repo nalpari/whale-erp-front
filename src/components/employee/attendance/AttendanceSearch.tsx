@@ -83,7 +83,6 @@ export default function AttendanceSearch({
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti) {
       setSearchOpen(true)
-      setShowOfficeError(true)
     }
   }
 
