@@ -116,7 +116,13 @@ export default function MyPageTab01Edit({ bp, setEditMode }: MyPageTab01EditProp
 
   const handleExpandLogoRemove = (_index: number) => {
     const existingId = expandLogoImages[0]?.id
-    if (existingId) setDeleteExpandFileId(Number(existingId))
+    if (existingId) {
+      // 서버에 저장된 기존 파일 삭제 요청
+      setDeleteExpandFileId(Number(existingId))
+    } else if (!expandLogoFile) {
+      // 새 파일도 없고 기존 파일 ID도 없으면 삭제 요청 초기화
+      setDeleteExpandFileId(undefined)
+    }
     setExpandLogoFile(undefined)
     setExpandLogoImages([])
   }

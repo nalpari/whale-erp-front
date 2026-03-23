@@ -28,10 +28,13 @@ export default function MyPageTab01Data({ bp, setEditMode }: MyPageTab01DataProp
     : '/assets/images/ui/avatar01.svg'
   const fullAddress = [bp.address1, bp.address2].filter(Boolean).join(', ')
 
-  const handleCopyId = () => {
+  const handleCopyId = async () => {
     const idToCopy = bp.masterId ?? loginId
-    if (idToCopy) {
-      navigator.clipboard.writeText(idToCopy)
+    if (!idToCopy) return
+    try {
+      await navigator.clipboard.writeText(idToCopy)
+    } catch {
+      // 클립보드 API 미지원 환경 (HTTP, 권한 거부 등) — 무시
     }
   }
 
@@ -143,7 +146,7 @@ export default function MyPageTab01Data({ bp, setEditMode }: MyPageTab01DataProp
               <td>
                 <ul className="data-list">
                   <li className="data-item">
-                    {bp.lnbLogoExpandFile ? (
+                    {bp.lnbLogoExpandFile?.publicUrl ? (
                       <button
                         className="data-btn"
                         onClick={() => window.open(bp.lnbLogoExpandFile!.publicUrl, '_blank')}
