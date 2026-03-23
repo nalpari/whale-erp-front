@@ -53,7 +53,7 @@ export default function StoreSearch({
   onRemoveFilter,
   onAutoSelect,
 }: StoreSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   const ownerCode = useAuthStore((s) => s.ownerCode)

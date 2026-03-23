@@ -53,7 +53,7 @@ export default function PromotionSearch({
   onRemoveFilter,
   onAutoSelect,
 }: PromotionSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   const ownerCode = useAuthStore((s) => s.ownerCode)

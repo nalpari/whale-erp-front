@@ -84,7 +84,7 @@ export default function StoreMenuHeader() {
               <h2>메뉴 Header 정보</h2>
               <div className="slidebox-btn-wrap">
                 <button className="slidebox-btn" onClick={() => router.push('/master/menu/store')}>
-                  목록
+                  취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
                   삭제
@@ -93,7 +93,7 @@ export default function StoreMenuHeader() {
                   className="slidebox-btn"
                   onClick={() => router.push(`/master/menu/store/detail?id=${detail.id}`)}
                 >
-                  상세
+                  수정
                 </button>
                 <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
                   <i className="arr-icon"></i>

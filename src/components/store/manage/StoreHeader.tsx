@@ -105,7 +105,7 @@ export default function StoreHeader() {
               <h2>점포 Header 정보</h2>
               <div className="slidebox-btn-wrap">
                 <button className="slidebox-btn" onClick={() => router.push(`/store/info`)}>
-                  목록
+                  취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
                   삭제

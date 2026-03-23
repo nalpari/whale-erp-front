@@ -59,7 +59,7 @@ export default function StorePromotionHeader() {
               <h2>프로모션 가격 정보 관리</h2>
               <div className="slidebox-btn-wrap">
                 <button className="slidebox-btn" onClick={() => router.push('/master/pricing/store-promotion')}>
-                  목록
+                  취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
                   삭제

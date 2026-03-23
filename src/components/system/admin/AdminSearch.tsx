@@ -20,7 +20,7 @@ export default function AdminSearch({
   onSearch,
   resultCount = 0,
 }: AdminSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [localParams, setLocalParams] = useState<AdminSearchParams>(params)
   const [prevParams, setPrevParams] = useState(params)
   const [startDate, setStartDate] = useState<Date | null>(null)
