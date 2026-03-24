@@ -84,7 +84,7 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
       return
     }
 
-    if (!(await confirm('직원 회원 가입 요청 메일을 발송하시겠습니까?'))) return
+    if (!(await confirm('이메일을 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(employeeId)
@@ -160,6 +160,9 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
         <div className="slidebox-header">
           <h2>로그인 정보 및 권한</h2>
           <div className="slidebox-btn-wrap">
+            <button className="slidebox-btn" onClick={() => router.back()}>
+              취소
+            </button>
             <button className="slidebox-btn" onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : '저장'}
             </button>

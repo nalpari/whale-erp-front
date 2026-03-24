@@ -6,6 +6,8 @@ import Input from '@/components/common/ui/Input'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
+import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useEmployContractSearchStore } from '@/stores/search-stores'
 
 interface EmployContractSearchProps {
   onSearch?: (params: Record<string, unknown>) => void
@@ -13,25 +15,62 @@ interface EmployContractSearchProps {
   totalCount?: number
 }
 
-export default function EmployContractSearch({ onSearch, onReset, totalCount = 0 }: EmployContractSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
-  const [showOfficeError, setShowOfficeError] = useState(false)
+const initialFormData = {
+  headOfficeOrganizationId: null as number | null,
+  franchiseOrganizationId: null as number | null,
+  storeId: null as number | null,
+  workStatus: '',
+  employeeName: '',
+  workDays: [] as string[],
+  employeeClassification: '',
+  contractClassification: '',
+  contractStatus: '',
+  electronicContract: '',
+  contractDateFrom: null as Date | null,
+  contractDateTo: null as Date | null
+}
 
-  // 검색 폼 상태
-  const [formData, setFormData] = useState({
-    headOfficeOrganizationId: null as number | null,
-    franchiseOrganizationId: null as number | null,
-    storeId: null as number | null,
-    workStatus: '',
-    employeeName: '',
-    workDays: [] as string[],
-    employeeClassification: '',
-    contractClassification: '',
-    contractStatus: '',
-    electronicContract: '',
-    contractDateFrom: null as Date | null,
-    contractDateTo: null as Date | null
-  })
+type FormData = typeof initialFormData
+
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeOrganizationId: (sp.headOfficeId as number) ?? null,
+  franchiseOrganizationId: (sp.franchiseId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.memberName as string) || '',
+  workDays: Array.isArray(sp.workDays) ? (sp.workDays as string[]).map(d => {
+    const mapping: Record<string, string> = { WEEKDAY: 'weekday', SATURDAY: 'saturday', SUNDAY: 'sunday' }
+    return mapping[d] || d
+  }) : [],
+  employeeClassification: (sp.memberClassification as string) || '',
+  contractClassification: (sp.contractClassification as string) || '',
+  contractStatus: (() => {
+    const statusMapping: Record<string, string> = { WRITING: 'drafting', PROGRESS: 'in_progress', COMPLETE: 'completed' }
+    return statusMapping[(sp.contractStatus as string) || ''] || ''
+  })(),
+  electronicContract: (() => {
+    const ec = sp.electronicContract
+    if (Array.isArray(ec) && ec[0] === 'Y') return 'electronic'
+    if (Array.isArray(ec) && ec[0] === 'N') return 'paper'
+    return ''
+  })(),
+  contractDateFrom: sp.contractStartDt ? new Date(sp.contractStartDt as string) : null,
+  contractDateTo: sp.contractEndDt ? new Date(sp.contractEndDt as string) : null,
+})
+
+export default function EmployContractSearch({ onSearch, onReset, totalCount = 0 }: EmployContractSearchProps) {
+  const store = useEmployContractSearchStore()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [showOfficeError, setShowOfficeError] = useState(false)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData, workDays: [] }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
+
+  // BP 본사 트리 조회 (본사명 표시용)
+  const { data: bpTree = [] } = useBpHeadOfficeTree()
 
   // 직원 분류 조회 - TanStack Query 사용
   const { data: settingsData, isPending: isEmployeeClassificationLoading } = useEmployeeInfoSettings(
@@ -42,132 +81,16 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     !!formData.headOfficeOrganizationId
   )
 
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleWorkDayToggle = (day: string) => {
-    setFormData(prev => {
-      const currentDays = prev.workDays
-      if (currentDays.includes(day)) {
-        return { ...prev, workDays: currentDays.filter(d => d !== day) }
-      } else {
-        return { ...prev, workDays: [...currentDays, day] }
-      }
-    })
-  }
-
-  const handleSearch = useCallback(() => {
-    // 본사 필수 체크
-    if (!formData.headOfficeOrganizationId) {
-      setShowOfficeError(true)
-      return
-    }
-    setShowOfficeError(false)
-
-    if (onSearch) {
-      const apiParams: Record<string, unknown> = {}
-
-      // 필수 파라미터
-      apiParams.headOfficeId = formData.headOfficeOrganizationId
-
-      // 선택 파라미터 - 값이 있을 때만 추가
-      if (formData.franchiseOrganizationId) {
-        apiParams.franchiseId = formData.franchiseOrganizationId
-      }
-      if (formData.storeId) {
-        apiParams.storeId = formData.storeId
-      }
-      if (formData.workStatus) {
-        apiParams.workStatus = formData.workStatus
-      }
-      if (formData.employeeName?.trim()) {
-        apiParams.memberName = formData.employeeName.trim()
-      }
-      if (formData.workDays.length > 0) {
-        const dayMapping: Record<string, string> = {
-          'weekday': 'WEEKDAY',
-          'saturday': 'SATURDAY',
-          'sunday': 'SUNDAY'
-        }
-        apiParams.workDays = formData.workDays.map(d => dayMapping[d] || d)
-      }
-      if (formData.employeeClassification) {
-        apiParams.memberClassification = formData.employeeClassification
-      }
-      if (formData.contractClassification) {
-        apiParams.contractClassification = formData.contractClassification
-      }
-      if (formData.contractStatus) {
-        const statusMapping: Record<string, string> = {
-          'drafting': 'WRITING',
-          'in_progress': 'PROGRESS',
-          'completed': 'COMPLETE'
-        }
-        apiParams.contractStatus = statusMapping[formData.contractStatus] || formData.contractStatus
-      }
-      if (formData.electronicContract === 'electronic') {
-        apiParams.electronicContract = ['Y']
-      } else if (formData.electronicContract === 'paper') {
-        apiParams.electronicContract = ['N']
-      }
-      if (formData.contractDateFrom) {
-        const year = formData.contractDateFrom.getFullYear()
-        const month = String(formData.contractDateFrom.getMonth() + 1).padStart(2, '0')
-        const day = String(formData.contractDateFrom.getDate()).padStart(2, '0')
-        apiParams.contractStartDt = `${year}-${month}-${day}`
-      }
-      if (formData.contractDateTo) {
-        const year = formData.contractDateTo.getFullYear()
-        const month = String(formData.contractDateTo.getMonth() + 1).padStart(2, '0')
-        const day = String(formData.contractDateTo.getDate()).padStart(2, '0')
-        apiParams.contractEndDt = `${year}-${month}-${day}`
-      }
-
-      // 검색 시마다 새로운 타임스탬프 추가 (캐시 무효화 보장)
-      apiParams._timestamp = Date.now()
-
-      onSearch(apiParams)
-    }
-  }, [formData, onSearch])
-
-  const handleReset = () => {
-    setFormData({
-      headOfficeOrganizationId: null,
-      franchiseOrganizationId: null,
-      storeId: null,
-      workStatus: '',
-      employeeName: '',
-      workDays: [],
-      employeeClassification: '',
-      contractClassification: '',
-      contractStatus: '',
-      electronicContract: '',
-      contractDateFrom: null,
-      contractDateTo: null
-    })
-    setShowOfficeError(false)
-    if (onReset) {
-      onReset()
-    }
-  }
-
-  // 계약일 범위 변경 핸들러
-  const handleContractDateChange = (range: DateRange) => {
-    setFormData(prev => ({
-      ...prev,
-      contractDateFrom: range.startDate,
-      contractDateTo: range.endDate
-    }))
-  }
-
-  const handleClose = () => {
-    setSearchOpen(false)
-  }
-
-  // 직원 분류 선택 가능 여부
   const isEmployeeClassificationEnabled = !!formData.headOfficeOrganizationId
+
+  // 본사 ID → 이름 맵
+  const officeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      if (office.name) map.set(office.id, office.name)
+    })
+    return map
+  }, [bpTree])
 
   // 근무여부 옵션
   const workStatusOptions: SelectOption[] = useMemo(() => [
@@ -205,16 +128,171 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     { value: 'completed', label: '계약완료' }
   ], [])
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; label: string; category: string }[] = []
+  if (appliedFormData) {
+    if (appliedFormData.headOfficeOrganizationId != null) {
+      const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
+      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+    }
+    if (appliedFormData.workStatus) {
+      const opt = workStatusOptions.find(o => o.value === appliedFormData.workStatus)
+      appliedTags.push({ key: 'workStatus', label: opt?.label || appliedFormData.workStatus, category: '근무여부' })
+    }
+    if (appliedFormData.employeeName) {
+      appliedTags.push({ key: 'employeeName', label: appliedFormData.employeeName, category: '직원명' })
+    }
+    if (appliedFormData.workDays.length > 0) {
+      const dayLabels: Record<string, string> = { weekday: '평일', saturday: '토요일', sunday: '일요일' }
+      const label = appliedFormData.workDays.map(d => dayLabels[d] || d).join(', ')
+      appliedTags.push({ key: 'workDays', label, category: '근무요일' })
+    }
+    if (appliedFormData.employeeClassification) {
+      const opt = employeeClassOptions.find(o => o.value === appliedFormData.employeeClassification)
+      appliedTags.push({ key: 'employeeClassification', label: opt?.label || appliedFormData.employeeClassification, category: '직원 분류' })
+    }
+    if (appliedFormData.contractClassification) {
+      const opt = contractClassOptions.find(o => o.value === appliedFormData.contractClassification)
+      appliedTags.push({ key: 'contractClassification', label: opt?.label || appliedFormData.contractClassification, category: '계약 분류' })
+    }
+    if (appliedFormData.contractStatus) {
+      const opt = contractStatusOptions.find(o => o.value === appliedFormData.contractStatus)
+      appliedTags.push({ key: 'contractStatus', label: opt?.label || appliedFormData.contractStatus, category: '계약 상태' })
+    }
+    if (appliedFormData.electronicContract) {
+      const label = appliedFormData.electronicContract === 'electronic' ? '전자계약' : '서류계약'
+      appliedTags.push({ key: 'electronicContract', label, category: '전자계약 여부' })
+    }
+    if (appliedFormData.contractDateFrom || appliedFormData.contractDateTo) {
+      const formatDate = (d: Date | null) => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : ''
+      appliedTags.push({ key: 'contractDate', label: `${formatDate(appliedFormData.contractDateFrom)} ~ ${formatDate(appliedFormData.contractDateTo)}`, category: '계약일' })
+    }
+  }
+
+  const buildApiParams = (data: FormData): Record<string, unknown> => {
+    const apiParams: Record<string, unknown> = {}
+    apiParams.headOfficeId = data.headOfficeOrganizationId
+    if (data.franchiseOrganizationId) apiParams.franchiseId = data.franchiseOrganizationId
+    if (data.storeId) apiParams.storeId = data.storeId
+    if (data.workStatus) apiParams.workStatus = data.workStatus
+    if (data.employeeName?.trim()) apiParams.memberName = data.employeeName.trim()
+    if (data.workDays.length > 0) {
+      const dayMapping: Record<string, string> = { weekday: 'WEEKDAY', saturday: 'SATURDAY', sunday: 'SUNDAY' }
+      apiParams.workDays = data.workDays.map(d => dayMapping[d] || d)
+    }
+    if (data.employeeClassification) apiParams.memberClassification = data.employeeClassification
+    if (data.contractClassification) apiParams.contractClassification = data.contractClassification
+    if (data.contractStatus) {
+      const statusMapping: Record<string, string> = { drafting: 'WRITING', in_progress: 'PROGRESS', completed: 'COMPLETE' }
+      apiParams.contractStatus = statusMapping[data.contractStatus] || data.contractStatus
+    }
+    if (data.electronicContract === 'electronic') apiParams.electronicContract = ['Y']
+    else if (data.electronicContract === 'paper') apiParams.electronicContract = ['N']
+    if (data.contractDateFrom) {
+      const year = data.contractDateFrom.getFullYear()
+      const month = String(data.contractDateFrom.getMonth() + 1).padStart(2, '0')
+      const day = String(data.contractDateFrom.getDate()).padStart(2, '0')
+      apiParams.contractStartDt = `${year}-${month}-${day}`
+    }
+    if (data.contractDateTo) {
+      const year = data.contractDateTo.getFullYear()
+      const month = String(data.contractDateTo.getMonth() + 1).padStart(2, '0')
+      const day = String(data.contractDateTo.getDate()).padStart(2, '0')
+      apiParams.contractEndDt = `${year}-${month}-${day}`
+    }
+    return apiParams
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (!appliedFormData) return
+    const updated = { ...appliedFormData, workDays: [...appliedFormData.workDays] }
+    switch (key) {
+      case 'headOffice': updated.headOfficeOrganizationId = null; updated.franchiseOrganizationId = null; updated.storeId = null; updated.employeeClassification = ''; break
+      case 'workStatus': updated.workStatus = ''; break
+      case 'employeeName': updated.employeeName = ''; break
+      case 'workDays': updated.workDays = []; break
+      case 'employeeClassification': updated.employeeClassification = ''; break
+      case 'contractClassification': updated.contractClassification = ''; break
+      case 'contractStatus': updated.contractStatus = ''; break
+      case 'electronicContract': updated.electronicContract = ''; break
+      case 'contractDate': updated.contractDateFrom = null; updated.contractDateTo = null; break
+    }
+    setFormData(updated)
+    setAppliedFormData(updated)
+    if (onSearch) onSearch(buildApiParams(updated))
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleWorkDayToggle = (day: string) => {
+    setFormData(prev => {
+      const currentDays = prev.workDays
+      if (currentDays.includes(day)) {
+        return { ...prev, workDays: currentDays.filter(d => d !== day) }
+      } else {
+        return { ...prev, workDays: [...currentDays, day] }
+      }
+    })
+  }
+
+  const handleSearch = useCallback(() => {
+    if (!formData.headOfficeOrganizationId) {
+      setShowOfficeError(true)
+      return
+    }
+    setShowOfficeError(false)
+    const applied = { ...formData, workDays: [...formData.workDays] }
+    setAppliedFormData(applied)
+    if (onSearch) onSearch(buildApiParams(applied))
+    setSearchOpen(false)
+  }, [formData, onSearch])
+
+  const handleReset = () => {
+    setFormData({ ...initialFormData, workDays: [] })
+    setAppliedFormData(null)
+    setShowOfficeError(false)
+    if (onReset) onReset()
+  }
+
+  const handleContractDateChange = (range: DateRange) => {
+    setFormData(prev => ({
+      ...prev,
+      contractDateFrom: range.startDate,
+      contractDateTo: range.endDate
+    }))
+  }
+
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{totalCount.toLocaleString()}건</span>
-        </div>
         <ul className="search-result-list">
-          <li></li>
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.label}</span> ({tag.category})
+              </div>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => handleRemoveTag(tag.key)}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{totalCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)} aria-label={searchOpen ? '검색 필드 접기' : '검색 필드 펼치기'}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="검색 영역 열기/닫기"
+        ></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -379,9 +457,9 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
             </tbody>
           </table>
           <div className="btn-filed">
-            <button className="btn-form gray" onClick={handleClose}>닫기</button>
-            <button className="btn-form gray" onClick={handleReset}>초기화</button>
-            <button className="btn-form basic" onClick={handleSearch}>검색</button>
+            <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">닫기</button>
+            <button className="btn-form gray" onClick={handleReset} type="button">초기화</button>
+            <button className="btn-form basic" onClick={handleSearch} type="button">검색</button>
           </div>
         </div>
       </AnimateHeight>

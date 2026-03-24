@@ -51,7 +51,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
   const handleDelete = async () => {
     if (!contractId) return
 
-    if (await confirm('정말 삭제하시겠습니까?')) {
+    if (await confirm('삭제하시겠습니까?')) {
       try {
         await deleteContract(contractId)
         await alert('계약서가 삭제되었습니다.')
@@ -80,7 +80,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
       return
     }
 
-    if (await confirm(`${contractData.member.name}(${contractData.member.email})에게 계약서를 전송하시겠습니까?`)) {
+    if (await confirm('이메일을 전송하시겠습니까?')) {
       try {
         await sendEmail(contractId)
         await alert('계약서가 전송되었습니다.')
