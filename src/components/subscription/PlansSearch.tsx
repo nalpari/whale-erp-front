@@ -21,7 +21,7 @@ export default function PlansSearch({ resultCount }: PlansSearchProps) {
   const removeFilter = usePlansSearchStore((s) => s.removeFilter)
   const reset = usePlansSearchStore((s) => s.reset)
 
-  const { data: planTypeCodes = [] } = useCommonCodeHierarchy('PLNTYP')
+  const { data: planTypeCodes = [], isPending: planTypeLoading, error: planTypeError } = useCommonCodeHierarchy('PLNTYP')
 
   const planTypeOptions = useMemo<SelectOption[]>(() =>
     planTypeCodes.map((code) => ({ label: code.name, value: code.code })),
@@ -110,7 +110,12 @@ export default function PlansSearch({ resultCount }: PlansSearchProps) {
                       onChange={(opt) => setFilters({ planType: opt?.value ?? '' })}
                       placeholder="전체"
                       isClearable
+                      isLoading={planTypeLoading}
+                      error={!!planTypeError}
                     />
+                    {planTypeError && (
+                      <span className="warning-txt">※ 요금제 목록을 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>수정자</th>
