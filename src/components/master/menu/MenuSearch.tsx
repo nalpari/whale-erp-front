@@ -146,15 +146,15 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }
   if (filters.menuClassificationCode) {
     const name = menuClassificationOptions.find((o) => o.value === filters.menuClassificationCode)?.label
-    if (name) appliedTags.push({ key: 'menuClassificationCode', value: name, category: '메뉴분류' })
+    appliedTags.push({ key: 'menuClassificationCode', value: name ?? filters.menuClassificationCode, category: '메뉴분류' })
   }
   if (filters.categoryId) {
     const name = categoryOptions.find((o) => o.value === filters.categoryId)?.label
-    if (name) appliedTags.push({ key: 'categoryId', value: name, category: '카테고리' })
+    appliedTags.push({ key: 'categoryId', value: name ?? filters.categoryId, category: '카테고리' })
   }
   if (filters.franchiseAvailableId) {
     const name = franchiseAvailableOptions.find((o) => o.value === filters.franchiseAvailableId)?.label
-    if (name) appliedTags.push({ key: 'franchiseAvailableId', value: name, category: '사용가능 가맹점' })
+    appliedTags.push({ key: 'franchiseAvailableId', value: name ?? filters.franchiseAvailableId, category: '사용가능 가맹점' })
   }
   if (filters.registeredDateFrom || filters.registeredDateTo) {
     const from = filters.registeredDateFrom || ''
