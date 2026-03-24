@@ -47,7 +47,8 @@ const formatDateStr = (date: Date | null): string | undefined => {
 }
 
 const buildSearchParams = (data: FormData, workDays: string[], dateRange: DateRange): SearchParams => {
-  const params: SearchParams = { workDays }
+  const params: SearchParams = {}
+  if (workDays.length > 0) params.workDays = workDays
   if (data.headOfficeId) params.headOfficeId = data.headOfficeId
   if (data.franchiseId) params.franchiseId = data.franchiseId
   if (data.storeId) params.storeId = data.storeId

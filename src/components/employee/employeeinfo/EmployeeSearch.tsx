@@ -10,7 +10,8 @@ import { format } from 'date-fns'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
 import { useEmployeeInfoSearchStore } from '@/stores/search-stores'
 
 interface EmployeeSearchProps {
@@ -84,8 +85,12 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     store.hasSearched ? restoreFormData(store.searchParams) : null
   )
 
+  // auth hydration 완료 후에만 API 호출
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+
   // BP 본사 트리 조회 (본사명 표시용)
-  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // TanStack Query로 직원 분류 조회
   const { data: settingsData, isPending: isEmployeeClassificationLoading } = useEmployeeInfoSettings(
@@ -150,12 +155,47 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     return map
   }, [bpTree])
 
+  // 가맹점 ID → 이름 맵
+  const franchiseNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      office.franchises.forEach((franchise) => {
+        if (franchise.name) map.set(franchise.id, franchise.name)
+      })
+    })
+    return map
+  }, [bpTree])
+
+  // 점포 옵션 조회 (점포명 표시용)
+  const { data: storeOptionList = [] } = useStoreOptions(
+    appliedFormData?.headOfficeOrganizationId,
+    appliedFormData?.franchiseOrganizationId,
+    isReady && !!appliedFormData?.headOfficeOrganizationId
+  )
+
+  // 점포 ID → 이름 맵
+  const storeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    storeOptionList.forEach((store) => {
+      if (store.storeName) map.set(store.id, store.storeName)
+    })
+    return map
+  }, [storeOptionList])
+
   // 적용된 검색 조건 태그
   const appliedTags: { key: string; label: string; category: string }[] = []
   if (appliedFormData) {
     if (appliedFormData.headOfficeOrganizationId != null) {
       const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
       if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+    }
+    if (appliedFormData.franchiseOrganizationId != null) {
+      const name = franchiseNameMap.get(appliedFormData.franchiseOrganizationId)
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+    }
+    if (appliedFormData.storeId != null) {
+      const name = storeNameMap.get(appliedFormData.storeId)
+      if (name) appliedTags.push({ key: 'store', label: name, category: '점포' })
     }
     if (appliedFormData.workStatus) {
       const opt = workStatusOptions.find(o => o.value === appliedFormData.workStatus)
@@ -190,9 +230,12 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
 
   const handleRemoveTag = (key: string) => {
     if (!appliedFormData) return
+    // 본사는 필수 검색 조건이므로 개별 제거 불가
+    if (key === 'headOffice') return
     const updated = { ...appliedFormData }
     switch (key) {
-      case 'headOffice': updated.headOfficeOrganizationId = null; updated.franchiseOrganizationId = null; updated.storeId = null; updated.employeeClassification = ''; break
+      case 'franchise': updated.franchiseOrganizationId = null; updated.storeId = null; break
+      case 'store': updated.storeId = null; break
       case 'workStatus': updated.workStatus = ''; break
       case 'employeeName': updated.employeeName = ''; break
       case 'employeeClassification': updated.employeeClassification = ''; break

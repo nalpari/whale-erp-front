@@ -83,7 +83,7 @@ export default function EmployeePage() {
       <EmployeeList
         employees={store.hasSearched ? employeesWithNames : []}
         isLoading={store.hasSearched && isLoading}
-        currentPage={employeeData?.number ?? 0}
+        currentPage={store.page}
         totalPages={employeeData?.totalPages ?? 0}
         pageSize={store.pageSize}
         onPageChange={handlePageChange}

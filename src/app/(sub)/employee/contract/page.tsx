@@ -51,7 +51,6 @@ const mapContractToRowData = (contract: EmploymentContractResponse): EmployContr
     employeeName: contract.member?.name || contract.employeeInfoName || '-',
     contractClassification: header?.contractClassificationName || '-',
     workDays: workDaysDisplay,
-    employeeClassification: header?.contractClassificationName || '-',
     salaryDay: header?.salaryDay ? `${header.salaryDay}` : '-',
     contractDate: header?.contractStartDate || '-',
     contractEndDate: header?.contractEndDate || undefined

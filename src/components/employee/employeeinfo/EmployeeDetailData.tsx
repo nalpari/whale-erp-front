@@ -109,7 +109,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const handleDelete = async () => {
     if (!employeeId) return
 
-    if (await confirm('삭제 하시겠습니까?')) {
+    if (await confirm('삭제하시겠습니까?')) {
       try {
         await deleteEmployeeMutation.mutateAsync(employeeId)
         await alert('직원 정보가 삭제되었습니다.')
