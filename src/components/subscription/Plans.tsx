@@ -36,7 +36,6 @@ export default function Plans() {
         loading={loading}
         error={error?.message}
         page={page}
-        pageSize={pageSize}
         totalPages={response?.totalPages ?? 0}
         onPageChange={setPage}
       />

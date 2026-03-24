@@ -15,7 +15,6 @@ interface PlansSearchState {
   appliedFilters: PlansSearchFilters
   page: number
   pageSize: number
-  searchEnabled: boolean
   searchOpen: boolean
 
   setFilters: (updates: Partial<PlansSearchFilters>) => void
@@ -32,7 +31,6 @@ export const usePlansSearchStore = create<PlansSearchState>()((set, get) => ({
   appliedFilters: { ...INITIAL_FILTERS },
   page: 0,
   pageSize: 50,
-  searchEnabled: true,
   searchOpen: false,
 
   setFilters: (updates) =>
@@ -40,7 +38,7 @@ export const usePlansSearchStore = create<PlansSearchState>()((set, get) => ({
 
   applyFilters: () => {
     const { filters } = get()
-    set({ appliedFilters: { ...filters }, page: 0, searchEnabled: true })
+    set({ appliedFilters: { ...filters }, page: 0 })
   },
 
   setPage: (page) => set({ page }),
@@ -67,7 +65,6 @@ export const usePlansSearchStore = create<PlansSearchState>()((set, get) => ({
       filters: { ...INITIAL_FILTERS },
       appliedFilters: { ...INITIAL_FILTERS },
       page: 0,
-      searchEnabled: true,
       searchOpen: true,
     }),
 }))

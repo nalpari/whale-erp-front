@@ -61,7 +61,6 @@ interface PlansListProps {
   error?: string | null
   loading: boolean
   page: number
-  pageSize: number
   totalPages: number
   onPageChange: (page: number) => void
 }

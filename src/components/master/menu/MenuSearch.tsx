@@ -97,7 +97,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     setFormData({ [field]: value })
   }
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!formData.headOfficeOrganizationId) {
       setHeadOfficeError(true)
       return
