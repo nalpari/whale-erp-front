@@ -4,7 +4,7 @@ import AnimateHeight from 'react-animate-height'
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-import { Input, RadioButtonGroup, useAlert } from '@/components/common/ui'
+import { Input, RadioButtonGroup } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import { useBpHeadOfficeTree, useMasterCategoryList, useStoreList, useCommonCodeHierarchy } from '@/hooks/queries'
 import type { CategoryResponse } from '@/types/menu'
@@ -33,7 +33,6 @@ const menuTypeOptions = [
 ]
 
 export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, onSearchOpenChange }: MenuSearchProps) {
-  const { alert } = useAlert()
   const formData = useMenuSearchStore((s) => s.formData)
   const filters = useMenuSearchStore((s) => s.filters)
   const setFormData = useMenuSearchStore((s) => s.setFormData)

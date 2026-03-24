@@ -1,56 +1,45 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import Location from '@/components/ui/Location'
 import PlansSearch from '@/components/subscription/PlansSearch'
 import PlansList from '@/components/subscription/PlansList'
 import { usePlansList, type PlansListParams } from '@/hooks/queries'
+import { usePlansSearchStore } from '@/stores/plans-search-store'
 
 const BREADCRUMBS = ['과금관리', 'ERP 요금제 관리']
 
-const defaultListParams: PlansListParams = {
-    planType: undefined,
-    updater: undefined,
-    page: 0,
-    size: 50,
-}
-
 export default function Plans() {
-    const [filters, setFilters] = useState<PlansListParams>(defaultListParams)
-    const [page, setPage] = useState(0)
-    const [pageSize, _setPageSize] = useState(10)
+  const appliedFilters = usePlansSearchStore((s) => s.appliedFilters)
+  const page = usePlansSearchStore((s) => s.page)
+  const pageSize = usePlansSearchStore((s) => s.pageSize)
+  const setPage = usePlansSearchStore((s) => s.setPage)
 
-    const listParams: PlansListParams = useMemo(
-        () => ({
-            ...filters,
-            page,
-            size: pageSize,
-        }),
-        [filters, page, pageSize]
-    )
+  const listParams: PlansListParams = useMemo(() => ({
+    planType: appliedFilters.planType || undefined,
+    updater: appliedFilters.updater || undefined,
+    page,
+    size: pageSize,
+  }), [appliedFilters, page, pageSize])
 
-    const { data: response, isPending: loading, error } = usePlansList(listParams)
+  const { data: response, isPending: loading, error } = usePlansList(listParams)
 
-    const resultCount = response?.totalElements ?? 0
-    const plans = response?.content ?? []
+  const resultCount = response?.totalElements ?? 0
+  const plans = response?.content ?? []
 
-    // 검색 조건 초기화
-    const handleReset = () => {
-        setFilters(defaultListParams)
-        setPage(0)
-    }
-
-
-    return (
-        <div className="data-wrap">
-            <Location title="ERP 요금제 관리" list={BREADCRUMBS} />
-            <PlansSearch
-                filters={filters}
-                resultCount={resultCount}
-                onChange={setFilters}
-                onReset={handleReset}
-            />
-            <PlansList rows={plans} loading={loading} error={error?.message} />
-        </div>
-    )
+  return (
+    <div className="data-wrap">
+      <Location title="ERP 요금제 관리" list={BREADCRUMBS} />
+      <PlansSearch resultCount={resultCount} />
+      <PlansList
+        rows={plans}
+        loading={loading}
+        error={error?.message}
+        page={page}
+        pageSize={pageSize}
+        totalPages={response?.totalPages ?? 0}
+        onPageChange={setPage}
+      />
+    </div>
+  )
 }
