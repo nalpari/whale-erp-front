@@ -45,10 +45,10 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
     bpTree.map((o) => ({ label: o.name, value: String(o.id) })),
-  [bpTree])
+    [bpTree])
   const selectedOfficeOption = useMemo(() =>
     headOfficeOptions.find((opt) => opt.value === String(formData.headOfficeOrganizationId)) ?? null,
-  [headOfficeOptions, formData.headOfficeOrganizationId])
+    [headOfficeOptions, formData.headOfficeOrganizationId])
 
   // 카테고리 API 조회 (본사 선택 시)
   const { data: categories } = useMasterCategoryList(formData.headOfficeOrganizationId)
@@ -122,6 +122,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }
 
   const handleReset = () => {
+    setHeadOfficeError(false)
     reset()
     onReset()
     onSearchOpenChange(true)
@@ -246,8 +247,10 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       }}
                       placeholder="본사 선택"
                       isClearable
-                      error={headOfficeError}
                     />
+                    {headOfficeError && !formData.headOfficeOrganizationId && (
+                      <span className="warning-txt">※ 필수 선택 조건입니다</span>
+                    )}
                   </div>
                 </td>
                 <th>가맹점</th>

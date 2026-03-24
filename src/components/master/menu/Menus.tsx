@@ -44,7 +44,8 @@ export default function Menus() {
   const { data: response, isLoading: loading } = useMasterMenuList(listParams, !!filters.headOfficeOrganizationId)
   const { mutateAsync: updateOperationStatus } = useUpdateMenuOperationStatus()
 
-  const totalCount = response?.totalElements ?? 0
+  const hasSearch = !!filters.headOfficeOrganizationId
+  const totalCount = hasSearch ? (response?.totalElements ?? 0) : 0
 
   const handleSearch = (params: MenuSearchFormData) => {
     setFilters(params)
@@ -94,11 +95,11 @@ export default function Menus() {
         onSearchOpenChange={setSearchOpen}
       />
       <MenuList
-        rows={response?.content ?? []}
+        rows={hasSearch ? (response?.content ?? []) : []}
         page={page}
         pageSize={pageSize}
-        totalPages={response?.totalPages ?? 0}
-        loading={loading}
+        totalPages={hasSearch ? (response?.totalPages ?? 0) : 0}
+        loading={loading && hasSearch}
         bpId={filters.headOfficeOrganizationId ?? null}
         onPageChange={setPage}
         onPageSizeChange={handlePageSizeChange}
