@@ -10,7 +10,7 @@ interface AuthStore extends AuthState {
   setAffiliationId: (id: string | null) => void;
   setOwnerCode: (code: string | null) => void;
   setSubscriptionPlan: (plan: number) => void;
-  setUserInfo: (loginId: string, name: string, mobilePhone: string) => void;
+  setUserInfo: (loginId: string, name: string, mobilePhone: string, avatar: string | null) => void;
   setPasswordChangeRequired: (required: boolean) => void;
   clearAuth: () => void;
 }
@@ -26,6 +26,7 @@ export const useAuthStore = create<AuthStore>()(
       loginId: null,
       name: null,
       mobilePhone: null,
+      avatar: null,
       passwordChangeRequired: false,
       subscriptionPlan: 0,
       setTokens: (accessToken, refreshToken) =>
@@ -35,10 +36,10 @@ export const useAuthStore = create<AuthStore>()(
       setAffiliationId: (id) => set({ affiliationId: id }),
       setOwnerCode: (code) => set({ ownerCode: code }),
       setSubscriptionPlan: (plan) => set({ subscriptionPlan: plan }),
-      setUserInfo: (loginId, name, mobilePhone) =>
-        set({ loginId, name, mobilePhone }),
+      setUserInfo: (loginId, name, mobilePhone, avatar) =>
+        set({ loginId, name, mobilePhone, avatar }),
       setPasswordChangeRequired: (required) => set({ passwordChangeRequired: required }),
-      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, ownerCode: null, loginId: null, name: null, mobilePhone: null, passwordChangeRequired: false, subscriptionPlan: 0 }),
+      clearAuth: () => set({ accessToken: null, refreshToken: null, authority: null, affiliationId: null, ownerCode: null, loginId: null, name: null, mobilePhone: null, avatar: null, passwordChangeRequired: false, subscriptionPlan: 0 }),
     }),
     {
       name: 'auth-storage',

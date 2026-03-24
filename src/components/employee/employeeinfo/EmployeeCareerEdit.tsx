@@ -122,7 +122,7 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
 
   // 전체 삭제
   const handleDeleteAll = async () => {
-    if (!(await confirm('모든 경력 정보를 삭제하시겠습니까?'))) {
+    if (!(await confirm('모두 삭제하시겠습니까?'))) {
       return
     }
 
@@ -226,15 +226,13 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         <div className="slidebox-header">
           <h2>경력 정보</h2>
           <div className="slidebox-btn-wrap">
-            <button
-              className="btn-form outline"
-              onClick={handleDeleteAll}
-              disabled={isLoading}
-              style={{ marginRight: '8px' }}
-            >
+            <button className="slidebox-btn" onClick={handleDeleteAll} disabled={isLoading}>
               전체 삭제
             </button>
-            <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
+            <button className="slidebox-btn" onClick={handleCancel}>
+              취소
+            </button>
+            <button className="slidebox-btn" onClick={handleSave} disabled={isLoading}>
               {isLoading ? '저장 중...' : '저장'}
             </button>
             <button className="slidebox-btn arr" onClick={() => setSectionOpen(!sectionOpen)}>
@@ -443,13 +441,6 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         </AnimateHeight>
       </div>
 
-      {/* 하단 버튼 */}
-      <div className="btn-filed" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-        <button className="btn-form gray" onClick={handleCancel}>취소</button>
-        <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
-          {isLoading ? '저장 중...' : '저장'}
-        </button>
-      </div>
     </div>
   )
 }

@@ -9,8 +9,7 @@ import { useStoreList, useStoreOptions, useSubscribePlanCheck, type StoreListPar
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
-import { useAuthStore } from '@/stores/auth-store'
-import { isAutoSelectAccount } from '@/constants/owner-code'
+import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
@@ -26,44 +25,46 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 
 export default function StoreInfo() {
   const router = useRouter()
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const autoSelect = isAutoSelectAccount(ownerCode)
 
   const [filters, setFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
   const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // 본사/가맹점 계정: bp-tree auto-select 후 첫 진입 시 목록 자동 조회
-  // 플랫폼(관리자) 계정: 검색 버튼 클릭 시에만 조회
-  const effectiveAppliedFilters =
-    autoSelect && filters.officeId != null && appliedFilters.officeId == null
-      ? filters
-      : appliedFilters
+  // 본사/가맹점 계정: HeadOfficeFranchiseStoreSelect 자동선택 시 appliedFilters 직접 세팅
+  // 이미 검색이 수행된 적 있으면 무시 (초기화 시 자동선택 재발동 방지)
+  const handleAutoSelect = (value: OfficeFranchiseStoreValue) => {
+    if (appliedFilters.officeId != null) return
+    setAppliedFilters({
+      ...DEFAULT_FILTERS,
+      officeId: value.head_office,
+      franchiseId: value.franchise,
+    })
+  }
 
-  const { alert } = useAlert()
+  const { alert, confirm } = useAlert()
   const { refetch: checkSubscribePlan, isFetching: checking } = useSubscribePlanCheck()
 
   const storeParams: StoreListParams = useMemo(
     () => ({
-      office: effectiveAppliedFilters.officeId ?? undefined,
-      franchise: effectiveAppliedFilters.franchiseId ?? undefined,
-      store: effectiveAppliedFilters.storeId ?? undefined,
-      status: effectiveAppliedFilters.status === 'ALL' ? undefined : effectiveAppliedFilters.status,
-      from: formatDateYmdOrUndefined(effectiveAppliedFilters.from),
-      to: formatDateYmdOrUndefined(effectiveAppliedFilters.to),
+      office: appliedFilters.officeId ?? undefined,
+      franchise: appliedFilters.franchiseId ?? undefined,
+      store: appliedFilters.storeId ?? undefined,
+      status: appliedFilters.status === 'ALL' ? undefined : appliedFilters.status,
+      from: formatDateYmdOrUndefined(appliedFilters.from),
+      to: formatDateYmdOrUndefined(appliedFilters.to),
       page,
       size: pageSize,
       sort: 'createdAt,desc',
     }),
-    [effectiveAppliedFilters, page, pageSize]
+    [appliedFilters, page, pageSize]
   )
 
   // HeadOfficeFranchiseStoreSelect 내부에서 동일 쿼리 키로 useStoreOptions를 호출하므로
   // 캐시 워밍 역할 — 본사/가맹점 변경 시 점포 옵션을 미리 가져와 드롭다운 지연을 줄인다.
   useStoreOptions(filters.officeId, filters.franchiseId)
 
-  const canFetchList = effectiveAppliedFilters.officeId != null
+  const canFetchList = appliedFilters.officeId != null
   const { data: response, isFetching: loading, error: queryError } = useStoreList(storeParams, canFetchList)
   const errorMessage = useQueryError(queryError)
   const { children: statusChildren } = useCommonCode('STOPR', true)
@@ -107,12 +108,16 @@ export default function StoreInfo() {
     }
 
     if (!data.canSave) {
-      await alert(
+      const confirmed = await confirm(
         data.planName
           ? `${data.planName} 플랜의 점포 등록 한도에 도달했습니다. 점포를 추가하려면 플랜 업그레이드가 필요합니다.`
           : '점포를 등록하기 위해서는 회원 등급 업그레이드가 필요합니다.'
       )
-      return
+      if (!confirmed) return
+      if (confirmed) {
+        router.push('/customer/rate-plan')
+        return
+      }
     }
 
     router.push('/store/info/detail')
@@ -135,7 +140,7 @@ export default function StoreInfo() {
       <Location title="점포 정보 관리" list={BREADCRUMBS} />
       <StoreSearch
         filters={filters}
-        appliedFilters={effectiveAppliedFilters}
+        appliedFilters={appliedFilters}
         statusOptions={statusChildren.map((item) => ({ value: item.code, label: item.name }))}
         resultCount={totalCount}
         onChange={(next) =>
@@ -144,6 +149,7 @@ export default function StoreInfo() {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelect={handleAutoSelect}
       />
       <StoreList
         rows={listData}

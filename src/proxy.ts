@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 // 로그인 없이 접근 가능한 경로
 const PUBLIC_PATHS = ['/', '/main', '/login', '/signup', '/pricing', '/introduction', '/before-notice', '/store-operation', '/financial', '/franchise', '/pricing-info']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 공개 경로 확인 ('/'는 정확히 매칭, 나머지는 prefix 매칭)

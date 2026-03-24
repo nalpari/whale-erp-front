@@ -4,7 +4,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import AnimateHeight from 'react-animate-height'
 import { useMemo, useState } from 'react'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { RadioButtonGroup } from '@/components/common/ui'
 import Input from '@/components/common/ui/Input'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -37,6 +37,7 @@ interface StoreMenuSearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: string) => void
+  onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -58,6 +59,7 @@ export default function StoreMenuSearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: StoreMenuSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -274,6 +276,7 @@ export default function StoreMenuSearch({
                     onChange(updates)
                   }}
                   onMultiOffice={handleMultiOffice}
+                  onAutoSelect={onAutoSelect}
                 />
                 <th>메뉴명</th>
                 <td>

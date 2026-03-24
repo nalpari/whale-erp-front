@@ -77,6 +77,7 @@ export const authStateSchema = z.object({
   loginId: z.string().nullable(),
   name: z.string().nullable(),
   mobilePhone: z.string().nullable(),
+  avatar: z.string().nullable(),
   passwordChangeRequired: z.boolean(),
 });
 

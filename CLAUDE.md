@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -13,7 +15,7 @@ pnpm lint      # ESLint 검사 (flat config, eslint.config.mjs)
 
 ## Tech Stack
 
-- **Next.js 16** with App Router (`src/app/`)
+- **Next.js 16.2** with App Router (`src/app/`)
 - **React 19** with React Compiler enabled (`next.config.ts`)
 - **Tailwind CSS 4** via `@tailwindcss/postcss`
 - **TypeScript** in strict mode
@@ -270,6 +272,7 @@ Dual styling system:
 - 커밋 전 `pnpm lint` 실행
 - TypeScript strict mode 준수
 - `any` 타입 사용 금지
+- `unknown` 타입 사용 금지 — 구체적인 타입 또는 제네릭으로 대체할 것
 
 ### React Compiler 규칙 (중요)
 이 프로젝트는 `next.config.ts`에서 `reactCompiler: true`로 React Compiler를 활성화하고 있다.

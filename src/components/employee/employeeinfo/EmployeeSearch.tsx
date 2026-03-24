@@ -10,6 +10,9 @@ import { format } from 'date-fns'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
+import { useEmployeeInfoSearchStore } from '@/stores/search-stores'
 
 interface EmployeeSearchProps {
   onSearch: (params: Omit<EmployeeSearchParams, 'page' | 'size'>) => void
@@ -17,27 +20,77 @@ interface EmployeeSearchProps {
   totalCount: number
 }
 
+const initialFormData = {
+  headOfficeOrganizationId: null as number | null,
+  franchiseOrganizationId: null as number | null,
+  storeId: null as number | null,
+  workStatus: '',
+  employeeName: '',
+  employeeClassification: '',
+  contractClassification: '',
+  adminAuthority: '',
+  memberStatus: '',
+  hireDateFrom: '',
+  hireDateTo: '',
+  healthCheckExpiryFrom: '',
+  healthCheckExpiryTo: ''
+}
+
+type FormData = typeof initialFormData
+
+const buildSearchParams = (data: FormData, isEmployeeClassificationEnabled: boolean): Omit<EmployeeSearchParams, 'page' | 'size'> => {
+  const params: Omit<EmployeeSearchParams, 'page' | 'size'> = {}
+  if (data.headOfficeOrganizationId) params.headOfficeOrganizationId = data.headOfficeOrganizationId
+  if (data.franchiseOrganizationId) params.franchiseOrganizationId = data.franchiseOrganizationId
+  if (data.storeId) params.storeId = data.storeId
+  if (data.workStatus) params.workStatus = data.workStatus as 'EMPWK_001' | 'EMPWK_002' | 'EMPWK_003'
+  if (data.employeeName) params.employeeName = data.employeeName
+  const effectiveClassification = isEmployeeClassificationEnabled ? data.employeeClassification : ''
+  if (effectiveClassification) params.employeeClassification = effectiveClassification
+  if (data.contractClassification) params.contractClassification = data.contractClassification
+  if (data.adminAuthority) params.adminAuthority = data.adminAuthority
+  if (data.memberStatus) params.memberStatus = data.memberStatus
+  if (data.hireDateFrom) params.hireDateFrom = data.hireDateFrom
+  if (data.hireDateTo) params.hireDateTo = data.hireDateTo
+  if (data.healthCheckExpiryFrom) params.healthCheckExpiryFrom = data.healthCheckExpiryFrom
+  if (data.healthCheckExpiryTo) params.healthCheckExpiryTo = data.healthCheckExpiryTo
+  return params
+}
+
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  headOfficeOrganizationId: (sp.headOfficeOrganizationId as number) ?? null,
+  franchiseOrganizationId: (sp.franchiseOrganizationId as number) ?? null,
+  storeId: (sp.storeId as number) ?? null,
+  workStatus: (sp.workStatus as string) || '',
+  employeeName: (sp.employeeName as string) || '',
+  employeeClassification: (sp.employeeClassification as string) || '',
+  contractClassification: (sp.contractClassification as string) || '',
+  adminAuthority: (sp.adminAuthority as string) || '',
+  memberStatus: (sp.memberStatus as string) || '',
+  hireDateFrom: (sp.hireDateFrom as string) || '',
+  hireDateTo: (sp.hireDateTo as string) || '',
+  healthCheckExpiryFrom: (sp.healthCheckExpiryFrom as string) || '',
+  healthCheckExpiryTo: (sp.healthCheckExpiryTo as string) || '',
+})
+
 export default function EmployeeSearch({ onSearch, onReset, totalCount }: EmployeeSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const store = useEmployeeInfoSearchStore()
+  const [searchOpen, setSearchOpen] = useState(false)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
 
-  // 검색 폼 상태
-  const [formData, setFormData] = useState({
-    headOfficeOrganizationId: null as number | null,
-    franchiseOrganizationId: null as number | null,
-    storeId: null as number | null,
-    workStatus: '',
-    employeeName: '',
-    employeeClassification: '',
-    contractClassification: '',
-    adminAuthority: '',
-    memberStatus: '',
-    hireDateFrom: '',
-    hireDateTo: '',
-    healthCheckExpiryFrom: '',
-    healthCheckExpiryTo: ''
-  })
+  // auth hydration 완료 후에만 API 호출
+  const { accessToken, affiliationId } = useAuthStore()
+  const isReady = Boolean(accessToken && affiliationId)
+
+  // BP 본사 트리 조회 (본사명 표시용)
+  const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
   // TanStack Query로 직원 분류 조회
   const { data: settingsData, isPending: isEmployeeClassificationLoading } = useEmployeeInfoSettings(
@@ -50,9 +103,7 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     !!formData.headOfficeOrganizationId
   )
 
-  // 직원 분류 선택 가능 여부 - 본사 미선택 시 직원분류 자동 초기화됨 (derived state)
   const isEmployeeClassificationEnabled = !!formData.headOfficeOrganizationId
-  // 본사 미선택 시 직원분류 값을 빈 문자열로 처리 (렌더 시점에서 파생)
   const effectiveEmployeeClassification = isEmployeeClassificationEnabled ? formData.employeeClassification : ''
 
   // SearchSelect options
@@ -95,71 +146,162 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
     { value: 'completed', label: '가입완료' }
   ], [])
 
+  // 본사 ID → 이름 맵
+  const officeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      if (office.name) map.set(office.id, office.name)
+    })
+    return map
+  }, [bpTree])
+
+  // 가맹점 ID → 이름 맵
+  const franchiseNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      office.franchises.forEach((franchise) => {
+        if (franchise.name) map.set(franchise.id, franchise.name)
+      })
+    })
+    return map
+  }, [bpTree])
+
+  // 점포 옵션 조회 (점포명 표시용)
+  const { data: storeOptionList = [] } = useStoreOptions(
+    appliedFormData?.headOfficeOrganizationId,
+    appliedFormData?.franchiseOrganizationId,
+    isReady && !!appliedFormData?.headOfficeOrganizationId
+  )
+
+  // 점포 ID → 이름 맵
+  const storeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    storeOptionList.forEach((store) => {
+      if (store.storeName) map.set(store.id, store.storeName)
+    })
+    return map
+  }, [storeOptionList])
+
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; label: string; category: string }[] = []
+  if (appliedFormData) {
+    if (appliedFormData.headOfficeOrganizationId != null) {
+      const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
+      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+    }
+    if (appliedFormData.franchiseOrganizationId != null) {
+      const name = franchiseNameMap.get(appliedFormData.franchiseOrganizationId)
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+    }
+    if (appliedFormData.storeId != null) {
+      const name = storeNameMap.get(appliedFormData.storeId)
+      if (name) appliedTags.push({ key: 'store', label: name, category: '점포' })
+    }
+    if (appliedFormData.workStatus) {
+      const opt = workStatusOptions.find(o => o.value === appliedFormData.workStatus)
+      appliedTags.push({ key: 'workStatus', label: opt?.label || appliedFormData.workStatus, category: '근무여부' })
+    }
+    if (appliedFormData.employeeName) {
+      appliedTags.push({ key: 'employeeName', label: appliedFormData.employeeName, category: '직원명' })
+    }
+    if (appliedFormData.employeeClassification) {
+      const opt = employeeClassOptions.find(o => o.value === appliedFormData.employeeClassification)
+      appliedTags.push({ key: 'employeeClassification', label: opt?.label || appliedFormData.employeeClassification, category: '직원 분류' })
+    }
+    if (appliedFormData.contractClassification) {
+      const opt = contractClassOptions.find(o => o.value === appliedFormData.contractClassification)
+      appliedTags.push({ key: 'contractClassification', label: opt?.label || appliedFormData.contractClassification, category: '계약 분류' })
+    }
+    if (appliedFormData.adminAuthority) {
+      const opt = adminAuthorityOptions.find(o => o.value === appliedFormData.adminAuthority)
+      appliedTags.push({ key: 'adminAuthority', label: opt?.label || appliedFormData.adminAuthority, category: '관리자 권한' })
+    }
+    if (appliedFormData.memberStatus) {
+      const opt = memberStatusOptions.find(o => o.value === appliedFormData.memberStatus)
+      appliedTags.push({ key: 'memberStatus', label: opt?.label || appliedFormData.memberStatus, category: '직원 회원 상태' })
+    }
+    if (appliedFormData.hireDateFrom || appliedFormData.hireDateTo) {
+      appliedTags.push({ key: 'hireDate', label: `${appliedFormData.hireDateFrom || ''} ~ ${appliedFormData.hireDateTo || ''}`, category: '입사일' })
+    }
+    if (appliedFormData.healthCheckExpiryFrom || appliedFormData.healthCheckExpiryTo) {
+      appliedTags.push({ key: 'healthCheckExpiry', label: `${appliedFormData.healthCheckExpiryFrom || ''} ~ ${appliedFormData.healthCheckExpiryTo || ''}`, category: '건강진단 만료일' })
+    }
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (!appliedFormData) return
+    // 본사는 필수 검색 조건이므로 개별 제거 불가
+    if (key === 'headOffice') return
+    const updated = { ...appliedFormData }
+    switch (key) {
+      case 'franchise': updated.franchiseOrganizationId = null; updated.storeId = null; break
+      case 'store': updated.storeId = null; break
+      case 'workStatus': updated.workStatus = ''; break
+      case 'employeeName': updated.employeeName = ''; break
+      case 'employeeClassification': updated.employeeClassification = ''; break
+      case 'contractClassification': updated.contractClassification = ''; break
+      case 'adminAuthority': updated.adminAuthority = ''; break
+      case 'memberStatus': updated.memberStatus = ''; break
+      case 'hireDate': updated.hireDateFrom = ''; updated.hireDateTo = ''; break
+      case 'healthCheckExpiry': updated.healthCheckExpiryFrom = ''; updated.healthCheckExpiryTo = ''; break
+    }
+    setFormData(updated)
+    setAppliedFormData(updated)
+    onSearch(buildSearchParams(updated, !!updated.headOfficeOrganizationId))
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSearch = () => {
-    // 본사 필수 체크
     if (!formData.headOfficeOrganizationId) {
       setShowOfficeError(true)
       return
     }
     setShowOfficeError(false)
-
-    const params: Omit<EmployeeSearchParams, 'page' | 'size'> = {}
-
-    if (formData.headOfficeOrganizationId) params.headOfficeOrganizationId = formData.headOfficeOrganizationId
-    if (formData.franchiseOrganizationId) params.franchiseOrganizationId = formData.franchiseOrganizationId
-    if (formData.storeId) params.storeId = formData.storeId
-    if (formData.workStatus) params.workStatus = formData.workStatus as 'EMPWK_001' | 'EMPWK_002' | 'EMPWK_003'
-    if (formData.employeeName) params.employeeName = formData.employeeName
-    if (effectiveEmployeeClassification) params.employeeClassification = effectiveEmployeeClassification
-    if (formData.contractClassification) params.contractClassification = formData.contractClassification
-    if (formData.adminAuthority) params.adminAuthority = formData.adminAuthority
-    if (formData.memberStatus) params.memberStatus = formData.memberStatus
-    if (formData.hireDateFrom) params.hireDateFrom = formData.hireDateFrom
-    if (formData.hireDateTo) params.hireDateTo = formData.hireDateTo
-    if (formData.healthCheckExpiryFrom) params.healthCheckExpiryFrom = formData.healthCheckExpiryFrom
-    if (formData.healthCheckExpiryTo) params.healthCheckExpiryTo = formData.healthCheckExpiryTo
-
-    onSearch(params)
+    const applied = { ...formData }
+    setAppliedFormData(applied)
+    onSearch(buildSearchParams(applied, isEmployeeClassificationEnabled))
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
-    setFormData({
-      headOfficeOrganizationId: null,
-      franchiseOrganizationId: null,
-      storeId: null,
-      workStatus: '',
-      employeeName: '',
-      employeeClassification: '',
-      contractClassification: '',
-      adminAuthority: '',
-      memberStatus: '',
-      hireDateFrom: '',
-      hireDateTo: '',
-      healthCheckExpiryFrom: '',
-      healthCheckExpiryTo: ''
-    })
+    setFormData({ ...initialFormData })
+    setAppliedFormData(null)
     setShowOfficeError(false)
     onReset()
-  }
-
-  const handleClose = () => {
-    setSearchOpen(false)
   }
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{totalCount.toLocaleString()}건</span>
-        </div>
         <ul className="search-result-list">
-          <li></li>
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.label}</span> ({tag.category})
+              </div>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => handleRemoveTag(tag.key)}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{totalCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="검색 영역 열기/닫기"
+        ></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -298,9 +440,9 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
             </tbody>
           </table>
           <div className="btn-filed">
-            <button className="btn-form gray" onClick={handleClose}>닫기</button>
-            <button className="btn-form gray" onClick={handleReset}>초기화</button>
-            <button className="btn-form basic" onClick={handleSearch}>검색</button>
+            <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">닫기</button>
+            <button className="btn-form gray" onClick={handleReset} type="button">초기화</button>
+            <button className="btn-form basic" onClick={handleSearch} type="button">검색</button>
           </div>
         </div>
       </AnimateHeight>

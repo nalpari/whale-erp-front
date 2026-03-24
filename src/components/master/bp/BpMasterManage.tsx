@@ -170,7 +170,7 @@ const BpMasterManage = () => {
 
   return (
     <div className="data-wrap">
-      <Location title="Business Partner Master" list={['Home', '파트너 정보 관리']} />
+      <Location title="파트너 정보 관리" list={['Home', '파트너 정보 관리']} />
       <BpMasterSearch
         filters={filters}
         appliedFilters={appliedFilters}

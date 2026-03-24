@@ -52,7 +52,7 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
   if (isPending) {
     return (
       <div className="data-wrap">
-        <Location title="Business Partner 상세" list={['Home', '파트너 정보 관리', 'Business Partner 상세']} />
+        <Location title="파트너 정보 상세" list={['Home', '파트너 정보 관리', '파트너 정보 상세']} />
         <div className="cube-loader-overlay"><CubeLoader /></div>
       </div>
     )
@@ -61,7 +61,7 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
   if (!bp) {
     return (
       <div className="data-wrap">
-        <Location title="Business Partner 상세" list={['Home', '파트너 정보 관리', 'Business Partner 상세']} />
+        <Location title="파트너 정보 상세" list={['Home', '파트너 정보 관리', '파트너 정보 상세']} />
         <div className="empty-wrap"><div className="empty-data">데이터를 찾을 수 없습니다.</div></div>
       </div>
     )
@@ -69,12 +69,12 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
 
   return (
     <div className="data-wrap">
-      <Location title="Business Partner 상세" list={['Home', '파트너 정보 관리', 'Business Partner 상세']} />
+      <Location title="파트너 정보 상세" list={['Home', '파트너 정보 관리', '파트너 정보 상세']} />
       <div className="master-detail-data">
-        {/* Business Partner 정보 */}
+        {/* 파트너 정보 */}
         <div className={`slidebox-wrap ${bpInfoOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
-            <h2>Business Partner 정보</h2>
+            <h2>파트너 정보</h2>
             <div className="slidebox-btn-wrap">
               {!isEditDisabled && (
                 <button className="slidebox-btn" onClick={() => router.push(`/master/bp/${id}/edit`)}>수정</button>

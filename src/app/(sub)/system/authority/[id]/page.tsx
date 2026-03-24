@@ -3,12 +3,14 @@
 import { useParams, useRouter } from 'next/navigation'
 
 import { getErrorMessage } from '@/lib/api'
-import type { AuthorityResponse } from '@/lib/schemas/authority'
+import type { AuthorityResponse, OwnerCode } from '@/lib/schemas/authority'
+import { useAuthorityDetail, useDeleteAuthority } from '@/hooks/queries/use-authority-queries'
+import { useAuthorityForm } from '@/hooks/use-authority-form'
 import Location from '@/components/ui/Location'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
 import AuthorityProgramTree from '@/components/system/authority/AuthorityProgramTree'
-import { useAuthorityDetail, useDeleteAuthority } from '@/hooks/queries/use-authority-queries'
-import { useAuthorityForm } from '@/hooks/use-authority-form'
+import { useAlert } from '@/components/common/ui'
+import CubeLoader from '@/components/common/ui/CubeLoader'
 
 /**
  * 권한 수정 페이지 (Wrapper)
@@ -18,7 +20,7 @@ import { useAuthorityForm } from '@/hooks/use-authority-form'
 export default function AuthorityEditPage() {
   const params = useParams()
   const authorityId = Number(params.id)
-  const isValidId = !Number.isNaN(authorityId) && authorityId > 0
+  const isValidId = Number.isInteger(authorityId) && authorityId > 0
 
   const { data: authority, isLoading, isError } = useAuthorityDetail(isValidId ? authorityId : 0)
 
@@ -32,7 +34,7 @@ export default function AuthorityEditPage() {
   }
 
   if (isLoading) {
-    return <div></div>
+    return <div className="cube-loader-overlay"><CubeLoader /></div>
   }
 
   if (isError) {
@@ -69,6 +71,7 @@ function AuthorityEditContent({
   authority: AuthorityResponse
 }) {
   const router = useRouter()
+  const { alert, confirm } = useAlert()
 
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
 
@@ -86,22 +89,21 @@ function AuthorityEditContent({
     initialAuthority: authority,
   })
 
-  // 권한 관리자
+  // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
   const handleAuthorityManager = () => {
-    // TODO: 관리자 관리 페이지 구현 후 해당 권한을 가진 관리자 검색 결과 표시
-    console.log('권한 관리자 페이지로 이동 - 권한 ID:', authorityId)
-    // 구현 예정: router.push(`/system/admin?authorityId=${authorityId}`)
+    router.push(`/system/admin?authorityId=${authorityId}`)
   }
 
   const handleDelete = async () => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    const confirmed = await confirm('정말 삭제하시겠습니까?')
+    if (!confirmed) return
 
     try {
       await deleteAuthority(authorityId)
-      alert('권한이 삭제되었습니다.')
+      await alert('권한이 삭제되었습니다.')
       router.push('/system/authority')
     } catch (error) {
-      alert(`권한 삭제 실패: ${getErrorMessage(error)}`)
+      await alert(getErrorMessage(error))
       console.error('권한 삭제 실패:', error)
     }
   }
@@ -114,7 +116,7 @@ function AuthorityEditContent({
           mode="edit"
           initialData={{
             ...formData,
-            owner_code: authority.owner_code as 'PRGRP_001_001' | 'PRGRP_002_001' | 'PRGRP_002_002',
+            owner_code: authority.owner_code as OwnerCode,
             head_office_id: authority.head_office_id ?? undefined,
             franchisee_id: authority.franchisee_id ?? undefined,
           }}

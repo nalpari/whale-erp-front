@@ -3,7 +3,7 @@
 import AnimateHeight from 'react-animate-height'
 import { useState, useMemo } from 'react'
 import { Input } from '@/components/common/ui'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -43,6 +43,7 @@ interface AttendanceSearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: string) => void
+  onAutoSelect?: (value: OfficeFranchiseStoreValue) => void
 }
 
 const WORK_DAY_OPTIONS = [
@@ -63,6 +64,7 @@ export default function AttendanceSearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: AttendanceSearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -217,6 +219,7 @@ export default function AttendanceSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
+                  onAutoSelect={onAutoSelect}
                 />
               </tr>
               <tr>

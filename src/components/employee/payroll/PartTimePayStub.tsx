@@ -214,7 +214,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const handleDelete = async () => {
     if (!existingStatement?.id) return
-    if (!(await confirm('정말 삭제하시겠습니까?'))) return
+    if (!(await confirm('삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(existingStatement.id)
@@ -229,7 +229,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleSendEmail = async () => {
     if (!existingStatement?.id) return
 
-    if (!(await confirm('급여명세서를 이메일로 전송하시겠습니까?'))) return
+    if (!(await confirm('이메일을 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
@@ -677,6 +677,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         {isEditMode && (
           <>
             <button className="btn-form outline s" onClick={handleGoToWorkTimeEdit}>근무 시간 수정</button>
+            <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
             <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
               {isLoading ? '저장 중...' : '저장'}
             </button>

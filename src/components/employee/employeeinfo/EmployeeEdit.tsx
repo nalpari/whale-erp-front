@@ -619,6 +619,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                 <label className="slider" htmlFor="temp-save-toggle"></label>
               </div>
             </div>
+            <button className="slidebox-btn" onClick={handleCancel}>
+              취소
+            </button>
             <button className="slidebox-btn" onClick={handleSave} disabled={isLoading}>
               {isLoading ? '저장 중...' : '저장'}
             </button>
@@ -1283,13 +1286,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
         </AnimateHeight>
       </div>
 
-      {/* 하단 버튼 */}
-      <div className="btn-filed" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-        <button className="btn-form gray" onClick={handleCancel}>취소</button>
-        <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
-          {isLoading ? '저장 중...' : '저장'}
-        </button>
-      </div>
     </div>
   )
 }

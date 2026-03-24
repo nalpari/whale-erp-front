@@ -1,13 +1,12 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
-import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-import { Input, RadioButtonGroup, useAlert } from '@/components/common/ui'
+import { Input, RadioButtonGroup } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
-import { useMasterCategoryList, useStoreList, useCommonCodeHierarchy } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useMasterCategoryList, useStoreList, useCommonCodeHierarchy } from '@/hooks/queries'
 import type { CategoryResponse } from '@/types/menu'
 import { useMenuSearchStore, type MenuSearchFormData } from '@/stores/menu-search-store'
 
@@ -34,13 +33,24 @@ const menuTypeOptions = [
 ]
 
 export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, onSearchOpenChange }: MenuSearchProps) {
-  const { alert } = useAlert()
   const formData = useMenuSearchStore((s) => s.formData)
+  const filters = useMenuSearchStore((s) => s.filters)
   const setFormData = useMenuSearchStore((s) => s.setFormData)
+  const setFilters = useMenuSearchStore((s) => s.setFilters)
   const reset = useMenuSearchStore((s) => s.reset)
+  const [headOfficeError, setHeadOfficeError] = useState(false)
+
+  // 본사 목록 조회
+  const { data: bpTree = [], isPending: bpLoading, error: bpError } = useBpHeadOfficeTree()
+  const headOfficeOptions = useMemo<SelectOption[]>(() =>
+    bpTree.map((o) => ({ label: o.name, value: String(o.id) })),
+    [bpTree])
+  const selectedOfficeOption = useMemo(() =>
+    headOfficeOptions.find((opt) => opt.value === String(formData.headOfficeOrganizationId)) ?? null,
+    [headOfficeOptions, formData.headOfficeOrganizationId])
 
   // 카테고리 API 조회 (본사 선택 시)
-  const { data: categories } = useMasterCategoryList(formData.headOfficeOrganizationId)
+  const { data: categories, error: categoryError } = useMasterCategoryList(formData.headOfficeOrganizationId)
 
   const categoryOptions: SelectOption[] = useMemo(() => {
     if (!categories) return []
@@ -59,7 +69,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }, [categories])
 
   // 사용가능 가맹점(점포) API 조회 (본사 선택 시)
-  const { data: storeResponse } = useStoreList(
+  const { data: storeResponse, error: storeError } = useStoreList(
     { office: formData.headOfficeOrganizationId ?? undefined, status: 'STOPR_001', sort: 'id,asc' },
     !!formData.headOfficeOrganizationId
   )
@@ -73,7 +83,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }, [storeResponse])
 
   // 메뉴분류 공통코드 조회
-  const { data: menuClassificationCodes } = useCommonCodeHierarchy('MNCF')
+  const { data: menuClassificationCodes, error: menuClassError } = useCommonCodeHierarchy('MNCF')
 
   const menuClassificationOptions: SelectOption[] = useMemo(() => {
     if (!menuClassificationCodes) return []
@@ -87,11 +97,12 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     setFormData({ [field]: value })
   }
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!formData.headOfficeOrganizationId) {
-      await alert('본사를 선택해주세요.')
+      setHeadOfficeError(true)
       return
     }
+    setHeadOfficeError(false)
 
     const params: MenuSearchFormData = {}
 
@@ -106,23 +117,104 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     if (formData.registeredDateTo) params.registeredDateTo = formData.registeredDateTo
 
     onSearch(params)
+    onSearchOpenChange(false)
   }
 
   const handleReset = () => {
+    setHeadOfficeError(false)
     reset()
     onReset()
+    onSearchOpenChange(true)
+  }
+
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (filters.headOfficeOrganizationId) {
+    const name = headOfficeOptions.find((o) => o.value === String(filters.headOfficeOrganizationId))?.label
+    if (name) appliedTags.push({ key: 'headOffice', value: name, category: '본사' })
+  }
+  if (filters.menuName) {
+    appliedTags.push({ key: 'menuName', value: filters.menuName, category: '메뉴명' })
+  }
+  if (filters.operationStatus) {
+    const name = operationStatusOptions.find((o) => o.value === filters.operationStatus)?.label
+    if (name) appliedTags.push({ key: 'operationStatus', value: name, category: '운영여부' })
+  }
+  if (filters.menuType) {
+    const name = menuTypeOptions.find((o) => o.value === filters.menuType)?.label
+    if (name) appliedTags.push({ key: 'menuType', value: name, category: '메뉴타입' })
+  }
+  if (filters.menuClassificationCode) {
+    const name = menuClassificationOptions.find((o) => o.value === filters.menuClassificationCode)?.label
+    appliedTags.push({ key: 'menuClassificationCode', value: name ?? filters.menuClassificationCode, category: '메뉴분류' })
+  }
+  if (filters.categoryId) {
+    const name = categoryOptions.find((o) => o.value === filters.categoryId)?.label
+    appliedTags.push({ key: 'categoryId', value: name ?? filters.categoryId, category: '카테고리' })
+  }
+  if (filters.franchiseAvailableId) {
+    const name = franchiseAvailableOptions.find((o) => o.value === filters.franchiseAvailableId)?.label
+    appliedTags.push({ key: 'franchiseAvailableId', value: name ?? filters.franchiseAvailableId, category: '사용가능 가맹점' })
+  }
+  if (filters.registeredDateFrom || filters.registeredDateTo) {
+    const from = filters.registeredDateFrom || ''
+    const to = filters.registeredDateTo || ''
+    appliedTags.push({ key: 'registeredDate', value: `${from} ~ ${to}`, category: '등록일' })
+  }
+
+  const handleRemoveTag = (key: string) => {
+    const resetMap: Record<string, Partial<MenuSearchFormData>> = {
+      headOffice: { headOfficeOrganizationId: null },
+      menuName: { menuName: '' },
+      operationStatus: { operationStatus: '' },
+      menuType: { menuType: '' },
+      menuClassificationCode: { menuClassificationCode: '' },
+      categoryId: { categoryId: '' },
+      franchiseAvailableId: { franchiseAvailableId: '' },
+      registeredDate: { registeredDateFrom: '', registeredDateTo: '' },
+    }
+    if (key === 'headOffice') {
+      handleReset()
+      return
+    }
+    const resetValue = resetMap[key]
+    if (resetValue) {
+      const nextFilters = { ...filters, ...resetValue }
+      setFilters(nextFilters)
+      setFormData(resetValue)
+      onSearch(nextFilters)
+    }
   }
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{totalCount.toLocaleString()}건</span>
-        </div>
         <ul className="search-result-list">
-          <li></li>
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => handleRemoveTag(tag.key)}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{totalCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
-        <button className="search-filed-btn" onClick={() => onSearchOpenChange(!searchOpen)}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          onClick={() => onSearchOpenChange(!searchOpen)}
+          aria-label="검색 영역 열기/닫기"
+        ></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -138,19 +230,33 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
             <tbody>
               {/* 1행: 본사, 가맹점(disabled), 메뉴명 */}
               <tr>
-                <HeadOfficeFranchiseStoreSelect
-                  fields={['office']}
-                  officeId={formData.headOfficeOrganizationId}
-                  franchiseId={null}
-                  storeId={null}
-                  onChange={(next) =>
-                    setFormData({
-                      headOfficeOrganizationId: next.head_office,
-                      categoryId: '',
-                      franchiseAvailableId: '',
-                    })
-                  }
-                />
+                <th>본사 <span className="red">*</span></th>
+                <td>
+                  <div className="data-filed">
+                    <SearchSelect
+                      options={headOfficeOptions}
+                      value={selectedOfficeOption}
+                      onChange={(opt) => {
+                        setFormData({
+                          headOfficeOrganizationId: opt ? Number(opt.value) : null,
+                          categoryId: '',
+                          franchiseAvailableId: '',
+                        })
+                        if (opt) setHeadOfficeError(false)
+                      }}
+                      placeholder="본사 선택"
+                      isClearable
+                      isLoading={bpLoading}
+                      error={headOfficeError || !!bpError}
+                    />
+                    {headOfficeError && !formData.headOfficeOrganizationId && (
+                      <span className="warning-txt">※ 필수 선택 조건입니다</span>
+                    )}
+                    {bpError && (
+                      <span className="warning-txt">※ 본사 목록을 불러올 수 없습니다.</span>
+                    )}
+                  </div>
+                </td>
                 <th>가맹점</th>
                 <td>
                   <div className="data-filed">
@@ -207,7 +313,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={menuClassificationOptions.find(opt => opt.value === formData.menuClassificationCode) || null}
                       onChange={(opt) => handleInputChange('menuClassificationCode', opt?.value || '')}
                       placeholder="전체"
+                      error={!!menuClassError}
                     />
+                    {menuClassError && (
+                      <span className="warning-txt">※ 메뉴분류를 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -221,7 +331,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={categoryOptions.find(opt => opt.value === formData.categoryId) || null}
                       onChange={(opt) => handleInputChange('categoryId', opt?.value || '')}
                       placeholder="전체"
+                      error={!!categoryError}
                     />
+                    {categoryError && (
+                      <span className="warning-txt">※ 카테고리를 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>사용가능 가맹점</th>
@@ -232,7 +346,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={franchiseAvailableOptions.find(opt => opt.value === formData.franchiseAvailableId) || null}
                       onChange={(opt) => handleInputChange('franchiseAvailableId', opt?.value || '')}
                       placeholder="전체"
+                      error={!!storeError}
                     />
+                    {storeError && (
+                      <span className="warning-txt">※ 가맹점 목록을 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>등록일</th>

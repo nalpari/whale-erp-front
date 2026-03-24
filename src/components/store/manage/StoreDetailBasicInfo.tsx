@@ -87,6 +87,9 @@ interface StoreDetailBasicInfoProps {
   onRemoveNewImage: (index: number) => void
   onToggleDeleteImage: (fileId: number) => void
   onExistingFileDownload: (file: UploadFile) => void
+  onSave: () => void
+  onList: () => void
+  saving?: boolean
 }
 
 const storeOwnerOptions: RadioOption<StoreFormState['storeOwner']>[] = [
@@ -132,6 +135,9 @@ export const StoreDetailBasicInfo = ({
   onRemoveNewImage,
   onToggleDeleteImage,
   onExistingFileDownload,
+  onSave,
+  onList,
+  saving,
 }: StoreDetailBasicInfoProps) => {
   // 본사 옵션
   const officeOptions = useMemo<SelectOption[]>(
@@ -305,6 +311,8 @@ export const StoreDetailBasicInfo = ({
       <div className="slidebox-header">
         <h2>점포 정보</h2>
         <div className="slidebox-btn-wrap">
+          <button className="slidebox-btn" onClick={onList}>목록</button>
+          <button className="slidebox-btn" onClick={onSave} disabled={saving}>저장</button>
           <button className="slidebox-btn arr" onClick={onToggleOpen}>
             <i className="arr-icon"></i>
           </button>

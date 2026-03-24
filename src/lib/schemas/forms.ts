@@ -67,8 +67,54 @@ export const dateRangeSchema = z
   );
 
 /**
+ * 비밀번호 패턴 (영문+숫자+특수문자(@$!%*#?&), 8~20자)
+ */
+export const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/;
+
+/**
+ * 비밀번호 변경 폼 스키마
+ */
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, '현재 비밀번호를 입력해 주세요.'),
+  newPassword: z
+    .string()
+    .min(1, '신규 비밀번호를 입력해 주세요.')
+    .regex(passwordPattern, '8~20자, 영문+숫자+특수문자(@$!%*#?&) 조합으로 입력해 주세요.'),
+  confirmPassword: z.string().min(1, '비밀번호 확인을 입력해 주세요.'),
+}).refine((data) => data.newPassword !== data.currentPassword, {
+  message: '현재 비밀번호와 다른 비밀번호를 입력해 주세요.',
+  path: ['newPassword'],
+}).refine((data) => data.confirmPassword === data.newPassword, {
+  message: '신규 비밀번호와 일치하지 않습니다.',
+  path: ['confirmPassword'],
+});
+
+/**
+ * BP 수정 폼 스키마 (마이페이지용)
+ */
+export const bpEditFormSchema = z.object({
+  companyName: z.string().min(1, '회사명을 입력해 주세요.'),
+  businessRegistrationNumber: z
+    .string()
+    .min(1, '사업자등록번호를 입력해 주세요.')
+    .regex(/^\d{10}$/, '사업자등록번호는 10자리 숫자만 입력 가능합니다.'),
+  address1: z.string().min(1, '주소를 입력해 주세요.'),
+  representativeMobilePhone: z
+    .string()
+    .min(1, '휴대폰번호를 입력해 주세요.')
+    .regex(/^01[016789]\d{7,8}$/, '휴대폰번호 형식이 올바르지 않습니다. (예: 01012345678)'),
+  representativeEmail: z
+    .string()
+    .min(1, '이메일을 입력해 주세요.')
+    .regex(patterns.email, '이메일 형식이 올바르지 않습니다.'),
+  bpType: z.string().min(1, 'BP 타입을 선택해 주세요.'),
+});
+
+/**
  * 타입 추출
  */
 export type MasterSearchForm = z.infer<typeof masterSearchSchema>;
 export type PaginationParams = z.infer<typeof paginationParamsSchema>;
 export type DateRange = z.infer<typeof dateRangeSchema>;
+export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
+export type BpEditForm = z.infer<typeof bpEditFormSchema>;

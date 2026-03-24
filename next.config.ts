@@ -7,6 +7,9 @@ const S3_HOSTNAME =
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  logging: {
+    browserToTerminal: true,
+  },
   images: {
     remotePatterns: [
       {
