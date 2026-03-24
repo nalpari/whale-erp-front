@@ -43,6 +43,11 @@ const formatDateStr = (date: Date | null): string | undefined => {
   return `${year}-${month}-${day}`
 }
 
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 const buildSearchParams = (data: FormData, workDays: string[], dateRange: DateRange): SearchParams => {
   const params: SearchParams = {}
   if (workDays.length > 0) params.workDays = workDays
@@ -76,8 +81,8 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
   )
   const [dateRange, setDateRange] = useState<DateRange>(() =>
     store.hasSearched ? {
-      startDate: store.searchParams.startDate ? new Date(store.searchParams.startDate as string) : null,
-      endDate: store.searchParams.endDate ? new Date(store.searchParams.endDate as string) : null,
+      startDate: store.searchParams.startDate ? parseLocalDate(store.searchParams.startDate as string) : null,
+      endDate: store.searchParams.endDate ? parseLocalDate(store.searchParams.endDate as string) : null,
     } : { startDate: null, endDate: null }
   )
   const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
@@ -88,8 +93,8 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
   )
   const [appliedDateRange, setAppliedDateRange] = useState<DateRange | null>(() =>
     store.hasSearched ? {
-      startDate: store.searchParams.startDate ? new Date(store.searchParams.startDate as string) : null,
-      endDate: store.searchParams.endDate ? new Date(store.searchParams.endDate as string) : null,
+      startDate: store.searchParams.startDate ? parseLocalDate(store.searchParams.startDate as string) : null,
+      endDate: store.searchParams.endDate ? parseLocalDate(store.searchParams.endDate as string) : null,
     } : null
   )
 

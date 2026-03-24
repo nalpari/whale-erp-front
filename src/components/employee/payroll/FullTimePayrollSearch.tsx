@@ -67,9 +67,14 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
   employeeClassification: (sp.employeeClassification as string) || '',
 })
 
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 const restoreDateRange = (sp: Record<string, unknown>): DateRange => ({
-  startDate: sp.startDate ? new Date(sp.startDate as string) : null,
-  endDate: sp.endDate ? new Date(sp.endDate as string) : null,
+  startDate: sp.startDate ? parseLocalDate(sp.startDate as string) : null,
+  endDate: sp.endDate ? parseLocalDate(sp.endDate as string) : null,
 })
 
 export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }: FullTimePayrollSearchProps) {
