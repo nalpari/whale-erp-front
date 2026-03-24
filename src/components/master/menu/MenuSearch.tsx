@@ -41,7 +41,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   const [headOfficeError, setHeadOfficeError] = useState(false)
 
   // 본사 목록 조회
-  const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: bpTree = [], isPending: bpLoading, error: bpError } = useBpHeadOfficeTree()
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
     bpTree.map((o) => ({ label: o.name, value: String(o.id) })),
     [bpTree])
@@ -50,7 +50,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
     [headOfficeOptions, formData.headOfficeOrganizationId])
 
   // 카테고리 API 조회 (본사 선택 시)
-  const { data: categories } = useMasterCategoryList(formData.headOfficeOrganizationId)
+  const { data: categories, error: categoryError } = useMasterCategoryList(formData.headOfficeOrganizationId)
 
   const categoryOptions: SelectOption[] = useMemo(() => {
     if (!categories) return []
@@ -69,7 +69,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }, [categories])
 
   // 사용가능 가맹점(점포) API 조회 (본사 선택 시)
-  const { data: storeResponse } = useStoreList(
+  const { data: storeResponse, error: storeError } = useStoreList(
     { office: formData.headOfficeOrganizationId ?? undefined, status: 'STOPR_001', sort: 'id,asc' },
     !!formData.headOfficeOrganizationId
   )
@@ -83,7 +83,7 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
   }, [storeResponse])
 
   // 메뉴분류 공통코드 조회
-  const { data: menuClassificationCodes } = useCommonCodeHierarchy('MNCF')
+  const { data: menuClassificationCodes, error: menuClassError } = useCommonCodeHierarchy('MNCF')
 
   const menuClassificationOptions: SelectOption[] = useMemo(() => {
     if (!menuClassificationCodes) return []
@@ -246,9 +246,14 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       }}
                       placeholder="본사 선택"
                       isClearable
+                      isLoading={bpLoading}
+                      error={headOfficeError || !!bpError}
                     />
                     {headOfficeError && !formData.headOfficeOrganizationId && (
                       <span className="warning-txt">※ 필수 선택 조건입니다</span>
+                    )}
+                    {bpError && (
+                      <span className="warning-txt">※ 본사 목록을 불러올 수 없습니다.</span>
                     )}
                   </div>
                 </td>
@@ -308,7 +313,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={menuClassificationOptions.find(opt => opt.value === formData.menuClassificationCode) || null}
                       onChange={(opt) => handleInputChange('menuClassificationCode', opt?.value || '')}
                       placeholder="전체"
+                      error={!!menuClassError}
                     />
+                    {menuClassError && (
+                      <span className="warning-txt">※ 메뉴분류를 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -322,7 +331,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={categoryOptions.find(opt => opt.value === formData.categoryId) || null}
                       onChange={(opt) => handleInputChange('categoryId', opt?.value || '')}
                       placeholder="전체"
+                      error={!!categoryError}
                     />
+                    {categoryError && (
+                      <span className="warning-txt">※ 카테고리를 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>사용가능 가맹점</th>
@@ -333,7 +346,11 @@ export default function MenuSearch({ onSearch, onReset, totalCount, searchOpen, 
                       value={franchiseAvailableOptions.find(opt => opt.value === formData.franchiseAvailableId) || null}
                       onChange={(opt) => handleInputChange('franchiseAvailableId', opt?.value || '')}
                       placeholder="전체"
+                      error={!!storeError}
                     />
+                    {storeError && (
+                      <span className="warning-txt">※ 가맹점 목록을 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>등록일</th>
