@@ -1,10 +1,10 @@
 'use client'
-import { useState } from 'react'
 import Location from '@/components/ui/Location'
 import PartTimePayrollSearch from '@/components/employee/payroll/PartTimePayrollSearch'
 import PartTimePayrollList from '@/components/employee/payroll/PartTimePayrollList'
 import { usePartTimePayrollList } from '@/hooks/queries/use-payroll-queries'
 import { useEmployeeClassifications } from '@/hooks/queries/use-employee-settings-queries'
+import { usePartTimePayrollSearchStore } from '@/stores/search-stores'
 
 interface SearchParams {
   headOfficeId?: number
@@ -36,31 +36,27 @@ function formatWorkDays(workDays: string | null | undefined): string {
 }
 
 export default function PartTimePayrollPage() {
-  const [searchParams, setSearchParams] = useState<SearchParams>({})
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
+  const store = usePartTimePayrollSearchStore()
+  const sp = store.searchParams as SearchParams
 
-  // 직원 분류 목록 조회 (employeeClassificationName이 null인 경우 fallback)
   const { data: classifications = [] } = useEmployeeClassifications()
   const classificationMap = new Map<string, string>(
     classifications.map(item => [item.code, item.name])
   )
 
-  // 급여명세서 목록 조회
   const { data: payrollData, isPending: isLoading, refetch } = usePartTimePayrollList({
-    page: currentPage,
-    size: pageSize,
-    headOfficeId: searchParams.headOfficeId,
-    franchiseStoreId: searchParams.franchiseId,
-    storeId: searchParams.storeId,
-    workStatus: searchParams.workStatus || undefined,
-    memberName: searchParams.employeeName,
-    workDays: searchParams.workDays,
-    startDate: searchParams.startDate,
-    endDate: searchParams.endDate
+    page: store.page,
+    size: store.pageSize,
+    headOfficeId: sp.headOfficeId,
+    franchiseStoreId: sp.franchiseId,
+    storeId: sp.storeId,
+    workStatus: sp.workStatus || undefined,
+    memberName: sp.employeeName,
+    workDays: sp.workDays,
+    startDate: sp.startDate,
+    endDate: sp.endDate
   })
 
-  // React 19: derived state - 응답 데이터를 컴포넌트 데이터로 변환
   const payrolls = (payrollData?.content || []).map(payroll => {
     const classificationName = payroll.employeeClassificationName
       || (payroll.employeeClassification ? classificationMap.get(payroll.employeeClassification) : undefined)
@@ -69,7 +65,7 @@ export default function PartTimePayrollPage() {
 
     return {
       id: payroll.id,
-      rowNumber: 0, // PartTimePayrollList에서 재계산됨
+      rowNumber: 0,
       workStatus: payroll.workStatus || '',
       headOffice: payroll.headOfficeName || '',
       franchise: payroll.franchiseName || '',
@@ -82,27 +78,26 @@ export default function PartTimePayrollPage() {
       emailStatus: payroll.isEmailSend ? '전송 완료' : '이메일 전송'
     }
   })
-  
+
   const totalCount = payrollData?.totalElements || 0
   const totalPages = payrollData?.totalPages || 0
 
   const handleSearch = (params: SearchParams) => {
-    setSearchParams(params)
-    setCurrentPage(0)
+    store.setSearchParams(params as Record<string, unknown>)
+    store.setPage(0)
+    store.setHasSearched(true)
   }
 
   const handleReset = () => {
-    setSearchParams({})
-    setCurrentPage(0)
+    store.reset()
   }
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page)
+    store.setPage(page)
   }
 
   const handlePageSizeChange = (size: number) => {
-    setPageSize(size)
-    setCurrentPage(0)
+    store.setPageSize(size)
   }
 
   return (
@@ -114,11 +109,11 @@ export default function PartTimePayrollPage() {
         totalCount={totalCount}
       />
       <PartTimePayrollList
-        payrolls={payrolls}
-        isLoading={isLoading}
-        currentPage={currentPage}
+        payrolls={store.hasSearched ? payrolls : []}
+        isLoading={store.hasSearched && isLoading}
+        currentPage={store.page}
         totalPages={totalPages}
-        pageSize={pageSize}
+        pageSize={store.pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         onRefresh={refetch}

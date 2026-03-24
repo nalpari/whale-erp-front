@@ -6,6 +6,7 @@ import { Input, RadioButtonGroup } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { CustomerSearchParams } from '@/types/customer'
 import { format } from 'date-fns'
+import { useCustomerSearchStore } from '@/stores/search-stores'
 
 interface CustomerSearchProps {
   onSearch: (params: Omit<CustomerSearchParams, 'page' | 'size'>) => void
@@ -13,19 +14,49 @@ interface CustomerSearchProps {
   totalCount: number
 }
 
-export default function CustomerSearch({ onSearch, onReset, totalCount }: CustomerSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+const initialFormData = {
+  isOperate: null as number | null,
+  name: '',
+  loginId: '',
+  mobilePhone: '',
+  socialAuthType: '',
+  joinDateFrom: '',
+  joinDateTo: '',
+}
 
-  // 검색 폼 상태
-  const [formData, setFormData] = useState({
-    isOperate: null as number | null,
-    name: '',
-    loginId: '',
-    mobilePhone: '',
-    socialAuthType: '',
-    joinDateFrom: '',
-    joinDateTo: '',
-  })
+type FormData = typeof initialFormData
+
+const buildSearchParams = (data: FormData): Omit<CustomerSearchParams, 'page' | 'size'> => {
+  const params: Omit<CustomerSearchParams, 'page' | 'size'> = {}
+  if (data.isOperate !== null) params.isOperate = data.isOperate
+  if (data.name) params.name = data.name
+  if (data.loginId) params.loginId = data.loginId
+  if (data.mobilePhone) params.mobilePhone = data.mobilePhone
+  if (data.socialAuthType) params.socialAuthType = data.socialAuthType
+  if (data.joinDateFrom) params.joinDateFrom = data.joinDateFrom
+  if (data.joinDateTo) params.joinDateTo = data.joinDateTo
+  return params
+}
+
+const restoreFormData = (sp: Record<string, unknown>): FormData => ({
+  isOperate: (sp.isOperate as number) ?? null,
+  name: (sp.name as string) || '',
+  loginId: (sp.loginId as string) || '',
+  mobilePhone: (sp.mobilePhone as string) || '',
+  socialAuthType: (sp.socialAuthType as string) || '',
+  joinDateFrom: (sp.joinDateFrom as string) || '',
+  joinDateTo: (sp.joinDateTo as string) || '',
+})
+
+export default function CustomerSearch({ onSearch, onReset, totalCount }: CustomerSearchProps) {
+  const store = useCustomerSearchStore()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [formData, setFormData] = useState<FormData>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }
+  )
+  const [appliedFormData, setAppliedFormData] = useState<FormData | null>(() =>
+    store.hasSearched ? restoreFormData(store.searchParams) : null
+  )
 
   // 운영여부 옵션
   const operateOptions = [
@@ -42,51 +73,96 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
     { value: 'GOOGLE', label: '구글' },
   ], [])
 
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; label: string; category: string }[] = []
+  if (appliedFormData) {
+    if (appliedFormData.isOperate !== null) {
+      appliedTags.push({ key: 'isOperate', label: appliedFormData.isOperate === 1 ? '운영' : '탈퇴', category: '운영여부' })
+    }
+    if (appliedFormData.name) {
+      appliedTags.push({ key: 'name', label: appliedFormData.name, category: '회원명' })
+    }
+    if (appliedFormData.loginId) {
+      appliedTags.push({ key: 'loginId', label: appliedFormData.loginId, category: '회원 ID' })
+    }
+    if (appliedFormData.mobilePhone) {
+      appliedTags.push({ key: 'mobilePhone', label: appliedFormData.mobilePhone, category: '휴대폰 번호' })
+    }
+    if (appliedFormData.socialAuthType) {
+      const opt = socialAuthOptions.find(o => o.value === appliedFormData.socialAuthType)
+      appliedTags.push({ key: 'socialAuthType', label: opt?.label || appliedFormData.socialAuthType, category: '간편인증' })
+    }
+    if (appliedFormData.joinDateFrom || appliedFormData.joinDateTo) {
+      appliedTags.push({ key: 'joinDate', label: `${appliedFormData.joinDateFrom || ''} ~ ${appliedFormData.joinDateTo || ''}`, category: '가입일' })
+    }
+  }
+
+  const handleRemoveTag = (key: string) => {
+    if (!appliedFormData) return
+    const updated = { ...appliedFormData }
+    switch (key) {
+      case 'isOperate': updated.isOperate = null; break
+      case 'name': updated.name = ''; break
+      case 'loginId': updated.loginId = ''; break
+      case 'mobilePhone': updated.mobilePhone = ''; break
+      case 'socialAuthType': updated.socialAuthType = ''; break
+      case 'joinDate': updated.joinDateFrom = ''; updated.joinDateTo = ''; break
+    }
+    setFormData(updated)
+    setAppliedFormData(updated)
+    onSearch(buildSearchParams(updated))
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSearch = () => {
-    const params: Omit<CustomerSearchParams, 'page' | 'size'> = {}
-
-    if (formData.isOperate !== null) params.isOperate = formData.isOperate
-    if (formData.name) params.name = formData.name
-    if (formData.loginId) params.loginId = formData.loginId
-    if (formData.mobilePhone) params.mobilePhone = formData.mobilePhone
-    if (formData.socialAuthType) params.socialAuthType = formData.socialAuthType
-    if (formData.joinDateFrom) params.joinDateFrom = formData.joinDateFrom
-    if (formData.joinDateTo) params.joinDateTo = formData.joinDateTo
-
-    onSearch(params)
+    const applied = { ...formData }
+    setAppliedFormData(applied)
+    onSearch(buildSearchParams(applied))
+    setSearchOpen(false)
   }
 
   const handleReset = () => {
-    setFormData({
-      isOperate: null,
-      name: '',
-      loginId: '',
-      mobilePhone: '',
-      socialAuthType: '',
-      joinDateFrom: '',
-      joinDateTo: '',
-    })
+    setFormData({ ...initialFormData })
+    setAppliedFormData(null)
     onReset()
   }
 
-  const handleClose = () => {
-    setSearchOpen(false)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch()
   }
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
       <div className="search-result-wrap">
-        <div className="search-result">
-          검색결과 <span>{totalCount.toLocaleString()}건</span>
-        </div>
         <ul className="search-result-list">
-          <li></li>
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.label}</span> ({tag.category})
+              </div>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => handleRemoveTag(tag.key)}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{totalCount.toLocaleString()}건</span>
+            </div>
+          </li>
         </ul>
-        <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+        <button
+          type="button"
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="검색 영역 열기/닫기"
+        ></button>
       </div>
       <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
         <div className="search-filed">
@@ -120,6 +196,7 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
                       placeholder="회원명 입력"
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
+                      onKeyDown={handleKeyDown}
                       showClear
                       onClear={() => handleInputChange('name', '')}
                     />
@@ -132,6 +209,7 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
                       placeholder="회원 ID 입력"
                       value={formData.loginId}
                       onChange={(e) => handleInputChange('loginId', e.target.value)}
+                      onKeyDown={handleKeyDown}
                       showClear
                       onClear={() => handleInputChange('loginId', '')}
                     />
@@ -148,6 +226,7 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
                       placeholder="휴대폰 번호 입력"
                       value={formData.mobilePhone}
                       onChange={(e) => handleInputChange('mobilePhone', e.target.value)}
+                      onKeyDown={handleKeyDown}
                       showClear
                       onClear={() => handleInputChange('mobilePhone', '')}
                     />
@@ -181,9 +260,9 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
             </tbody>
           </table>
           <div className="btn-filed">
-            <button className="btn-form gray" onClick={handleClose}>닫기</button>
-            <button className="btn-form gray" onClick={handleReset}>초기화</button>
-            <button className="btn-form basic" onClick={handleSearch}>검색</button>
+            <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">닫기</button>
+            <button className="btn-form gray" onClick={handleReset} type="button">초기화</button>
+            <button className="btn-form basic" onClick={handleSearch} type="button">검색</button>
           </div>
         </div>
       </AnimateHeight>
