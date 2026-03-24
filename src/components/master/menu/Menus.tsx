@@ -41,7 +41,7 @@ export default function Menus() {
     return params
   }, [filters, page, pageSize])
 
-  const { data: response, isLoading: loading } = useMasterMenuList(listParams)
+  const { data: response, isLoading: loading } = useMasterMenuList(listParams, !!filters.headOfficeOrganizationId)
   const { mutateAsync: updateOperationStatus } = useUpdateMenuOperationStatus()
 
   const totalCount = response?.totalElements ?? 0
@@ -85,7 +85,7 @@ export default function Menus() {
 
   return (
     <div className="data-wrap">
-      <Location title="마스터용 메뉴 관리" list={BREADCRUMBS} />
+      <Location title="마스터용 메뉴 Master" list={BREADCRUMBS} />
       <MenuSearch
         onSearch={handleSearch}
         onReset={handleReset}
