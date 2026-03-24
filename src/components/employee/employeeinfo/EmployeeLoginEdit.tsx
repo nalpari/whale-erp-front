@@ -160,6 +160,9 @@ export default function EmployeeLoginEdit({ employeeId }: EmployeeLoginEditProps
         <div className="slidebox-header">
           <h2>로그인 정보 및 권한</h2>
           <div className="slidebox-btn-wrap">
+            <button className="slidebox-btn" onClick={() => router.back()}>
+              취소
+            </button>
             <button className="slidebox-btn" onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : '저장'}
             </button>
