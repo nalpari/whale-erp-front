@@ -6,6 +6,7 @@ import Location from '@/components/ui/Location'
 import { Input, useAlert } from '@/components/common/ui'
 import { getErrorMessage } from '@/lib/api'
 import DatePicker from '@/components/ui/common/DatePicker'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useOperatingHeadOffices, useInviteFranchise } from '@/hooks/queries'
 import { useBusinessVerification } from '@/hooks/queries/use-business-verification'
 import type { BpInvitationFormData } from '@/types/bp'
@@ -40,6 +41,14 @@ const BpInvitationManage = () => {
 
   const { data: headOffices = [] } = useOperatingHeadOffices()
   const { mutateAsync: inviteFranchise } = useInviteFranchise()
+
+  const headOfficeOptions = useMemo<SelectOption[]>(() =>
+    headOffices.map((o) => ({ label: o.companyName, value: String(o.id) })),
+  [headOffices])
+
+  const selectedOfficeOption = useMemo(() =>
+    headOfficeOptions.find((opt) => opt.value === String(form.headOfficeId)) ?? null,
+  [headOfficeOptions, form.headOfficeId])
 
   const selectedOfficeName = useMemo(() => {
     if (!form.headOfficeId) return ''
@@ -169,19 +178,16 @@ const BpInvitationManage = () => {
         <div className="invitation-form-header">
           <div className="invitation-select-tit">본사</div>
           <div className="invitation-select-box">
-            <select
-              className={`select-form ${errors.headOfficeId ? 'err' : ''}`}
-              value={form.headOfficeId ?? ''}
-              onChange={(e) => handleChange('headOfficeId', e.target.value ? Number(e.target.value) : null)}
-            >
-              <option value="">선택</option>
-              {headOffices.map((office) => (
-                <option key={office.id} value={office.id}>
-                  {office.companyName}
-                </option>
-              ))}
-            </select>
-            {errors.headOfficeId && <div className="invitation-warning">{errors.headOfficeId}</div>}
+            <div className="filed-flx">
+              <SearchSelect
+                options={headOfficeOptions}
+                value={selectedOfficeOption}
+                onChange={(opt) => handleChange('headOfficeId', opt ? Number(opt.value) : null)}
+                placeholder="본사 선택"
+                isClearable
+                error={!!errors.headOfficeId}
+              />
+            </div>
           </div>
         </div>
         <div className="invitation-form-content">
@@ -223,9 +229,10 @@ const BpInvitationManage = () => {
                           error={!!errors.representativeName}
                         />
                       </div>
-                      <div className="invitation-explain">※ 사업자등록증 상의 대표자명을 입력해 주세요.</div>
-                      {errors.representativeName && (
+                      {errors.representativeName ? (
                         <div className="invitation-warning">{errors.representativeName}</div>
+                      ) : (
+                        <div className="invitation-explain">※ 사업자등록증 상의 대표자명을 입력해 주세요.</div>
                       )}
                     </div>
                   </td>
@@ -244,8 +251,11 @@ const BpInvitationManage = () => {
                           error={!!errors.startDate}
                         />
                       </div>
-                      <div className="invitation-explain">※ 사업자등록증 상의 개업일자를 입력해 주세요.</div>
-                      {errors.startDate && <div className="invitation-warning">{errors.startDate}</div>}
+                      {errors.startDate ? (
+                        <div className="invitation-warning">{errors.startDate}</div>
+                      ) : (
+                        <div className="invitation-explain">※ 사업자등록증 상의 개업일자를 입력해 주세요.</div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -277,15 +287,13 @@ const BpInvitationManage = () => {
                           {businessVerification.isPending ? '인증중...' : isVerified ? '인증완료' : '인증하기'}
                         </button>
                       </div>
-                      {errors.businessRegistrationNumber && (
+                      {errors.businessRegistrationNumber ? (
                         <div className="invitation-warning">{errors.businessRegistrationNumber}</div>
-                      )}
-                      {errors.verification && (
+                      ) : errors.verification ? (
                         <div className="invitation-warning">{errors.verification}</div>
-                      )}
-                      {isVerified && !errors.verification && (
+                      ) : isVerified ? (
                         <div className="invitation-explain" style={{ color: '#2563eb' }}>※ 인증이 완료되었습니다.</div>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -306,9 +314,10 @@ const BpInvitationManage = () => {
                           error={!!errors.representativeMobilePhone}
                         />
                       </div>
-                      <div className="invitation-explain">※ 대표자님의 휴대폰 번호를 입력해 주세요.</div>
-                      {errors.representativeMobilePhone && (
+                      {errors.representativeMobilePhone ? (
                         <div className="invitation-warning">{errors.representativeMobilePhone}</div>
+                      ) : (
+                        <div className="invitation-explain">※ 대표자님의 휴대폰 번호를 입력해 주세요.</div>
                       )}
                     </div>
                   </td>
@@ -329,9 +338,10 @@ const BpInvitationManage = () => {
                           error={!!errors.representativeEmail}
                         />
                       </div>
-                      <div className="invitation-explain">※ 대표자님의 이메일 주소를 입력해 주세요.</div>
-                      {errors.representativeEmail && (
+                      {errors.representativeEmail ? (
                         <div className="invitation-warning">{errors.representativeEmail}</div>
+                      ) : (
+                        <div className="invitation-explain">※ 대표자님의 이메일 주소를 입력해 주세요.</div>
                       )}
                     </div>
                   </td>
