@@ -1098,7 +1098,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleDelete = async () => {
     if (!statementId) return
 
-    if (!(await confirm('정말로 이 급여명세서를 삭제하시겠습니까?'))) return
+    if (!(await confirm('삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(statementId)
@@ -1144,7 +1144,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const handleSendEmail = async () => {
     if (!statementId) return
 
-    if (!(await confirm('급여명세서를 이메일로 전송하시겠습니까?'))) return
+    if (!(await confirm('이메일을 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(statementId)
@@ -1192,6 +1192,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
             삭제
           </button>
         )}
+        <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
         <button
           className="btn-form basic"
           onClick={handleSave}

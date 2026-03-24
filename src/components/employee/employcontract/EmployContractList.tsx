@@ -20,7 +20,6 @@ export interface EmployContractRowData {
   employeeName: string
   contractClassification: string
   workDays: string
-  employeeClassification?: string
   salaryDay?: string
   contractDate?: string
   contractEndDate?: string
@@ -167,7 +166,7 @@ const ActionCellRenderer = (params: ICellRendererParams<EmployContractRowDataInt
     >
       <div style={{ marginBottom: '8px' }}>
         <span style={{ color: '#aaa' }}>계약 분류:</span>{' '}
-        <span style={{ fontWeight: 500 }}>{params.data?.employeeClassification || '본사 직원'}</span>
+        <span style={{ fontWeight: 500 }}>{params.data?.contractClassification || '본사 직원'}</span>
       </div>
       <div style={{ marginBottom: '8px' }}>
         <span style={{ color: '#aaa' }}>급여일:</span>{' '}

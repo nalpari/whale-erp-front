@@ -162,7 +162,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   const handleDelete = async () => {
     if (!existingStatement?.id) return
-    if (!(await confirm('정말 삭제하시겠습니까?'))) return
+    if (!(await confirm('삭제하시겠습니까?'))) return
 
     try {
       await deleteMutation.mutateAsync(existingStatement.id)
@@ -177,7 +177,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleSendEmail = async () => {
     if (!existingStatement?.id) return
 
-    if (!(await confirm('수당명세서를 이메일로 전송하시겠습니까?'))) return
+    if (!(await confirm('이메일을 전송하시겠습니까?'))) return
 
     try {
       await sendEmailMutation.mutateAsync(existingStatement.id)
@@ -567,6 +567,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
             {id !== 'new' && (
               <button className="btn-form gray" onClick={handleDelete}>삭제</button>
             )}
+            <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
             <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
               {isSaving ? '저장중...' : '저장'}
             </button>
