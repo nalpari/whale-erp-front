@@ -65,6 +65,7 @@ export default function PlanDetail({ planTypeId }: PlanDetailProps) {
                                 <h2>Header</h2>
                                 <div className="slidebox-btn-wrap">
                                     <button className="slidebox-btn" onClick={onUpdateHeader}>수정</button>
+                                    <button className="slidebox-btn" onClick={() => router.push('/subscription')}>목록</button>
                                     <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
                                         <i className="arr-icon"></i>
                                     </button>

@@ -50,7 +50,7 @@ const BpMasterSearch = ({
   onRemoveFilter,
   onInviteFranchise,
 }: BpMasterSearchProps) => {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // 적용된 검색 조건 태그
   const appliedTags: { key: string; value: string; category: string }[] = []

@@ -98,7 +98,7 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     (opt) => opt.value === String(form.pfSaveRequest[0]?.partnerBusinessPartnerId ?? '')
   ) ?? null
 
-  const locationTitle = isEditMode ? 'Business Partner 수정' : 'Business Partner 등록'
+  const locationTitle = isEditMode ? '파트너 정보 수정' : '파트너 정보 등록'
   const breadcrumbs = ['Home', '파트너 정보 관리', locationTitle]
 
   // 폼 필드 변경
@@ -289,10 +289,10 @@ const BpForm = ({ id, bp }: BpFormProps) => {
       <div className="master-detail-data">
         <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
-            <h2>Business Partner 정보</h2>
+            <h2>파트너 정보</h2>
             <div className="slidebox-btn-wrap">
               <button className="slidebox-btn" onClick={handleSave}>저장</button>
-              <button className="slidebox-btn" onClick={() => router.back()}>목록</button>
+              <button className="slidebox-btn" onClick={() => router.back()}>취소</button>
               <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
                 <i className="arr-icon"></i>
               </button>
@@ -346,9 +346,9 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                 </tbody>
               </table>
 
-              {/* Business Partner 정보 */}
+              {/* 파트너 정보 */}
               <div className="slide-table-wrap">
-                <h3>Business Partner 정보</h3>
+                <h3>파트너 정보</h3>
                 <table className="default-table">
                   <colgroup>
                     <col width="190px" />

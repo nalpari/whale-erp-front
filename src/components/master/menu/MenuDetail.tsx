@@ -84,7 +84,7 @@ export default function MenuDetail({ id }: MenuDetailProps) {
   if (!menu) {
     return (
       <div className="data-wrap">
-        <Location title="마스터용 메뉴 관리" list={BREADCRUMBS} />
+        <Location title="마스터용 메뉴 조회" list={BREADCRUMBS} />
         <div className="empty-wrap">
           <div className="empty-data">메뉴 정보를 찾을 수 없습니다.</div>
         </div>
@@ -104,12 +104,12 @@ export default function MenuDetail({ id }: MenuDetailProps) {
 
   return (
     <>
-      <Location title="마스터용 메뉴 관리" list={BREADCRUMBS} />
+      <Location title="마스터용 메뉴 조회" list={BREADCRUMBS} />
       <div className="master-detail-data">
         {/* 메인 slidebox */}
         <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
-            <h2>마스터용 메뉴 관리</h2>
+            <h2>마스터용 메뉴</h2>
             <div className="slidebox-btn-wrap">
               <button className="slidebox-btn" onClick={handleEdit}>수정</button>
               <button className="slidebox-btn" onClick={handleDelete}>삭제</button>
@@ -273,6 +273,7 @@ export default function MenuDetail({ id }: MenuDetailProps) {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="detail-data-btn"
+                                  style={{ color: '#2563eb', textDecoration: 'underline' }}
                                 >
                                   {menu.menuImgFile!.originalFileName}
                                 </a>

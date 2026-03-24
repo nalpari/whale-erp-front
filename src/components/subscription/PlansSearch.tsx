@@ -1,127 +1,152 @@
 'use client'
 
+import { useMemo } from 'react'
 import AnimateHeight from 'react-animate-height'
-import { useState } from 'react'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { Input } from '@/components/common/ui'
 import { useCommonCodeHierarchy } from '@/hooks/queries'
+import { usePlansSearchStore } from '@/stores/plans-search-store'
 
-// 요금제 검색 필터 상태
-export interface PlanSearchFilters {
-    planType?: string | null
-    updater?: string | null
+interface PlansSearchProps {
+  resultCount: number
 }
 
-interface PlanSearchProps {
-    filters: PlanSearchFilters
-    resultCount: number
-    onChange?: (filters: PlanSearchFilters) => void
-    onSearch?: () => void
-    onReset?: () => void
-}
+export default function PlansSearch({ resultCount }: PlansSearchProps) {
+  const filters = usePlansSearchStore((s) => s.filters)
+  const appliedFilters = usePlansSearchStore((s) => s.appliedFilters)
+  const searchOpen = usePlansSearchStore((s) => s.searchOpen)
+  const setFilters = usePlansSearchStore((s) => s.setFilters)
+  const applyFilters = usePlansSearchStore((s) => s.applyFilters)
+  const setSearchOpen = usePlansSearchStore((s) => s.setSearchOpen)
+  const removeFilter = usePlansSearchStore((s) => s.removeFilter)
+  const reset = usePlansSearchStore((s) => s.reset)
 
-function StatusSelector({ value, onChange }: {
-    value: string
-    onChange: (value: string) => void
-}) {
-    const { data, isPending, error } = useCommonCodeHierarchy('PLNTYP')
+  const { data: planTypeCodes = [], isPending: planTypeLoading, error: planTypeError } = useCommonCodeHierarchy('PLNTYP')
 
-    if (isPending) return <div>로딩 중...</div>
-    if (error) return <div>에러: {error.message}</div>
+  const planTypeOptions = useMemo<SelectOption[]>(() =>
+    planTypeCodes.map((code) => ({ label: code.name, value: code.code })),
+  [planTypeCodes])
 
-    return (
-        <select className="select-form" value={value} onChange={(e) => onChange(e.target.value)}>
-            <option value="">전체</option>
-            {data?.map(code => (
-                <option key={code.id} value={code.code}>{code.name}</option>
-            ))}
-        </select>
-    )
-}
+  const planTypeCodeMap = useMemo(() => {
+    const map = new Map<string, string>()
+    planTypeCodes.forEach((code) => map.set(code.code, code.name))
+    return map
+  }, [planTypeCodes])
 
-export default function PlanSearch({ filters, resultCount, onChange, onReset }: PlanSearchProps) {
-    const [searchOpen, setSearchOpen] = useState(true)
-    const [updater, setUpdater] = useState(filters.updater ?? '')
-    const [planType, setPlanType] = useState(filters.planType ?? '')
+  // 적용된 검색 조건 태그
+  const appliedTags: { key: string; value: string; category: string }[] = []
+  if (appliedFilters.planType) {
+    const name = planTypeCodeMap.get(appliedFilters.planType)
+    if (name) appliedTags.push({ key: 'planType', value: name, category: '요금제명' })
+  }
+  if (appliedFilters.updater) {
+    appliedTags.push({ key: 'updater', value: appliedFilters.updater, category: '수정자' })
+  }
 
-    const handlePlanTypeChange = (value: string) => {
-        setPlanType(value)
-        const next: PlanSearchFilters = {}
-        if (value.trim()) {
-            next.planType = value.trim()
-        }
-        if (updater.trim()) {
-            next.updater = updater.trim()
-        }
-        onChange?.(next)
-    }
+  const handleSearch = () => {
+    applyFilters()
+    setSearchOpen(false)
+  }
 
-    const handleSearch = () => {
-        const next: PlanSearchFilters = {}
-        if (planType.trim()) {
-            next.planType = planType.trim()
-        }
-        if (updater.trim()) {
-            next.updater = updater.trim()
-        }
-        onChange?.(next)
-    }
+  const handleReset = () => {
+    reset()
+  }
 
-    const handleReset = () => {
-        setUpdater('')
-        setPlanType('')
-        onReset?.()
-    }
+  const handleRemoveTag = (key: string) => {
+    removeFilter(key)
+  }
 
-    return (
-        <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-            <div className="searh-result-wrap">
-                <div className="search-result">
-                    검색결과 <span>{resultCount}건</span>
-                </div>
-                <ul className="search-result-list">
-                    {/* 필요 시 검색 조건 태그 표시 */}
-                    <li></li>
-                </ul>
-                <button className="search-filed-btn" onClick={() => setSearchOpen(!searchOpen)}></button>
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch()
+  }
+
+  return (
+    <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
+      <div className="search-result-wrap">
+        <ul className="search-result-list">
+          {appliedTags.map((tag) => (
+            <li key={tag.key} className="search-result-item">
+              <div className="search-result-item-txt">
+                <span>{tag.value}</span> ({tag.category})
+              </div>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => handleRemoveTag(tag.key)}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
+            </li>
+          ))}
+          <li className="search-result-item">
+            <div className="search-result-item-txt">
+              <span>{resultCount.toLocaleString()}건</span>
             </div>
-            <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
-                <div className="search-filed">
-                    <table className="default-table">
-                        <colgroup>
-                            <col width="120px" />
-                            <col />
-                            <col width="120px" />
-                            <col />
-                        </colgroup>
-                        <tbody>
-                            <tr>
-                                <th>요금제명</th>
-                                <td>
-                                    <div className="data-filed">
-                                        <StatusSelector value={planType} onChange={handlePlanTypeChange} />
-                                    </div>
-                                </td>
-                                <th>수정자</th>
-                                <td>
-                                    <div className="data-filed">
-                                        <input
-                                            id="updater"
-                                            type="text"
-                                            className="input-frame"
-                                            value={updater}
-                                            onChange={(e) => setUpdater(e.target.value)}
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div className="btn-filed">
-                        <button className="btn-form gray" onClick={() => setSearchOpen(!searchOpen)}>닫기</button>
-                        <button className="btn-form gray" onClick={handleReset}>초기화</button>
-                        <button className="btn-form basic" onClick={handleSearch}>검색</button>
-                    </div>
-                </div>
-            </AnimateHeight>
+          </li>
+        </ul>
+        <button
+          type="button"
+          className="search-filed-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="검색 영역 열기/닫기"
+        ></button>
+      </div>
+      <AnimateHeight duration={300} height={searchOpen ? 'auto' : 0}>
+        <div className="search-filed">
+          <table className="default-table">
+            <colgroup>
+              <col width="120px" />
+              <col />
+              <col width="120px" />
+              <col />
+            </colgroup>
+            <tbody>
+              <tr>
+                <th>요금제명</th>
+                <td>
+                  <div className="data-filed">
+                    <SearchSelect
+                      options={planTypeOptions}
+                      value={planTypeOptions.find((opt) => opt.value === filters.planType) ?? null}
+                      onChange={(opt) => setFilters({ planType: opt?.value ?? '' })}
+                      placeholder="전체"
+                      isClearable
+                      isLoading={planTypeLoading}
+                      error={!!planTypeError}
+                    />
+                    {planTypeError && (
+                      <span className="warning-txt">※ 요금제 목록을 불러올 수 없습니다.</span>
+                    )}
+                  </div>
+                </td>
+                <th>수정자</th>
+                <td>
+                  <div className="data-filed">
+                    <Input
+                      placeholder="수정자 입력"
+                      value={filters.updater}
+                      onChange={(e) => setFilters({ updater: e.target.value })}
+                      onKeyDown={handleKeyDown}
+                      showClear
+                      onClear={() => setFilters({ updater: '' })}
+                    />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="btn-filed">
+            <button className="btn-form gray" onClick={() => setSearchOpen(false)} type="button">
+              닫기
+            </button>
+            <button className="btn-form gray" onClick={handleReset} type="button">
+              초기화
+            </button>
+            <button className="btn-form basic" onClick={handleSearch} type="button">
+              검색
+            </button>
+          </div>
         </div>
-    )
+      </AnimateHeight>
+    </div>
+  )
 }
