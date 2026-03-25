@@ -90,7 +90,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
       }
     }
     return autoForm
-  }, [detail, isHeadOfficeAccount, isFranchiseAccount, bpTree])
+  }, [detail, isFranchiseAccount, bpTree])
 
   const [form, setForm] = useState<FormState>(initialForm)
   const [slideboxOpen, setSlideboxOpen] = useState(true)
@@ -309,7 +309,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                       </div>
                     </td>
                   </tr>
-                  {/* 행2: 직원명 */}
+                  {/* 행3: 직원명 */}
                   <tr>
                     <th>직원명 <span className="red">*</span></th>
                     <td>
@@ -352,7 +352,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                   {/* 행3: 할 일 내용 */}
                   <tr>
                     <th>할 일 내용 <span className="red">*</span></th>
-                    <td >
+                    <td>
                       <Input
                         value={form.content}
                         onChange={(e) => {
@@ -368,7 +368,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                   {/* 행4: 기간 */}
                   <tr>
                     <th>기간 <span className="red">*</span></th>
-                    <td >
+                    <td>
                       <div className="filed-check-flx">
                         <div className="toggle-wrap">
                           <label className="toggle-btn" htmlFor="todo-has-period">

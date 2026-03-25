@@ -5,7 +5,8 @@ import EmployeeTodoForm from '@/components/employee/todo/EmployeeTodoForm'
 
 export default function EmployeeTodoDetailPage() {
   const params = useParams()
-  const id = params.id ? Number(params.id) : undefined
+  const parsed = params.id ? Number(params.id) : NaN
+  const id = Number.isNaN(parsed) ? undefined : parsed
 
   return <EmployeeTodoForm key={id} todoId={id} />
 }

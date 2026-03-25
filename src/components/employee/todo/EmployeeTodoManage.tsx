@@ -49,7 +49,7 @@ export default function EmployeeTodoManage() {
 
   // API 파라미터 변환
   const queryParams: EmployeeTodoListParams = {
-    headOfficeId: appliedFilters.officeId!,
+    headOfficeId: appliedFilters.officeId ?? 0,
     franchiseId: appliedFilters.franchiseId ?? undefined,
     storeId: appliedFilters.storeId ?? undefined,
     employeeName: appliedFilters.employeeName || undefined,

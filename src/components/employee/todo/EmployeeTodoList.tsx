@@ -56,7 +56,6 @@ export default function EmployeeTodoList({
       checkboxSelection: true,
       width: 50,
       suppressSizeToFit: true,
-      onCellClicked: (e) => e.event?.stopPropagation(),
     },
     { field: 'headOfficeName', headerName: '본사', minWidth: 120 },
     { field: 'franchiseName', headerName: '가맹점', minWidth: 120 },
@@ -114,6 +113,7 @@ export default function EmployeeTodoList({
             rowData={rows}
             columnDefs={columnDefs}
             rowSelection="multiple"
+            suppressRowClickSelection
             onRowClicked={handleRowClicked}
             onSelectionChanged={handleSelectionChanged}
           />

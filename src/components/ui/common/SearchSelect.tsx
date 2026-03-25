@@ -194,27 +194,42 @@ export default function SearchSelect(props: SearchSelectProps) {
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
-      {(() => {
-        const commonProps = {
-          instanceId,
-          inputId: instanceId,
-          options,
-          value: currentValue,
-          onChange: handleChange,
-          placeholder,
-          isDisabled,
-          isLoading,
-          isClearable,
-          isSearchable,
-          isMulti: props.isMulti,
-          noOptionsMessage: () => noOptionsMessage,
-          styles: getCustomStyles(error),
-          classNamePrefix: 'search-select' as const,
-        }
-        return creatable
-          ? <CreatableSelect<SelectOption, boolean> {...commonProps} formatCreateLabel={formatCreateLabel} />
-          : <Select<SelectOption, boolean> {...commonProps} />
-      })()}
+      {creatable ? (
+        <CreatableSelect<SelectOption, boolean>
+          instanceId={instanceId}
+          inputId={instanceId}
+          options={options}
+          value={currentValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          isDisabled={isDisabled}
+          isLoading={isLoading}
+          isClearable={isClearable}
+          isSearchable={isSearchable}
+          isMulti={props.isMulti}
+          noOptionsMessage={() => noOptionsMessage}
+          styles={getCustomStyles(error)}
+          classNamePrefix="search-select"
+          formatCreateLabel={formatCreateLabel}
+        />
+      ) : (
+        <Select<SelectOption, boolean>
+          instanceId={instanceId}
+          inputId={instanceId}
+          options={options}
+          value={currentValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          isDisabled={isDisabled}
+          isLoading={isLoading}
+          isClearable={isClearable}
+          isSearchable={isSearchable}
+          isMulti={props.isMulti}
+          noOptionsMessage={() => noOptionsMessage}
+          styles={getCustomStyles(error)}
+          classNamePrefix="search-select"
+        />
+      )}
     </div>
   )
 }
