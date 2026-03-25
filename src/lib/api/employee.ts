@@ -9,7 +9,8 @@ import type {
   EmployeeCareerResponse,
   SaveEmployeeCareersRequest,
   EmployeeCertificateResponse,
-  SaveEmployeeCertificatesRequest
+  SaveEmployeeCertificatesRequest,
+  MemberDocument
 } from '@/types/employee'
 import {
   employeeBpAuthorityListResponseSchema,
@@ -216,63 +217,63 @@ export async function sendEmployeeRegistrationEmail(employeeId: number): Promise
 // ========== 경력 정보 API ==========
 
 // 직원의 경력 정보 목록 조회
-export async function getEmployeeCareers(employeeInfoId: number): Promise<EmployeeCareerResponse[]> {
+export async function getEmployeeCareers(memberId: number): Promise<EmployeeCareerResponse[]> {
   const response = await api.get<{ data: EmployeeCareerResponse[] }>(
-    `/api/employee/info/${employeeInfoId}/careers`
+    `/api/employee/member/${memberId}/careers`
   )
   return response.data.data
 }
 
 // 경력 정보 단건 조회
-export async function getEmployeeCareer(employeeInfoId: number, careerId: number): Promise<EmployeeCareerResponse> {
+export async function getEmployeeCareer(memberId: number, careerId: number): Promise<EmployeeCareerResponse> {
   const response = await api.get<{ data: EmployeeCareerResponse }>(
-    `/api/employee/info/${employeeInfoId}/careers/${careerId}`
+    `/api/employee/member/${memberId}/careers/${careerId}`
   )
   return response.data.data
 }
 
 // 경력 정보 일괄 저장
 export async function saveEmployeeCareers(
-  employeeInfoId: number,
+  memberId: number,
   data: SaveEmployeeCareersRequest
 ): Promise<EmployeeCareerResponse[]> {
   const response = await api.put<{ data: EmployeeCareerResponse[] }>(
-    `/api/employee/info/${employeeInfoId}/careers`,
+    `/api/employee/member/${memberId}/careers`,
     data
   )
   return response.data.data
 }
 
 // 직원의 모든 경력 정보 삭제
-export async function deleteAllEmployeeCareers(employeeInfoId: number): Promise<void> {
-  await api.delete(`/api/employee/info/${employeeInfoId}/careers`)
+export async function deleteAllEmployeeCareers(memberId: number): Promise<void> {
+  await api.delete(`/api/employee/member/${memberId}/careers`)
 }
 
 // ========== 자격증 정보 API ==========
 
 // 직원의 자격증 정보 목록 조회
-export async function getEmployeeCertificates(employeeInfoId: number): Promise<EmployeeCertificateResponse[]> {
+export async function getEmployeeCertificates(memberId: number): Promise<EmployeeCertificateResponse[]> {
   const response = await api.get<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/info/${employeeInfoId}/certificates`
+    `/api/employee/member/${memberId}/certificates`
   )
   return response.data.data
 }
 
 // 자격증 정보 단건 조회
-export async function getEmployeeCertificate(employeeInfoId: number, certificateId: number): Promise<EmployeeCertificateResponse> {
+export async function getEmployeeCertificate(memberId: number, certificateId: number): Promise<EmployeeCertificateResponse> {
   const response = await api.get<{ data: EmployeeCertificateResponse }>(
-    `/api/employee/info/${employeeInfoId}/certificates/${certificateId}`
+    `/api/employee/member/${memberId}/certificates/${certificateId}`
   )
   return response.data.data
 }
 
 // 자격증 정보 일괄 저장
 export async function saveEmployeeCertificates(
-  employeeInfoId: number,
+  memberId: number,
   data: SaveEmployeeCertificatesRequest
 ): Promise<EmployeeCertificateResponse[]> {
   const response = await api.put<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/info/${employeeInfoId}/certificates`,
+    `/api/employee/member/${memberId}/certificates`,
     data
   )
   return response.data.data
@@ -280,7 +281,7 @@ export async function saveEmployeeCertificates(
 
 // 자격증 정보 일괄 저장 (파일 포함)
 export async function saveEmployeeCertificatesWithFiles(
-  employeeInfoId: number,
+  memberId: number,
   data: SaveEmployeeCertificatesRequest,
   files: File[]
 ): Promise<EmployeeCertificateResponse[]> {
@@ -292,7 +293,7 @@ export async function saveEmployeeCertificatesWithFiles(
   })
 
   const response = await api.put<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/info/${employeeInfoId}/certificates/with-files`,
+    `/api/employee/member/${memberId}/certificates/with-files`,
     formData,
     {
       headers: {
@@ -304,13 +305,35 @@ export async function saveEmployeeCertificatesWithFiles(
 }
 
 // 직원의 모든 자격증 정보 삭제
-export async function deleteAllEmployeeCertificates(employeeInfoId: number): Promise<void> {
-  await api.delete(`/api/employee/info/${employeeInfoId}/certificates`)
+export async function deleteAllEmployeeCertificates(memberId: number): Promise<void> {
+  await api.delete(`/api/employee/member/${memberId}/certificates`)
 }
 
 // 직원 정보 삭제 (soft delete)
 export async function deleteEmployee(employeeInfoId: number): Promise<void> {
   await api.delete(`/api/employee/info/${employeeInfoId}`)
+}
+
+// ========== 회원 문서 API ==========
+
+// 회원 문서 목록 조회
+export async function getMemberDocuments(memberId: number): Promise<MemberDocument[]> {
+  const response = await api.get<{ data: MemberDocument[] }>(`/api/members/${memberId}/documents`)
+  return response.data.data
+}
+
+// 회원 문서 등록
+export async function createMemberDocument(
+  memberId: number,
+  data: { documentType: string; uploadFileId: number; expiryDate?: string }
+): Promise<MemberDocument> {
+  const response = await api.post<{ data: MemberDocument }>(`/api/members/${memberId}/documents`, data)
+  return response.data.data
+}
+
+// 회원 문서 삭제
+export async function deleteMemberDocument(memberId: number, documentId: number): Promise<void> {
+  await api.delete(`/api/members/${memberId}/documents/${documentId}`)
 }
 
 // ========== 권한 관련 API ==========
