@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { type StoreSearchFilters } from '@/components/store/manage/StoreSearch'
@@ -33,7 +33,7 @@ export default function StoreInfo() {
 
   const [filters, setFilters] = useState<StoreSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<StoreSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = (next: StoreSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
+  const setAppliedFilters = useCallback((next: StoreSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 

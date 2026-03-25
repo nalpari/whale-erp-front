@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AttendanceSearch from '@/components/employee/attendance/AttendanceSearch'
 import { DEFAULT_ATTENDANCE_FILTERS, type AttendanceSearchFilters } from '@/components/employee/attendance/AttendanceSearch'
@@ -35,7 +35,7 @@ export default function AttendanceRecord() {
 
   const [filters, setFilters] = useState<AttendanceSearchFilters>(savedFilters ?? DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<AttendanceSearchFilters>(savedFilters ?? DEFAULT_ATTENDANCE_FILTERS)
-  const setAppliedFilters = (next: AttendanceSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
+  const setAppliedFilters = useCallback((next: AttendanceSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 

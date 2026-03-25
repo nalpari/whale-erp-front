@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import StoreMenuSearch, { type StoreMenuSearchFilters } from './StoreMenuSearch'
@@ -50,7 +50,7 @@ export default function StoreMenuManage() {
 
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<StoreMenuSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = (next: StoreMenuSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
+  const setAppliedFilters = useCallback((next: StoreMenuSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())

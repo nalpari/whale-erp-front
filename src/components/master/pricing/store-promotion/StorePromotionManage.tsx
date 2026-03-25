@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PromotionSearch, { type PromotionSearchFilters, type PromotionFilterTagKey } from './PromotionSearch'
 import PromotionList from './PromotionList'
@@ -37,7 +37,7 @@ export default function StorePromotionManage() {
 
   const [filters, setFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = (next: PromotionSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }
+  const setAppliedFilters = useCallback((next: PromotionSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 

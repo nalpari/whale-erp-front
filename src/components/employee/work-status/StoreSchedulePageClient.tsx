@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
@@ -16,7 +16,7 @@ import {
   useStoreScheduleUpsert,
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
-import { useQueryError } from '@/hooks/useQueryError'
+import { useQueryError } from '@/hooks/useQueryError';
 import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
 import { parseNumberParam } from '@/util/param-util';
@@ -29,7 +29,7 @@ export default function StoreSchedulePageClient() {
   const queryClient = useQueryClient();
 
   const { savedFilters: savedQuery, saveFilters: saveQuery, clearFilters: clearQuery } =
-    useSearchFilterStorage<StoreScheduleQuery>('work-schedule-search')
+    useSearchFilterStorage<StoreScheduleQuery>('work-schedule-search');
 
   // URL 파라미터에서 초기 검색 조건 파싱 (URL이 있으면 URL 우선, 없으면 savedQuery fallback)
   const hasUrlParams = searchParams.has('officeId')
@@ -65,10 +65,11 @@ export default function StoreSchedulePageClient() {
       from: undefined as string | undefined,
       to: undefined as string | undefined,
     }
-  }, [hasUrlParams, searchParams, savedQuery])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- savedQuery는 useState 초기값으로만 사용되어 안정적
+  }, [hasUrlParams, searchParams])
 
   const [lastQuery, _setLastQuery] = useState<StoreScheduleQuery | null>(null);
-  const setLastQuery = (next: StoreScheduleQuery | null) => { _setLastQuery(next); if (next) saveQuery(next) }
+  const setLastQuery = useCallback((next: StoreScheduleQuery | null) => { _setLastQuery(next); if (next) saveQuery(next); }, [saveQuery]);
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);

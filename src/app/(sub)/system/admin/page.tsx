@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import { useAdminList } from '@/hooks/queries/use-admin-queries'
@@ -31,7 +31,7 @@ function AdminContent() {
     }
     return savedFilters ?? {}
   })
-  const setSearchParams = (next: AdminSearchParams) => { _setSearchParams(next); saveFilters(next) }
+  const setSearchParams = useCallback((next: AdminSearchParams) => { _setSearchParams(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
