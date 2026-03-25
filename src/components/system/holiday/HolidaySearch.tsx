@@ -36,7 +36,7 @@ export default function HolidaySearch({
   onReset,
   onRemoveFilter,
 }: HolidaySearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showYearError, setShowYearError] = useState(false)
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()

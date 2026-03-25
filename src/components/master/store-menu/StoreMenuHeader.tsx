@@ -56,6 +56,12 @@ export default function StoreMenuHeader() {
     menuProperty: buildMap(menuPropertyChildren),
   }
 
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push('/master/menu/store')
+  }
+
   const handleDelete = async () => {
     if (menuId == null) return
     const confirmed = await confirm('삭제하시겠습니까?')
@@ -83,8 +89,8 @@ export default function StoreMenuHeader() {
             <div className="slidebox-header">
               <h2>메뉴 Header 정보</h2>
               <div className="slidebox-btn-wrap">
-                <button className="slidebox-btn" onClick={() => router.push('/master/menu/store')}>
-                  목록
+                <button className="slidebox-btn" onClick={handleGoBack}>
+                  취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
                   삭제
@@ -93,7 +99,7 @@ export default function StoreMenuHeader() {
                   className="slidebox-btn"
                   onClick={() => router.push(`/master/menu/store/detail?id=${detail.id}`)}
                 >
-                  상세
+                  수정
                 </button>
                 <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
                   <i className="arr-icon"></i>

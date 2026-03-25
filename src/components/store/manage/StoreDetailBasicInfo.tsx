@@ -311,7 +311,7 @@ export const StoreDetailBasicInfo = ({
       <div className="slidebox-header">
         <h2>점포 정보</h2>
         <div className="slidebox-btn-wrap">
-          <button className="slidebox-btn" onClick={onList}>목록</button>
+          <button className="slidebox-btn" onClick={onList}>취소</button>
           <button className="slidebox-btn" onClick={onSave} disabled={saving}>저장</button>
           <button className="slidebox-btn arr" onClick={onToggleOpen}>
             <i className="arr-icon"></i>

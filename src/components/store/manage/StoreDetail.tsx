@@ -143,6 +143,12 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
     }
   }
 
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push('/store/info')
+  }
+
   return (
     <>
       {formErrors.length > 0 && (
@@ -207,7 +213,7 @@ function StoreDetailForm({ detail, isEditMode, onHoliday, onAfterSave }: StoreDe
           onToggleDeleteImage={toggleDeleteImage}
           onExistingFileDownload={handleExistingFileDownload}
           onSave={handleSubmit}
-          onList={() => router.push('/store/info')}
+          onList={handleGoBack}
           saving={saving}
         />
 

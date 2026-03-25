@@ -370,6 +370,12 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
     }
   }
 
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push('/master/pricing/store-promotion')
+  }
+
   return (
     <div className="data-wrap">
       <Location title="점포용 프로모션 가격 관리" list={BREADCRUMBS} />
@@ -378,9 +384,9 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
           <button
             className="btn-form gray"
             type="button"
-            onClick={() => router.push('/master/pricing/store-promotion')}
+            onClick={handleGoBack}
           >
-            목록
+            취소
           </button>
           <button className="btn-form basic" type="button" onClick={handleSave} disabled={isSaving}>
             저장
