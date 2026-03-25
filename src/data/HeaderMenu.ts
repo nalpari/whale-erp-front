@@ -174,12 +174,12 @@ export const HeaderMenu: HeaderMenuItem[] = [
       {
         id: 18,
         name: '직원별 TO-DO 관리',
-        link: '#',
+        link: '/employee/todo',
         children: [
           {
             id: 49,
             name: 'TO-DO 관리',
-            link: '#',
+            link: '/employee/todo',
           },
         ],
       },

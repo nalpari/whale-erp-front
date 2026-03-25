@@ -74,6 +74,10 @@ export interface EmployeeTodoSelectParams {
 
 export const employeeTodoKeys = {
   all: ['employee-todos'] as const,
+  lists: () => [...employeeTodoKeys.all, 'list'] as const,
+  list: (params: unknown) => [...employeeTodoKeys.lists(), params ?? null] as const,
+  details: () => [...employeeTodoKeys.all, 'detail'] as const,
+  detail: (id: number) => [...employeeTodoKeys.details(), id] as const,
   employees: (params?: EmployeeTodoSelectParams) => [...employeeTodoKeys.all, 'employees', params ?? null] as const,
 }
 
