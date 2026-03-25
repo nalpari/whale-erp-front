@@ -74,6 +74,7 @@ export const employeeKeys = {
   detail: (id: number) => [...employeeKeys.details(), id] as const,
   careers: (employeeId: number) => [...employeeKeys.all, 'career', employeeId] as const,
   certificates: (employeeId: number) => [...employeeKeys.all, 'certificate', employeeId] as const,
+  documents: (memberId: number) => [...employeeKeys.all, 'document', memberId] as const,
   byType: (params: { headOfficeId: number; franchiseId?: number; employeeType: string }) =>
     [...employeeKeys.all, 'by-type', params] as const,
   bpAuthorities: (employeeId?: number) => [...employeeKeys.all, 'bpAuthorities', employeeId] as const,

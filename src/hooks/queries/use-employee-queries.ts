@@ -28,6 +28,9 @@ import {
   getEmployeeListByType,
   updateEmployeeLoginInfo,
   withdrawEmployeeMember,
+  getMemberDocuments,
+  createMemberDocument,
+  deleteMemberDocument,
   type EmployeeFiles,
   type GetEmployeeListByTypeParams,
   type UpdateEmployeeLoginInfoRequest,
@@ -275,14 +278,14 @@ export const useSaveEmployeeCareers = () => {
 
   return useMutation({
     mutationFn: ({
-                   employeeInfoId,
+                   memberId,
                    data,
                  }: {
-      employeeInfoId: number
+      memberId: number
       data: SaveEmployeeCareersRequest
-    }) => saveEmployeeCareers(employeeInfoId, data),
-    onSuccess: (_, { employeeInfoId }) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(employeeInfoId) })
+    }) => saveEmployeeCareers(memberId, data),
+    onSuccess: (_, { memberId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(memberId) })
     },
   })
 }
@@ -291,9 +294,9 @@ export const useDeleteAllEmployeeCareers = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employeeInfoId: number) => deleteAllEmployeeCareers(employeeInfoId),
-    onSuccess: (_, employeeInfoId) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(employeeInfoId) })
+    mutationFn: (memberId: number) => deleteAllEmployeeCareers(memberId),
+    onSuccess: (_, memberId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.careers(memberId) })
     },
   })
 }
@@ -305,14 +308,14 @@ export const useSaveEmployeeCertificates = () => {
 
   return useMutation({
     mutationFn: ({
-                   employeeInfoId,
+                   memberId,
                    data,
                  }: {
-      employeeInfoId: number
+      memberId: number
       data: SaveEmployeeCertificatesRequest
-    }) => saveEmployeeCertificates(employeeInfoId, data),
-    onSuccess: (_, { employeeInfoId }) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    }) => saveEmployeeCertificates(memberId, data),
+    onSuccess: (_, { memberId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(memberId) })
     },
   })
 }
@@ -322,16 +325,16 @@ export const useSaveEmployeeCertificatesWithFiles = () => {
 
   return useMutation({
     mutationFn: ({
-                   employeeInfoId,
+                   memberId,
                    data,
                    files,
                  }: {
-      employeeInfoId: number
+      memberId: number
       data: SaveEmployeeCertificatesRequest
       files: File[]
-    }) => saveEmployeeCertificatesWithFiles(employeeInfoId, data, files),
-    onSuccess: (_, { employeeInfoId }) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    }) => saveEmployeeCertificatesWithFiles(memberId, data, files),
+    onSuccess: (_, { memberId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(memberId) })
     },
   })
 }
@@ -340,9 +343,9 @@ export const useDeleteAllEmployeeCertificates = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employeeInfoId: number) => deleteAllEmployeeCertificates(employeeInfoId),
-    onSuccess: (_, employeeInfoId) => {
-      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(employeeInfoId) })
+    mutationFn: (memberId: number) => deleteAllEmployeeCertificates(memberId),
+    onSuccess: (_, memberId) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.certificates(memberId) })
     },
   })
 }
@@ -374,6 +377,45 @@ export const useWithdrawEmployeeMember = () => {
     onSuccess: (_, employeeInfoId) => {
       queryClient.invalidateQueries({ queryKey: employeeKeys.detail(employeeInfoId) })
       queryClient.invalidateQueries({ queryKey: employeeKeys.lists() })
+    },
+  })
+}
+
+// ========== Member Document Hooks ==========
+
+export const useMemberDocuments = (memberId: number | null, enabled = true) => {
+  return useQuery({
+    queryKey: employeeKeys.documents(memberId ?? 0),
+    queryFn: () => getMemberDocuments(memberId!),
+    enabled: enabled && !!memberId,
+  })
+}
+
+export const useCreateMemberDocument = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      memberId,
+      data,
+    }: {
+      memberId: number
+      data: { documentType: string; uploadFileId: number; expiryDate?: string }
+    }) => createMemberDocument(memberId, data),
+    onSuccess: (_, { memberId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.documents(memberId) })
+    },
+  })
+}
+
+export const useDeleteMemberDocument = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ memberId, documentId }: { memberId: number; documentId: number }) =>
+      deleteMemberDocument(memberId, documentId),
+    onSuccess: (_, { memberId }) => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.documents(memberId) })
     },
   })
 }

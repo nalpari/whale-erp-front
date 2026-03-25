@@ -5,6 +5,7 @@ import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
 import { Input, useAlert } from '@/components/common/ui'
 import {
+  useEmployeeDetail,
   useEmployeeCertificates,
   useSaveEmployeeCertificatesWithFiles,
   useDeleteAllEmployeeCertificates
@@ -38,8 +39,12 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
   const [sectionOpen, setSectionOpen] = useState(true)
   const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
-  // TanStack Query 훅들
-  const { data: certificatesData, isPending: isCertificatesLoading } = useEmployeeCertificates(employeeId)
+  // employeeInfoId → memberId 변환
+  const { data: employee } = useEmployeeDetail(employeeId)
+  const memberId = employee?.memberId ?? null
+
+  // TanStack Query 훅들 (memberId로 조회)
+  const { data: certificatesData, isPending: isCertificatesLoading } = useEmployeeCertificates(memberId ?? 0, !!memberId)
   const saveCertificatesMutation = useSaveEmployeeCertificatesWithFiles()
   const deleteAllCertificatesMutation = useDeleteAllEmployeeCertificates()
 
@@ -188,8 +193,12 @@ export default function EmployeeCertificateEdit({ employeeId }: EmployeeCertific
         }
       })
 
+      if (!memberId) {
+        await alert('회원 정보를 찾을 수 없습니다.')
+        return
+      }
       await saveCertificatesMutation.mutateAsync({
-        employeeInfoId: employeeId,
+        memberId,
         data: { certificates: certificatesToSave },
         files
       })

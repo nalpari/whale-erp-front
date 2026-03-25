@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import DatePicker from '../../ui/common/DatePicker'
@@ -7,12 +7,12 @@ import { Tooltip } from 'react-tooltip'
 import {
   useEmployeeDetail,
   useCheckEmployeeNumber,
-  useUpdateEmployeeWithFiles
+  useUpdateEmployee,
+  useMemberDocuments
 } from '@/hooks/queries/use-employee-queries'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useStoreOptions, useBpHeadOfficeTree } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { getDownloadUrl } from '@/lib/api/file'
 import { Input, AddressSearch, type AddressData, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import type { ClassificationItem } from '@/lib/api/employeeInfoSettings'
@@ -59,67 +59,14 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
   // TanStack Query 훅들
   const { data: employeeData, isPending: isEmployeeLoading } = useEmployeeDetail(employeeId)
+  const memberId = employeeData?.memberId ?? null
+  const { data: documentsData } = useMemberDocuments(memberId)
   const checkEmployeeNumberMutation = useCheckEmployeeNumber()
-  const updateEmployeeMutation = useUpdateEmployeeWithFiles()
+  const updateEmployeeMutation = useUpdateEmployee()
 
   const isLoading = isEmployeeLoading || checkEmployeeNumberMutation.isPending || updateEmployeeMutation.isPending
 
-  // 파일 상태
-  const [files, setFiles] = useState<{
-    resident: File | null
-    family: File | null
-    health: File | null
-    resume: File | null
-  }>({
-    resident: null,
-    family: null,
-    health: null,
-    resume: null
-  })
-
-  // 기존 업로드된 파일 ID 상태
-  const [existingFileIds, setExistingFileIds] = useState<{
-    resident: number | null
-    family: number | null
-    health: number | null
-    resume: number | null
-  }>({
-    resident: null,
-    family: null,
-    health: null,
-    resume: null
-  })
-
-  // 기존 파일 이름 상태 (UI 표시용)
-  const [existingFileNames, setExistingFileNames] = useState<{
-    resident: string | null
-    family: string | null
-    health: string | null
-    resume: string | null
-  }>({
-    resident: null,
-    family: null,
-    health: null,
-    resume: null
-  })
-
-  // 파일 선택 핸들러
-  const handleFileChange = (fileType: 'resident' | 'family' | 'health' | 'resume', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setFiles(prev => ({ ...prev, [fileType]: file }))
-  }
-
-  // 파일 삭제 핸들러
-  const handleFileRemove = (fileType: 'resident' | 'family' | 'health' | 'resume') => {
-    setFiles(prev => ({ ...prev, [fileType]: null }))
-    setExistingFileIds(prev => ({ ...prev, [fileType]: null }))
-    setExistingFileNames(prev => ({ ...prev, [fileType]: null }))
-    // input 초기화
-    const inputElement = document.getElementById(`file-${fileType}`) as HTMLInputElement
-    if (inputElement) {
-      inputElement.value = ''
-    }
-  }
+  // 서류는 직원 앱에서만 등록/수정 가능 (ERP에서는 읽기 전용)
 
   // 폼 데이터 상태
   const [formData, setFormData] = useState({
@@ -146,9 +93,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     bankCode: '',
     accountNumber: '',
     accountHolder: '',
-    healthCheckExpiryDate: '',
     memo: ''
   })
+
 
   // 직원 정보로 폼 초기화 (렌더링 중 처리)
   // 캐시 히트 시에도 초기화되도록 초기값을 null로 설정
@@ -198,7 +145,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       bankCode: employee.salaryBank || '',
       accountNumber: employee.salaryAccountNumber || '',
       accountHolder: employee.salaryAccountHolder || '',
-      healthCheckExpiryDate: employee.healthCheckExpiryDate || '',
       memo: employee.memo || ''
     }))
 
@@ -212,14 +158,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       setOriginalEmployeeNumber(employee.employeeNumber)
     }
 
-    // 기존 파일 ID 설정
-    setExistingFileIds({
-      resident: employee.residentRegistrationFileId ?? null,
-      family: employee.familyRelationFileId ?? null,
-      health: employee.healthCheckFileId ?? null,
-      resume: employee.resumeFileId ?? null
-    })
-
     // 주소 데이터 초기화
     setAddressData({
       address: employee.address || '',
@@ -228,55 +166,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
     })
   }
 
-  // 파일 이름 비동기 조회 (외부 시스템 동기화)
-  useEffect(() => {
-    if (!employeeData) return
-
-    const employee = employeeData
-    const fetchFileNames = async () => {
-      const filePromises: Promise<void>[] = []
-      const fileNamesTemp: typeof existingFileNames = {
-        resident: null,
-        family: null,
-        health: null,
-        resume: null
-      }
-
-      if (employee.residentRegistrationFileId) {
-        filePromises.push(
-          getDownloadUrl(employee.residentRegistrationFileId)
-            .then(res => { fileNamesTemp.resident = res.originalFileName })
-            .catch(() => {})
-        )
-      }
-      if (employee.familyRelationFileId) {
-        filePromises.push(
-          getDownloadUrl(employee.familyRelationFileId)
-            .then(res => { fileNamesTemp.family = res.originalFileName })
-            .catch(() => {})
-        )
-      }
-      if (employee.healthCheckFileId) {
-        filePromises.push(
-          getDownloadUrl(employee.healthCheckFileId)
-            .then(res => { fileNamesTemp.health = res.originalFileName })
-            .catch(() => {})
-        )
-      }
-      if (employee.resumeFileId) {
-        filePromises.push(
-          getDownloadUrl(employee.resumeFileId)
-            .then(res => { fileNamesTemp.resume = res.originalFileName })
-            .catch(() => {})
-        )
-      }
-
-      await Promise.all(filePromises)
-      setExistingFileNames(fileNamesTemp)
-    }
-
-    fetchFileNames()
-  }, [employeeData])
+  // 건강진단결과서 만료일 초기화 (documentsData가 로드되면)
 
   // 에러 상태 계산 (useMemo로 최적화)
   const formErrors = useMemo<FormErrors>(() => {
@@ -563,28 +453,18 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
         salaryBank: formData.bankCode || null,
         salaryAccountNumber: formData.accountNumber || null,
         salaryAccountHolder: formData.accountHolder || null,
-        // 파일 ID (새 파일이 없는 경우 기존 ID 유지)
-        residentRegistrationFileId: files.resident ? null : existingFileIds.resident,
-        familyRelationFileId: files.family ? null : existingFileIds.family,
-        healthCheckFileId: files.health ? null : existingFileIds.health,
-        healthCheckExpiryDate: formData.healthCheckExpiryDate || null,
-        resumeFileId: files.resume ? null : existingFileIds.resume,
         // 기타
         memo: formData.memo || null,
         iconType: selectedIcon
       }
 
-      // 파일과 함께 저장 (트랜잭션으로 처리됨)
+      // 직원 기본 정보 저장
       await updateEmployeeMutation.mutateAsync({
         id: employeeId,
         data: updateData,
-        files: {
-          residentRegistrationFile: files.resident,
-          familyRelationFile: files.family,
-          healthCheckFile: files.health,
-          resumeFile: files.resume
-        }
       })
+
+      // 서류는 직원 앱에서만 등록/수정 가능 (ERP에서는 읽기 전용)
 
       await alert('저장되었습니다.')
       router.push(`/employee/info/${employeeId}`)
@@ -1054,187 +934,35 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   </td>
                 </tr>
 
-                {/* 주민등록등본 */}
-                <tr>
-                  <th>주민등록등본</th>
-                  <td>
-                    <div className="filed-flx">
-                      <div className="filed-file">
-                        <input
-                          type="file"
-                          className="file-input"
-                          id="file-resident"
-                          onChange={(e) => handleFileChange('resident', e)}
-                        />
-                        <label htmlFor="file-resident" className="btn-form outline s">파일찾기</label>
-                      </div>
-                      {(files.resident || existingFileNames.resident) && (
-                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                          <span className="file-name-text" style={{ color: '#333' }}>{files.resident?.name || existingFileNames.resident}</span>
-                          <button
-                            type="button"
-                            className="btn-form outline s"
-                            onClick={() => handleFileRemove('resident')}
-                            style={{
-                              minWidth: '28px',
-                              width: '28px',
-                              height: '28px',
-                              padding: '0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#dc3545',
-                              borderColor: '#dc3545',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* 가족관계증명서 */}
-                <tr>
-                  <th>가족관계증명서</th>
-                  <td>
-                    <div className="filed-flx">
-                      <div className="filed-file">
-                        <input
-                          type="file"
-                          className="file-input"
-                          id="file-family"
-                          onChange={(e) => handleFileChange('family', e)}
-                        />
-                        <label htmlFor="file-family" className="btn-form outline s">파일찾기</label>
-                      </div>
-                      {(files.family || existingFileNames.family) && (
-                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                          <span className="file-name-text" style={{ color: '#333' }}>{files.family?.name || existingFileNames.family}</span>
-                          <button
-                            type="button"
-                            className="btn-form outline s"
-                            onClick={() => handleFileRemove('family')}
-                            style={{
-                              minWidth: '28px',
-                              width: '28px',
-                              height: '28px',
-                              padding: '0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#dc3545',
-                              borderColor: '#dc3545',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* 건강진단결과서 */}
-                <tr>
-                  <th>건강진단결과서</th>
-                  <td>
-                    <div className="filed-flx">
-                      <div className="filed-file">
-                        <input
-                          type="file"
-                          className="file-input"
-                          id="file-health"
-                          onChange={(e) => handleFileChange('health', e)}
-                        />
-                        <label htmlFor="file-health" className="btn-form outline s">파일찾기</label>
-                      </div>
-                      {(files.health || existingFileNames.health) && (
-                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                          <span className="file-name-text" style={{ color: '#333' }}>{files.health?.name || existingFileNames.health}</span>
-                          <button
-                            type="button"
-                            className="btn-form outline s"
-                            onClick={() => handleFileRemove('health')}
-                            style={{
-                              minWidth: '28px',
-                              width: '28px',
-                              height: '28px',
-                              padding: '0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#dc3545',
-                              borderColor: '#dc3545',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* 건강진단결과서 만료일 */}
-                <tr>
-                  <th>건강진단결과서 만료일</th>
-                  <td>
-                    <div className="date-picker-wrap">
-                      <DatePicker
-                        value={formData.healthCheckExpiryDate ? new Date(formData.healthCheckExpiryDate) : null}
-                        onChange={(date) => handleInputChange('healthCheckExpiryDate', date ? date.toISOString().split('T')[0] : '')}
-                        placeholder="만료일 선택"
-                      />
-                    </div>
-                  </td>
-                </tr>
-
-                {/* 이력서 */}
-                <tr>
-                  <th>이력서</th>
-                  <td>
-                    <div className="filed-flx">
-                      <div className="filed-file">
-                        <input
-                          type="file"
-                          className="file-input"
-                          id="file-resume"
-                          onChange={(e) => handleFileChange('resume', e)}
-                        />
-                        <label htmlFor="file-resume" className="btn-form outline s">파일찾기</label>
-                      </div>
-                      {(files.resume || existingFileNames.resume) && (
-                        <div className="file-uploaded" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                          <span className="file-name-text" style={{ color: '#333' }}>{files.resume?.name || existingFileNames.resume}</span>
-                          <button
-                            type="button"
-                            className="btn-form outline s"
-                            onClick={() => handleFileRemove('resume')}
-                            style={{
-                              minWidth: '28px',
-                              width: '28px',
-                              height: '28px',
-                              padding: '0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#dc3545',
-                              borderColor: '#dc3545',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                {/* 문서 파일 (memberId가 있을 때만 표시) */}
+                {memberId ? (
+                  <>
+                    {/* 서류 영역 - 읽기 전용 (직원 앱에서만 등록/수정 가능) */}
+                    {[
+                      { label: '주민등록등본', type: 'RESIDENT_REGISTRATION' },
+                      { label: '가족관계증명서', type: 'FAMILY_RELATION' },
+                      { label: '건강진단결과서', type: 'HEALTH_CHECK' },
+                      { label: '이력서', type: 'RESUME' },
+                    ].map(({ label, type }) => {
+                      const doc = (documentsData ?? []).find(d => d.documentType === type)
+                      return (
+                        <tr key={type}>
+                          <th>{label}</th>
+                          <td>
+                            <span style={{ color: doc?.fileName ? '#333' : '#999', fontSize: '13px' }}>
+                              {doc?.fileName ?? '등록된 파일 없음'}
+                            </span>
+                            {type === 'HEALTH_CHECK' && doc?.expiryDate && (
+                              <span style={{ color: '#666', fontSize: '12px', marginLeft: '12px' }}>
+                                (만료일: {doc.expiryDate})
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </>
+                ) : null}
 
                 {/* MEMO */}
                 <tr>

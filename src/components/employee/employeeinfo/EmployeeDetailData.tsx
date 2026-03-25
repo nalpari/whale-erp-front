@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import {
@@ -7,17 +7,12 @@ import {
   useEmployeeCareers,
   useEmployeeCertificates,
   useDeleteEmployee,
-  useSendEmployeeRegistrationEmail
+  useSendEmployeeRegistrationEmail,
+  useMemberDocuments
 } from '@/hooks/queries/use-employee-queries'
-import { getDownloadUrl, getFile } from '@/lib/api/file'
+import { getDownloadUrl } from '@/lib/api/file'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
-
-// 파일 정보 인터페이스
-interface FileInfo {
-  id: number
-  originalFileName: string
-}
 
 interface EmployeeDetailDataProps {
   employeeId?: number
@@ -31,13 +26,6 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const [careerInfoOpen, setCareerInfoOpen] = useState(true)
   const [certInfoOpen, setCertInfoOpen] = useState(true)
   const [sendingEmail, setSendingEmail] = useState(false)
-  // 파일 정보 상태 (파일명 표시용)
-  const [fileInfos, setFileInfos] = useState<{
-    residentRegistration?: FileInfo
-    familyRelation?: FileInfo
-    healthCheck?: FileInfo
-    resume?: FileInfo
-  }>({})
 
   // TanStack Query 훅들
   const {
@@ -46,59 +34,22 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
     error: employeeError
   } = useEmployeeDetail(employeeId)
 
-  const { data: careersData } = useEmployeeCareers(employeeId ?? 0, !!employeeId)
-  const { data: certificatesData } = useEmployeeCertificates(employeeId ?? 0, !!employeeId)
+  const memberId = employee?.memberId ?? null
+  const { data: careersData } = useEmployeeCareers(memberId ?? 0, !!memberId)
+  const { data: certificatesData } = useEmployeeCertificates(memberId ?? 0, !!memberId)
+  const { data: documentsData } = useMemberDocuments(memberId)
   const deleteEmployeeMutation = useDeleteEmployee()
   const sendEmailMutation = useSendEmployeeRegistrationEmail()
 
   const careers = careersData ?? []
   const certificates = certificatesData ?? []
+  const documents = documentsData ?? []
   const loading = isEmployeeLoading
   const errorMessage = useQueryError(employeeError, '직원 정보를 불러오는데 실패했습니다.')
 
-  // 파일 정보 조회
-  useEffect(() => {
-    const fetchFileInfos = async () => {
-      if (!employee) return
-
-      const filePromises: Promise<void>[] = []
-      const newFileInfos: typeof fileInfos = {}
-
-      if (employee.residentRegistrationFileId) {
-        filePromises.push(
-          getFile(employee.residentRegistrationFileId)
-            .then(file => { newFileInfos.residentRegistration = { id: file.id, originalFileName: file.originalFileName } })
-            .catch(() => {})
-        )
-      }
-      if (employee.familyRelationFileId) {
-        filePromises.push(
-          getFile(employee.familyRelationFileId)
-            .then(file => { newFileInfos.familyRelation = { id: file.id, originalFileName: file.originalFileName } })
-            .catch(() => {})
-        )
-      }
-      if (employee.healthCheckFileId) {
-        filePromises.push(
-          getFile(employee.healthCheckFileId)
-            .then(file => { newFileInfos.healthCheck = { id: file.id, originalFileName: file.originalFileName } })
-            .catch(() => {})
-        )
-      }
-      if (employee.resumeFileId) {
-        filePromises.push(
-          getFile(employee.resumeFileId)
-            .then(file => { newFileInfos.resume = { id: file.id, originalFileName: file.originalFileName } })
-            .catch(() => {})
-        )
-      }
-
-      await Promise.all(filePromises)
-      setFileInfos(newFileInfos)
-    }
-
-    fetchFileInfos()
-  }, [employee])
+  // 문서 타입으로 문서 찾기 헬퍼
+  const getDocument = (documentType: string) =>
+    documents.find(doc => doc.documentType === documentType) ?? null
 
   // 날짜 포맷 함수
   const formatDate = (dateString?: string | null) => {
@@ -129,13 +80,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
     router.push(`/employee/info/${employeeId}/edit`)
   }
 
-  const handleCareerEdit = () => {
-    router.push(`/employee/info/${employeeId}/career`)
-  }
-
-  const handleCertificateEdit = () => {
-    router.push(`/employee/info/${employeeId}/certificate`)
-  }
+  // 경력/자격증 수정은 직원 앱에서만 가능 (ERP에서는 조회 전용)
 
   const handleLoginEdit = () => {
     router.push(`/employee/info/${employeeId}/login`)
@@ -294,96 +239,112 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
                       </ul>
                     </td>
                   </tr>
-                  <tr>
-                    <th>주민등록등본</th>
-                    <td>
-                      <ul className="detail-data-list">
-                        <li className="detail-data-item">
-                          {employee?.residentRegistrationFileId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleFileDownload(employee.residentRegistrationFileId, '주민등록등본')}
-                              style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >
-                              {fileInfos.residentRegistration?.originalFileName || '주민등록등본'}
-                            </button>
-                          ) : (
-                            <span className="detail-data-text">-</span>
-                          )}
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>가족관계증명서</th>
-                    <td>
-                      <ul className="detail-data-list">
-                        <li className="detail-data-item">
-                          {employee?.familyRelationFileId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleFileDownload(employee.familyRelationFileId, '가족관계증명서')}
-                              style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >
-                              {fileInfos.familyRelation?.originalFileName || '가족관계증명서'}
-                            </button>
-                          ) : (
-                            <span className="detail-data-text">-</span>
-                          )}
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>건강진단결과서</th>
-                    <td>
-                      <ul className="detail-data-list">
-                        <li className="detail-data-item">
-                          {employee?.healthCheckFileId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleFileDownload(employee.healthCheckFileId, '건강진단결과서')}
-                              style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >
-                              {fileInfos.healthCheck?.originalFileName || '건강진단결과서'}
-                            </button>
-                          ) : (
-                            <span className="detail-data-text">-</span>
-                          )}
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>건강진단결과서 만료일</th>
-                    <td>
-                      <ul className="detail-data-list">
-                        <li className="detail-data-item">
-                          <span className="detail-data-text">{formatDate(employee?.healthCheckExpiryDate)}</span>
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>이력서</th>
-                    <td>
-                      <ul className="detail-data-list">
-                        <li className="detail-data-item">
-                          {employee?.resumeFileId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleFileDownload(employee.resumeFileId, '이력서')}
-                              style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            >
-                              {fileInfos.resume?.originalFileName || '이력서'}
-                            </button>
-                          ) : (
-                            <span className="detail-data-text">-</span>
-                          )}
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
+                  {memberId ? (
+                    <>
+                      <tr>
+                        <th>주민등록등본</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              {(() => {
+                                const doc = getDocument('RESIDENT_REGISTRATION')
+                                return doc ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFileDownload(doc.uploadFileId, '주민등록등본')}
+                                    style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                  >
+                                    {doc.fileName || '주민등록등본'}
+                                  </button>
+                                ) : (
+                                  <span className="detail-data-text">-</span>
+                                )
+                              })()}
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>가족관계증명서</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              {(() => {
+                                const doc = getDocument('FAMILY_RELATION')
+                                return doc ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFileDownload(doc.uploadFileId, '가족관계증명서')}
+                                    style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                  >
+                                    {doc.fileName || '가족관계증명서'}
+                                  </button>
+                                ) : (
+                                  <span className="detail-data-text">-</span>
+                                )
+                              })()}
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>건강진단결과서</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              {(() => {
+                                const doc = getDocument('HEALTH_CHECK')
+                                return doc ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFileDownload(doc.uploadFileId, '건강진단결과서')}
+                                    style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                  >
+                                    {doc.fileName || '건강진단결과서'}
+                                  </button>
+                                ) : (
+                                  <span className="detail-data-text">-</span>
+                                )
+                              })()}
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>건강진단결과서 만료일</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              <span className="detail-data-text">{formatDate(getDocument('HEALTH_CHECK')?.expiryDate)}</span>
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>이력서</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              {(() => {
+                                const doc = getDocument('RESUME')
+                                return doc ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFileDownload(doc.uploadFileId, '이력서')}
+                                    style={{ color: '#dc3545', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                  >
+                                    {doc.fileName || '이력서'}
+                                  </button>
+                                ) : (
+                                  <span className="detail-data-text">-</span>
+                                )
+                              })()}
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                    </>
+                  ) : null}
                   {employee?.resignationDate && (
                     <tr>
                       <th>퇴사일</th>
@@ -471,12 +432,11 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
         </AnimateHeight>
       </div>
 
-      {/* 경력 정보 */}
-      <div className={`slidebox-wrap ${careerInfoOpen ? '' : 'close'}`}>
+      {/* 경력 정보 - memberId가 있을 때만 표시 */}
+      {memberId && <div className={`slidebox-wrap ${careerInfoOpen ? '' : 'close'}`}>
         <div className="slidebox-header">
           <h2>경력 정보</h2>
           <div className="slidebox-btn-wrap">
-            <button className="slidebox-btn" onClick={handleCareerEdit}>수정</button>
             <button className="slidebox-btn arr" onClick={() => setCareerInfoOpen(!careerInfoOpen)}>
               <i className="arr-icon"></i>
             </button>
@@ -524,14 +484,13 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
             </div>
           </div>
         </AnimateHeight>
-      </div>
+      </div>}
 
-      {/* 자격증 정보 */}
-      <div className={`slidebox-wrap ${certInfoOpen ? '' : 'close'}`}>
+      {/* 자격증 정보 - memberId가 있을 때만 표시 */}
+      {memberId && <div className={`slidebox-wrap ${certInfoOpen ? '' : 'close'}`}>
         <div className="slidebox-header">
           <h2>자격증 정보</h2>
           <div className="slidebox-btn-wrap">
-            <button className="slidebox-btn" onClick={handleCertificateEdit}>수정</button>
             <button className="slidebox-btn arr" onClick={() => setCertInfoOpen(!certInfoOpen)}>
               <i className="arr-icon"></i>
             </button>
@@ -603,7 +562,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
             </div>
           </div>
         </AnimateHeight>
-      </div>
+      </div>}
 
       {/* 등록 및 수정 이력 */}
       <div className="content-wrap">
