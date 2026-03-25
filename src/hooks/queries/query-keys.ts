@@ -2,6 +2,7 @@ import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import type { CustomerSearchParams } from '@/types/customer'
+import type { EmployeeTodoListParams } from '@/types/employee-todo'
 
 export interface StoreListParams {
   office?: number
@@ -75,7 +76,7 @@ export interface EmployeeTodoSelectParams {
 export const employeeTodoKeys = {
   all: ['employee-todos'] as const,
   lists: () => [...employeeTodoKeys.all, 'list'] as const,
-  list: (params: unknown) => [...employeeTodoKeys.lists(), params ?? null] as const,
+  list: (params: EmployeeTodoListParams) => [...employeeTodoKeys.lists(), params] as const,
   details: () => [...employeeTodoKeys.all, 'detail'] as const,
   detail: (id: number) => [...employeeTodoKeys.details(), id] as const,
   employees: (params?: EmployeeTodoSelectParams) => [...employeeTodoKeys.all, 'employees', params ?? null] as const,

@@ -47,21 +47,23 @@ export default function EmployeeTodoManage() {
     setAppliedFilters(autoFilters)
   }
 
-  // API 파라미터 변환
-  const queryParams: EmployeeTodoListParams = {
-    headOfficeId: appliedFilters.officeId ?? 0,
-    franchiseId: appliedFilters.franchiseId ?? undefined,
-    storeId: appliedFilters.storeId ?? undefined,
-    employeeName: appliedFilters.employeeName || undefined,
-    isCompleted: appliedFilters.isCompleted === 'ALL' ? undefined : appliedFilters.isCompleted === 'true',
-    startDate: appliedFilters.startDate || undefined,
-    endDate: appliedFilters.endDate || undefined,
-    content: appliedFilters.content || undefined,
-    page,
-    size: pageSize,
-  }
-
+  // API 파라미터 변환 — officeId가 있을 때만 유효한 queryParams 생성
   const canFetch = appliedFilters.officeId != null
+  const queryParams: EmployeeTodoListParams | null = canFetch
+    ? {
+        headOfficeId: appliedFilters.officeId,
+        franchiseId: appliedFilters.franchiseId ?? undefined,
+        storeId: appliedFilters.storeId ?? undefined,
+        employeeName: appliedFilters.employeeName || undefined,
+        isCompleted: appliedFilters.isCompleted === 'ALL' ? undefined : appliedFilters.isCompleted === 'true',
+        startDate: appliedFilters.startDate || undefined,
+        endDate: appliedFilters.endDate || undefined,
+        content: appliedFilters.content || undefined,
+        page,
+        size: pageSize,
+      }
+    : null
+
   const { data: response, isFetching: loading, error: queryError } = useEmployeeTodoList(queryParams, canFetch)
   const errorMessage = useQueryError(queryError)
   const { mutateAsync: deleteTodos } = useDeleteEmployeeTodos()

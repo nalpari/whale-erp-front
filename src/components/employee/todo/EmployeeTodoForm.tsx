@@ -82,14 +82,13 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
         endDate: detail.endDate ? new Date(detail.endDate) : null,
       }
     }
-    const autoForm = { ...DEFAULT_FORM }
-    if (bpTree.length === 1) {
-      autoForm.officeId = bpTree[0].id
-      if (isFranchiseAccount && bpTree[0].franchises.length >= 1) {
-        autoForm.franchiseId = bpTree[0].franchises[0].id
-      }
-    }
-    return autoForm
+    // bpTree가 단일 본사일 때만 자동 세팅, 그 외에는 DEFAULT_FORM 참조를 그대로 반환하여 안정성 확보
+    if (bpTree.length !== 1) return DEFAULT_FORM
+    const officeId = bpTree[0].id
+    const franchiseId = isFranchiseAccount && bpTree[0].franchises.length >= 1
+      ? bpTree[0].franchises[0].id
+      : null
+    return { ...DEFAULT_FORM, officeId, franchiseId }
   }, [detail, isFranchiseAccount, bpTree])
 
   const [form, setForm] = useState<FormState>(initialForm)
@@ -112,7 +111,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
   }, [bpTree, form.officeId])
   const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
-    form.officeId, form.franchiseId, !isEditMode,
+    form.officeId, form.franchiseId, form.officeId != null,
   )
   const storeOptions: SelectOption[] = useMemo(
     () => storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
@@ -139,7 +138,8 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
 
   const { mutateAsync: createTodo, isPending: creating } = useCreateEmployeeTodo()
   const { mutateAsync: updateTodo, isPending: updating } = useUpdateEmployeeTodo()
-  const isSaving = creating || updating
+  const [isConfirming, setIsConfirming] = useState(false)
+  const isSaving = creating || updating || isConfirming
 
   const toYmd = (date: Date | null) => date ? formatDateYmd(date, '') : ''
 
@@ -159,9 +159,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     }
     setFieldErrors({})
 
-    const confirmed = await confirm('저장하시겠습니까?')
-    if (!confirmed) return
-
+    // confirm 대기 전 body를 미리 생성하여 race condition 방지
     const body: EmployeeTodoCreateRequest = {
       headOfficeId: form.officeId!,
       franchiseId: form.franchiseId ?? undefined,
@@ -172,6 +170,11 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
       startDate: toYmd(form.startDate),
       endDate: form.hasPeriod ? toYmd(form.endDate) : undefined,
     }
+
+    setIsConfirming(true)
+    const confirmed = await confirm('저장하시겠습니까?')
+    setIsConfirming(false)
+    if (!confirmed) return
 
     try {
       if (isEditMode) {
@@ -349,7 +352,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                       </div>
                     </td>
                   </tr>
-                  {/* 행3: 할 일 내용 */}
+                  {/* 행4: 할 일 내용 */}
                   <tr>
                     <th>할 일 내용 <span className="red">*</span></th>
                     <td>
@@ -365,7 +368,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                       />
                     </td>
                   </tr>
-                  {/* 행4: 기간 */}
+                  {/* 행5: 기간 */}
                   <tr>
                     <th>기간 <span className="red">*</span></th>
                     <td>

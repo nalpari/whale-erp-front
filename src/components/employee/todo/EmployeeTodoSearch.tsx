@@ -91,7 +91,7 @@ export default function EmployeeTodoSearch({
       franchiseId: filters.franchiseId ?? undefined,
       storeId: filters.storeId ?? undefined,
     },
-    true,
+    filters.officeId != null,
   )
   const employeeOptions: SelectOption[] = useMemo(
     () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: e.employeeName })),

@@ -37,13 +37,13 @@ export const useEmployeeTodoSelectList = (
 
 // === 할 일 목록 ===
 
-export const useEmployeeTodoList = (params: EmployeeTodoListParams, enabled = true) => {
+export const useEmployeeTodoList = (params: EmployeeTodoListParams | null, enabled = true) => {
   return useQuery({
-    queryKey: employeeTodoKeys.list(params),
+    queryKey: employeeTodoKeys.list(params ?? { headOfficeId: 0, page: 0, size: 0 }),
     queryFn: async () => {
       const { data } = await api.get<ApiResponse<EmployeeTodoListResponse>>(
         '/api/v1/employee-todos',
-        { params },
+        { params: params! },
       )
       return data.data
     },
