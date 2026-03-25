@@ -83,11 +83,11 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
       }
     }
     const autoForm = { ...DEFAULT_FORM }
-    if (isHeadOfficeAccount && bpTree.length === 1) {
+    if (bpTree.length === 1) {
       autoForm.officeId = bpTree[0].id
-    } else if (isFranchiseAccount && bpTree.length === 1 && bpTree[0].franchises.length === 1) {
-      autoForm.officeId = bpTree[0].id
-      autoForm.franchiseId = bpTree[0].franchises[0].id
+      if (isFranchiseAccount && bpTree[0].franchises.length >= 1) {
+        autoForm.franchiseId = bpTree[0].franchises[0].id
+      }
     }
     return autoForm
   }, [detail, isHeadOfficeAccount, isFranchiseAccount, bpTree])
@@ -237,7 +237,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                     <th>{isFranchiseAccount ? '가맹점' : isHeadOfficeAccount ? '본사' : '본사 / 가맹점'}</th>
                     <td>
                       <div className="filed-flx">
-                        {/* 본사: 가맹점 계정이면 숨김 */}
+                        {/* 본사: 가맹점 계정이면 숨김 (데이터는 form.officeId로 유지) */}
                         {!isFranchiseAccount && (
                           <div className="mx-500">
                             <SearchSelect
@@ -259,7 +259,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                             />
                           </div>
                         )}
-                        {/* 가맹점: 본사 계정이면 숨김 */}
+                        {/* 가맹점: 본사 계정이면 숨김 (데이터는 form.franchiseId로 유지) */}
                         {!isHeadOfficeAccount && (
                           <div className="mx-500">
                             <SearchSelect
@@ -312,28 +312,40 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                   {/* 행2: 직원명 */}
                   <tr>
                     <th>직원명 <span className="red">*</span></th>
-                    <td >
+                    <td>
                       <div className="filed-flx">
                         <div className="mx-500">
-                          <SearchSelect
-                            value={form.employeeInfoId ? employeeOptions.find((opt) => opt.value === String(form.employeeInfoId)) ?? null : null}
-                            options={employeeOptions}
-                            placeholder={empLoading ? '직원 조회중...' : '직원 선택'}
-                            isDisabled={empLoading}
-                            isSearchable
-                            isClearable
-                            error={!!fieldErrors.employeeInfoId}
-                            onChange={(option) => {
-                              setForm((prev) => ({
-                                ...prev,
-                                employeeInfoId: option ? Number(option.value) : null,
-                              }))
-                              if (option) setFieldErrors((prev) => { const { employeeInfoId: _, ...rest } = prev; return rest })
-                            }}
-                          />
-                          {fieldErrors.employeeInfoId && <div className="warning-txt mt5" role="alert">* {fieldErrors.employeeInfoId}</div>}
+                          {isEditMode ? (
+                            <SearchSelect
+                              value={detail ? { value: String(detail.employeeInfoId), label: detail.employeeName } : null}
+                              options={[]}
+                              isDisabled
+                              isSearchable={false}
+                              isClearable={false}
+                            />
+                          ) : (
+                            <>
+                              <SearchSelect
+                                value={form.employeeInfoId ? employeeOptions.find((opt) => opt.value === String(form.employeeInfoId)) ?? null : null}
+                                options={employeeOptions}
+                                placeholder={empLoading ? '직원 조회중...' : '직원 선택'}
+                                isDisabled={empLoading}
+                                isSearchable
+                                isClearable
+                                error={!!fieldErrors.employeeInfoId}
+                                onChange={(option) => {
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    employeeInfoId: option ? Number(option.value) : null,
+                                  }))
+                                  if (option) setFieldErrors((prev) => { const { employeeInfoId: _, ...rest } = prev; return rest })
+                                }}
+                              />
+                              {fieldErrors.employeeInfoId && <div className="warning-txt mt5" role="alert">* {fieldErrors.employeeInfoId}</div>}
+                            </>
+                          )}
                         </div>
-                        <span className="form-helper">{selectedEmployee?.employeeNumber ?? ''}</span>
+                        <span className="form-helper">{isEditMode ? (detail?.employeeNumber ?? '') : (selectedEmployee?.employeeNumber ?? '')}</span>
                       </div>
                     </td>
                   </tr>

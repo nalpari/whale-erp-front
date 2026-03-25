@@ -38,11 +38,13 @@ export default function EmployeeTodoManage() {
 
   const handleAutoSelect = (value: OfficeFranchiseStoreValue) => {
     if (appliedFilters.officeId != null) return
-    setAppliedFilters({
+    const autoFilters = {
       ...DEFAULT_TODO_FILTERS,
       officeId: value.head_office,
       franchiseId: value.franchise,
-    })
+    }
+    setFilters(autoFilters)
+    setAppliedFilters(autoFilters)
   }
 
   // API 파라미터 변환
