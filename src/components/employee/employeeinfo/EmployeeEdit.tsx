@@ -278,9 +278,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
   const contractClassSelectOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '선택' },
-    { value: 'regular', label: '정직원' },
-    { value: 'contract', label: '계약직' },
-    { value: 'parttime', label: '파트타이머' }
+    { value: 'CNTCF_001', label: '정직원' },
+    { value: 'CNTCF_002', label: '계약직' },
+    { value: 'CNTCF_003', label: '수습' },
+    { value: 'CNTCF_004', label: '파트타이머' }
   ], [])
 
   const rankSelectOptions: SelectOption[] = useMemo(() => {
