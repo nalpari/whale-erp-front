@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
 import { useEmployeeTodoList, useDeleteEmployeeTodos } from '@/hooks/queries'
 import EmployeeTodoSearch, {
   type EmployeeTodoSearchFilters,
@@ -21,8 +22,16 @@ export default function EmployeeTodoManage() {
   const router = useRouter()
   const { alert, confirm } = useAlert()
 
-  const [filters, setFilters] = useState<EmployeeTodoSearchFilters>(DEFAULT_TODO_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<EmployeeTodoSearchFilters>(DEFAULT_TODO_FILTERS)
+  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<EmployeeTodoSearchFilters>(
+    'employee-todo-search',
+  )
+
+  const [filters, setFilters] = useState<EmployeeTodoSearchFilters>(savedFilters ?? DEFAULT_TODO_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<EmployeeTodoSearchFilters>(savedFilters ?? DEFAULT_TODO_FILTERS)
+  const setAppliedFilters = useCallback(
+    (next: EmployeeTodoSearchFilters) => { _setAppliedFilters(next); saveFilters(next) },
+    [saveFilters],
+  )
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
@@ -67,7 +76,8 @@ export default function EmployeeTodoManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_TODO_FILTERS)
-    setAppliedFilters(DEFAULT_TODO_FILTERS)
+    _setAppliedFilters(DEFAULT_TODO_FILTERS)
+    clearFilters()
     setPage(0)
     setSelectedIds(new Set())
   }

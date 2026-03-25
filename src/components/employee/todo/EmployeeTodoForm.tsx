@@ -56,60 +56,51 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const isEditMode = todoId != null
   const { alert, confirm } = useAlert()
 
-  // 상세 데이터 조회 (수정 모드)
-  const { data: detail, isPending: detailLoading, error: detailError } = useEmployeeTodoDetail(todoId ?? null)
-  const detailErrorMessage = useQueryError(detailError)
-
-  // 폼 초기화 (detail 로드 시)
-  const initialForm = useMemo<FormState>(() => {
-    if (!detail) return DEFAULT_FORM
-    return {
-      officeId: detail.headOfficeId,
-      franchiseId: detail.franchiseId,
-      storeId: detail.storeId,
-      employeeInfoId: detail.employeeInfoId,
-      content: detail.content,
-      hasPeriod: detail.hasPeriod,
-      startDate: detail.startDate ? new Date(detail.startDate) : null,
-      endDate: detail.endDate ? new Date(detail.endDate) : null,
-    }
-  }, [detail])
-
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM)
-  const [formInitialized, setFormInitialized] = useState(false)
-  const [slideboxOpen, setSlideboxOpen] = useState(true)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  // detail이 로드되면 폼 초기화
-  if (isEditMode && detail && !formInitialized) {
-    setForm(initialForm)
-    setFormInitialized(true)
-  }
-
   // 계정 유형 판단
   const ownerCode = useAuthStore((s) => s.ownerCode)
   const isHeadOfficeAccount = ownerCode === OWNER_CODE.HEAD_OFFICE
   const isFranchiseAccount = ownerCode === OWNER_CODE.FRANCHISE
 
-  // BP 트리 / 점포 옵션
+  // BP 트리 / 상세 데이터 조회
   const { data: bpTree = [] } = useBpHeadOfficeTree()
+  const { data: detail, isPending: detailLoading, error: detailError } = useEmployeeTodoDetail(todoId ?? null)
+  const detailErrorMessage = useQueryError(detailError)
 
-  // 등록 모드: 본사/가맹점 계정이면 bpTree 로드 후 자동 세팅
-  const [autoSelectDone, setAutoSelectDone] = useState(false)
-  if (!isEditMode && !autoSelectDone && bpTree.length > 0) {
-    if (isHeadOfficeAccount && bpTree.length === 1) {
-      setForm((prev) => ({ ...prev, officeId: bpTree[0].id }))
-      setAutoSelectDone(true)
-    } else if (isFranchiseAccount && bpTree.length === 1 && bpTree[0].franchises.length === 1) {
-      setForm((prev) => ({
-        ...prev,
-        officeId: bpTree[0].id,
-        franchiseId: bpTree[0].franchises[0].id,
-      }))
-      setAutoSelectDone(true)
-    } else if (bpTree.length >= 1) {
-      setAutoSelectDone(true)
+  // 폼 초기값 계산 (파생 값 — setState 없이)
+  // - 수정 모드: detail 기반 (key={todoId} 리마운트로 보장)
+  // - 등록 모드: 계정 유형별 본사/가맹점 자동 세팅
+  const initialForm = useMemo<FormState>(() => {
+    if (detail) {
+      return {
+        officeId: detail.headOfficeId,
+        franchiseId: detail.franchiseId,
+        storeId: detail.storeId,
+        employeeInfoId: detail.employeeInfoId,
+        content: detail.content,
+        hasPeriod: detail.hasPeriod,
+        startDate: detail.startDate ? new Date(detail.startDate) : null,
+        endDate: detail.endDate ? new Date(detail.endDate) : null,
+      }
     }
+    const autoForm = { ...DEFAULT_FORM }
+    if (isHeadOfficeAccount && bpTree.length === 1) {
+      autoForm.officeId = bpTree[0].id
+    } else if (isFranchiseAccount && bpTree.length === 1 && bpTree[0].franchises.length === 1) {
+      autoForm.officeId = bpTree[0].id
+      autoForm.franchiseId = bpTree[0].franchises[0].id
+    }
+    return autoForm
+  }, [detail, isHeadOfficeAccount, isFranchiseAccount, bpTree])
+
+  const [form, setForm] = useState<FormState>(initialForm)
+  const [slideboxOpen, setSlideboxOpen] = useState(true)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // initialForm이 변경되면 form 동기화 (bpTree 로드 완료 등)
+  const [prevInitialForm, setPrevInitialForm] = useState(initialForm)
+  if (initialForm !== prevInitialForm) {
+    setPrevInitialForm(initialForm)
+    setForm(initialForm)
   }
   const officeOptions: SelectOption[] = useMemo(
     () => bpTree.map((o) => ({ value: String(o.id), label: o.name })),
@@ -157,6 +148,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const handleSave = async () => {
     // 필수값 검증
     const errors: Record<string, string> = {}
+    if (!form.officeId) errors.officeId = ERROR_MSG
     if (!form.employeeInfoId) errors.employeeInfoId = ERROR_MSG
     if (!form.content.trim()) errors.content = ERROR_MSG
     if (!form.startDate) errors.startDate = ERROR_MSG
