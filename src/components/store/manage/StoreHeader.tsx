@@ -54,6 +54,12 @@ export default function StoreHeader() {
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push('/store/info')
+  }
+
   // 요일별 운영시간을 Map으로 정리(평일은 대표 1개만 유지)
   const operatingHours = useMemo(() => {
     const map = new Map<OperatingHourInfo['dayType'], OperatingHourInfo>()
@@ -104,7 +110,7 @@ export default function StoreHeader() {
             <div className="slidebox-header">
               <h2>점포 Header 정보</h2>
               <div className="slidebox-btn-wrap">
-                <button className="slidebox-btn" onClick={() => router.push(`/store/info`)}>
+                <button className="slidebox-btn" onClick={handleGoBack}>
                   취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>

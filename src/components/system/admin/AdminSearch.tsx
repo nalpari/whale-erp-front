@@ -12,12 +12,14 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 interface AdminSearchProps {
   params: AdminSearchParams
   onSearch: (params: AdminSearchParams) => void
+  onReset?: () => void
   resultCount?: number
 }
 
 export default function AdminSearch({
   params,
   onSearch,
+  onReset,
   resultCount = 0,
 }: AdminSearchProps) {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -95,6 +97,7 @@ export default function AdminSearch({
     setLocalParams({})
     setStartDate(null)
     setEndDate(null)
+    onReset?.()
   }
 
   const handleAdminChange = (option: { value: string; label: string } | null) => {

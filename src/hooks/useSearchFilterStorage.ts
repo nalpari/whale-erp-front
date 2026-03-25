@@ -47,7 +47,8 @@ export function useSearchFilterStorage<T>(
         for (const field of dateFields) {
           const value = (parsed as Record<string, unknown>)[field as string]
           if (typeof value === 'string') {
-            ;(parsed as Record<string, unknown>)[field as string] = new Date(value)
+            const parsedDate = new Date(value)
+            ;(parsed as Record<string, unknown>)[field as string] = !Number.isNaN(parsedDate.getTime()) ? parsedDate : null
           }
           // null은 그대로 유지
         }

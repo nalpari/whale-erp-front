@@ -20,7 +20,7 @@ function AdminContent() {
   const router = useRouter()
   const urlSearchParams = useSearchParams()
 
-  const { savedFilters, saveFilters } = useSearchFilterStorage<AdminSearchParams>('admin-search')
+  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<AdminSearchParams>('admin-search')
   const initialAuthorityId = urlSearchParams.get('authorityId')
   const [searchParams, _setSearchParams] = useState<AdminSearchParams>(() => {
     if (initialAuthorityId) {
@@ -66,6 +66,7 @@ function AdminContent() {
       <AdminSearch
         params={searchParams}
         onSearch={handleSearch}
+        onReset={clearFilters}
         resultCount={data?.totalElements || 0}
       />
       <AdminList

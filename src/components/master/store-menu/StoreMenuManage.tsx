@@ -101,7 +101,9 @@ export default function StoreMenuManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
+    _setAppliedFilters(DEFAULT_FILTERS)
     clearFilters()
+    setPage(0)
   }
 
   const handleRemoveFilter = (key: string) => {
