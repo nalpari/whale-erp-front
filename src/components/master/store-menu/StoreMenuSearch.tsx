@@ -75,7 +75,7 @@ export default function StoreMenuSearch({
   )
 
   const handleMultiOffice = (isMulti: boolean) => {
-    if (isMulti) {
+    if (isMulti && appliedFilters.officeId == null) {
       setSearchOpen(true)
     }
   }

@@ -79,7 +79,7 @@ export default function WorkScheduleSearch({
   );
 
   const handleMultiOffice = (isMulti: boolean) => {
-    if (isMulti) {
+    if (isMulti && !initialQuery?.officeId) {
       setSearchOpen(true);
     }
   };
