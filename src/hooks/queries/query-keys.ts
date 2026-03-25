@@ -66,6 +66,17 @@ export const storeScheduleKeys = {
   list: (params?: unknown) => [...storeScheduleKeys.lists(), params ?? null] as const,
 }
 
+export interface EmployeeTodoSelectParams {
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
+}
+
+export const employeeTodoKeys = {
+  all: ['employee-todos'] as const,
+  employees: (params?: EmployeeTodoSelectParams) => [...employeeTodoKeys.all, 'employees', params ?? null] as const,
+}
+
 export const employeeKeys = {
   all: ['employees'] as const,
   lists: () => [...employeeKeys.all, 'list'] as const,

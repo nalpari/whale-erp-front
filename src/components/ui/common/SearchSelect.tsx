@@ -7,6 +7,7 @@ import Select, {
   type StylesConfig,
   type GroupBase,
 } from 'react-select'
+import CreatableSelect from 'react-select/creatable'
 
 export interface SelectOption {
   value: string
@@ -38,6 +39,10 @@ interface SearchSelectBaseProps {
   className?: string
   /** 에러 상태 여부 (빨간 테두리 표시) */
   error?: boolean
+  /** 자유 입력 허용 — 옵션에 없는 값도 직접 입력하여 선택 가능 */
+  creatable?: boolean
+  /** creatable 모드에서 새 옵션 생성 시 표시 텍스트 (기본: '"{inputValue}" 로 검색') */
+  formatCreateLabel?: (inputValue: string) => string
 }
 
 interface SingleSelectProps extends SearchSelectBaseProps {
@@ -143,6 +148,8 @@ export default function SearchSelect(props: SearchSelectProps) {
     fullWidth = false,
     className = '',
     error = false,
+    creatable = false,
+    formatCreateLabel = (inputValue: string) => `"${inputValue}" 로 검색`,
   } = props
 
   const instanceId = useId()
@@ -187,22 +194,42 @@ export default function SearchSelect(props: SearchSelectProps) {
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
-      <Select<SelectOption, boolean>
-        instanceId={instanceId}
-        inputId={instanceId}
-        options={options}
-        value={currentValue}
-        onChange={handleChange}
-        placeholder={placeholder}
-        isDisabled={isDisabled}
-        isLoading={isLoading}
-        isClearable={isClearable}
-        isSearchable={isSearchable}
-        isMulti={props.isMulti}
-        noOptionsMessage={() => noOptionsMessage}
-        styles={getCustomStyles(error)}
-        classNamePrefix="search-select"
-      />
+      {creatable ? (
+        <CreatableSelect<SelectOption, boolean>
+          instanceId={instanceId}
+          inputId={instanceId}
+          options={options}
+          value={currentValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          isDisabled={isDisabled}
+          isLoading={isLoading}
+          isClearable={isClearable}
+          isSearchable={isSearchable}
+          isMulti={props.isMulti}
+          noOptionsMessage={() => noOptionsMessage}
+          formatCreateLabel={formatCreateLabel}
+          styles={getCustomStyles(error)}
+          classNamePrefix="search-select"
+        />
+      ) : (
+        <Select<SelectOption, boolean>
+          instanceId={instanceId}
+          inputId={instanceId}
+          options={options}
+          value={currentValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          isDisabled={isDisabled}
+          isLoading={isLoading}
+          isClearable={isClearable}
+          isSearchable={isSearchable}
+          isMulti={props.isMulti}
+          noOptionsMessage={() => noOptionsMessage}
+          styles={getCustomStyles(error)}
+          classNamePrefix="search-select"
+        />
+      )}
     </div>
   )
 }
