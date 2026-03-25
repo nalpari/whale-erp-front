@@ -138,18 +138,18 @@ export const useEmployeeDetail = (id?: number | null) => {
   })
 }
 
-export const useEmployeeCareers = (employeeId: number, enabled = true) => {
+export const useEmployeeCareers = (memberId: number, enabled = true) => {
   return useQuery({
-    queryKey: employeeKeys.careers(employeeId),
-    queryFn: () => getEmployeeCareers(employeeId),
+    queryKey: employeeKeys.careers(memberId),
+    queryFn: () => getEmployeeCareers(memberId),
     enabled,
   })
 }
 
-export const useEmployeeCertificates = (employeeId: number, enabled = true) => {
+export const useEmployeeCertificates = (memberId: number, enabled = true) => {
   return useQuery({
-    queryKey: employeeKeys.certificates(employeeId),
-    queryFn: () => getEmployeeCertificates(employeeId),
+    queryKey: employeeKeys.certificates(memberId),
+    queryFn: () => getEmployeeCertificates(memberId),
     enabled,
   })
 }

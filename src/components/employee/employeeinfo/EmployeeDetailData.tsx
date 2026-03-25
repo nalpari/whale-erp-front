@@ -13,6 +13,7 @@ import {
 import { getDownloadUrl } from '@/lib/api/file'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
+import type { MemberDocumentType } from '@/types/employee'
 
 interface EmployeeDetailDataProps {
   employeeId?: number
@@ -37,7 +38,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const memberId = employee?.memberId ?? null
   const { data: careersData } = useEmployeeCareers(memberId ?? 0, !!memberId)
   const { data: certificatesData } = useEmployeeCertificates(memberId ?? 0, !!memberId)
-  const { data: documentsData } = useMemberDocuments(memberId)
+  const { data: documentsData, error: documentsError } = useMemberDocuments(memberId)
   const deleteEmployeeMutation = useDeleteEmployee()
   const sendEmailMutation = useSendEmployeeRegistrationEmail()
 
@@ -46,9 +47,10 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
   const documents = documentsData ?? []
   const loading = isEmployeeLoading
   const errorMessage = useQueryError(employeeError, '직원 정보를 불러오는데 실패했습니다.')
+  const documentsErrorMessage = useQueryError(documentsError, '서류 정보를 불러오는데 실패했습니다.')
 
   // 문서 타입으로 문서 찾기 헬퍼
-  const getDocument = (documentType: string) =>
+  const getDocument = (documentType: MemberDocumentType) =>
     documents.find(doc => doc.documentType === documentType) ?? null
 
   // 날짜 포맷 함수
@@ -241,6 +243,12 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
                   </tr>
                   {memberId ? (
                     <>
+                      {documentsErrorMessage && (
+                        <tr>
+                          <th>서류</th>
+                          <td><span style={{ color: '#dc3545', fontSize: '13px' }}>{documentsErrorMessage}</span></td>
+                        </tr>
+                      )}
                       <tr>
                         <th>주민등록등본</th>
                         <td>

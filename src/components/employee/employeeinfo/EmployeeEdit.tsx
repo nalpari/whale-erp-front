@@ -60,7 +60,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
   // TanStack Query 훅들
   const { data: employeeData, isPending: isEmployeeLoading } = useEmployeeDetail(employeeId)
   const memberId = employeeData?.memberId ?? null
-  const { data: documentsData } = useMemberDocuments(memberId)
+  const { data: documentsData, error: documentsError } = useMemberDocuments(memberId)
   const checkEmployeeNumberMutation = useCheckEmployeeNumber()
   const updateEmployeeMutation = useUpdateEmployee()
 
@@ -939,6 +939,12 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                 {memberId ? (
                   <>
                     {/* 서류 영역 - 읽기 전용 (직원 앱에서만 등록/수정 가능) */}
+                    {documentsError && (
+                      <tr>
+                        <th>서류</th>
+                        <td><span style={{ color: '#dc3545', fontSize: '13px' }}>서류 정보를 불러오는데 실패했습니다.</span></td>
+                      </tr>
+                    )}
                     {[
                       { label: '주민등록등본', type: 'RESIDENT_REGISTRATION' },
                       { label: '가족관계증명서', type: 'FAMILY_RELATION' },

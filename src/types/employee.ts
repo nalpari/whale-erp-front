@@ -318,10 +318,13 @@ export interface UpdateEmployeeInfoRequest {
   iconType?: number | null
 }
 
+// 회원 문서 타입
+export type MemberDocumentType = 'RESIDENT_REGISTRATION' | 'FAMILY_RELATION' | 'HEALTH_CHECK' | 'RESUME'
+
 // 회원 문서 (주민등록등본, 가족관계증명서, 건강진단결과서, 이력서)
 export interface MemberDocument {
   id: number
-  documentType: string
+  documentType: MemberDocumentType
   uploadFileId: number
   fileName: string | null
   fileSize: number | null
