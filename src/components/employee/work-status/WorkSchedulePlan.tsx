@@ -248,7 +248,7 @@ export default function WorkSchedulePlan() {
   const [plans, setPlans] = useState<DayPlan[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, WorkerPlan[]>>({});
-  const [showStoreError, setShowStoreError] = useState(!searchParams.get('storeId'));
+  const [showStoreError, setShowStoreError] = useState(false);
   const [employeeModal, setEmployeeModal] = useState<{
     mode: 'add' | 'replace';
     dayIndex: number;
@@ -631,7 +631,7 @@ export default function WorkSchedulePlan() {
                   router.push(`/employee/schedule/view${toQueryString(buildListNavParams())}`);
                 }}
               >
-                목록
+                취소
               </button>
               <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
                 저장

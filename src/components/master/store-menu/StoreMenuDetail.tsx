@@ -87,9 +87,10 @@ export default function StoreMenuDetail() {
   const marketingOptions = marketingChildren.map((c) => ({ value: c.code, label: c.name }))
   const temperatureOptions = temperatureChildren.map((c) => ({ value: c.code, label: c.name }))
 
-  const handleGoBack = () => {
-    if (menuId == null) return
-    router.push(`/master/menu/store/header?id=${menuId}`)
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push(`/master/menu/store`)
   }
 
   const handleGoList = () => {
@@ -190,7 +191,7 @@ export default function StoreMenuDetail() {
           <div className="slidebox-header">
             <h2>메뉴 정보</h2>
             <div className="slidebox-btn-wrap">
-              <button className="slidebox-btn" type="button" onClick={handleGoBack}>{`<`}</button>
+              <button className="slidebox-btn" type="button" onClick={handleGoBack}>취소</button>
               <button className="slidebox-btn" type="button" onClick={handleSave}>저장</button>
               <button className="slidebox-btn arr" onClick={() => setMenuInfoOpen(!menuInfoOpen)}>
                 <i className="arr-icon"></i>

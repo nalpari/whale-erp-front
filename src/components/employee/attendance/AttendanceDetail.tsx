@@ -130,7 +130,7 @@ export default function AttendanceDetail() {
             type="button"
             onClick={handleBackToList}
           >
-            목록
+            취소
           </button>
         </div>
         <div className="contents-body">
