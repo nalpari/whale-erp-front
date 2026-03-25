@@ -94,6 +94,8 @@ const RATE_PLANS: RatePlanItem[] = [
 ]
 
 export default function RatePlan() {
+  const [hoveredDisabledSubscribePlanId, setHoveredDisabledSubscribePlanId] =
+    useState<string | null>(null)
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
   const { data: plansData } = usePlansList({ size: 100 })
 
@@ -103,25 +105,16 @@ export default function RatePlan() {
     return matched ? PLAN_TYPE_CODE_MAP[matched.planTypeCode] ?? null : null
   }, [subscriptionPlan, plansData?.content])
 
-  const [userSelectedPlanId, setUserSelectedPlanId] = useState<string | null>(null)
-  const selectedPlanId = userSelectedPlanId ?? subscribedPlanId
-
   return (
     <div className="content-wrap">
       <div className="rate-plan-wrap">
-        {RATE_PLANS.map((plan) => (
+        {RATE_PLANS.map((plan) => {
+          const showDisabledSubscribe =
+            subscribedPlanId !== plan.id && plan.id !== 'free'
+          return (
           <div
             key={plan.id}
-            role="button"
-            tabIndex={0}
-            className={`rate-plan-item${selectedPlanId === plan.id ? ' use' : ''}`}
-            onClick={() => setUserSelectedPlanId(plan.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setUserSelectedPlanId(plan.id)
-              }
-            }}
+            className={`rate-plan-item${subscribedPlanId === plan.id ? ' use' : ''}`}
           >
             <div className="rate-plan-header">
               <div className="plan-grade">{plan.grade}</div>
@@ -135,13 +128,23 @@ export default function RatePlan() {
                 </span>
                 <span>/월</span>
               </div>
-              <div className="plan-btn-wrap">
+              <div
+                className="plan-btn-wrap"
+                onMouseEnter={() => {
+                  if (showDisabledSubscribe)
+                    setHoveredDisabledSubscribePlanId(plan.id)
+                }}
+                onMouseLeave={() => {
+                  if (showDisabledSubscribe)
+                    setHoveredDisabledSubscribePlanId(null)
+                }}
+              >
                 {subscribedPlanId === plan.id ? (
                   <div className="service-btn block use-plan">이용중</div>
                 ) : (
                   <button
                     type="button"
-                    className="service-btn block"
+                    className={`service-btn block${showDisabledSubscribe && hoveredDisabledSubscribePlanId === plan.id ? ' use-plan' : ''}`}
                     disabled={plan.id !== 'free'}
                   >
                     구독 하기
@@ -177,7 +180,8 @@ export default function RatePlan() {
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
