@@ -2,6 +2,8 @@ import { useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
 
 interface ChangePasswordRequest {
+  /** 현재 비밀번호 — 마이페이지 변경 시 필수, 초기 로그인 강제 변경 시 생략 */
+  currentPassword?: string
   newPassword: string
 }
 

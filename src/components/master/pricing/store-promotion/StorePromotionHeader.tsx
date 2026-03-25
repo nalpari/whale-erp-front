@@ -31,6 +31,12 @@ export default function StorePromotionHeader() {
   const { alert, confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
+  const handleGoBack = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
+    router.push('/master/pricing/store-promotion')
+  }
+
   const handleDelete = async () => {
     if (promotionId == null) return
     const confirmed = await confirm('삭제하시겠습니까?')
@@ -58,8 +64,8 @@ export default function StorePromotionHeader() {
             <div className="slidebox-header">
               <h2>프로모션 가격 정보 관리</h2>
               <div className="slidebox-btn-wrap">
-                <button className="slidebox-btn" onClick={() => router.push('/master/pricing/store-promotion')}>
-                  목록
+                <button className="slidebox-btn" onClick={handleGoBack}>
+                  취소
                 </button>
                 <button className="slidebox-btn" onClick={handleDelete}>
                   삭제

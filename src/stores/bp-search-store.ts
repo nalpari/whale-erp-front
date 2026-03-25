@@ -36,7 +36,7 @@ export const useBpSearchStore = create<BpSearchState>()((set, get) => ({
   appliedFilters: { ...INITIAL_FILTERS },
   page: 0,
   pageSize: 50,
-  searchEnabled: false,
+  searchEnabled: true,
 
   setFilters: (updates) =>
     set((state) => ({ filters: { ...state.filters, ...updates } })),

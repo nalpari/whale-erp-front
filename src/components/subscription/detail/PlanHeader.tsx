@@ -185,10 +185,10 @@ function PlanHeaderForm({ plan, planFeatures, onCancel, onSave, isSaving }: Plan
             <div className="slidebox-header">
                 <h2>{plan.planTypeName}</h2>
                 <div className="slidebox-btn-wrap">
-                    <button className="slidebox-btn" onClick={onCancel} disabled={isSaving}>취소</button>
                     <button className="slidebox-btn" onClick={handleSave} disabled={isSaving}>
                         {isSaving ? '저장 중...' : '저장'}
                     </button>
+                    <button className="slidebox-btn" onClick={onCancel} disabled={isSaving}>취소</button>
                     <button className="slidebox-btn arr" onClick={() => setSlideboxOpen(!slideboxOpen)}>
                         <i className="arr-icon"></i>
                     </button>

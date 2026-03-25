@@ -9,6 +9,7 @@ import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useHolidayList } from '@/hooks/queries'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -24,8 +25,13 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 export default function HolidayInfo() {
   const router = useRouter()
   const [isNavigating, startTransition] = useTransition()
-  const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
+  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<HolidaySearchFilters>(
+    'holiday-search',
+  )
+
+  const [filters, setFilters] = useState<HolidaySearchFilters>(savedFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<HolidaySearchFilters>(savedFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = useCallback((next: HolidaySearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -50,12 +56,13 @@ export default function HolidayInfo() {
   const handleSearch = useCallback(() => {
     setAppliedFilters(filters)
     setPage(0)
-  }, [filters])
+  }, [filters, setAppliedFilters])
 
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (appliedFilters 변경 안 함)
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS)
-  }, [])
+    clearFilters()
+  }, [clearFilters])
 
   const handleRemoveFilter = useCallback((key: string) => {
     const resetMap: Record<string, Partial<HolidaySearchFilters>> = {
@@ -72,7 +79,7 @@ export default function HolidayInfo() {
     if (key === 'year') return
     setAppliedFilters(nextFilters)
     setPage(0)
-  }, [appliedFilters])
+  }, [appliedFilters, setAppliedFilters])
 
   const handleFilterChange = useCallback(
     (next: Partial<HolidaySearchFilters>) => {

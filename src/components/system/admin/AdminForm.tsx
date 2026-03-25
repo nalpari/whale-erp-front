@@ -154,7 +154,7 @@ export default function AdminForm({
         <div className="slidebox-header">
           <h2>관리자 정보</h2>
           <div className="slidebox-btn-wrap">
-            <button className="slidebox-btn" type="button" onClick={onList}>목록</button>
+            <button className="slidebox-btn" type="button" onClick={onList}>취소</button>
             {mode === 'edit' && onDelete && (
               <button className="slidebox-btn" type="button" onClick={onDelete}>삭제</button>
             )}

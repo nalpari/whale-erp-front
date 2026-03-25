@@ -256,7 +256,7 @@ function LegalHolidayForm({
                 type="button"
                 onClick={handleListClick}
               >
-                목록
+                취소
               </button>
               <button
                 className="btn-form basic"

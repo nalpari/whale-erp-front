@@ -298,6 +298,9 @@ function HolidayDetailForm({
     })
 
     try {
+      const saveConfirmed = await confirm('저장하시겠습니까?')
+      if (!saveConfirmed) return
+
       // 기존 휴일 수정 요청 (상속 휴일 영업 설정도 함께 전송)
       if (existingRows.length > 0) {
         const updatePayload = {
@@ -394,7 +397,7 @@ function HolidayDetailForm({
                 type="button"
                 onClick={handleListClick}
               >
-                목록
+                취소
               </button>
               <button
                 className="btn-form basic"

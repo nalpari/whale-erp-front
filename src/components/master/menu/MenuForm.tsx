@@ -302,21 +302,21 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
 
   return (
     <div className="data-wrap">
-      <Location title="마스터용 메뉴 관리" list={breadcrumbs} />
+      <Location title={isEditMode ? '마스터용 메뉴 수정' : '마스터용 메뉴 등록'} list={breadcrumbs} />
       <div className="master-detail-data">
         <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
           <div className="slidebox-header">
-            <h2>마스터용 메뉴 관리</h2>
+            <h2>마스터용 메뉴</h2>
             <div className="slidebox-btn-wrap">
+              <button type="button" className="slidebox-btn" onClick={handleSave}>
+                {isEditMode ? '수정' : '등록'}
+              </button>
               <button
                 type="button"
                 className="slidebox-btn"
-                onClick={() => router.push('/master/menu')}
+                onClick={() => router.back()}
               >
-                목록
-              </button>
-              <button type="button" className="slidebox-btn" onClick={handleSave}>
-                저장
+                취소
               </button>
               <button
                 type="button"
