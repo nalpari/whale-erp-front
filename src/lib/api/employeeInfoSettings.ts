@@ -52,7 +52,7 @@ export async function getEmployeeInfoCommonCode(
       defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: EmployeeInfoCommonCodeResponse | null }>(
-      '/api/employee/info/common-code',
+      '/api/v1/employee/info/common-code',
       { params: defaultParams }
     )
     return response.data.data
@@ -70,7 +70,7 @@ export async function saveEmployeeInfoCommonCode(
 ): Promise<number | null> {
   try {
     const response = await api.post<{ data: number }>(
-      '/api/employee/info/common-code',
+      '/api/v1/employee/info/common-code',
       request
     )
     return response.data.data
