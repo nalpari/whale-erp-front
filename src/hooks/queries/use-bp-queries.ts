@@ -17,7 +17,7 @@ export const useMyOrganizationBp = () => {
     queryKey: bpKeys.myOrganization(affiliationId),
     queryFn: async () => {
       const response = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
-        '/api/master/bp',
+        '/api/v1/master/bp',
         { params: { page: 0, size: 1 } }
       )
       return response.data.data?.content?.[0] ?? null
@@ -37,7 +37,7 @@ export const useBpHeadOfficeTree = (enabled = true) => {
     queryKey: bpKeys.headOfficeTree(),
     queryFn: async () => {
       const response = await api.get<ApiResponse<BpHeadOfficeNode[]>>(
-        '/api/master/bp/head-office-tree'
+        '/api/v1/master/bp/head-office-tree'
       )
       return response.data.data ?? []
     },
@@ -54,7 +54,7 @@ export const useBpDetail = (id?: number | null) => {
   return useQuery({
     queryKey: bpKeys.detail(id!),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/master/bp/${id}`)
+      const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/v1/master/bp/${id}`)
       return response.data.data
     },
     enabled: !!id,
@@ -66,7 +66,7 @@ export const useBpDetail = (id?: number | null) => {
  * - 훅 외부(예: 이벤트 핸들러/비동기 로직)에서 사용한다.
  */
 export const getBpDetail = async (id: number): Promise<BpDetailResponse> => {
-  const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/master/bp/${id}`)
+  const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/v1/master/bp/${id}`)
   return response.data.data
 }
 
@@ -79,7 +79,7 @@ export const useBpList = (params: BpListParams, enabled = true) => {
     queryKey: bpKeys.list(params),
     queryFn: async () => {
       const response = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
-        '/api/master/bp',
+        '/api/v1/master/bp',
         { params }
       )
       return response.data.data
@@ -97,7 +97,7 @@ export const useOperatingHeadOffices = () => {
     queryKey: bpKeys.headOffices(),
     queryFn: async () => {
       const response = await api.get<ApiResponse<BpDetailResponse[]>>(
-        '/api/master/bp/head-offices'
+        '/api/v1/master/bp/head-offices'
       )
       return response.data.data ?? []
     },
@@ -127,7 +127,7 @@ export const useCreateBp = () => {
       if (lnbLogoContractFile) formData.append('lnbLogoContractFile', lnbLogoContractFile)
 
       const response = await api.post<ApiResponse<BpDetailResponse>>(
-        '/api/master/bp',
+        '/api/v1/master/bp',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
@@ -171,7 +171,7 @@ export const useUpdateBp = () => {
       if (deleteLnbLogoContractFileId) params.deleteLnbLogoContractFileId = deleteLnbLogoContractFileId
 
       const response = await api.put<ApiResponse<BpDetailResponse>>(
-        `/api/master/bp/${id}`,
+        `/api/v1/master/bp/${id}`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' }, params }
       )
@@ -191,7 +191,7 @@ export const useDeleteBp = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: number) => {
-      await api.delete(`/api/master/bp/${id}`)
+      await api.delete(`/api/v1/master/bp/${id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: bpKeys.all })
@@ -212,7 +212,7 @@ export const useInviteFranchise = () => {
       representativeEmail: string
     }) => {
       const response = await api.post<ApiResponse<void>>(
-        '/api/master/bp/invitations',
+        '/api/v1/master/bp/invitations',
         data
       )
       return response.data

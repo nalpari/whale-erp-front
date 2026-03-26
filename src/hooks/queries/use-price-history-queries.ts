@@ -9,7 +9,7 @@ export const usePriceHistoryList = (params: PriceHistoryListParams, enabled = tr
     queryKey: priceHistoryKeys.list(params),
     queryFn: async () => {
       const response = await getWithSchema(
-        '/api/master/price/master/history',
+        '/api/v1/master/price/master/history',
         priceHistoryPagedResponseSchema,
         { params }
       )
