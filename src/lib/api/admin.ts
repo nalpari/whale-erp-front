@@ -15,13 +15,13 @@ import {
 
 /**
  * 관리자 목록 조회
- * GET /api/system/admins
+ * GET /api/v1/system/admins
  */
 export async function fetchAdmins(
   params: AdminSearchParams,
   signal?: AbortSignal
 ): Promise<AdminPageResponse> {
-  const response = await getWithSchema('/api/system/admins', adminListResponseSchema, {
+  const response = await getWithSchema('/api/v1/system/admins', adminListResponseSchema, {
     params: {
       admin_id: params.admin_id,
       user_type: params.user_type,
@@ -38,11 +38,11 @@ export async function fetchAdmins(
 
 /**
  * 관리자 상세 조회
- * GET /api/system/admins/{id}
+ * GET /api/v1/system/admins/{id}
  */
 export async function fetchAdminDetail(id: number, signal?: AbortSignal): Promise<AdminDetail> {
   const response = await getWithSchema(
-    `/api/system/admins/${id}`,
+    `/api/v1/system/admins/${id}`,
     adminDetailResponseSchema,
     { signal }
   )
@@ -51,38 +51,38 @@ export async function fetchAdminDetail(id: number, signal?: AbortSignal): Promis
 
 /**
  * 관리자 등록
- * POST /api/system/admins
+ * POST /api/v1/system/admins
  */
 export async function createAdmin(data: AdminCreateRequest): Promise<AdminDetail> {
-  const response = await postWithSchema('/api/system/admins', data, adminDetailResponseSchema)
+  const response = await postWithSchema('/api/v1/system/admins', data, adminDetailResponseSchema)
   return response.data
 }
 
 /**
  * 관리자 수정
- * PUT /api/system/admins/{id}
+ * PUT /api/v1/system/admins/{id}
  */
 export async function updateAdmin(id: number, data: AdminUpdateRequest): Promise<AdminDetail> {
-  const response = await putWithSchema(`/api/system/admins/${id}`, data, adminDetailResponseSchema)
+  const response = await putWithSchema(`/api/v1/system/admins/${id}`, data, adminDetailResponseSchema)
   return response.data
 }
 
 /**
  * 관리자 삭제 (논리 삭제)
- * DELETE /api/system/admins/{id}
+ * DELETE /api/v1/system/admins/{id}
  */
 export async function deleteAdmin(id: number): Promise<void> {
-  await api.delete(`/api/system/admins/${id}`)
+  await api.delete(`/api/v1/system/admins/${id}`)
 }
 
 /**
  * 관리자 ID 중복체크
- * GET /api/system/admins/check-login-id?loginId=xxx
+ * GET /api/v1/system/admins/check-login-id?loginId=xxx
  * data: true(중복, 사용불가) / false(사용가능)
  */
 export async function checkAdminLoginId(loginId: string): Promise<boolean> {
   const response = await getWithSchema(
-    '/api/system/admins/check-login-id',
+    '/api/v1/system/admins/check-login-id',
     adminIdCheckResponseSchema,
     { params: { login_id: loginId } }
   )
@@ -92,21 +92,21 @@ export async function checkAdminLoginId(loginId: string): Promise<boolean> {
 
 /**
  * 관리자 비밀번호 초기화
- * PATCH /api/system/admins/{id}/reset-password
+ * PATCH /api/v1/system/admins/{id}/reset-password
  * 서버에서 임시 비밀번호를 응답으로 반환
  */
 export async function resetAdminPassword(id: number): Promise<string> {
-  const response = await api.patch<{ data: { password: string } }>(`/api/system/admins/${id}/reset-password`)
+  const response = await api.patch<{ data: { password: string } }>(`/api/v1/system/admins/${id}/reset-password`)
   return response.data.data.password
 }
 
 /**
  * 관리자 SelectBox 목록 조회
- * GET /api/system/admins/select-options
+ * GET /api/v1/system/admins/select-options
  */
 export async function fetchAdminSelectOptions(signal?: AbortSignal): Promise<Array<{ id: number; name: string }>> {
   const response = await getWithSchema(
-    '/api/system/admins/select-options',
+    '/api/v1/system/admins/select-options',
     adminSelectOptionsResponseSchema,
     { signal }
   )
@@ -115,11 +115,11 @@ export async function fetchAdminSelectOptions(signal?: AbortSignal): Promise<Arr
 
 /**
  * 권한 SelectBox 목록 조회
- * GET /api/system/admins/authority-options
+ * GET /api/v1/system/admins/authority-options
  */
 export async function fetchAuthorityOptions(signal?: AbortSignal): Promise<Array<{ id: number; name: string }>> {
   const response = await getWithSchema(
-    '/api/system/admins/authority-options',
+    '/api/v1/system/admins/authority-options',
     adminSelectOptionsResponseSchema,
     { signal }
   )
