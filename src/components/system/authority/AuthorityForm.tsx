@@ -47,7 +47,7 @@ export default function AuthorityForm({
     franchisee_id: initialData.franchisee_id,
     name: initialData.name || '',
     is_bp_master: initialData.is_bp_master ?? false,
-    plan_type_code: initialData.plan_type_code || '',
+    plan_type_code: initialData.plan_type_code,
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
   }
@@ -64,7 +64,7 @@ export default function AuthorityForm({
       head_office_id: undefined,
       franchisee_id: undefined,
       // 플랫폼이 아니면 BP Master 초기화
-      ...(value !== 'PRGRP_001_001' && { is_bp_master: false, plan_type_code: '' }),
+      ...(value !== 'PRGRP_001_001' && { is_bp_master: false, plan_type_code: undefined }),
     }
     onChange(newData)
   }
@@ -87,11 +87,11 @@ export default function AuthorityForm({
   const handleBpMasterChange = (checked: boolean) => {
     onChange({
       is_bp_master: checked,
-      plan_type_code: checked ? formData.plan_type_code : '',
+      plan_type_code: checked ? formData.plan_type_code : undefined,
     })
   }
 
-  const handlePlanTypeChange = (value: string) => {
+  const handlePlanTypeChange = (value: string | undefined) => {
     onChange({ plan_type_code: value })
   }
 
@@ -205,7 +205,7 @@ export default function AuthorityForm({
                           <SearchSelect
                             options={planTypeOptions}
                             value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
-                            onChange={(opt) => handlePlanTypeChange(opt?.value ?? '')}
+                            onChange={(opt) => handlePlanTypeChange(opt?.value)}
                             placeholder="선택"
                             isClearable
                             isSearchable={false}
