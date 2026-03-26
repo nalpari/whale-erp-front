@@ -201,11 +201,12 @@ export default function EmployeeTodoSearch({
                   storeId={filters.storeId ?? null}
                   onChange={(next) => {
                     if (next.head_office) setShowOfficeError(false)
-                    // 본사/가맹점 변경 시 점포값 유지 (공통 컴포넌트가 store: null로 보내도 기존값 복원)
+                    // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
+                    const isOrgChanged = next.head_office !== filters.officeId || next.franchise !== filters.franchiseId
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store ?? filters.storeId,
+                      storeId: isOrgChanged ? (next.store ?? filters.storeId) : next.store,
                     })
                   }}
                   onMultiOffice={handleMultiOffice}

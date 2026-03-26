@@ -231,8 +231,6 @@ export default function WorkScheduleSearch({
       nextForm.to = '';
       setShowPeriodError(true);
       setSearchOpen(true);
-    } else if (key === 'franchise') {
-      nextForm.franchiseId = null;
     } else if (key === 'employeeName') {
       nextForm.employeeName = '';
     } else if (key === 'dayType') {
@@ -337,12 +335,13 @@ export default function WorkScheduleSearch({
                     if (next.store) {
                       onStoreErrorChange?.(false);
                     }
-                    // 본사/가맹점 변경 시 점포값 유지
+                    // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
+                    const isOrgChanged = next.head_office !== form.officeId || next.franchise !== form.franchiseId;
                     setForm((prev) => ({
                       ...prev,
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store ?? prev.storeId,
+                      storeId: isOrgChanged ? (next.store ?? prev.storeId) : next.store,
                     }));
                   }}
                   onMultiOffice={handleMultiOffice}
