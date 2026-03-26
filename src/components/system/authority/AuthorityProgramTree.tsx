@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
 import { useAlert } from '@/components/common/ui'
-import { useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
+import { useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
 import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
 
 /**

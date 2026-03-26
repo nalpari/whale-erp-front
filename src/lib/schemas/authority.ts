@@ -67,7 +67,7 @@ export const authorityCreateSchema = z.object({
   head_office_id: z.number().optional(),
   franchisee_id: z.number().optional(),
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
-  is_bp_master: z.boolean().optional(),
+  is_bp_master: z.boolean().optional().default(false),
   plan_type_code: z.string().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
@@ -101,6 +101,15 @@ export const authorityCreateSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['plan_type_code'],
       message: '요금제를 선택해주세요',
+    })
+  }
+
+  // BP Master가 아닌데 plan_type_code가 있으면 차단
+  if (!data.is_bp_master && data.plan_type_code) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['plan_type_code'],
+      message: 'BP Master가 아닌 경우 요금제 설정 불가',
     })
   }
 
@@ -168,8 +177,8 @@ export const authorityListItemSchema = z.object({
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
-  is_bp_master: z.boolean().nullable().optional(),
-  plan_type_code: z.string().nullable().optional(),
+  is_bp_master: z.boolean().nullable(),
+  plan_type_code: z.string().nullable(),
   is_used: z.boolean(),
   description: z.string().nullable(),
   created_at: z.string(),

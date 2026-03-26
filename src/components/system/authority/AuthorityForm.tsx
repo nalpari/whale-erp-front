@@ -34,7 +34,7 @@ export default function AuthorityForm({
   context,
 }: AuthorityFormProps) {
   // 요금제 공통코드 조회
-  const { data: planTypes } = useCommonCodeHierarchy('PLNTYP')
+  const { data: planTypes, isError: isPlanTypesError } = useCommonCodeHierarchy('PLNTYP')
   const planTypeOptions: SelectOption[] = (planTypes ?? []).map((plan) => ({
     value: plan.code,
     label: plan.name,
@@ -214,6 +214,9 @@ export default function AuthorityForm({
                           />
                           {!formData.plan_type_code && errors.plan_type_code && (
                             <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
+                          )}
+                          {isPlanTypesError && (
+                            <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
                           )}
                         </>
                       )}

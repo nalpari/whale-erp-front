@@ -250,7 +250,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
     try {
       if (mode === 'create') {
         // 생성 모드 - validateForm() 통과 후이므로 필수 필드 존재 보장
-        if (!formData.owner_code || !formData.name || formData.is_used === undefined) return
+        if (!formData.owner_code || !formData.name || formData.is_used === undefined) {
+          throw new Error('필수 필드가 누락되었습니다')
+        }
 
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
@@ -280,7 +282,9 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
         }
 
         // 마스터 정보 수정 - validateForm() 통과 후이므로 필수 필드 존재 보장
-        if (!formData.name || formData.is_used === undefined) return
+        if (!formData.name || formData.is_used === undefined) {
+          throw new Error('필수 필드가 누락되었습니다')
+        }
 
         // BP Master 권한 여부, 요금제는 등록 시 결정되며 수정 불가
         const updateRequest: AuthorityUpdateRequest = {
