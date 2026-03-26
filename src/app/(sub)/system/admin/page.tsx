@@ -21,7 +21,7 @@ function AdminContent() {
   const urlSearchParams = useSearchParams()
 
   const adminStore = useAdminManageSearchStore()
-  const restoredParams = (adminStore.hasSearched ? adminStore.searchParams : null) as AdminSearchParams | null
+  const restoredParams = adminStore.hasSearched ? adminStore.searchParams : null
   const initialAuthorityId = urlSearchParams.get('authorityId')
   const [searchParams, _setSearchParams] = useState<AdminSearchParams>(() => {
     if (initialAuthorityId) {
@@ -34,7 +34,7 @@ function AdminContent() {
   })
   const setSearchParams = (next: AdminSearchParams) => {
     _setSearchParams(next)
-    adminStore.setSearchParams(next as unknown as Record<string, unknown>)
+    adminStore.setSearchParams(next)
     adminStore.setHasSearched(true)
   }
   const [page, setPage] = useState(1)
@@ -71,7 +71,11 @@ function AdminContent() {
       <AdminSearch
         params={searchParams}
         onSearch={handleSearch}
-        onReset={() => adminStore.reset()}
+        onReset={() => {
+          _setSearchParams({})
+          setPage(1)
+          adminStore.reset()
+        }}
         resultCount={data?.totalElements || 0}
       />
       <AdminList

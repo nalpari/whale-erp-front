@@ -26,13 +26,13 @@ export default function HolidayInfo() {
   const router = useRouter()
   const [isNavigating, startTransition] = useTransition()
   const searchStore = useHolidaySearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as HolidaySearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<HolidaySearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<HolidaySearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const setAppliedFilters = (next: HolidaySearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)

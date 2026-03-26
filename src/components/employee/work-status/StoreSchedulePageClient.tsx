@@ -29,7 +29,7 @@ export default function StoreSchedulePageClient() {
   const queryClient = useQueryClient();
 
   const scheduleStore = useWorkScheduleSearchStore();
-  const savedQuery = (scheduleStore.hasSearched ? scheduleStore.searchParams : null) as StoreScheduleQuery | null;
+  const savedQuery = scheduleStore.hasSearched ? scheduleStore.searchParams : null;
 
   // URL 파라미터에서 초기 검색 조건 파싱 (URL이 있으면 URL 우선, 없으면 savedQuery fallback)
   const hasUrlParams = searchParams.has('officeId')
@@ -72,7 +72,7 @@ export default function StoreSchedulePageClient() {
   const setLastQuery = (next: StoreScheduleQuery | null) => {
     _setLastQuery(next);
     if (next) {
-      scheduleStore.setSearchParams(next as unknown as Record<string, unknown>);
+      scheduleStore.setSearchParams(next);
       scheduleStore.setHasSearched(true);
     }
   };

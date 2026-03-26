@@ -23,13 +23,13 @@ export default function EmployeeTodoManage() {
   const { alert, confirm } = useAlert()
 
   const searchStore = useEmployeeTodoSearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as EmployeeTodoSearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<EmployeeTodoSearchFilters>(restoredFilters ?? DEFAULT_TODO_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<EmployeeTodoSearchFilters>(restoredFilters ?? DEFAULT_TODO_FILTERS)
   const setAppliedFilters = (next: EmployeeTodoSearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)

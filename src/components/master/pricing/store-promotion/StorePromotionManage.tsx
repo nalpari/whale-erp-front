@@ -31,13 +31,13 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 export default function StorePromotionManage() {
   const router = useRouter()
   const searchStore = useStorePromotionSearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as PromotionSearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const setAppliedFilters = (next: PromotionSearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)

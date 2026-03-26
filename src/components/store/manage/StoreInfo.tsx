@@ -27,13 +27,13 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 export default function StoreInfo() {
   const router = useRouter()
   const searchStore = useStoreManageSearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as StoreSearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const setAppliedFilters = (next: StoreSearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)

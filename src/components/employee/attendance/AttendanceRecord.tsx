@@ -30,13 +30,13 @@ export default function AttendanceRecord() {
   const accessToken = useAuthStore((s) => s.accessToken)
 
   const searchStore = useAttendanceSearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as AttendanceSearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<AttendanceSearchFilters>(restoredFilters ?? DEFAULT_ATTENDANCE_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<AttendanceSearchFilters>(restoredFilters ?? DEFAULT_ATTENDANCE_FILTERS)
   const setAppliedFilters = (next: AttendanceSearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)

@@ -44,13 +44,13 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 export default function StoreMenuManage() {
   const router = useRouter()
   const searchStore = useStoreMenuSearchStore()
-  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as StoreMenuSearchFilters | null
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
   const [filters, setFilters] = useState<StoreMenuSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const [appliedFilters, _setAppliedFilters] = useState<StoreMenuSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
   const setAppliedFilters = (next: StoreMenuSearchFilters) => {
     _setAppliedFilters(next)
-    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setSearchParams(next )
     searchStore.setHasSearched(true)
   }
   const [page, setPage] = useState(0)
