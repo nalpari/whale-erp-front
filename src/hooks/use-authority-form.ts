@@ -178,8 +178,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
       newErrors.name = '권한명은 2자 이상이어야 합니다'
     }
 
-    // BP Master 권한이 ON인 경우 요금제 필수
-    if (formData.is_bp_master && !formData.plan_type_code) {
+    // BP Master 권한이 ON인 경우 요금제 필수 (생성 모드에서만 검증, 수정 시 BP Master 필드는 불변)
+    if (mode === 'create' && formData.is_bp_master && !formData.plan_type_code) {
       newErrors.plan_type_code = '요금제를 선택해주세요'
     }
 

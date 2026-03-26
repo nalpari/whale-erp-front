@@ -77,32 +77,53 @@ export const authorityCreateSchema = z.object({
     can_create_delete: z.boolean(),
     can_update: z.boolean(),
   })).optional(),
-}).refine(
-  (data) => {
-    // BP Master 설정 시 요금제 필수
-    if (data.is_bp_master && !data.plan_type_code) return false
-    return true
-  },
-  { message: '요금제를 선택해주세요', path: ['plan_type_code'] }
-).refine(
-  (data) => {
-    // 본사 권한인 경우 head_office_id 필수
-    if (data.owner_code === 'PRGRP_002_001') {
-      return !!data.head_office_id
+}).superRefine((data, ctx) => {
+  // BP Master 관련 검증
+  if (data.owner_code !== 'PRGRP_001_001') {
+    if (data.is_bp_master) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['is_bp_master'],
+        message: 'BP Master 권한은 플랫폼 권한에서만 설정할 수 있습니다',
+      })
     }
-    return true
-  },
-  { message: '본사를 선택해주세요', path: ['head_office_id'] }
-).refine(
-  (data) => {
-    // 가맹점 권한인 경우 head_office_id, franchisee_id 필수
-    if (data.owner_code === 'PRGRP_002_002') {
-      return !!data.head_office_id && !!data.franchisee_id
+    if (data.plan_type_code) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['plan_type_code'],
+        message: '요금제는 플랫폼 권한에서만 설정할 수 있습니다',
+      })
     }
-    return true
-  },
-  { message: '본사와 가맹점을 선택해주세요', path: ['franchisee_id'] }
-)
+  }
+
+  if (data.is_bp_master && !data.plan_type_code) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['plan_type_code'],
+      message: '요금제를 선택해주세요',
+    })
+  }
+
+  // 본사 권한인 경우 head_office_id 필수
+  if (data.owner_code === 'PRGRP_002_001' && !data.head_office_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['head_office_id'],
+      message: '본사를 선택해주세요',
+    })
+  }
+
+  // 가맹점 권한인 경우 head_office_id, franchisee_id 필수
+  if (data.owner_code === 'PRGRP_002_002') {
+    if (!data.head_office_id || !data.franchisee_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['franchisee_id'],
+        message: '본사와 가맹점을 선택해주세요',
+      })
+    }
+  }
+})
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
