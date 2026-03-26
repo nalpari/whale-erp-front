@@ -8,7 +8,6 @@ import { Input, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
-import CubeLoader from '@/components/common/ui/CubeLoader'
 import {
   useBpHeadOfficeTree,
   useStoreOptions,
@@ -17,7 +16,6 @@ import {
   useCreateEmployeeTodo,
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
-import { useQueryError } from '@/hooks/useQueryError'
 import { formatDateYmd } from '@/util/date-util'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
@@ -65,8 +63,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
 
   // BP 트리 / 상세 데이터 조회
   const { data: bpTree = [] } = useBpHeadOfficeTree()
-  const { data: detail, isPending: detailLoading, error: detailError } = useEmployeeTodoDetail(todoId ?? null)
-  const detailErrorMessage = useQueryError(detailError)
+  const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
 
   // 폼 초기값 계산 (파생 값 — setState 없이)
   // - 수정 모드: detail 기반 (key={todoId} 리마운트로 보장)
@@ -186,24 +183,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     const confirmed = await confirm('취소하시겠습니까?')
     if (!confirmed) return
     router.push('/employee/todo')
-  }
-
-  if (isEditMode && detailLoading) {
-    return (
-      <div className="data-wrap">
-        <Location title="TO-DO 관리" list={BREADCRUMBS} />
-        <div className="cube-loader-overlay"><CubeLoader /></div>
-      </div>
-    )
-  }
-
-  if (isEditMode && detailErrorMessage) {
-    return (
-      <div className="data-wrap">
-        <Location title="TO-DO 관리" list={BREADCRUMBS} />
-        <div className="warning-txt">{detailErrorMessage}</div>
-      </div>
-    )
   }
 
   return (
