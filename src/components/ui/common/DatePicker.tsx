@@ -31,7 +31,7 @@ const range = (start: number, end: number, step: number = 1): number[] => {
   return result
 }
 
-const years = range(1990, getYear(new Date()) + 1, 1) as number[]
+const years = range(1990, 3000, 1) as number[]
 
 const CustomHeader = ({
   date,
