@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
-import { usePlansList } from '@/hooks/queries/use-plans-queries'
+import { useSubscribePlan } from '@/hooks/queries/use-plans-queries'
 
-/** planTypeCode(공통코드) → 프론트 요금제 ID 매핑 */
-const PLAN_TYPE_CODE_MAP: Record<string, string> = {
-  PLNTYP_001: 'free',
-  PLNTYP_002: 'standard',
-  PLNTYP_003: 'enterprise',
-  PLNTYP_004: 'franchise',
+/** 프론트 요금제 ID → subscription_plans.id 하드코딩 매핑 */
+const PLAN_DB_ID_MAP: Record<string, number> = {
+  free: 1,
+  standard: 4,
+  enterprise: 2,
+  franchise: 3,
 }
 
 /** 퍼블(https://pub.whaleerp.co.kr/rate-plan) 기준 요금제 카드 데이터 */
@@ -93,17 +93,27 @@ const RATE_PLANS: RatePlanItem[] = [
   },
 ]
 
+/** DB ID → 프론트 요금제 ID 역매핑 */
+const DB_ID_TO_PLAN_MAP: Record<number, string> = Object.fromEntries(
+  Object.entries(PLAN_DB_ID_MAP).map(([frontId, dbId]) => [dbId, frontId])
+)
+
 export default function RatePlan() {
   const [hoveredDisabledSubscribePlanId, setHoveredDisabledSubscribePlanId] =
     useState<string | null>(null)
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
-  const { data: plansData } = usePlansList({ size: 100 })
+  const subscribeMutation = useSubscribePlan()
 
   const subscribedPlanId = useMemo(() => {
-    if (subscriptionPlan === 0 || !plansData?.content) return null
-    const matched = plansData.content.find((p) => p.planId === subscriptionPlan)
-    return matched ? PLAN_TYPE_CODE_MAP[matched.planTypeCode] ?? null : null
-  }, [subscriptionPlan, plansData?.content])
+    if (subscriptionPlan === 0) return null
+    return DB_ID_TO_PLAN_MAP[subscriptionPlan] ?? null
+  }, [subscriptionPlan])
+
+  const handleSubscribe = (planFrontId: string) => {
+    const dbId = PLAN_DB_ID_MAP[planFrontId]
+    if (dbId == null) return
+    subscribeMutation.mutate(dbId)
+  }
 
   return (
     <div className="content-wrap">
@@ -145,7 +155,9 @@ export default function RatePlan() {
                   <button
                     type="button"
                     className={`service-btn block${showDisabledSubscribe && hoveredDisabledSubscribePlanId === plan.id ? ' use-plan' : ''}`}
-                    disabled={plan.id !== 'free'}
+                    style={{ cursor: 'pointer' }}
+                    disabled={subscribeMutation.isPending}
+                    onClick={() => handleSubscribe(plan.id)}
                   >
                     구독 하기
                     <i className="icon-subscribe" />
