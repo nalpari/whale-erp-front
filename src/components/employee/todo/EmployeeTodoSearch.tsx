@@ -81,7 +81,8 @@ export default function EmployeeTodoSearch({
     appliedFilters.franchiseId ?? null,
   )
 
-  // 직원 selectbox (creatable — 자유 입력 허용) — 본사/가맹점 무관하게 즉시 조회
+  // 직원 selectbox (creatable — 자유 입력 허용)
+  // /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
   const {
     data: employeeList,
     isPending: isEmployeeLoading,

@@ -11,6 +11,8 @@ import type {
 } from '@/types/employee-todo'
 
 // === 직원 선택 목록 (Selectbox) ===
+// /api/v1/employee-todos/employees — 재직 중(EMPWK_001)이며 삭제되지 않은 직원만 반환
+// 근무 계획표(WorkScheduleSearch) 등 다른 검색에서도 공용으로 사용
 
 export interface EmployeeTodoSelectItem {
   employeeInfoId: number

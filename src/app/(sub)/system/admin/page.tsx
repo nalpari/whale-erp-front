@@ -71,11 +71,7 @@ function AdminContent() {
       <AdminSearch
         params={searchParams}
         onSearch={handleSearch}
-        onReset={() => {
-          _setSearchParams({})
-          setPage(1)
-          adminStore.reset()
-        }}
+        onReset={() => adminStore.reset()}
         resultCount={data?.totalElements || 0}
       />
       <AdminList

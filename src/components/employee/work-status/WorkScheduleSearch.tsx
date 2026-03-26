@@ -124,6 +124,7 @@ export default function WorkScheduleSearch({
   );
   const [form, setForm] = useState(initialForm);
 
+  // 직원 selectbox — /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
   const {
     data: employeeList,
     isPending: isEmployeeLoading,

@@ -79,12 +79,10 @@ export default function EmployeeTodoManage() {
     setSelectedIds(new Set())
   }
 
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (검색 버튼으로 재검색해야 반영)
   const handleReset = () => {
     setFilters(DEFAULT_TODO_FILTERS)
-    setAppliedFilters(DEFAULT_TODO_FILTERS)
     searchStore.reset()
-    setPage(0)
-    setSelectedIds(new Set())
   }
 
   const handleRemoveFilter = (key: EmployeeTodoFilterTagKey) => {
