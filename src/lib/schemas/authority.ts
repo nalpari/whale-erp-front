@@ -67,6 +67,8 @@ export const authorityCreateSchema = z.object({
   head_office_id: z.number().optional(),
   franchisee_id: z.number().optional(),
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
+  is_bp_master: z.boolean().optional(),
+  plan_type_code: z.string().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
   details: z.array(z.object({
@@ -76,6 +78,13 @@ export const authorityCreateSchema = z.object({
     can_update: z.boolean(),
   })).optional(),
 }).refine(
+  (data) => {
+    // BP Master 설정 시 요금제 필수
+    if (data.is_bp_master && !data.plan_type_code) return false
+    return true
+  },
+  { message: '요금제를 선택해주세요', path: ['plan_type_code'] }
+).refine(
   (data) => {
     // 본사 권한인 경우 head_office_id 필수
     if (data.owner_code === 'PRGRP_002_001') {
@@ -97,7 +106,7 @@ export const authorityCreateSchema = z.object({
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
-// 권한 수정 스키마 (기본정보만)
+// 권한 수정 스키마 (기본정보만, BP Master 권한/요금제는 등록 시 결정되며 수정 불가)
 export const authorityUpdateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_used: z.boolean(),
@@ -138,6 +147,8 @@ export const authorityListItemSchema = z.object({
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
+  is_bp_master: z.boolean().nullable().optional(),
+  plan_type_code: z.string().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().nullable(),
   created_at: z.string(),

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import AnimateHeight from 'react-animate-height'
+import { useAlert } from '@/components/common/ui'
 import { useAuthorityDetail, useUpdateProgramAuthority } from '@/hooks/queries/use-authority-queries'
 import type { AuthorityDetailNode, AuthorityFilterType } from '@/lib/schemas/authority'
 
@@ -41,7 +42,7 @@ interface AuthorityProgramTreeProps {
 export default function AuthorityProgramTree({
   programTree,
   onChange,
-  currentOwnerCode: _currentOwnerCode,
+  // currentOwnerCode - TODO: 2차 개발(권한 복사) 시 활성화
   authorityId,
 }: AuthorityProgramTreeProps) {
   const [openItems, setOpenItems] = useState<Set<number>>(
@@ -52,17 +53,13 @@ export default function AuthorityProgramTree({
   // 프로그램 권한 수정 mutation (낙관적 업데이트용)
   const { mutateAsync: updateProgramAuthority } = useUpdateProgramAuthority()
 
+  const { alert: showAlert } = useAlert()
+
   // Loading state: API 호출 중인 프로그램 ID 추적
   const [loadingPrograms, setLoadingPrograms] = useState<Set<number>>(new Set())
 
   // Race condition 방지: 최신 요청 ID 추적
   const latestRequestIdRef = useRef<number>(0)
-
-  // 권한 복사 관련 상태 (TODO: 2차 개발 시 활성화)
-  const [copyAuthorityId] = useState<number | null>(null)
-
-  // 선택된 권한 상세 조회 (복사용 - TODO: 2차 개발 시 활성화)
-  const { data: _selectedAuthority } = useAuthorityDetail(copyAuthorityId || 0)
 
   // 전체 닫기
   const handleAllClose = () => {
@@ -236,7 +233,7 @@ export default function AuthorityProgramTree({
         if (currentRequestId === latestRequestIdRef.current) {
           // 에러 발생 시 이전 상태로 롤백
           onChange(previousTree)
-          alert('권한 업데이트에 실패했습니다.')
+          showAlert('권한 업데이트에 실패했습니다.')
         }
       } finally {
         // Loading state 제거
