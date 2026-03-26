@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PromotionSearch, { type PromotionSearchFilters, type PromotionFilterTagKey } from './PromotionSearch'
 import PromotionList from './PromotionList'
@@ -10,7 +10,7 @@ import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
+import { useStorePromotionSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -30,14 +30,16 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 
 export default function StorePromotionManage() {
   const router = useRouter()
-  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<PromotionSearchFilters>(
-    'store-promotion-search',
-    { dateFields: ['from', 'to'] },
-  )
+  const searchStore = useStorePromotionSearchStore()
+  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as PromotionSearchFilters | null
 
-  const [filters, setFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = useCallback((next: PromotionSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
+  const [filters, setFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: PromotionSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -85,7 +87,7 @@ export default function StorePromotionManage() {
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
     _setAppliedFilters(DEFAULT_FILTERS)
-    clearFilters()
+    searchStore.reset()
     setPage(0)
   }
 

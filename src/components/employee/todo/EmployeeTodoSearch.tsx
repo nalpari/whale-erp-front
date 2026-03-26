@@ -13,12 +13,14 @@ import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
+export type TodoCompletedFilter = 'ALL' | 'true' | 'false'
+
 export interface EmployeeTodoSearchFilters {
   officeId: number | null
   franchiseId: number | null
   storeId: number | null
   employeeName: string
-  isCompleted: string          // 'ALL' | 'true' | 'false'
+  isCompleted: TodoCompletedFilter
   startDate: string
   endDate: string
   content: string
@@ -39,7 +41,7 @@ export const DEFAULT_TODO_FILTERS: EmployeeTodoSearchFilters = {
   content: '',
 }
 
-const COMPLETED_OPTIONS = [
+const COMPLETED_OPTIONS: { value: TodoCompletedFilter; label: string }[] = [
   { value: 'ALL', label: '전체' },
   { value: 'false', label: '미완료' },
   { value: 'true', label: '완료' },
@@ -79,7 +81,7 @@ export default function EmployeeTodoSearch({
     appliedFilters.franchiseId ?? null,
   )
 
-  // 직원 selectbox (creatable — 자유 입력 허용)
+  // 직원 selectbox (creatable — 자유 입력 허용) — 본사/가맹점 무관하게 즉시 조회
   const {
     data: employeeList,
     isPending: isEmployeeLoading,
@@ -90,7 +92,7 @@ export default function EmployeeTodoSearch({
       franchiseId: filters.franchiseId ?? undefined,
       storeId: filters.storeId ?? undefined,
     },
-    filters.officeId != null,
+    true,
   )
   const employeeOptions: SelectOption[] = useMemo(
     () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: e.employeeName })),

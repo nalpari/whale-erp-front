@@ -1,11 +1,11 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
+import { useEmployeeTodoSearchStore } from '@/stores/search-stores'
 import { useEmployeeTodoList, useDeleteEmployeeTodos } from '@/hooks/queries'
 import EmployeeTodoSearch, {
   type EmployeeTodoSearchFilters,
@@ -22,16 +22,16 @@ export default function EmployeeTodoManage() {
   const router = useRouter()
   const { alert, confirm } = useAlert()
 
-  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<EmployeeTodoSearchFilters>(
-    'employee-todo-search',
-  )
+  const searchStore = useEmployeeTodoSearchStore()
+  const restoredFilters = (searchStore.hasSearched ? searchStore.searchParams : null) as EmployeeTodoSearchFilters | null
 
-  const [filters, setFilters] = useState<EmployeeTodoSearchFilters>(savedFilters ?? DEFAULT_TODO_FILTERS)
-  const [appliedFilters, _setAppliedFilters] = useState<EmployeeTodoSearchFilters>(savedFilters ?? DEFAULT_TODO_FILTERS)
-  const setAppliedFilters = useCallback(
-    (next: EmployeeTodoSearchFilters) => { _setAppliedFilters(next); saveFilters(next) },
-    [saveFilters],
-  )
+  const [filters, setFilters] = useState<EmployeeTodoSearchFilters>(restoredFilters ?? DEFAULT_TODO_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<EmployeeTodoSearchFilters>(restoredFilters ?? DEFAULT_TODO_FILTERS)
+  const setAppliedFilters = (next: EmployeeTodoSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next as unknown as Record<string, unknown>)
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
@@ -48,10 +48,11 @@ export default function EmployeeTodoManage() {
   }
 
   // API 파라미터 변환 — officeId가 있을 때만 유효한 queryParams 생성
-  const canFetch = appliedFilters.officeId != null
+  const { officeId: appliedOfficeId } = appliedFilters
+  const canFetch = appliedOfficeId != null
   const queryParams: EmployeeTodoListParams | null = canFetch
     ? {
-        headOfficeId: appliedFilters.officeId!,
+        headOfficeId: appliedOfficeId,
         franchiseId: appliedFilters.franchiseId ?? undefined,
         storeId: appliedFilters.storeId ?? undefined,
         employeeName: appliedFilters.employeeName || undefined,
@@ -80,8 +81,8 @@ export default function EmployeeTodoManage() {
 
   const handleReset = () => {
     setFilters(DEFAULT_TODO_FILTERS)
-    _setAppliedFilters(DEFAULT_TODO_FILTERS)
-    clearFilters()
+    setAppliedFilters(DEFAULT_TODO_FILTERS)
+    searchStore.reset()
     setPage(0)
     setSelectedIds(new Set())
   }
@@ -100,7 +101,6 @@ export default function EmployeeTodoManage() {
     if (!patch) return
     const nextFilters = { ...appliedFilters, ...patch }
     setFilters(nextFilters)
-    if (key === 'office') return
     setAppliedFilters(nextFilters)
     setPage(0)
   }

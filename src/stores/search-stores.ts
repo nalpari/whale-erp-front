@@ -51,3 +51,32 @@ export const usePartTimePayrollSearchStore = createSearchStore<Record<string, un
 
 // 연장근무 수당명세서 (employee/payroll/overtime)
 export const useOvertimePayrollSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// ────────────────────────────────────────────
+// 아래 스토어들은 filters/appliedFilters 패턴에서 사용
+// searchParams에 appliedFilters를 저장하고, hasSearched로 복원 여부 판단
+// ────────────────────────────────────────────
+
+// 점포 관리 (store/manage)
+export const useStoreManageSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 점포별 메뉴 (master/store-menu)
+export const useStoreMenuSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 점포별 프로모션 (master/pricing/store-promotion)
+export const useStorePromotionSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 휴일 관리 (system/holiday)
+export const useHolidaySearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 직원별 TODO (employee/todo)
+export const useEmployeeTodoSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 매장별 근무 계획 (employee/work-status)
+export const useWorkScheduleSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 출퇴근 관리 (employee/attendance)
+export const useAttendanceSearchStore = createSearchStore<Record<string, unknown>>({})
+
+// 관리자 관리 (system/admin)
+export const useAdminManageSearchStore = createSearchStore<Record<string, unknown>>({})

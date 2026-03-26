@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAlert } from '@/components/common/ui';
 import UploadExcel from '@/components/employee/popup/UploadExcel';
@@ -17,7 +17,7 @@ import {
 } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQueryError } from '@/hooks/useQueryError';
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage';
+import { useWorkScheduleSearchStore } from '@/stores/search-stores';
 import { buildStoreScheduleParams, toQueryString } from '@/util/store-schedule';
 import { parseNumberParam } from '@/util/param-util';
 import type { DayType, ExcelValidationResult, StoreScheduleQuery } from '@/types/work-schedule';
@@ -28,8 +28,8 @@ export default function StoreSchedulePageClient() {
   const { alert } = useAlert();
   const queryClient = useQueryClient();
 
-  const { savedFilters: savedQuery, saveFilters: saveQuery, clearFilters: clearQuery } =
-    useSearchFilterStorage<StoreScheduleQuery>('work-schedule-search');
+  const scheduleStore = useWorkScheduleSearchStore();
+  const savedQuery = (scheduleStore.hasSearched ? scheduleStore.searchParams : null) as StoreScheduleQuery | null;
 
   // URL 파라미터에서 초기 검색 조건 파싱 (URL이 있으면 URL 우선, 없으면 savedQuery fallback)
   const hasUrlParams = searchParams.has('officeId')
@@ -69,7 +69,13 @@ export default function StoreSchedulePageClient() {
   }, [hasUrlParams, searchParams])
 
   const [lastQuery, _setLastQuery] = useState<StoreScheduleQuery | null>(null);
-  const setLastQuery = useCallback((next: StoreScheduleQuery | null) => { _setLastQuery(next); if (next) saveQuery(next); }, [saveQuery]);
+  const setLastQuery = (next: StoreScheduleQuery | null) => {
+    _setLastQuery(next);
+    if (next) {
+      scheduleStore.setSearchParams(next as unknown as Record<string, unknown>);
+      scheduleStore.setHasSearched(true);
+    }
+  };
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
@@ -98,7 +104,7 @@ export default function StoreSchedulePageClient() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (lastQuery 변경 안 함)
   const handleReset = () => {
     setShowStoreError(false);
-    clearQuery();
+    scheduleStore.reset();
   };
 
   const handleRemoveFilter = (key: string) => {

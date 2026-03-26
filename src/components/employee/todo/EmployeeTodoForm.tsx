@@ -96,13 +96,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const [form, setForm] = useState<FormState>(initialForm)
   const [slideboxOpen, setSlideboxOpen] = useState(true)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  // initialForm이 변경되면 form 동기화 (bpTree 로드 완료 등)
-  const [prevInitialForm, setPrevInitialForm] = useState(initialForm)
-  if (initialForm !== prevInitialForm) {
-    setPrevInitialForm(initialForm)
-    setForm(initialForm)
-  }
   const officeOptions: SelectOption[] = useMemo(
     () => bpTree.map((o) => ({ value: String(o.id), label: o.name })),
     [bpTree],
@@ -120,7 +113,8 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     [storeOptionList],
   )
 
-  // 직원 selectbox — 등록 모드에서만 조회, 본사/가맹점/점포 변경 시 자동 refetch
+  // 직원 selectbox — 등록 모드 + 본사 선택 시에만 조회
+  const canFetchEmployees = !isEditMode && form.officeId != null
   const {
     data: employeeList,
     isPending: empLoading,
@@ -130,7 +124,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
     },
-    !isEditMode,
+    canFetchEmployees,
   )
   const employeeOptions: SelectOption[] = useMemo(
     () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: e.employeeName })),
@@ -331,8 +325,8 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               <SearchSelect
                                 value={form.employeeInfoId ? employeeOptions.find((opt) => opt.value === String(form.employeeInfoId)) ?? null : null}
                                 options={employeeOptions}
-                                placeholder={empLoading ? '직원 조회중...' : '직원 선택'}
-                                isDisabled={empLoading}
+                                placeholder={!canFetchEmployees ? '본사/가맹점을 선택해주세요.' : empLoading ? '직원 조회중...' : '직원 선택'}
+                                isDisabled={!canFetchEmployees || empLoading}
                                 isSearchable
                                 isClearable
                                 error={!!fieldErrors.employeeInfoId}
