@@ -77,7 +77,6 @@ export default function EmployeeTodoSearch({
   const { data: storeOptionsList = [] } = useStoreOptions(
     appliedFilters.officeId ?? null,
     appliedFilters.franchiseId ?? null,
-    appliedFilters.officeId != null,
   )
 
   // 직원 selectbox (creatable — 자유 입력 허용)

@@ -111,7 +111,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
   }, [bpTree, form.officeId])
   const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
-    form.officeId, form.franchiseId, form.officeId != null,
+    form.officeId, form.franchiseId,
   )
   const storeOptions: SelectOption[] = useMemo(
     () => storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
