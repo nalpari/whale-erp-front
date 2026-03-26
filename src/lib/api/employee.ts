@@ -360,7 +360,7 @@ export async function getAuthoritiesByOrganization(
   if (franchiseeId) params.franchisee_id = franchiseeId
 
   const response = await getWithSchema(
-    '/api/system/authorities',
+    '/api/v1/system/authorities',
     authorityItemListResponseSchema,
     { params }
   )

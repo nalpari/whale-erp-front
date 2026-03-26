@@ -30,7 +30,7 @@ export async function fetchAuthorities(
   params: AuthoritySearchParams & { page?: number; size?: number },
   signal?: AbortSignal
 ): Promise<PageResponse<AuthorityListItem>> {
-  const response = await getWithSchema('/api/system/authorities', authorityListResponseSchema, {
+  const response = await getWithSchema('/api/v1/system/authorities', authorityListResponseSchema, {
     params: {
       owner_group: params.owner_group,
       head_office_id: params.head_office_id,
@@ -53,7 +53,7 @@ export async function fetchAuthorities(
  */
 export async function fetchAuthorityDetail(id: number, signal?: AbortSignal): Promise<AuthorityResponse> {
   const response = await getWithSchema(
-    `/api/system/authorities/${id}`,
+    `/api/v1/system/authorities/${id}`,
     authorityDetailResponseSchema,
     { signal }
   )
@@ -71,7 +71,7 @@ export async function fetchAuthorityDetail(id: number, signal?: AbortSignal): Pr
  * @returns 생성된 권한 정보
  */
 export async function createAuthority(data: AuthorityCreateRequest): Promise<AuthorityResponse> {
-  const response = await postWithSchema('/api/system/authorities', data, authorityDetailResponseSchema)
+  const response = await postWithSchema('/api/v1/system/authorities', data, authorityDetailResponseSchema)
   return response.data
 }
 
@@ -89,7 +89,7 @@ export async function updateAuthority(
   data: AuthorityUpdateRequest
 ): Promise<AuthorityResponse> {
   const response = await putWithSchema(
-    `/api/system/authorities/${id}`,
+    `/api/v1/system/authorities/${id}`,
     data,
     authorityDetailResponseSchema
   )
@@ -112,7 +112,7 @@ export async function updateProgramAuthority(
   data: AuthorityDetailUpdateRequest
 ): Promise<AuthorityResponse> {
   const response = await patchWithSchema(
-    `/api/system/authorities/${id}/programs/${programId}`,
+    `/api/v1/system/authorities/${id}/programs/${programId}`,
     data,
     authorityDetailResponseSchema
   )
@@ -125,5 +125,5 @@ export async function updateProgramAuthority(
  * @returns void
  */
 export async function deleteAuthority(id: number): Promise<void> {
-  await api.delete(`/api/system/authorities/${id}`)
+  await api.delete(`/api/v1/system/authorities/${id}`)
 }
