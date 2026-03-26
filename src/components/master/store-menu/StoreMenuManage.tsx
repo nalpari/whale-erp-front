@@ -109,7 +109,7 @@ export default function StoreMenuManage() {
 
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<StoreMenuSearchFilters>> = {
-      office: { officeId: null, storeId: null, categoryId: null },
+      office: { officeId: null },
       store: { storeId: null },
       menuName: { menuName: '' },
       operationStatus: { operationStatus: 'ALL' },

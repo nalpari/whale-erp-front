@@ -262,9 +262,10 @@ export default function StoreMenuSearch({
                     if (next.head_office) {
                       setShowOfficeError(false)
                     }
+                    // 본사 변경 시 점포값 유지 (공통 컴포넌트가 store: null로 보내도 기존값 복원)
                     const updates: Partial<StoreMenuSearchFilters> = {
                       officeId: next.head_office,
-                      storeId: next.store,
+                      storeId: next.store ?? filters.storeId,
                     }
                     // 본사 변경 시 카테고리 초기화
                     if (next.head_office !== undefined && next.head_office !== filters.officeId) {

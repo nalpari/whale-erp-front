@@ -98,7 +98,10 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     [bpTree],
   )
   const franchiseOptions: SelectOption[] = useMemo(() => {
-    if (form.officeId == null) return []
+    if (form.officeId == null) {
+      // 본사 미선택 시 전체 가맹점 표시 (선택된 가맹점 라벨 유지)
+      return bpTree.flatMap((o) => o.franchises.map((f) => ({ value: String(f.id), label: f.name })))
+    }
     const office = bpTree.find((o) => o.id === form.officeId)
     return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
   }, [bpTree, form.officeId])
@@ -110,23 +113,50 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     [storeOptionList],
   )
 
-  // 직원 selectbox — 등록 모드 + 본사 선택 시에만 조회
-  const canFetchEmployees = !isEditMode && form.officeId != null
+  // 점포 목록 로딩 완료 후 선택된 점포가 목록에 없으면 초기화
+  const storeMatch = form.storeId != null
+    ? storeOptions.some((opt) => opt.value === String(form.storeId))
+    : true
+  const [prevStoreMatch, setPrevStoreMatch] = useState(true)
+  if (!storeLoading && !storeMatch && prevStoreMatch) {
+    setPrevStoreMatch(false)
+    setForm((prev) => ({ ...prev, storeId: null }))
+  }
+  if (storeMatch && !prevStoreMatch) {
+    setPrevStoreMatch(true)
+  }
+
+  // 직원 selectbox — 등록 모드에서 즉시 조회 (본사/가맹점/점포 선택 시 자동 필터링)
   const {
     data: employeeList,
     isPending: empLoading,
   } = useEmployeeTodoSelectList(
     {
+      purpose: 'REGISTER',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
     },
-    canFetchEmployees,
+    !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
     () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: e.employeeName })),
     [employeeList],
   )
+
+  // 직원 목록 로딩 완료 후 선택된 직원이 목록에 없으면 초기화
+  const employeeMatch = form.employeeInfoId != null
+    ? employeeOptions.some((opt) => opt.value === String(form.employeeInfoId))
+    : true
+  const [prevEmployeeMatch, setPrevEmployeeMatch] = useState(true)
+  if (!empLoading && !employeeMatch && prevEmployeeMatch) {
+    setPrevEmployeeMatch(false)
+    setForm((prev) => ({ ...prev, employeeInfoId: null }))
+  }
+  if (employeeMatch && !prevEmployeeMatch) {
+    setPrevEmployeeMatch(true)
+  }
+
   const selectedEmployee = employeeList?.find((e) => e.employeeInfoId === form.employeeInfoId)
 
   const { mutateAsync: createTodo, isPending: creating } = useCreateEmployeeTodo()
@@ -139,7 +169,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const handleSave = async () => {
     // 필수값 검증
     const errors: Record<string, string> = {}
-    if (!form.officeId) errors.officeId = ERROR_MSG
     if (!form.employeeInfoId) errors.employeeInfoId = ERROR_MSG
     if (!form.content.trim()) errors.content = ERROR_MSG
     if (!form.startDate) errors.startDate = ERROR_MSG
@@ -152,7 +181,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
 
     // confirm 대기 전 body를 미리 생성하여 race condition 방지
     const body: EmployeeTodoCreateRequest = {
-      headOfficeId: form.officeId!,
+      headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
       employeeInfoId: form.employeeInfoId!,
@@ -222,14 +251,11 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               placeholder="본사 선택"
                               isDisabled={isEditMode || isHeadOfficeAccount}
                               isSearchable={!isEditMode && !isHeadOfficeAccount}
-                              isClearable={false}
+                              isClearable={!isEditMode && !isHeadOfficeAccount}
                               onChange={(option) =>
                                 setForm((prev) => ({
                                   ...prev,
                                   officeId: option ? Number(option.value) : null,
-                                  franchiseId: null,
-                                  storeId: null,
-                                  employeeInfoId: null,
                                 }))
                               }
                             />
@@ -244,13 +270,11 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               placeholder="가맹점 선택"
                               isDisabled={isEditMode || isFranchiseAccount}
                               isSearchable={!isEditMode && !isFranchiseAccount}
-                              isClearable={false}
+                              isClearable={!isEditMode && !isFranchiseAccount}
                               onChange={(option) =>
                                 setForm((prev) => ({
                                   ...prev,
                                   franchiseId: option ? Number(option.value) : null,
-                                  storeId: null,
-                                  employeeInfoId: null,
                                 }))
                               }
                             />
@@ -277,7 +301,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               setForm((prev) => ({
                                 ...prev,
                                 storeId: option ? Number(option.value) : null,
-                                employeeInfoId: null,
                               }))
                             }
                           />
@@ -304,8 +327,8 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               <SearchSelect
                                 value={form.employeeInfoId ? employeeOptions.find((opt) => opt.value === String(form.employeeInfoId)) ?? null : null}
                                 options={employeeOptions}
-                                placeholder={!canFetchEmployees ? '본사/가맹점을 선택해주세요.' : empLoading ? '직원 조회중...' : '직원 선택'}
-                                isDisabled={!canFetchEmployees || empLoading}
+                                placeholder={empLoading ? '직원 조회중...' : '직원 선택'}
+                                isDisabled={empLoading}
                                 isSearchable
                                 isClearable
                                 error={!!fieldErrors.employeeInfoId}

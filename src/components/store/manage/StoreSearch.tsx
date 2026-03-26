@@ -175,10 +175,11 @@ export default function StoreSearch({
                     if (next.head_office) {
                       setShowOfficeError(false)
                     }
+                    // 본사/가맹점 변경 시 점포값 유지 (공통 컴포넌트가 store: null로 보내도 기존값 복원)
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: next.store ?? filters.storeId,
                     })
                   }}
                   onMultiOffice={handleMultiOffice}

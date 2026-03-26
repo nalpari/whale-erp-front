@@ -131,6 +131,7 @@ export default function WorkScheduleSearch({
     error: employeeError,
   } = useEmployeeTodoSelectList(
     {
+      purpose: 'SEARCH',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
@@ -217,11 +218,10 @@ export default function WorkScheduleSearch({
 
     if (key === 'office') {
       nextForm.officeId = null;
-      nextForm.franchiseId = null;
-      nextForm.storeId = null;
       setShowOfficeError(true);
-      onStoreErrorChange?.(true);
       setSearchOpen(true);
+    } else if (key === 'franchise') {
+      nextForm.franchiseId = null;
     } else if (key === 'store') {
       nextForm.storeId = null;
       onStoreErrorChange?.(true);
@@ -337,11 +337,12 @@ export default function WorkScheduleSearch({
                     if (next.store) {
                       onStoreErrorChange?.(false);
                     }
+                    // 본사/가맹점 변경 시 점포값 유지
                     setForm((prev) => ({
                       ...prev,
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: next.store ?? prev.storeId,
                     }));
                   }}
                   onMultiOffice={handleMultiOffice}

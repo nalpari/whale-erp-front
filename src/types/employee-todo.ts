@@ -52,7 +52,7 @@ export interface EmployeeTodoDetailResponse {
 
 // === 등록/수정 ===
 export interface EmployeeTodoCreateRequest {
-  headOfficeId: number
+  headOfficeId?: number
   franchiseId?: number
   storeId?: number
   employeeInfoId: number

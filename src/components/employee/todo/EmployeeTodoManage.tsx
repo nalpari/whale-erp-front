@@ -86,9 +86,11 @@ export default function EmployeeTodoManage() {
   }
 
   const handleRemoveFilter = (key: EmployeeTodoFilterTagKey) => {
+    // 상위 조직 태그 제거 시 하위 값(점포, 직원명 등)은 유지
+    // → 재검색 결과에 포함되면 태그가 다시 표시되고, 없으면 서버가 무시
     const resetMap: Record<string, Partial<EmployeeTodoSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       employeeName: { employeeName: '' },
       isCompleted: { isCompleted: 'ALL' },

@@ -175,10 +175,11 @@ export default function PromotionSearch({
                   storeId={filters.storeId}
                   onChange={(next) => {
                     if (next.head_office) setShowOfficeError(false)
+                    // 본사/가맹점 변경 시 점포값 유지
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: next.store ?? filters.storeId,
                     })
                   }}
                   onMultiOffice={handleMultiOffice}

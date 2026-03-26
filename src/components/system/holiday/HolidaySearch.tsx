@@ -132,10 +132,11 @@ export default function HolidaySearch({
                   franchiseId={filters.franchiseId ?? null}
                   storeId={filters.storeId ?? null}
                   onChange={(next) => {
+                    // 본사/가맹점 변경 시 점포값 유지
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: next.store ?? filters.storeId,
                     })
                   }}
                 />
