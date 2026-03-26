@@ -47,6 +47,8 @@ const DEFAULT_FORM: FormState = {
   endDate: null,
 }
 
+const toYmd = (date: Date | null) => date ? formatDateYmd(date, '') : ''
+
 interface EmployeeTodoFormProps {
   todoId?: number
 }
@@ -140,8 +142,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const { mutateAsync: updateTodo, isPending: updating } = useUpdateEmployeeTodo()
   const [isConfirming, setIsConfirming] = useState(false)
   const isSaving = creating || updating || isConfirming
-
-  const toYmd = (date: Date | null) => date ? formatDateYmd(date, '') : ''
 
   const ERROR_MSG = '필수 입력 항목입니다.'
 

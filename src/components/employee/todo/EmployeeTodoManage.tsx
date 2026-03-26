@@ -51,7 +51,7 @@ export default function EmployeeTodoManage() {
   const canFetch = appliedFilters.officeId != null
   const queryParams: EmployeeTodoListParams | null = canFetch
     ? {
-        headOfficeId: appliedFilters.officeId,
+        headOfficeId: appliedFilters.officeId!,
         franchiseId: appliedFilters.franchiseId ?? undefined,
         storeId: appliedFilters.storeId ?? undefined,
         employeeName: appliedFilters.employeeName || undefined,

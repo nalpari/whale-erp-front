@@ -39,7 +39,7 @@ export const useEmployeeTodoSelectList = (
 
 export const useEmployeeTodoList = (params: EmployeeTodoListParams | null, enabled = true) => {
   return useQuery({
-    queryKey: employeeTodoKeys.list(params ?? { headOfficeId: 0, page: 0, size: 0 }),
+    queryKey: params ? employeeTodoKeys.list(params) : [...employeeTodoKeys.lists(), null] as const,
     queryFn: async () => {
       const { data } = await api.get<ApiResponse<EmployeeTodoListResponse>>(
         '/api/v1/employee-todos',
@@ -47,7 +47,7 @@ export const useEmployeeTodoList = (params: EmployeeTodoListParams | null, enabl
       )
       return data.data
     },
-    enabled,
+    enabled: enabled && params != null,
   })
 }
 
