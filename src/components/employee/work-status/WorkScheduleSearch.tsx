@@ -6,7 +6,7 @@ import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
-import { useEmployeeInfoList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
+import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
 import { useAuthStore } from '@/stores/auth-store';
@@ -124,28 +124,26 @@ export default function WorkScheduleSearch({
   );
   const [form, setForm] = useState(initialForm);
 
+  // 직원 selectbox — /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
   const {
-    data: employeePage,
+    data: employeeList,
     isPending: isEmployeeLoading,
     error: employeeError,
-  } = useEmployeeInfoList(
+  } = useEmployeeTodoSelectList(
     {
-      officeId: form.officeId ?? undefined,
+      headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
-      workStatus: 'EMPWK_001',
-      page: 0,
-      size: 100,
     },
     true
   );
   const employeeOptions = useMemo(
     () =>
-      (employeePage?.content ?? []).map((employee) => ({
+      (employeeList ?? []).map((employee) => ({
         label: employee.employeeName,
         value: employee.employeeName,
       })),
-    [employeePage?.content]
+    [employeeList]
   );
   const employeePlaceholder = employeeError
     ? '전체'
@@ -354,12 +352,14 @@ export default function WorkScheduleSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) || null : null}
+                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) ?? { value: form.employeeName, label: form.employeeName } : null}
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
                       isSearchable={true}
                       isClearable={true}
+                      creatable={true}
+                      formatCreateLabel={(input) => `"${input}" 로 검색`}
                       onChange={(option) =>
                         setForm((prev) => ({
                           ...prev,

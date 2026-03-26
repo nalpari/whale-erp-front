@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
   logging: {
-    browserToTerminal: true,
+    fetches: {
+      fullUrl: true,
+    },
   },
   images: {
     remotePatterns: [

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import StoreMenuSearch, { type StoreMenuSearchFilters } from './StoreMenuSearch'
@@ -13,7 +13,7 @@ import { isAxiosError } from 'axios'
 import type { StoreMenuListParams } from '@/types/store-menu'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
+import { useStoreMenuSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', 'Master data 관리', '메뉴 정보 관리']
 
@@ -43,14 +43,16 @@ const DEFAULT_FILTERS: StoreMenuSearchFilters = {
 
 export default function StoreMenuManage() {
   const router = useRouter()
-  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<StoreMenuSearchFilters>(
-    'store-menu-search',
-    { dateFields: ['from', 'to'] },
-  )
+  const searchStore = useStoreMenuSearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
-  const [filters, setFilters] = useState<StoreMenuSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const [appliedFilters, _setAppliedFilters] = useState<StoreMenuSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = useCallback((next: StoreMenuSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
+  const [filters, setFilters] = useState<StoreMenuSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<StoreMenuSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: StoreMenuSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
@@ -99,11 +101,10 @@ export default function StoreMenuManage() {
     setPage(0)
   }
 
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (검색 버튼으로 재검색해야 반영)
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
-    _setAppliedFilters(DEFAULT_FILTERS)
-    clearFilters()
-    setPage(0)
+    searchStore.reset()
   }
 
   const handleRemoveFilter = (key: string) => {

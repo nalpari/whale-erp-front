@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import StoreList from '@/components/store/manage/StoreList'
 import StoreSearch, { type StoreSearchFilters } from '@/components/store/manage/StoreSearch'
@@ -11,7 +11,7 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
+import { useStoreManageSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
@@ -26,14 +26,16 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 
 export default function StoreInfo() {
   const router = useRouter()
-  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<StoreSearchFilters>(
-    'store-search',
-    { dateFields: ['from', 'to'] },
-  )
+  const searchStore = useStoreManageSearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
-  const [filters, setFilters] = useState<StoreSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const [appliedFilters, _setAppliedFilters] = useState<StoreSearchFilters>(savedFilters ?? DEFAULT_FILTERS)
-  const setAppliedFilters = useCallback((next: StoreSearchFilters) => { _setAppliedFilters(next); saveFilters(next) }, [saveFilters])
+  const [filters, setFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: StoreSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -84,7 +86,7 @@ export default function StoreInfo() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
-    clearFilters()
+    searchStore.reset()
   }
 
   const handleRemoveFilter = (key: string) => {

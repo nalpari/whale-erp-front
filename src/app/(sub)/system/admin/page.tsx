@@ -1,11 +1,11 @@
 'use client'
 
-import { Suspense, useCallback, useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import { useAdminList } from '@/hooks/queries/use-admin-queries'
 import { useQueryError } from '@/hooks/useQueryError'
-import { useSearchFilterStorage } from '@/hooks/useSearchFilterStorage'
+import { useAdminManageSearchStore } from '@/stores/search-stores'
 import Location from '@/components/ui/Location'
 import AdminSearch from '@/components/system/admin/AdminSearch'
 import AdminList from '@/components/system/admin/AdminList'
@@ -20,7 +20,8 @@ function AdminContent() {
   const router = useRouter()
   const urlSearchParams = useSearchParams()
 
-  const { savedFilters, saveFilters, clearFilters } = useSearchFilterStorage<AdminSearchParams>('admin-search')
+  const adminStore = useAdminManageSearchStore()
+  const restoredParams = adminStore.hasSearched ? adminStore.searchParams : null
   const initialAuthorityId = urlSearchParams.get('authorityId')
   const [searchParams, _setSearchParams] = useState<AdminSearchParams>(() => {
     if (initialAuthorityId) {
@@ -29,9 +30,13 @@ function AdminContent() {
         return { authority_id: id }
       }
     }
-    return savedFilters ?? {}
+    return restoredParams ?? {}
   })
-  const setSearchParams = useCallback((next: AdminSearchParams) => { _setSearchParams(next); saveFilters(next) }, [saveFilters])
+  const setSearchParams = (next: AdminSearchParams) => {
+    _setSearchParams(next)
+    adminStore.setSearchParams(next)
+    adminStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
@@ -66,7 +71,7 @@ function AdminContent() {
       <AdminSearch
         params={searchParams}
         onSearch={handleSearch}
-        onReset={clearFilters}
+        onReset={() => adminStore.reset()}
         resultCount={data?.totalElements || 0}
       />
       <AdminList
