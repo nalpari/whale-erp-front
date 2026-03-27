@@ -257,6 +257,9 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                                 setForm((prev) => ({
                                   ...prev,
                                   officeId: option ? Number(option.value) : null,
+                                  franchiseId: null,
+                                  storeId: null,
+                                  employeeInfoId: null,
                                 }))
                               }
                             />
@@ -276,6 +279,8 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                                 setForm((prev) => ({
                                   ...prev,
                                   franchiseId: option ? Number(option.value) : null,
+                                  storeId: null,
+                                  employeeInfoId: null,
                                 }))
                               }
                             />
@@ -302,6 +307,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                               setForm((prev) => ({
                                 ...prev,
                                 storeId: option ? Number(option.value) : null,
+                                employeeInfoId: null,
                               }))
                             }
                           />

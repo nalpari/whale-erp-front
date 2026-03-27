@@ -203,10 +203,13 @@ export default function EmployeeTodoSearch({
                     if (next.head_office) setShowOfficeError(false)
                     // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
                     const isOrgChanged = next.head_office !== filters.officeId || next.franchise !== filters.franchiseId
+                    const isStoreChanged = !isOrgChanged && next.store !== filters.storeId
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
                       storeId: isOrgChanged ? (next.store ?? filters.storeId) : next.store,
+                      // 조직 변경 시 직원 선택 초기화 (소속 불일치 방지)
+                      ...((isOrgChanged || isStoreChanged) ? { employeeName: '' } : {}),
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
