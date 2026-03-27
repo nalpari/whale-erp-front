@@ -29,6 +29,7 @@ import type {
   UpdatePayrollStatementRequest,
 } from '@/lib/api/payrollStatement'
 import type { BonusCategory } from '@/lib/api/payrollStatementSettings'
+import { calculatePaymentDateFromYearMonth } from '@/lib/utils/payroll'
 
 // 에러 메시지 추출 헬퍼 함수
 const getErrorMessage = (error: unknown): string => {
@@ -143,8 +144,8 @@ const calculateSettlementPeriod = (
     return { startDate: '', endDate: '' }
   }
 
-  const year = parseInt(payrollYearMonth.substring(0, 4))
-  const month = parseInt(payrollYearMonth.substring(4, 6))
+  const year = parseInt(payrollYearMonth.substring(0, 4), 10)
+  const month = parseInt(payrollYearMonth.substring(4, 6), 10)
 
   let settlementYear = year
   let settlementMonth = month
@@ -447,14 +448,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     const contractHeader = employeeContract?.employmentContractHeader
 
     // 계약의 salaryDay로 지급일 자동 계산
-    let newPaymentDate = ''
-    if (formData.payrollYearMonth && formData.payrollYearMonth.length === 6) {
-      const year = parseInt(formData.payrollYearMonth.substring(0, 4))
-      const month = parseInt(formData.payrollYearMonth.substring(4, 6))
-      const lastDay = new Date(year, month, 0).getDate()
-      const day = Math.min(salaryDay, lastDay)
-      newPaymentDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    }
+    const newPaymentDate = calculatePaymentDateFromYearMonth(formData.payrollYearMonth, salaryDay)
 
     // 근로 계약의 salaryInfo를 지급 항목에 맵핑
     if (salaryInfo) {
@@ -800,14 +794,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     const { startDate, endDate } = calculateSettlementPeriod(newPayrollYearMonth, salaryMonth)
 
     // 급여지급월의 salaryDay로 지급일 자동 계산
-    let newPaymentDate = ''
-    if (newPayrollYearMonth && newPayrollYearMonth.length === 6) {
-      const year = parseInt(newPayrollYearMonth.substring(0, 4))
-      const month = parseInt(newPayrollYearMonth.substring(4, 6))
-      const lastDay = new Date(year, month, 0).getDate()
-      const day = Math.min(salaryDay, lastDay)
-      newPaymentDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    }
+    const newPaymentDate = calculatePaymentDateFromYearMonth(newPayrollYearMonth, salaryDay)
 
     setFormData(prev => ({
       ...prev,
