@@ -7,7 +7,7 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
 import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import { Input } from '@/components/common/ui'
-import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList, getLowestOrgName } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
@@ -97,7 +97,7 @@ export default function EmployeeTodoSearch({
     true,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: e.employeeName })),
+    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: `${e.employeeName} (${getLowestOrgName(e)})` })),
     [employeeList],
   )
 

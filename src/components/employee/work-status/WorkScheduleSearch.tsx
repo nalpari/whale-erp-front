@@ -6,7 +6,7 @@ import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
-import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
+import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions, getLowestOrgName } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
 import { useAuthStore } from '@/stores/auth-store';
@@ -141,7 +141,7 @@ export default function WorkScheduleSearch({
   const employeeOptions = useMemo(
     () =>
       (employeeList ?? []).map((employee) => ({
-        label: employee.employeeName,
+        label: `${employee.employeeName} (${getLowestOrgName(employee)})`,
         value: employee.employeeName,
       })),
     [employeeList]

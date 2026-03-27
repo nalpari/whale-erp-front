@@ -13,6 +13,7 @@ import {
   useStoreOptions,
   useEmployeeTodoDetail,
   useEmployeeTodoSelectList,
+  getLowestOrgName,
   useCreateEmployeeTodo,
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
@@ -140,7 +141,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: e.employeeName })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${getLowestOrgName(e)})` })),
     [employeeList],
   )
 
