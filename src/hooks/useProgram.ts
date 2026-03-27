@@ -1,4 +1,6 @@
 import type { Program, ProgramSearchResult, ProgramFormData } from '@/lib/schemas/program'
+import { getErrorMessage } from '@/lib/api'
+import { useAlert } from '@/components/common/ui'
 import { useProgramStore } from '@/stores/program-store'
 import {
   useProgramList,
@@ -46,6 +48,8 @@ const searchPrograms = (items: Program[], keyword: string, parentPath: string[] 
  * - 기존 컴포넌트와의 호환성을 위한 래퍼 레이어
  */
 export function useProgram() {
+  const { alert, confirm } = useAlert()
+
   // Zustand: UI 상태
   const selectedMenuKind = useProgramStore((state) => state.selectedMenuKind)
   const setSelectedMenuKind = useProgramStore((state) => state.setSelectedMenuKind)
@@ -103,10 +107,10 @@ export function useProgram() {
           setOpenItems(newOpenItems)
         }
 
-        alert('등록되었습니다.')
+        await alert('등록되었습니다.')
       } else if (modalMode === 'edit') {
         if (!modalProgram?.id) {
-          alert('수정할 대상을 찾을 수 없습니다.')
+          await alert('수정할 대상을 찾을 수 없습니다.')
           closeModal()
           return
         }
@@ -115,35 +119,31 @@ export function useProgram() {
           id: modalProgram.id,
           data: updateData,
         })
-        alert('수정되었습니다.')
+        await alert('수정되었습니다.')
       } else {
         // 예상하지 못한 모드
-        alert('잘못된 요청입니다.')
+        await alert('잘못된 요청입니다.')
         closeModal()
         return
       }
       closeModal()
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } }
-      const message =
-        axiosError.response?.data?.message ??
-        (modalMode === 'create' ? '등록에 실패하였습니다.' : '수정에 실패하였습니다.')
-      alert(message)
+    } catch (error) {
+      const fallback = modalMode === 'create' ? '등록에 실패하였습니다.' : '수정에 실패하였습니다.'
+      await alert(getErrorMessage(error, fallback))
       throw error // 모달 유지를 위해 에러 재throw
     }
   }
 
   // 프로그램 삭제 핸들러
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`"${name}" 프로그램을 삭제하시겠습니까?`)) return
+    const confirmed = await confirm(`"${name}" 프로그램을 삭제하시겠습니까?`)
+    if (!confirmed) return
 
     try {
       await deleteMutation.mutateAsync(id)
-      alert('삭제되었습니다.')
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } }
-      const message = axiosError.response?.data?.message ?? '삭제에 실패하였습니다.'
-      alert(message)
+      await alert('삭제되었습니다.')
+    } catch (error) {
+      await alert(getErrorMessage(error, '삭제에 실패하였습니다.'))
     }
   }
 
@@ -178,14 +178,14 @@ export function useProgram() {
     const validItems = items.filter((item): item is Program & { id: number } => item.id !== null)
 
     if (validItems.length !== items.length) {
-      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      await alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
     }
 
     // 검증 2: ID 중복 체크
     const ids = validItems.map((item) => item.id)
     if (new Set(ids).size !== ids.length) {
-      alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
+      await alert('일시적인 문제가 발생했습니다. 새로고침 후 다시 시도해주세요.')
       return
     }
 
@@ -197,10 +197,8 @@ export function useProgram() {
           order_index: index + 1,
         })),
       })
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } }
-      const message = axiosError.response?.data?.message ?? '순서 변경에 실패하였습니다.'
-      alert(message)
+    } catch (error) {
+      await alert(getErrorMessage(error, '순서 변경에 실패하였습니다.'))
     }
   }
 
