@@ -60,7 +60,7 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
 
 export default function EmployContractSearch({ onSearch, onReset, totalCount = 0 }: EmployContractSearchProps) {
   const store = useEmployContractSearchStore()
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>
     store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData, workDays: [] }
