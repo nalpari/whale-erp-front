@@ -138,6 +138,8 @@ function LoginContent() {
 
         if (passwordChangeRequired) {
           router.push('/change-password');
+        } else if (!subscriptionPlanId) {
+          router.push('/customer/rate-plan');
         } else {
           router.push(redirectTarget);
         }
@@ -211,8 +213,11 @@ function LoginContent() {
       setSelectedAuthorityId(null);
 
       const passwordRequired = useAuthStore.getState().passwordChangeRequired;
+      const subscriptionPlan = useAuthStore.getState().subscriptionPlan;
       if (passwordRequired) {
         router.push('/change-password');
+      } else if (!subscriptionPlan) {
+        router.push('/customer/rate-plan');
       } else {
         router.push(redirectTarget);
       }
