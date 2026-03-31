@@ -235,7 +235,7 @@ export default function EmployeeDetailData({ employeeId }: EmployeeDetailDataPro
                       <ul className="detail-data-list">
                         <li className="detail-data-item">
                           <span className="detail-data-text">
-                            {employee?.salaryBank || '-'} | {employee?.salaryAccountNumber || '-'} | {employee?.salaryAccountHolder || '-'}
+                            {employee?.salaryBankName || '-'} | {employee?.salaryAccountNumber || '-'} | {employee?.salaryAccountHolder || '-'}
                           </span>
                         </li>
                       </ul>

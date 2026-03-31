@@ -540,17 +540,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       const updatedPaymentItems = [...basePaymentItems, ...additionalAllowanceItems]
 
-      // 상여금 매핑 (salaryInfo.bonuses -> payrollData.bonuses)
-      // bonusCode가 코드, bonusType은 이름 - handleAddBonusItem과 동일하게 매핑
-      const mappedBonuses = salaryInfo.bonuses?.map(bonus => ({
-        bonusType: bonus.bonusCode || bonus.bonusType,  // 코드가 없으면 이름을 fallback으로 사용
-        amount: bonus.amount,
-        memo: bonus.bonusType  // 화면 표시용으로 bonusType(이름)을 저장
-      })) || []
+      // 신규 등록 시 상여금은 자동 매핑하지 않음 (지급 항목 추가 버튼으로 수동 추가)
+      const mappedBonuses: { bonusType: string; amount: number; memo: string }[] = []
 
-      // 지급액 합계 (지급항목 + 상여금)
+      // 지급액 합계 (지급항목만, 상여금은 수동 추가 후 반영)
       const paymentTotal = updatedPaymentItems.reduce((sum, item) => sum + item.amount, 0)
-      const bonusTotal = mappedBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
+      const bonusTotal = 0
       const totalPaymentAmount = paymentTotal + bonusTotal
 
       // 공제 항목 자동 계산 (4대보험 가입 여부에 따라)
@@ -689,15 +684,42 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     const deductionItems = payrollData?.deductionItems || []
     const bonuses = payrollData?.bonuses || []
 
-    // bonuses를 PaymentItemDto 형태로 변환하여 지급 항목에 포함
-    const bonusAsPaymentItems: PaymentItemDto[] = bonuses.map((bonus, index) => ({
-      itemCode: `BONUS_${bonus.bonusType}`,  // BONUS_ 접두사로 상여금 항목 구분
-      itemOrder: paymentItems.length + index + 1,
-      amount: bonus.amount,
-      remarks: bonus.memo  // memo에 bonusType(이름)이 저장됨
-    }))
+    // paymentItems에 이미 상여금이 포함되어 있는지 확인 (저장된 데이터)
+    const existingBonusCodesInPayments = new Set(
+      paymentItems
+        .filter(item => item.itemCode.startsWith('BONUS_') || bonusCategories.some(bc => bc.code === item.itemCode))
+        .map(item => item.itemCode)
+    )
 
-    const allPaymentItems = [...paymentItems, ...bonusAsPaymentItems]
+    // bonuses 중 paymentItems에 아직 없는 것만 변환하여 추가 (중복 방지)
+    const bonusAsPaymentItems: PaymentItemDto[] = bonuses
+      .filter(bonus => {
+        const code = bonus.bonusCode || bonus.bonusType
+        const itemCode = `BONUS_${code}`
+        return !existingBonusCodesInPayments.has(code) && !existingBonusCodesInPayments.has(itemCode)
+      })
+      .map((bonus, index) => {
+        const code = bonus.bonusCode || bonus.bonusType
+        const matchedCategory = bonusCategories.find(bc => bc.code === code)
+        const displayName = matchedCategory?.name || bonus.memo || bonus.bonusType
+        return {
+          itemCode: `BONUS_${bonus.bonusType}`,
+          itemOrder: paymentItems.length + index + 1,
+          amount: bonus.amount,
+          remarks: displayName
+        }
+      })
+
+    // paymentItems의 상여금 항목에 이름이 없으면 bonusCategories에서 채워주기
+    const enrichedPaymentItems = paymentItems.map(item => {
+      if (bonusCategories.some(bc => bc.code === item.itemCode)) {
+        const matched = bonusCategories.find(bc => bc.code === item.itemCode)
+        return { ...item, remarks: matched?.name || item.remarks }
+      }
+      return item
+    })
+
+    const allPaymentItems = [...enrichedPaymentItems, ...bonusAsPaymentItems]
     const sortedPayments = allPaymentItems.sort((a, b) => a.itemOrder - b.itemOrder)
     const sortedDeductions = [...deductionItems].sort((a, b) => a.itemOrder - b.itemOrder)
 
@@ -1736,27 +1758,52 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
             overflow: 'auto'
           }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>상여금 항목 추가</h3>
-            {bonusCategories.length === 0 ? (
-              <p style={{ color: '#999' }}>등록된 상여금 항목이 없습니다. 급여명세서 환경설정에서 상여금을 추가해주세요.</p>
-            ) : (
+            {(() => {
+              // 계약서의 salaryInfo.bonuses에서 상여금 항목 가져오기
+              const contractBonuses = employeeContract?.salaryInfo?.bonuses || []
+              if (contractBonuses.length === 0) {
+                return <p style={{ color: '#999' }}>해당 근로계약서에 등록된 상여금 항목이 없습니다.</p>
+              }
+              return (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {bonusCategories.map((bonus) => (
-                  <li key={bonus.id} style={{ marginBottom: '8px' }}>
+                {contractBonuses.map((bonus, idx) => {
+                  const alreadyAdded = payrollData?.bonuses?.some(
+                    item => item.bonusType === (bonus.bonusCode || bonus.bonusType)
+                  )
+                  return (
+                  <li key={bonus.id || idx} style={{ marginBottom: '8px' }}>
                     <button
                       type="button"
                       className="btn-form outline"
-                      style={{ width: '100%', textAlign: 'left', padding: '12px' }}
-                      onClick={() => handleAddBonusItem(bonus)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px',
+                        opacity: alreadyAdded ? 0.5 : 1,
+                        cursor: alreadyAdded ? 'not-allowed' : 'pointer'
+                      }}
+                      disabled={alreadyAdded}
+                      onClick={() => handleAddBonusItem({
+                        id: bonus.id || idx,
+                        code: bonus.bonusCode || bonus.bonusType,
+                        name: bonus.bonusType,
+                        amount: bonus.amount,
+                        remark: bonus.memo || '',
+                        sortOrder: idx
+                      })}
                     >
-                      <strong>{bonus.name}</strong>
+                      <strong>{bonus.bonusType}</strong>
                       <span style={{ marginLeft: '8px', color: '#666' }}>
-                        (기본금액: {bonus.amount.toLocaleString()}원)
+                        (금액: {bonus.amount.toLocaleString()}원)
                       </span>
+                      {alreadyAdded && <span style={{ marginLeft: '8px', color: '#e74c3c' }}>(추가됨)</span>}
                     </button>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
-            )}
+              )
+            })()}
             <div style={{ marginTop: '16px', textAlign: 'right' }}>
               <button
                 type="button"

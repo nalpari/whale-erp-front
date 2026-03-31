@@ -142,7 +142,7 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       hireDate: employee.hireDate || '',
       resignationDate: employee.resignationDate || '',
       resignationReason: employee.resignationReason || '',
-      bankCode: employee.salaryBank || '',
+      bankCode: employee.salaryBankName || '',
       accountNumber: employee.salaryAccountNumber || '',
       accountHolder: employee.salaryAccountHolder || '',
       memo: employee.memo || ''
@@ -202,14 +202,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
     if (!addressData.address) {
       errors.address = '주소를 입력해주세요.'
-    }
-
-    if (!formData.accountNumber.trim()) {
-      errors.accountNumber = '급여 계좌번호를 입력해주세요.'
-    }
-
-    if (!formData.accountHolder.trim()) {
-      errors.accountHolder = '예금주를 입력해주세요.'
     }
 
     return errors
@@ -278,10 +270,9 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
 
   const contractClassSelectOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '선택' },
-    { value: 'CNTCF_001', label: '정직원' },
-    { value: 'CNTCF_002', label: '계약직' },
-    { value: 'CNTCF_003', label: '수습' },
-    { value: 'CNTCF_004', label: '파트타이머' }
+    { value: 'CNTCFWK_001', label: '포괄연봉제' },
+    { value: 'CNTCFWK_002', label: '비포괄연봉제' },
+    { value: 'CNTCFWK_003', label: '파트타임' }
   ], [])
 
   const rankSelectOptions: SelectOption[] = useMemo(() => {
@@ -402,14 +393,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
       errors.address = '주소를 입력해주세요.'
     }
 
-    if (!formData.accountNumber.trim()) {
-      errors.accountNumber = '급여 계좌번호를 입력해주세요.'
-    }
-
-    if (!formData.accountHolder.trim()) {
-      errors.accountHolder = '예금주를 입력해주세요.'
-    }
-
     // 에러가 있으면 저장하지 않음
     if (Object.keys(errors).length > 0) {
       return
@@ -450,10 +433,6 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
         hireDate: formData.hireDate,  // 필수값
         resignationDate: formData.resignationDate || null,
         resignationReason: formData.resignationReason || null,
-        // 급여 정보
-        salaryBank: formData.bankCode || null,
-        salaryAccountNumber: formData.accountNumber || null,
-        salaryAccountHolder: formData.accountHolder || null,
         // 기타
         memo: formData.memo || null,
         iconType: selectedIcon
@@ -893,10 +872,10 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                   </td>
                 </tr>
 
-                {/* 급여 계좌번호 */}
+                {/* 급여 계좌번호 (읽기 전용 - 앱에서 관리) */}
                 <tr>
                   <th>
-                    급여 계좌번호 <span className="red">*</span>
+                    급여 계좌번호
                   </th>
                   <td>
                     <div className="filed-flx">
@@ -904,34 +883,26 @@ export default function EmployeeEdit({ employeeId }: EmployeeEditProps) {
                         <SearchSelect
                           options={bankSelectOptions}
                           value={bankSelectOptions.find(opt => opt.value === formData.bankCode) || null}
-                          onChange={(opt) => handleInputChange('bankCode', opt?.value || '')}
+                          onChange={() => {}}
                           placeholder="은행 선택"
+                          isDisabled={true}
                         />
                       </div>
                       <Input
                         value={formData.accountNumber}
-                        onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                        onChange={() => {}}
                         placeholder="계좌번호"
-                        error={!!formErrors.accountNumber}
-                        showClear
-                        onClear={() => handleInputChange('accountNumber', '')}
+                        disabled
                         containerClassName="mx-250"
                       />
                       <Input
                         value={formData.accountHolder}
-                        onChange={(e) => handleInputChange('accountHolder', e.target.value)}
+                        onChange={() => {}}
                         placeholder="예금주"
-                        error={!!formErrors.accountHolder}
-                        showClear
-                        onClear={() => handleInputChange('accountHolder', '')}
+                        disabled
                         containerClassName="mx-150"
                       />
                     </div>
-                    {(formErrors.accountNumber || formErrors.accountHolder) && (
-                      <div className="warning-txt mt5" role="alert">
-                        * {formErrors.accountNumber || formErrors.accountHolder}
-                      </div>
-                    )}
                   </td>
                 </tr>
 

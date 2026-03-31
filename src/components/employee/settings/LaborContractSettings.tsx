@@ -525,6 +525,22 @@ export default function LaborContractSettings() {
               onDeleteItem={handleDeleteFulltimeOtherItem}
             />
           ))}
+          {/* 기타 항목이 없을 때 추가 버튼 */}
+          {fulltimeSettings.otherItems.length === 0 && (
+            <tr>
+              <th>기타 #3</th>
+              <td>
+                <button
+                  type="button"
+                  className="btn-form outline"
+                  onClick={handleAddFulltimeOtherItem}
+                  style={{ padding: '6px 16px', fontSize: '13px' }}
+                >
+                  + 기타 추가
+                </button>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -608,6 +624,22 @@ export default function LaborContractSettings() {
               onDeleteItem={handleDeleteParttimeOtherItem}
             />
           ))}
+          {/* 기타 항목이 없을 때 추가 버튼 */}
+          {parttimeSettings.otherItems.length === 0 && (
+            <tr>
+              <th>기타 #1</th>
+              <td>
+                <button
+                  type="button"
+                  className="btn-form outline"
+                  onClick={handleAddParttimeOtherItem}
+                  style={{ padding: '6px 16px', fontSize: '13px' }}
+                >
+                  + 기타 추가
+                </button>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
