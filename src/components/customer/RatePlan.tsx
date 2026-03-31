@@ -3,8 +3,12 @@
 import { useMemo, useState } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSubscribePlan } from '@/hooks/queries/use-plans-queries'
+import { useAlert } from '@/components/common/ui'
 
-/** 프론트 요금제 ID → subscription_plans.id 하드코딩 매핑 */
+/**
+ * 프론트 요금제 ID → subscription_plans.id 하드코딩 매핑
+ * ⚠️ DB의 subscription_plans 테이블 ID가 변경되면 반드시 이 매핑도 업데이트해야 한다.
+ */
 const PLAN_DB_ID_MAP: Record<string, number> = {
   free: 1,
   standard: 4,
@@ -93,7 +97,7 @@ const RATE_PLANS: RatePlanItem[] = [
   },
 ]
 
-/** DB ID → 프론트 요금제 ID 역매핑 */
+/** DB ID → 프론트 요금제 ID 역매핑 (auth store의 subscriptionPlan으로 현재 구독 카드 식별) */
 const DB_ID_TO_PLAN_MAP: Record<number, string> = Object.fromEntries(
   Object.entries(PLAN_DB_ID_MAP).map(([frontId, dbId]) => [dbId, frontId])
 )
@@ -103,16 +107,31 @@ export default function RatePlan() {
     useState<string | null>(null)
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
   const subscribeMutation = useSubscribePlan()
+  const { alert, confirm } = useAlert()
 
   const subscribedPlanId = useMemo(() => {
     if (subscriptionPlan === 0) return null
     return DB_ID_TO_PLAN_MAP[subscriptionPlan] ?? null
   }, [subscriptionPlan])
 
-  const handleSubscribe = (planFrontId: string) => {
+  const handleSubscribe = async (planFrontId: string) => {
     const dbId = PLAN_DB_ID_MAP[planFrontId]
-    if (dbId == null) return
-    subscribeMutation.mutate(dbId)
+    if (dbId == null) {
+      console.error(`[RatePlan] PLAN_DB_ID_MAP에 "${planFrontId}" 키가 없습니다.`)
+      return
+    }
+
+    const planLabel = RATE_PLANS.find((p) => p.id === planFrontId)?.grade ?? planFrontId
+    const confirmed = await confirm(`${planLabel} 요금제를 구독하시겠습니까?`)
+    if (!confirmed) return
+
+    try {
+      await subscribeMutation.mutateAsync(dbId)
+      await alert('요금제 구독이 완료되었습니다.')
+    } catch (err) {
+      console.error('[RatePlan] 구독 실패:', err)
+      await alert('요금제 구독에 실패했습니다. 다시 시도해주세요.')
+    }
   }
 
   return (
