@@ -32,7 +32,7 @@ export default function AuthoritySearch({
   context,
   onAutoSelect,
 }: AuthoritySearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [localParams, setLocalParams] = useState<AuthoritySearchParams>(params)
 
   // 권한 Group 공통코드 조회
