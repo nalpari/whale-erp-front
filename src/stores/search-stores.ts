@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 
 interface SearchState<T extends Record<string, unknown>> {
   searchParams: T
@@ -33,6 +34,14 @@ function createSearchStore<T extends Record<string, unknown>>(initialParams: T) 
       })),
   }))
 }
+
+// 권한 관리 - 플랫폼 (system/authority)
+type AuthoritySearchFilters = Omit<AuthoritySearchParams, 'page' | 'size'>
+
+export const useAuthoritySearchStore = createSearchStore<AuthoritySearchFilters>({ owner_group: 'PRGRP_001' })
+
+// 권한 관리 - BP (settings/authority)
+export const useAuthorityBpSearchStore = createSearchStore<AuthoritySearchFilters>({ owner_group: 'PRGRP_002' })
 
 // 회원 관리 (master/customer/account)
 export const useCustomerSearchStore = createSearchStore<Record<string, unknown>>({})

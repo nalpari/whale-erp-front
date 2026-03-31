@@ -32,7 +32,7 @@ export default function AuthoritySearch({
   context,
   onAutoSelect,
 }: AuthoritySearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [localParams, setLocalParams] = useState<AuthoritySearchParams>(params)
 
   // 권한 Group 공통코드 조회
@@ -90,7 +90,7 @@ export default function AuthoritySearch({
 
   return (
     <div className={`search-wrap ${searchOpen ? '' : 'act'}`}>
-      <div className="searh-result-wrap">
+      <div className="search-result-wrap">
         <div className="search-result">
           검색결과 <span>{resultCount}건</span>
         </div>
