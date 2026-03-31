@@ -92,8 +92,8 @@ export default function StorePromotionManage() {
 
   const handleRemoveFilter = (key: PromotionFilterTagKey) => {
     const resetMap: Record<string, Partial<PromotionSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       promotionStatus: { promotionStatus: '' },
       menuName: { menuName: '' },
