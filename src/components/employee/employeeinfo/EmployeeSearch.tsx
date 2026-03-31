@@ -75,7 +75,7 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
 
 export default function EmployeeSearch({ onSearch, onReset, totalCount }: EmployeeSearchProps) {
   const store = useEmployeeInfoSearchStore()
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [isPopupOpen, setIsPopupOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>

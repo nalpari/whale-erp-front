@@ -47,8 +47,8 @@ export default function CustomerAccountPage() {
         totalCount={customerData?.totalElements ?? 0}
       />
       <CustomerList
-        customers={store.hasSearched ? (customerData?.content ?? []) : []}
-        isLoading={store.hasSearched && isLoading}
+        customers={customerData?.content ?? []}
+        isLoading={isLoading}
         currentPage={store.page}
         totalPages={customerData?.totalPages ?? 0}
         pageSize={store.pageSize}

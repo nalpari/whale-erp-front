@@ -139,7 +139,7 @@ export interface GetEmploymentContractParams {
 // 근로 계약 목록 조회
 export async function getEmploymentContracts(params?: GetEmploymentContractParams): Promise<EmploymentContractListResponse> {
   const response = await api.get<EmploymentContractListResponse>(
-    '/api/employee/contract',
+    '/api/v1/employee/contract',
     { params }
   )
 
@@ -163,7 +163,7 @@ export async function getEmploymentContracts(params?: GetEmploymentContractParam
 // 근로 계약 상세 조회
 export async function getEmploymentContract(id: number): Promise<EmploymentContractResponse> {
   const response = await api.get<{ data: EmploymentContractResponse }>(
-    `/api/employee/contract/${id}`
+    `/api/v1/employee/contract/${id}`
   )
   return response.data.data
 }
@@ -171,7 +171,7 @@ export async function getEmploymentContract(id: number): Promise<EmploymentContr
 // 직원 정보 ID로 근로 계약 목록 조회
 export async function getEmploymentContractsByEmployeeInfoId(employeeInfoId: number): Promise<EmploymentContractResponse[]> {
   const response = await api.get<{ data: EmploymentContractResponse[] }>(
-    `/api/employee/contract/by-employee-info/${employeeInfoId}`
+    `/api/v1/employee/contract/by-employee-info/${employeeInfoId}`
   )
   return response.data.data
 }
@@ -334,7 +334,7 @@ export async function createEmploymentContractHeader(
   data: CreateEmploymentContractHeaderRequest
 ): Promise<CreateEmploymentContractHeaderResponse> {
   const response = await api.post<{ data: CreateEmploymentContractHeaderResponse }>(
-    '/api/employee/contract/header',
+    '/api/v1/employee/contract/header',
     data
   )
   return response.data.data
@@ -380,7 +380,7 @@ export async function createEmploymentContractHeaderWithFiles(
   }
 
   const response = await api.post<{ data: CreateEmploymentContractHeaderResponse }>(
-    '/api/employee/contract/header',
+    '/api/v1/employee/contract/header',
     formData,
     {
       headers: {
@@ -396,7 +396,7 @@ export async function updateEmploymentContractHeader(
   headerId: number,
   data: UpdateEmploymentContractHeaderRequest
 ): Promise<void> {
-  await api.put(`/api/employee/contract/header/${headerId}`, data)
+  await api.put(`/api/v1/employee/contract/header/${headerId}`, data)
 }
 
 // Header 정보 수정 (파일 포함 - multipart/form-data)
@@ -437,7 +437,7 @@ export async function updateEmploymentContractHeaderWithFiles(
     formData.append('wageContractFile', request.wageContractFile)
   }
 
-  await api.put(`/api/employee/contract/header/${headerId}`, formData, {
+  await api.put(`/api/v1/employee/contract/header/${headerId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -449,33 +449,33 @@ export async function updateEmploymentContractSalaryInfo(
   salaryInfoId: number,
   data: UpdateEmploymentContractSalaryInfoRequest
 ): Promise<void> {
-  await api.put(`/api/employee/contract/salary-info/${salaryInfoId}`, data)
+  await api.put(`/api/v1/employee/contract/salary-info/${salaryInfoId}`, data)
 }
 
 // 급여 정보 생성
 export async function createEmploymentContractSalaryInfo(
   data: CreateEmploymentContractSalaryInfoRequest
 ): Promise<void> {
-  await api.post('/api/employee/contract/salary-info', data)
+  await api.post('/api/v1/employee/contract/salary-info', data)
 }
 
 // 근무 시간 등록 (기존 데이터 삭제 후 새로 등록)
 export async function createEmploymentContractWorkHours(
   data: CreateEmploymentContractWorkHoursRequest
 ): Promise<void> {
-  await api.post('/api/employee/contract/work-hours', data)
+  await api.post('/api/v1/employee/contract/work-hours', data)
 }
 
 // ==================== 삭제 API ====================
 
 // 근로 계약 삭제
 export async function deleteEmploymentContract(id: number): Promise<void> {
-  await api.delete(`/api/employee/contract/${id}`)
+  await api.delete(`/api/v1/employee/contract/${id}`)
 }
 
 // ==================== 이메일 전송 API ====================
 
 // 계약서 이메일 전송
 export async function sendContractEmail(contractId: number): Promise<void> {
-  await api.post(`/api/employee/contract/${contractId}/send-email`)
+  await api.post(`/api/v1/employee/contract/${contractId}/send-email`)
 }

@@ -65,7 +65,7 @@ export async function getLaborContractSettingsCode(
       defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: LaborContractSettingsCodeResponse | null }>(
-      '/api/employee/contract/common-code',
+      '/api/v1/employee/contract/common-code',
       { params: defaultParams }
     )
     return response.data.data
@@ -83,7 +83,7 @@ export async function saveLaborContractSettingsCode(
 ): Promise<number | null> {
   try {
     const response = await api.post<{ data: number }>(
-      '/api/employee/contract/common-code',
+      '/api/v1/employee/contract/common-code',
       request
     )
     return response.data.data

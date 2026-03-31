@@ -85,7 +85,7 @@ export const useEmployeeCommonCode = (
     queryKey: employeeKeys.commonCode(headOfficeId, franchiseId),
     queryFn: async () => {
       const response = await api.get<ApiResponse<EmployeeCommonCodeItem[]>>(
-        '/api/employee/info/common-code',
+        '/api/v1/employee/info/common-code',
         { params: { headOfficeId, franchiseId } }
       )
       const data = response.data.data

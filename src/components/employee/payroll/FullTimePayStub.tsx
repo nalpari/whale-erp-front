@@ -29,6 +29,7 @@ import type {
   UpdatePayrollStatementRequest,
 } from '@/lib/api/payrollStatement'
 import type { BonusCategory } from '@/lib/api/payrollStatementSettings'
+import { calculatePaymentDateFromYearMonth } from '@/lib/utils/payroll'
 
 // 에러 메시지 추출 헬퍼 함수
 const getErrorMessage = (error: unknown): string => {
@@ -143,8 +144,8 @@ const calculateSettlementPeriod = (
     return { startDate: '', endDate: '' }
   }
 
-  const year = parseInt(payrollYearMonth.substring(0, 4))
-  const month = parseInt(payrollYearMonth.substring(4, 6))
+  const year = parseInt(payrollYearMonth.substring(0, 4), 10)
+  const month = parseInt(payrollYearMonth.substring(4, 6), 10)
 
   let settlementYear = year
   let settlementMonth = month
@@ -441,9 +442,13 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     prevEmployeeContractIdRef.current = currentContractId
 
     const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
+    const salaryDay = employeeContract?.employmentContractHeader?.salaryDay ?? 5
     const { startDate, endDate } = calculateSettlementPeriod(formData.payrollYearMonth, salaryMonth)
     const salaryInfo = employeeContract?.salaryInfo
     const contractHeader = employeeContract?.employmentContractHeader
+
+    // 계약의 salaryDay로 지급일 자동 계산
+    const newPaymentDate = calculatePaymentDateFromYearMonth(formData.payrollYearMonth, salaryDay)
 
     // 근로 계약의 salaryInfo를 지급 항목에 맵핑
     if (salaryInfo) {
@@ -644,6 +649,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       // formData도 업데이트
       setFormData(prev => ({
         ...prev,
+        ...(newPaymentDate && { paymentDate: newPaymentDate }),
         settlementStartDate: startDate,
         settlementEndDate: endDate,
         baseSalary: salaryInfo.monthlyBaseSalary || 0,
@@ -677,6 +683,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       setFormData(prev => ({
         ...prev,
+        ...(newPaymentDate && { paymentDate: newPaymentDate }),
         settlementStartDate: startDate,
         settlementEndDate: endDate
       }))
@@ -783,11 +790,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // 급여 지급월 변경 핸들러 - React 19 Compiler가 자동 최적화
   const handlePayrollYearMonthChange = (newPayrollYearMonth: string) => {
     const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
+    const salaryDay = employeeContract?.employmentContractHeader?.salaryDay ?? 5
     const { startDate, endDate } = calculateSettlementPeriod(newPayrollYearMonth, salaryMonth)
+
+    // 급여지급월의 salaryDay로 지급일 자동 계산
+    const newPaymentDate = calculatePaymentDateFromYearMonth(newPayrollYearMonth, salaryDay)
 
     setFormData(prev => ({
       ...prev,
       payrollYearMonth: newPayrollYearMonth,
+      ...(newPaymentDate && { paymentDate: newPaymentDate }),
       settlementStartDate: startDate,
       settlementEndDate: endDate
     }))
@@ -1159,10 +1171,6 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     router.push('/employee/payroll/regular')
   }
 
-  const handlePaymentDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, paymentDate: e.target.value }))
-  }
-
   if (isDetailLoading && !isNewMode) {
     return (
       <div className="contents-wrap">
@@ -1326,7 +1334,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                       type="date"
                       className="input-frame"
                       value={formData.paymentDate}
-                      onChange={handlePaymentDateChange}
+                      readOnly
                     />
                   </div>
                 </td>

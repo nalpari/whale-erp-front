@@ -21,7 +21,7 @@ import {
 
 // 직원 등록
 export async function createEmployee(data: PostEmployeeInfoRequest): Promise<EmployeeInfoResponse> {
-  const response = await api.post<{ data: EmployeeInfoResponse }>('/api/employee/info', data)
+  const response = await api.post<{ data: EmployeeInfoResponse }>('/api/v1/employee/info', data)
   return response.data.data
 }
 
@@ -60,7 +60,7 @@ interface EmployeeListApiResponse {
 
 // 직원 목록 조회
 export async function getEmployeeList(params?: EmployeeSearchParams): Promise<EmployeeListResponse> {
-  const response = await api.get<{ data: EmployeeListApiResponse }>('/api/employee/info', { params })
+  const response = await api.get<{ data: EmployeeListApiResponse }>('/api/v1/employee/info', { params })
   const apiData = response.data.data
 
   // API 응답을 프론트엔드 타입으로 변환
@@ -91,7 +91,7 @@ export async function getEmployeeList(params?: EmployeeSearchParams): Promise<Em
 
 // 직원 상세 조회
 export async function getEmployee(id: number): Promise<EmployeeInfoDetailResponse> {
-  const response = await api.get<{ data: EmployeeInfoDetailResponse }>(`/api/employee/info/${id}`)
+  const response = await api.get<{ data: EmployeeInfoDetailResponse }>(`/api/v1/employee/info/${id}`)
   return response.data.data
 }
 
@@ -103,7 +103,7 @@ export async function checkEmployeeNumber(
   storeId?: number | null
 ): Promise<{ isDuplicate: boolean; message: string }> {
   const response = await api.get<{ data: boolean; message: string }>(
-    '/api/employee/info/check-employee-number',
+    '/api/v1/employee/info/check-employee-number',
     {
       params: {
         employeeNumber,
@@ -121,7 +121,7 @@ export async function checkEmployeeNumber(
 
 // 직원 정보 수정
 export async function updateEmployee(id: number, data: UpdateEmployeeInfoRequest): Promise<EmployeeInfoResponse> {
-  const response = await api.put<{ data: EmployeeInfoResponse }>(`/api/employee/info/${id}`, data)
+  const response = await api.put<{ data: EmployeeInfoResponse }>(`/api/v1/employee/info/${id}`, data)
   return response.data.data
 }
 
@@ -160,7 +160,7 @@ export async function updateEmployeeWithFiles(
   }
 
   const response = await api.put<{ data: EmployeeInfoResponse }>(
-    `/api/employee/info/${id}/with-files`,
+    `/api/v1/employee/info/${id}/with-files`,
     formData,
     {
       headers: {
@@ -173,7 +173,7 @@ export async function updateEmployeeWithFiles(
 
 // 최저시급 조회 (단일 년도)
 export async function getMinimumWage(year: number): Promise<number> {
-  const response = await api.get<{ data: { minimumWage: number } }>(`/api/employee/contract/minimum-wage/${year}`)
+  const response = await api.get<{ data: { minimumWage: number } }>(`/api/v1/employee/contract/minimum-wage/${year}`)
   return response.data.data.minimumWage
 }
 
@@ -211,7 +211,7 @@ export async function getMinimumWageList(): Promise<MinimumWageInfo[]> {
 
 // 직원 회원 가입 요청 이메일 전송
 export async function sendEmployeeRegistrationEmail(employeeId: number): Promise<void> {
-  await api.post(`/api/employee/info/${employeeId}/send-registration-email`)
+  await api.post(`/api/v1/employee/info/${employeeId}/send-registration-email`)
 }
 
 // ========== 경력 정보 API ==========
@@ -219,7 +219,7 @@ export async function sendEmployeeRegistrationEmail(employeeId: number): Promise
 // 직원의 경력 정보 목록 조회
 export async function getEmployeeCareers(memberId: number): Promise<EmployeeCareerResponse[]> {
   const response = await api.get<{ data: EmployeeCareerResponse[] }>(
-    `/api/employee/member/${memberId}/careers`
+    `/api/v1/employee/member/${memberId}/careers`
   )
   return response.data.data
 }
@@ -227,7 +227,7 @@ export async function getEmployeeCareers(memberId: number): Promise<EmployeeCare
 // 경력 정보 단건 조회
 export async function getEmployeeCareer(memberId: number, careerId: number): Promise<EmployeeCareerResponse> {
   const response = await api.get<{ data: EmployeeCareerResponse }>(
-    `/api/employee/member/${memberId}/careers/${careerId}`
+    `/api/v1/employee/member/${memberId}/careers/${careerId}`
   )
   return response.data.data
 }
@@ -238,7 +238,7 @@ export async function saveEmployeeCareers(
   data: SaveEmployeeCareersRequest
 ): Promise<EmployeeCareerResponse[]> {
   const response = await api.put<{ data: EmployeeCareerResponse[] }>(
-    `/api/employee/member/${memberId}/careers`,
+    `/api/v1/employee/member/${memberId}/careers`,
     data
   )
   return response.data.data
@@ -246,7 +246,7 @@ export async function saveEmployeeCareers(
 
 // 직원의 모든 경력 정보 삭제
 export async function deleteAllEmployeeCareers(memberId: number): Promise<void> {
-  await api.delete(`/api/employee/member/${memberId}/careers`)
+  await api.delete(`/api/v1/employee/member/${memberId}/careers`)
 }
 
 // ========== 자격증 정보 API ==========
@@ -254,7 +254,7 @@ export async function deleteAllEmployeeCareers(memberId: number): Promise<void> 
 // 직원의 자격증 정보 목록 조회
 export async function getEmployeeCertificates(memberId: number): Promise<EmployeeCertificateResponse[]> {
   const response = await api.get<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/member/${memberId}/certificates`
+    `/api/v1/employee/member/${memberId}/certificates`
   )
   return response.data.data
 }
@@ -262,7 +262,7 @@ export async function getEmployeeCertificates(memberId: number): Promise<Employe
 // 자격증 정보 단건 조회
 export async function getEmployeeCertificate(memberId: number, certificateId: number): Promise<EmployeeCertificateResponse> {
   const response = await api.get<{ data: EmployeeCertificateResponse }>(
-    `/api/employee/member/${memberId}/certificates/${certificateId}`
+    `/api/v1/employee/member/${memberId}/certificates/${certificateId}`
   )
   return response.data.data
 }
@@ -273,7 +273,7 @@ export async function saveEmployeeCertificates(
   data: SaveEmployeeCertificatesRequest
 ): Promise<EmployeeCertificateResponse[]> {
   const response = await api.put<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/member/${memberId}/certificates`,
+    `/api/v1/employee/member/${memberId}/certificates`,
     data
   )
   return response.data.data
@@ -293,7 +293,7 @@ export async function saveEmployeeCertificatesWithFiles(
   })
 
   const response = await api.put<{ data: EmployeeCertificateResponse[] }>(
-    `/api/employee/member/${memberId}/certificates/with-files`,
+    `/api/v1/employee/member/${memberId}/certificates/with-files`,
     formData,
     {
       headers: {
@@ -306,19 +306,19 @@ export async function saveEmployeeCertificatesWithFiles(
 
 // 직원의 모든 자격증 정보 삭제
 export async function deleteAllEmployeeCertificates(memberId: number): Promise<void> {
-  await api.delete(`/api/employee/member/${memberId}/certificates`)
+  await api.delete(`/api/v1/employee/member/${memberId}/certificates`)
 }
 
 // 직원 정보 삭제 (soft delete)
 export async function deleteEmployee(employeeInfoId: number): Promise<void> {
-  await api.delete(`/api/employee/info/${employeeInfoId}`)
+  await api.delete(`/api/v1/employee/info/${employeeInfoId}`)
 }
 
 // ========== 회원 문서 API ==========
 
 // 회원 문서 목록 조회
 export async function getMemberDocuments(memberId: number): Promise<MemberDocument[]> {
-  const response = await api.get<{ data: MemberDocument[] }>(`/api/members/${memberId}/documents`)
+  const response = await api.get<{ data: MemberDocument[] }>(`/api/v1/members/${memberId}/documents`)
   return response.data.data
 }
 
@@ -327,13 +327,13 @@ export async function createMemberDocument(
   memberId: number,
   data: { documentType: string; uploadFileId: number; expiryDate?: string }
 ): Promise<MemberDocument> {
-  const response = await api.post<{ data: MemberDocument }>(`/api/members/${memberId}/documents`, data)
+  const response = await api.post<{ data: MemberDocument }>(`/api/v1/members/${memberId}/documents`, data)
   return response.data.data
 }
 
 // 회원 문서 삭제
 export async function deleteMemberDocument(memberId: number, documentId: number): Promise<void> {
-  await api.delete(`/api/members/${memberId}/documents/${documentId}`)
+  await api.delete(`/api/v1/members/${memberId}/documents/${documentId}`)
 }
 
 // ========== 권한 관련 API ==========
@@ -343,7 +343,7 @@ export type { EmployeeBpAuthority, AuthorityItem }
 // 직원 소속 조직의 BP 권한 목록 조회
 export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<EmployeeBpAuthority[]> {
   const response = await getWithSchema(
-    `/api/employee/info/${employeeInfoId}/bp-authorities`,
+    `/api/v1/employee/info/${employeeInfoId}/bp-authorities`,
     employeeBpAuthorityListResponseSchema
   )
   return response.data
@@ -377,12 +377,12 @@ export async function updateEmployeeLoginInfo(
   employeeInfoId: number,
   request: UpdateEmployeeLoginInfoRequest
 ): Promise<void> {
-  await api.patch(`/api/employee/info/${employeeInfoId}/login-info`, request)
+  await api.patch(`/api/v1/employee/info/${employeeInfoId}/login-info`, request)
 }
 
 // 직원 회원 탈퇴 처리
 export async function withdrawEmployeeMember(employeeInfoId: number): Promise<void> {
-  await api.post(`/api/employee/info/${employeeInfoId}/withdraw`)
+  await api.post(`/api/v1/employee/info/${employeeInfoId}/withdraw`)
 }
 
 // ========== 직원 타입별 목록 조회 API ==========
@@ -426,7 +426,7 @@ export async function getEmployeeListByType(
   }
 
   const response = await api.get<{ data: EmployeeSimpleListResponse[] }>(
-    '/api/employee/info/by-type',
+    '/api/v1/employee/info/by-type',
     { params: queryParams }
   )
   return response.data.data

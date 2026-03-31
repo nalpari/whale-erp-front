@@ -99,7 +99,7 @@ export interface GetPayrollStatementParams {
 // 급여 명세서 목록 조회
 export async function getPayrollStatements(params?: GetPayrollStatementParams): Promise<PayrollStatementListResponse> {
   const response = await api.get<{ data: PayrollStatementListResponse }>(
-    '/api/employee/payroll/regular',
+    '/api/v1/employee/payroll/regular',
     { params }
   )
 
@@ -123,7 +123,7 @@ export async function getPayrollStatements(params?: GetPayrollStatementParams): 
 // 급여 명세서 상세 조회
 export async function getPayrollStatement(id: number): Promise<PayrollStatementResponse> {
   const response = await api.get<{ data: PayrollStatementResponse }>(
-    `/api/employee/payroll/regular/${id}`
+    `/api/v1/employee/payroll/regular/${id}`
   )
 
   if (!response.data?.data) {
@@ -158,7 +158,7 @@ export interface PayrollExcelUploadResponse {
 
 // 급여 명세서 엑셀 다운로드
 export async function downloadPayrollExcel(id: number): Promise<Blob> {
-  const response = await api.get(`/api/employee/payroll/regular/${id}/download-excel`, {
+  const response = await api.get(`/api/v1/employee/payroll/regular/${id}/download-excel`, {
     responseType: 'blob'
   })
   return response.data
@@ -166,7 +166,7 @@ export async function downloadPayrollExcel(id: number): Promise<Blob> {
 
 // 급여 명세서 이메일 전송
 export async function sendPayrollEmail(id: number): Promise<void> {
-  await api.post(`/api/employee/payroll/regular/${id}/send-email`)
+  await api.post(`/api/v1/employee/payroll/regular/${id}/send-email`)
 }
 
 // 급여 명세서 수정 요청 타입
@@ -184,12 +184,12 @@ export interface UpdatePayrollStatementRequest {
 
 // 급여 명세서 수정
 export async function updatePayrollStatement(id: number, request: UpdatePayrollStatementRequest): Promise<void> {
-  await api.put(`/api/employee/payroll/regular/${id}`, request)
+  await api.put(`/api/v1/employee/payroll/regular/${id}`, request)
 }
 
 // 급여 명세서 삭제
 export async function deletePayrollStatement(id: number): Promise<void> {
-  await api.delete(`/api/employee/payroll/regular/${id}`)
+  await api.delete(`/api/v1/employee/payroll/regular/${id}`)
 }
 
 // 급여 명세서 생성 요청 타입
@@ -258,7 +258,7 @@ export async function createPayrollStatement(
   }
 
   const response = await api.post<{ data: PayrollStatementResponse }>(
-    '/api/employee/payroll/regular',
+    '/api/v1/employee/payroll/regular',
     formData,
     {
       headers: {
@@ -280,7 +280,7 @@ export async function uploadPayrollExcel(
   formData.append('payrollYearMonth', payrollYearMonth)
   formData.append('overwrite', String(overwrite))
   const response = await api.post<{ data: PayrollExcelUploadResponse }>(
-    '/api/employee/payroll/regular/upload-excel',
+    '/api/v1/employee/payroll/regular/upload-excel',
     formData,
     {
       headers: {
@@ -301,7 +301,7 @@ export interface LatestPayrollResponse {
 // 이전 급여 정보 조회
 export async function getLatestPayroll(employeeInfoId: number): Promise<{ data: LatestPayrollResponse | null; message: string }> {
   const response = await api.get<{ data: LatestPayrollResponse | null; message: string }>(
-    `/api/employee/payroll/regular/employee/${employeeInfoId}/latest`
+    `/api/v1/employee/payroll/regular/employee/${employeeInfoId}/latest`
   )
   return response.data
 }
