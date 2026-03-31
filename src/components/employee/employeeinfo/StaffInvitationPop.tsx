@@ -164,6 +164,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     if (!contractStartDate) {
       errors.contractStartDate = '계약 시작일을 선택해주세요.'
     }
+    if (!hireDate && !contractStartDate) {
+      errors.contractStartDate = '입사일 또는 계약 시작일을 선택해주세요.'
+    }
     if (!noEndDate && !contractEndDate) {
       errors.contractEndDate = '계약 종료일을 선택해주세요.'
     }
@@ -204,6 +207,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     }
     if (!contractStartDate) {
       errors.contractStartDate = '계약 시작일을 선택해주세요.'
+    }
+    if (!hireDate && !contractStartDate) {
+      errors.contractStartDate = '입사일 또는 계약 시작일을 선택해주세요.'
     }
     if (!noEndDate && !contractEndDate) {
       errors.contractEndDate = '계약 종료일을 선택해주세요.'
@@ -269,6 +275,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         return wh
       })
 
+      // 입사일이 비어있으면 계약 시작일로 보정
+      const finalHireDate = hireDate || contractStartDate
+
       const requestData: PostEmployeeInfoRequest = {
         workplaceType,
         headOfficeOrganizationId: headOfficeOrganizationId!,
@@ -276,7 +285,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         storeId,
         employeeName: employeeName.trim(),
         mobilePhone: mobilePhone.trim() || null,
-        hireDate: hireDate || contractStartDate,
+        hireDate: finalHireDate,
         contractClassification,
         nationalPensionEnrolled,
         healthInsuranceEnrolled,
@@ -667,7 +676,10 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               const y = range.startDate.getFullYear()
                               const m = String(range.startDate.getMonth() + 1).padStart(2, '0')
                               const d = String(range.startDate.getDate()).padStart(2, '0')
-                              setContractStartDate(`${y}-${m}-${d}`)
+                              const dateStr = `${y}-${m}-${d}`
+                              setContractStartDate(dateStr)
+                              // 입사일이 비어있으면 계약 시작일로 자동 설정
+                              if (!hireDate) setHireDate(dateStr)
                             } else {
                               setContractStartDate('')
                             }
