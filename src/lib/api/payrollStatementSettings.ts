@@ -151,7 +151,7 @@ export async function getPayrollStatementSettingsCode(
       defaultParams.franchiseId = params.franchiseId
     }
     const response = await api.get<{ data: PayrollStatementSettingsCodeResponse | null }>(
-      '/api/employee/payroll/regular/common-code',
+      '/api/v1/employee/payroll/regular/common-code',
       { params: defaultParams }
     )
     return apiToUiSettings(response.data.data?.codeMemoContent || null)
@@ -171,7 +171,7 @@ export async function savePayrollStatementSettingsCode(
 ): Promise<number | null> {
   try {
     const response = await api.post<{ data: number }>(
-      '/api/employee/payroll/regular/common-code',
+      '/api/v1/employee/payroll/regular/common-code',
       {
         headOfficeId,
         franchiseId,

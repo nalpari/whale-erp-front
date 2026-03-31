@@ -100,7 +100,7 @@ export async function getPayrollCommonCode(params?: {
       franchiseId: params?.franchiseId ?? DEFAULT_FRANCHISE_ID
     }
     const response = await api.get<{ data: PayrollCommonCodeResponse | null }>(
-      '/api/employee/payroll/regular/common-code',
+      '/api/v1/employee/payroll/regular/common-code',
       { params: defaultParams }
     )
     return response.data.data
