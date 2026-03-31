@@ -76,7 +76,7 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
 
 export default function OvertimePayrollSearch({ onSearch, onReset, totalCount }: OvertimePayrollSearchProps) {
   const store = useOvertimePayrollSearchStore()
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>
     store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }

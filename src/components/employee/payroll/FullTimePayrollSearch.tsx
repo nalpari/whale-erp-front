@@ -79,7 +79,7 @@ const restoreDateRange = (sp: Record<string, unknown>): DateRange => ({
 
 export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }: FullTimePayrollSearchProps) {
   const store = useFullTimePayrollSearchStore()
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>
     store.hasSearched ? restoreFormData(store.searchParams) : { ...initialFormData }

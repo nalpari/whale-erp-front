@@ -96,7 +96,7 @@ export interface GetOvertimeAllowanceStatementParams {
 // 연장근무 수당명세서 목록 조회
 export async function getOvertimeAllowanceStatements(params?: GetOvertimeAllowanceStatementParams): Promise<OvertimeAllowanceStatementListResponse> {
   const response = await api.get<{ data: OvertimeAllowanceStatementListResponse }>(
-    '/api/employee/payroll/overtime',
+    '/api/v1/employee/payroll/overtime',
     { params }
   )
 
@@ -119,7 +119,7 @@ export async function getOvertimeAllowanceStatements(params?: GetOvertimeAllowan
 // 연장근무 수당명세서 상세 조회
 export async function getOvertimeAllowanceStatement(id: number): Promise<OvertimeAllowanceStatementDetailResponse> {
   const response = await api.get<{ data: OvertimeAllowanceStatementDetailResponse }>(
-    `/api/employee/payroll/overtime/${id}`
+    `/api/v1/employee/payroll/overtime/${id}`
   )
   return response.data.data
 }
@@ -185,7 +185,7 @@ export interface DailyOvertimeHoursSummaryResponse {
 // 일별 연장근무 시간 Summary 조회
 export async function getDailyOvertimeHoursSummary(params: GetDailyOvertimeHoursParams): Promise<DailyOvertimeHoursSummaryResponse | null> {
   const response = await api.get<{ data: DailyOvertimeHoursSummaryResponse }>(
-    '/api/employee/payroll/overtime/daily-overtime-hours',
+    '/api/v1/employee/payroll/overtime/daily-overtime-hours',
     { params }
   )
 
@@ -222,7 +222,7 @@ export async function createOvertimeAllowanceStatement(
   request: PostOvertimeAllowanceStatementRequest
 ): Promise<OvertimeAllowanceStatementDetailResponse> {
   const response = await api.post<{ data: OvertimeAllowanceStatementDetailResponse }>(
-    '/api/employee/payroll/overtime',
+    '/api/v1/employee/payroll/overtime',
     request
   )
   return response.data.data
@@ -234,7 +234,7 @@ export async function updateOvertimeAllowanceStatement(
   request: PutOvertimeAllowanceStatementRequest
 ): Promise<OvertimeAllowanceStatementDetailResponse> {
   const response = await api.put<{ data: OvertimeAllowanceStatementDetailResponse }>(
-    `/api/employee/payroll/overtime/${id}`,
+    `/api/v1/employee/payroll/overtime/${id}`,
     request
   )
   return response.data.data
@@ -242,18 +242,18 @@ export async function updateOvertimeAllowanceStatement(
 
 // 연장근무 수당명세서 삭제
 export async function deleteOvertimeAllowanceStatement(id: number): Promise<void> {
-  await api.delete(`/api/employee/payroll/overtime/${id}`)
+  await api.delete(`/api/v1/employee/payroll/overtime/${id}`)
 }
 
 // 연장근무 수당명세서 이메일 전송
 export async function sendOvertimeAllowanceEmail(id: number): Promise<void> {
-  await api.post(`/api/employee/payroll/overtime/${id}/send-email`)
+  await api.post(`/api/v1/employee/payroll/overtime/${id}/send-email`)
 }
 
 // 연장근무 수당명세서 엑셀 다운로드
 export async function downloadOvertimeAllowanceExcel(id: number): Promise<Blob> {
   const response = await api.get<Blob>(
-    `/api/employee/payroll/overtime/${id}/download-excel`,
+    `/api/v1/employee/payroll/overtime/${id}/download-excel`,
     { responseType: 'blob' }
   )
   return response.data

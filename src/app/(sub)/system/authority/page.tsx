@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import AuthoritySearch from '@/components/system/authority/AuthoritySearch'
 import AuthorityList from '@/components/system/authority/AuthorityList'
 import { useAuthorityList } from '@/hooks/queries/use-authority-queries'
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
+import { useAuthoritySearchStore } from '@/stores/search-stores'
 
 /**
  * 권한 관리 메인 페이지
@@ -16,37 +16,31 @@ import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 export default function AuthorityPage() {
   const router = useRouter()
 
-  // 검색 파라미터 상태 (초기값: 플랫폼)
-  const [searchParams, setSearchParams] = useState<AuthoritySearchParams>({
-    owner_group: 'PRGRP_001',
-  })
+  // 검색 파라미터 상태 (Zustand store - 페이지 이동 후 복귀 시 유지)
+  const { searchParams, page, pageSize, setSearchParams, setPage, setPageSize, setHasSearched } = useAuthoritySearchStore()
 
-  // 페이징 상태
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
-
-  // 권한 목록 조회
+  // 권한 목록 조회 (store의 page는 0-based, API는 1-based)
   const { data, isLoading } = useAuthorityList({
     ...searchParams,
-    page,
+    page: page + 1,
     size: pageSize,
   })
 
   // 검색 핸들러
   const handleSearch = (params: AuthoritySearchParams) => {
     setSearchParams(params)
-    setPage(1) // 검색 시 첫 페이지로
+    setPage(0)
+    setHasSearched(true)
   }
 
   // 페이지 변경 핸들러
   const handlePageChange = (newPage: number) => {
-    setPage(newPage + 1) // AG Grid는 0-based, API는 1-based
+    setPage(newPage) // AG Grid는 0-based, store도 0-based
   }
 
   // 페이지 크기 변경 핸들러
   const handlePageSizeChange = (size: number) => {
-    setPageSize(size)
-    setPage(1)
+    setPageSize(size) // setPageSize 내부에서 page=0 초기화
   }
 
   // 등록 페이지 이동
@@ -65,7 +59,7 @@ export default function AuthorityPage() {
       <AuthorityList
         authorities={data?.content || []}
         isLoading={isLoading}
-        currentPage={page - 1} // AG Grid는 0-based
+        currentPage={page} // store, AG Grid 모두 0-based
         totalPages={data?.totalPages || 0}
         pageSize={pageSize}
         onPageChange={handlePageChange}

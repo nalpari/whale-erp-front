@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { Tooltip } from 'react-tooltip'
 import AnimateHeight from 'react-animate-height'
 import SalaryCalculationPop, { SalaryCalculationData, SalaryCalculationInitialData, ContractClassificationType } from '@/components/popup/SalaryCalculationPop'
 import { useBonusTypes } from '@/hooks/queries/use-common-code-queries'
@@ -138,6 +139,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
   const [localBonuses, setLocalBonuses] = useState<BonusItem[] | null>(null)
   const [bonusVersion, setBonusVersion] = useState<number | null>(null)
   const bonuses = (localBonuses && bonusVersion === currentVersion) ? localBonuses : initialBonuses
+  const [openBonusMenuId, setOpenBonusMenuId] = useState<number | null>(null)
 
   // 상여금 타입 옵션
   const bonusTypeOptions: SelectOption[] = useMemo(() =>
@@ -165,12 +167,11 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
     updateBonuses(prev => prev.map(bonus => {
       if (bonus.id !== id) return bonus
 
-      // type 변경 시 해당 상여금 종류의 기본 금액과 메모도 함께 적용
+      // type 변경 시 해당 상여금 종류의 기본 금액 적용 (memo는 사용자 입력이므로 유지)
       if (field === 'type') {
         const selectedType = bonusTypes.find(t => t.code === value)
         const defaultAmount = selectedType?.amount ?? 0
-        const defaultMemo = selectedType?.remark ?? ''
-        return { ...bonus, type: value as string, amount: defaultAmount, memo: defaultMemo }
+        return { ...bonus, type: value as string, amount: defaultAmount }
       }
 
       return { ...bonus, [field]: value }
@@ -178,18 +179,24 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
   }
 
   const handleAddBonus = () => {
+    // 상여금 종류 갯수만큼만 추가 가능
+    if (bonuses.length >= bonusTypes.length) return
+
+    setOpenBonusMenuId(null)
     const newId = Math.max(...bonuses.map(b => b.id), 0) + 1
-    // 첫 번째 상여금 타입의 기본 금액과 메모 설정
-    const defaultType = bonusTypes.length > 0 ? bonusTypes[0] : null
+    // 아직 선택되지 않은 첫 번째 상여금 타입을 기본값으로 설정
+    const usedCodes = new Set(bonuses.map(b => b.type))
+    const defaultType = bonusTypes.find(t => !usedCodes.has(t.code)) ?? (bonusTypes.length > 0 ? bonusTypes[0] : null)
     updateBonuses(prev => [...prev, {
       id: newId,
       type: defaultType?.code ?? '',
       amount: defaultType?.amount ?? 0,
-      memo: defaultType?.remark ?? ''
+      memo: ''
     }])
   }
 
   const handleRemoveBonus = (id: number) => {
+    setOpenBonusMenuId(null)
     updateBonuses(prev => prev.filter(bonus => bonus.id !== id))
   }
 
@@ -925,127 +932,126 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
                         {bonuses.length === 0 ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ color: '#666' }}>상여금 정보가 없습니다.</span>
-                            <button
-                              className="btn-form outline"
-                              style={{ padding: '4px 12px' }}
-                              onClick={handleAddBonus}
-                            >
-                              상여금 추가
-                            </button>
+                            {bonusTypes.length > 0 && (
+                              <button
+                                className="btn-form outline"
+                                style={{ padding: '4px 12px' }}
+                                onClick={handleAddBonus}
+                              >
+                                상여금 추가
+                              </button>
+                            )}
                           </div>
                         ) : (
-                          bonuses.map((bonus) => (
-                            <div key={bonus.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                              <SearchSelect
-                                options={bonusTypeOptions}
-                                value={bonusTypeOptions.find(opt => opt.value === bonus.type) || null}
-                                onChange={(opt) => handleBonusChange(bonus.id, 'type', opt?.value || '')}
-                                placeholder="선택"
-                              />
-                              <button
-                                className="btn-form outline"
-                                style={{ padding: '4px 8px', minWidth: 'auto' }}
-                                title="정보"
-                                aria-label="상여금 정보"
-                              >
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '18px',
-                                  height: '18px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#007bff',
-                                  color: '#fff',
-                                  fontSize: '11px'
-                                }}>i</span>
-                              </button>
-                              <button
-                                className="btn-form outline"
-                                style={{ padding: '4px 8px', minWidth: 'auto', backgroundColor: '#333', color: '#fff' }}
-                                title="원화"
-                                aria-label="원화 표시"
-                              >
-                                W
-                              </button>
-                              <input
-                                type="text"
-                                className="input-frame"
-                                style={{ width: '120px', textAlign: 'right' }}
-                                value={formatNumber(bonus.amount)}
-                                onChange={(e) => handleBonusChange(bonus.id, 'amount', parseInt(e.target.value.replace(/,/g, '')) || 0)}
-                              />
-                              <span>원</span>
-                              <input
-                                type="text"
-                                className="input-frame"
-                                style={{ width: '150px' }}
-                                placeholder="Memo"
-                                value={bonus.memo}
-                                onChange={(e) => handleBonusChange(bonus.id, 'memo', e.target.value)}
-                              />
-                              <div style={{ position: 'relative' }}>
-                                <button
-                                  className="btn-form outline"
-                                  style={{ padding: '4px 8px', minWidth: 'auto' }}
-                                  onClick={() => {
-                                    const menu = document.getElementById(`bonus-menu-${bonus.id}`)
-                                    if (menu) {
-                                      menu.style.display = menu.style.display === 'none' ? 'block' : 'none'
-                                    }
-                                  }}
-                                  aria-label="상여금 메뉴 열기"
-                                >
-                                  <span style={{ fontSize: '16px' }}>&#8942;</span>
-                                </button>
-                                <div
-                                  id={`bonus-menu-${bonus.id}`}
+                          bonuses.map((bonus) => {
+                            const matchedType = bonusTypes.find(t => t.code === bonus.type)
+                            const remarkText = matchedType?.remark || '비고 없음'
+                            return (
+                              <div key={bonus.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <SearchSelect
+                                  options={bonusTypeOptions}
+                                  value={bonusTypeOptions.find(opt => opt.value === bonus.type) || null}
+                                  onChange={(opt) => handleBonusChange(bonus.id, 'type', opt?.value || '')}
+                                  placeholder="선택"
+                                />
+                                <span
+                                  id={`bonus-info-${bonus.id}`}
                                   style={{
-                                    display: 'none',
-                                    position: 'absolute',
-                                    right: 0,
-                                    top: '100%',
-                                    backgroundColor: '#fff',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '4px',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                    zIndex: 10,
-                                    minWidth: '100px'
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#007bff',
+                                    color: '#fff',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    flexShrink: 0
                                   }}
-                                >
+                                >i</span>
+                                <Tooltip
+                                  anchorSelect={`#bonus-info-${bonus.id}`}
+                                  place="top"
+                                  content={remarkText}
+                                />
+                                <input
+                                  type="text"
+                                  className="input-frame"
+                                  style={{ width: '120px', textAlign: 'right' }}
+                                  value={formatNumber(bonus.amount)}
+                                  onChange={(e) => handleBonusChange(bonus.id, 'amount', parseInt(e.target.value.replace(/,/g, '')) || 0)}
+                                />
+                                <span>원</span>
+                                <input
+                                  type="text"
+                                  className="input-frame"
+                                  style={{ width: '150px' }}
+                                  placeholder="Memo"
+                                  value={bonus.memo}
+                                  onChange={(e) => handleBonusChange(bonus.id, 'memo', e.target.value)}
+                                />
+                                <div style={{ position: 'relative' }}>
                                   <button
-                                    style={{
-                                      display: 'block',
-                                      width: '100%',
-                                      padding: '8px 16px',
-                                      border: 'none',
-                                      backgroundColor: 'transparent',
-                                      cursor: 'pointer',
-                                      textAlign: 'left'
-                                    }}
-                                    onClick={handleAddBonus}
+                                    className="btn-form outline"
+                                    style={{ padding: '4px 8px', minWidth: 'auto' }}
+                                    onClick={() => setOpenBonusMenuId(openBonusMenuId === bonus.id ? null : bonus.id)}
+                                    aria-label="상여금 메뉴 열기"
                                   >
-                                    분류 추가
+                                    <span style={{ fontSize: '16px' }}>&#8942;</span>
                                   </button>
-                                  <button
+                                  {openBonusMenuId === bonus.id && (
+                                  <div
                                     style={{
-                                      display: 'block',
-                                      width: '100%',
-                                      padding: '8px 16px',
-                                      border: 'none',
-                                      backgroundColor: 'transparent',
-                                      cursor: 'pointer',
-                                      textAlign: 'left',
-                                      color: '#dc3545'
+                                      position: 'absolute',
+                                      right: 0,
+                                      top: '100%',
+                                      backgroundColor: '#fff',
+                                      border: '1px solid #ddd',
+                                      borderRadius: '4px',
+                                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                      zIndex: 10,
+                                      minWidth: '100px'
                                     }}
-                                    onClick={() => handleRemoveBonus(bonus.id)}
                                   >
-                                    분류 삭제
-                                  </button>
+                                    {bonuses.length < bonusTypes.length && (
+                                      <button
+                                        style={{
+                                          display: 'block',
+                                          width: '100%',
+                                          padding: '8px 16px',
+                                          border: 'none',
+                                          backgroundColor: 'transparent',
+                                          cursor: 'pointer',
+                                          textAlign: 'left'
+                                        }}
+                                        onClick={handleAddBonus}
+                                      >
+                                        분류 추가
+                                      </button>
+                                    )}
+                                    <button
+                                      style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '8px 16px',
+                                        border: 'none',
+                                        backgroundColor: 'transparent',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        color: '#dc3545'
+                                      }}
+                                      onClick={() => handleRemoveBonus(bonus.id)}
+                                    >
+                                      분류 삭제
+                                    </button>
+                                  </div>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     </td>
