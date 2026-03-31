@@ -352,14 +352,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const prevMonth = monthNum === 1 ? 12 : monthNum - 1
       const prevYear = monthNum === 1 ? year - 1 : year
 
-      setStartDate(calculatePaymentDate(prevYear, prevMonth, salaryDay))
-
-      const clampedStartDate = calculatePaymentDate(prevYear, prevMonth, salaryDay)
-      const startDateObj = new Date(clampedStartDate)
-      const endDateObj = new Date(startDateObj)
-      endDateObj.setMonth(endDateObj.getMonth() + 1)
-      endDateObj.setDate(endDateObj.getDate() - 1)
-      setEndDate(`${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`)
+      // 전달 1일 ~ 말일
+      const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
+      setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
+      setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}`)
       setPaymentDate(calculatePaymentDate(year, monthNum, salaryDay))
     } else {
       setPayrollMonth('')

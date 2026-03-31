@@ -379,8 +379,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
-    { value: 'SLRCC_001', label: '월급' },
-    { value: 'SLRCC_002', label: '주급' }
+    { value: 'SLRCC_001', label: '시급' },
+    { value: 'SLRCC_002', label: '월급' }
   ], [])
 
   const salaryMonthOptions: SelectOption[] = useMemo(() => [
