@@ -113,7 +113,7 @@ function LoginContent() {
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
-        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        setSubscriptionPlan(subscriptionPlanId ?? 0);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
 
         // 아이디 저장 처리
@@ -151,7 +151,7 @@ function LoginContent() {
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
-        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        setSubscriptionPlan(subscriptionPlanId ?? 0);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
         setShowAuthorityModal(true);
       } else {
