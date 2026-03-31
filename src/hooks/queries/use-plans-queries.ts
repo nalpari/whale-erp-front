@@ -3,6 +3,7 @@ import api from "@/lib/api"
 import { plansKeys, type PlansListParams } from "./query-keys"
 import { PlansListResponse, PlanDetailResponse, UpdatePlanHeaderRequest, PlanPricing, CreatePlanPricingRequest, CreatePlanPricingResponse, UpdatePlanPricingRequest } from '@/types/plans'
 import type { ApiResponse } from '@/lib/schemas/api'
+import { useAuthStore } from '@/stores/auth-store'
 
 // Plans 목록 조회
 export const usePlansList = (params: PlansListParams, enabled = true) => {
@@ -148,6 +149,21 @@ export const useUpdatePlanPricing = () => {
         onSuccess: (_, { planTypeId }) => {
             queryClient.invalidateQueries({ queryKey: plansKeys.detail(planTypeId) })
             queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
+        },
+    })
+}
+
+// 요금제 구독
+export const useSubscribePlan = () => {
+    return useMutation({
+        mutationFn: async (planId: number) => {
+            const response = await api.put<ApiResponse<null>>(
+                `/api/v1/subscription/subscribe/${planId}`
+            )
+            return response.data
+        },
+        onSuccess: (_, planId) => {
+            useAuthStore.getState().setSubscriptionPlan(planId)
         },
     })
 }
