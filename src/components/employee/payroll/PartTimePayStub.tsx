@@ -101,7 +101,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     isNewMode && !!headOfficeIdNum
   )
   const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
-    { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },
+    { employeeInfoId: employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
     false
   )
 
@@ -333,7 +333,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
       try {
         const payrollYearMonth = month.replace('-', '')
+        if (headOfficeIdNum) {
         const existingPayrolls = await getPartTimerPayrollStatements({
+          headOfficeId: headOfficeIdNum,
+          franchiseStoreId: franchiseIdNum ?? undefined,
           memberId: employeeInfoId,
           payrollYearMonth
         })
@@ -341,6 +344,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         if (existingPayrolls.content.length > 0) {
           await alert(`해당 직원의 ${month} 급여명세서가 이미 등록되어 있습니다.`)
           return
+        }
         }
       } catch (error) {
         console.error('급여명세서 중복 확인 실패:', error)
