@@ -91,8 +91,8 @@ export default function StoreInfo() {
 
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<StoreSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       status: { status: 'ALL' },
       date: { from: null, to: null },

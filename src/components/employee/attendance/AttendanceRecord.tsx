@@ -107,8 +107,8 @@ export default function AttendanceRecord() {
 
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<AttendanceSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       workStatus: { workStatus: 'ALL' },
       employeeName: { employeeName: '' },

@@ -70,8 +70,8 @@ export default function HolidayInfo() {
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<HolidaySearchFilters>> = {
       year: { year: null },
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
     }
     const patch = resetMap[key]

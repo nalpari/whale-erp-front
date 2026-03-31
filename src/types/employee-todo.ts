@@ -50,9 +50,20 @@ export interface EmployeeTodoDetailResponse {
   isCompleted: boolean
 }
 
-// === 등록/수정 ===
+// === 직원 선택 목록 (Selectbox) ===
+export interface EmployeeTodoSelectItem {
+  employeeInfoId: number
+  employeeNumber: string
+  employeeName: string
+  headOfficeName: string
+  franchiseName: string | null
+  storeName: string | null
+}
+
+// === 등록 ===
 export interface EmployeeTodoCreateRequest {
-  headOfficeId: number
+  /** 미입력 시 서버가 employeeInfoId의 소속 본사를 자동 설정 */
+  headOfficeId?: number
   franchiseId?: number
   storeId?: number
   employeeInfoId: number
@@ -62,4 +73,14 @@ export interface EmployeeTodoCreateRequest {
   endDate?: string
 }
 
-export type EmployeeTodoUpdateRequest = EmployeeTodoCreateRequest
+// === 수정 ===
+export interface EmployeeTodoUpdateRequest {
+  headOfficeId: number
+  franchiseId?: number
+  storeId?: number
+  employeeInfoId: number
+  content: string
+  hasPeriod: boolean
+  startDate: string
+  endDate?: string
+}

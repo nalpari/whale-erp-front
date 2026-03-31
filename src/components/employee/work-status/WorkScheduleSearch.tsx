@@ -6,7 +6,7 @@ import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
-import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
+import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions, getLowestOrgName } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
 import { useAuthStore } from '@/stores/auth-store';
@@ -131,6 +131,7 @@ export default function WorkScheduleSearch({
     error: employeeError,
   } = useEmployeeTodoSelectList(
     {
+      purpose: 'SEARCH',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
@@ -140,7 +141,7 @@ export default function WorkScheduleSearch({
   const employeeOptions = useMemo(
     () =>
       (employeeList ?? []).map((employee) => ({
-        label: employee.employeeName,
+        label: `${employee.employeeName} (${getLowestOrgName(employee)})`,
         value: employee.employeeName,
       })),
     [employeeList]
@@ -217,11 +218,10 @@ export default function WorkScheduleSearch({
 
     if (key === 'office') {
       nextForm.officeId = null;
-      nextForm.franchiseId = null;
-      nextForm.storeId = null;
       setShowOfficeError(true);
-      onStoreErrorChange?.(true);
       setSearchOpen(true);
+    } else if (key === 'franchise') {
+      nextForm.franchiseId = null;
     } else if (key === 'store') {
       nextForm.storeId = null;
       onStoreErrorChange?.(true);
@@ -231,8 +231,6 @@ export default function WorkScheduleSearch({
       nextForm.to = '';
       setShowPeriodError(true);
       setSearchOpen(true);
-    } else if (key === 'franchise') {
-      nextForm.franchiseId = null;
     } else if (key === 'employeeName') {
       nextForm.employeeName = '';
     } else if (key === 'dayType') {
@@ -337,11 +335,16 @@ export default function WorkScheduleSearch({
                     if (next.store) {
                       onStoreErrorChange?.(false);
                     }
+                    // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
+                    const isOrgChanged = next.head_office !== form.officeId || next.franchise !== form.franchiseId;
+                    const isStoreChanged = !isOrgChanged && next.store !== form.storeId;
                     setForm((prev) => ({
                       ...prev,
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: isOrgChanged ? (next.store ?? prev.storeId) : next.store,
+                      // 조직 변경 시 직원 선택 초기화 (소속 불일치 방지)
+                      employeeName: (isOrgChanged || isStoreChanged) ? '' : prev.employeeName,
                     }));
                   }}
                   onMultiOffice={handleMultiOffice}
