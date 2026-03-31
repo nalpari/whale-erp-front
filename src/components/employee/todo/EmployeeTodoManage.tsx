@@ -89,8 +89,8 @@ export default function EmployeeTodoManage() {
     // 상위 조직 태그 제거 시 하위 값(점포, 직원명 등)은 유지
     // → 재검색 결과에 포함되면 태그가 다시 표시되고, 없으면 서버가 무시
     const resetMap: Record<string, Partial<EmployeeTodoSearchFilters>> = {
-      office: { officeId: null },
-      franchise: { franchiseId: null },
+      office: { officeId: null, franchiseId: null, storeId: null },
+      franchise: { franchiseId: null, storeId: null },
       store: { storeId: null },
       employeeName: { employeeName: '' },
       isCompleted: { isCompleted: 'ALL' },
@@ -115,8 +115,12 @@ export default function EmployeeTodoManage() {
     try {
       await deleteTodos([...selectedIds])
       setSelectedIds(new Set())
-    } catch {
-      await alert('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } catch (error) {
+      console.error('[EmployeeTodoManage] 삭제 실패:', error)
+      const status = (error as { response?: { status?: number } })?.response?.status
+      if (status === 400) await alert('입력값을 확인해주세요.')
+      else if (status === 403) await alert('해당 작업에 대한 권한이 없습니다.')
+      else await alert('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
     }
   }
 

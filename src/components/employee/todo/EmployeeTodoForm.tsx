@@ -20,7 +20,7 @@ import {
 import { formatDateYmd } from '@/util/date-util'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
-import type { EmployeeTodoCreateRequest } from '@/types/employee-todo'
+import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
 
 const BREADCRUMBS = ['Home', '직원 관리', '직원별 TO-DO 관리']
 
@@ -114,18 +114,12 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     [storeOptionList],
   )
 
-  // 점포 목록 로딩 완료 후 선택된 점포가 목록에 없으면 초기화
-  const storeMatch = form.storeId != null
-    ? storeOptions.some((opt) => opt.value === String(form.storeId))
-    : true
-  const [prevStoreMatch, setPrevStoreMatch] = useState(true)
-  if (!storeLoading && !storeMatch && prevStoreMatch) {
-    setPrevStoreMatch(false)
-    setForm((prev) => ({ ...prev, storeId: null }))
-  }
-  if (storeMatch && !prevStoreMatch) {
-    setPrevStoreMatch(true)
-  }
+  // 점포 목록 로딩 완료 후 선택된 점포가 목록에 없으면 파생 값으로 null 처리
+  const effectiveStoreId = useMemo(() => {
+    if (storeLoading || form.storeId == null) return form.storeId
+    const match = storeOptions.some((opt) => opt.value === String(form.storeId))
+    return match ? form.storeId : null
+  }, [storeLoading, storeOptions, form.storeId])
 
   // 직원 selectbox — 등록 모드에서 즉시 조회 (본사/가맹점/점포 선택 시 자동 필터링)
   const {
@@ -136,7 +130,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
       purpose: 'REGISTER',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
-      storeId: form.storeId ?? undefined,
+      storeId: effectiveStoreId ?? undefined,
     },
     !isEditMode,
   )
@@ -145,20 +139,14 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     [employeeList],
   )
 
-  // 직원 목록 로딩 완료 후 선택된 직원이 목록에 없으면 초기화
-  const employeeMatch = form.employeeInfoId != null
-    ? employeeOptions.some((opt) => opt.value === String(form.employeeInfoId))
-    : true
-  const [prevEmployeeMatch, setPrevEmployeeMatch] = useState(true)
-  if (!empLoading && !employeeMatch && prevEmployeeMatch) {
-    setPrevEmployeeMatch(false)
-    setForm((prev) => ({ ...prev, employeeInfoId: null }))
-  }
-  if (employeeMatch && !prevEmployeeMatch) {
-    setPrevEmployeeMatch(true)
-  }
+  // 직원 목록 로딩 완료 후 선택된 직원이 목록에 없으면 파생 값으로 null 처리
+  const effectiveEmployeeInfoId = useMemo(() => {
+    if (empLoading || form.employeeInfoId == null) return form.employeeInfoId
+    const match = employeeOptions.some((opt) => opt.value === String(form.employeeInfoId))
+    return match ? form.employeeInfoId : null
+  }, [empLoading, employeeOptions, form.employeeInfoId])
 
-  const selectedEmployee = employeeList?.find((e) => e.employeeInfoId === form.employeeInfoId)
+  const selectedEmployee = employeeList?.find((e) => e.employeeInfoId === effectiveEmployeeInfoId)
 
   const { mutateAsync: createTodo, isPending: creating } = useCreateEmployeeTodo()
   const { mutateAsync: updateTodo, isPending: updating } = useUpdateEmployeeTodo()
@@ -170,7 +158,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const handleSave = async () => {
     // 필수값 검증
     const errors: Record<string, string> = {}
-    if (!form.employeeInfoId) errors.employeeInfoId = ERROR_MSG
+    if (!effectiveEmployeeInfoId) errors.employeeInfoId = ERROR_MSG
     if (!form.content.trim()) errors.content = ERROR_MSG
     if (!form.startDate) errors.startDate = ERROR_MSG
     if (form.hasPeriod && !form.endDate) errors.endDate = ERROR_MSG
@@ -180,18 +168,6 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     }
     setFieldErrors({})
 
-    // confirm 대기 전 body를 미리 생성하여 race condition 방지
-    const body: EmployeeTodoCreateRequest = {
-      headOfficeId: form.officeId ?? undefined,
-      franchiseId: form.franchiseId ?? undefined,
-      storeId: form.storeId ?? undefined,
-      employeeInfoId: form.employeeInfoId!,
-      content: form.content.trim(),
-      hasPeriod: form.hasPeriod,
-      startDate: toYmd(form.startDate),
-      endDate: form.hasPeriod ? toYmd(form.endDate) : undefined,
-    }
-
     setIsConfirming(true)
     const confirmed = await confirm('저장하시겠습니까?')
     setIsConfirming(false)
@@ -199,13 +175,37 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
 
     try {
       if (isEditMode) {
+        const body: EmployeeTodoUpdateRequest = {
+          headOfficeId: form.officeId ?? detail!.headOfficeId,
+          franchiseId: form.franchiseId ?? undefined,
+          storeId: effectiveStoreId ?? undefined,
+          employeeInfoId: effectiveEmployeeInfoId!,
+          content: form.content.trim(),
+          hasPeriod: form.hasPeriod,
+          startDate: toYmd(form.startDate),
+          endDate: form.hasPeriod ? toYmd(form.endDate) : undefined,
+        }
         await updateTodo({ id: todoId, body })
       } else {
+        const body: EmployeeTodoCreateRequest = {
+          headOfficeId: form.officeId ?? undefined,
+          franchiseId: form.franchiseId ?? undefined,
+          storeId: effectiveStoreId ?? undefined,
+          employeeInfoId: effectiveEmployeeInfoId!,
+          content: form.content.trim(),
+          hasPeriod: form.hasPeriod,
+          startDate: toYmd(form.startDate),
+          endDate: form.hasPeriod ? toYmd(form.endDate) : undefined,
+        }
         await createTodo(body)
       }
       router.push('/employee/todo')
-    } catch {
-      await alert('저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } catch (error) {
+      console.error('[EmployeeTodoForm] 저장 실패:', error)
+      const status = (error as { response?: { status?: number } })?.response?.status
+      if (status === 400) await alert('입력값을 확인해주세요.')
+      else if (status === 403) await alert('해당 작업에 대한 권한이 없습니다.')
+      else await alert('저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
     }
   }
 
@@ -296,7 +296,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                       <div className="filed-flx">
                         <div className="mx-500">
                           <SearchSelect
-                            value={form.storeId != null ? storeOptions.find((opt) => opt.value === String(form.storeId)) ?? null : null}
+                            value={effectiveStoreId != null ? storeOptions.find((opt) => opt.value === String(effectiveStoreId)) ?? null : null}
                             options={storeOptions}
                             placeholder="점포 선택"
                             isDisabled={isEditMode || storeLoading}
@@ -332,7 +332,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                           ) : (
                             <>
                               <SearchSelect
-                                value={form.employeeInfoId ? employeeOptions.find((opt) => opt.value === String(form.employeeInfoId)) ?? null : null}
+                                value={effectiveEmployeeInfoId ? employeeOptions.find((opt) => opt.value === String(effectiveEmployeeInfoId)) ?? null : null}
                                 options={employeeOptions}
                                 placeholder={empLoading ? '직원 조회중...' : '직원 선택'}
                                 isDisabled={empLoading}
