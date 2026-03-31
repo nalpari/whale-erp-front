@@ -153,8 +153,9 @@ export const useUpdatePlanPricing = () => {
     })
 }
 
-// 요금제 구독
+// 요금제 구독 — 성공 시 auth store 업데이트 및 플랜 목록 캐시 무효화
 export const useSubscribePlan = () => {
+    const queryClient = useQueryClient()
     return useMutation({
         mutationFn: async (planId: number) => {
             const response = await api.put<ApiResponse<null>>(
@@ -164,6 +165,7 @@ export const useSubscribePlan = () => {
         },
         onSuccess: (_, planId) => {
             useAuthStore.getState().setSubscriptionPlan(planId)
+            queryClient.invalidateQueries({ queryKey: plansKeys.lists() })
         },
     })
 }

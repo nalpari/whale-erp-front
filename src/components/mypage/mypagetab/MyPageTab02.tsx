@@ -2,7 +2,7 @@
 import { useAuthStore } from '@/stores/auth-store'
 import { usePlansList } from '@/hooks/queries/use-plans-queries'
 
-/** 월 요금 포맷 (39000 → 39,000원) */
+/** 월 요금 포맷 (39000 → "39,000원", null/undefined → "-") */
 const formatPrice = (price: number | null | undefined) =>
   price != null ? `${price.toLocaleString()}원` : '-'
 
