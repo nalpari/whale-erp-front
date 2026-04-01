@@ -113,7 +113,7 @@ function LoginContent() {
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
-        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        setSubscriptionPlan(subscriptionPlanId ?? 0);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
 
         // 아이디 저장 처리
@@ -138,6 +138,8 @@ function LoginContent() {
 
         if (passwordChangeRequired) {
           router.push('/change-password');
+        } else if (!subscriptionPlanId) {
+          router.push('/customer/rate-plan');
         } else {
           router.push(redirectTarget);
         }
@@ -149,7 +151,7 @@ function LoginContent() {
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
-        if (subscriptionPlanId) setSubscriptionPlan(subscriptionPlanId);
+        setSubscriptionPlan(subscriptionPlanId ?? 0);
         if (passwordChangeRequired) setPasswordChangeRequired(true);
         setShowAuthorityModal(true);
       } else {
@@ -211,8 +213,11 @@ function LoginContent() {
       setSelectedAuthorityId(null);
 
       const passwordRequired = useAuthStore.getState().passwordChangeRequired;
+      const subscriptionPlan = useAuthStore.getState().subscriptionPlan;
       if (passwordRequired) {
         router.push('/change-password');
+      } else if (!subscriptionPlan) {
+        router.push('/customer/rate-plan');
       } else {
         router.push(redirectTarget);
       }
