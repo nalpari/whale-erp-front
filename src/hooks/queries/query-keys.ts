@@ -67,7 +67,7 @@ export const storeScheduleKeys = {
   list: (params?: unknown) => [...storeScheduleKeys.lists(), params ?? null] as const,
 }
 
-export type EmployeeTodoSelectPurpose = 'SEARCH' | 'REGISTER'
+export type EmployeeTodoSelectPurpose = 'BROAD' | 'STRICT'
 
 export interface EmployeeTodoSelectParams {
   purpose: EmployeeTodoSelectPurpose

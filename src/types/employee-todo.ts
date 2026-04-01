@@ -53,6 +53,7 @@ export interface EmployeeTodoDetailResponse {
 // === 직원 선택 목록 (Selectbox) ===
 export interface EmployeeTodoSelectItem {
   employeeInfoId: number
+  memberId: number
   employeeNumber: string
   employeeName: string
   headOfficeName: string

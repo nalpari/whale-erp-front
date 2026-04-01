@@ -13,7 +13,7 @@ import {
   useStoreOptions,
   useEmployeeTodoDetail,
   useEmployeeTodoSelectList,
-  getLowestOrgName,
+
   useCreateEmployeeTodo,
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
@@ -127,7 +127,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     isPending: empLoading,
   } = useEmployeeTodoSelectList(
     {
-      purpose: 'REGISTER',
+      purpose: 'STRICT',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: effectiveStoreId ?? undefined,
@@ -135,7 +135,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${getLowestOrgName(e)})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${e.employeeNumber})` })),
     [employeeList],
   )
 

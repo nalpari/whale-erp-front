@@ -11,15 +11,10 @@ import type {
   EmployeeTodoSelectItem,
 } from '@/types/employee-todo'
 
-/** 가장 하위 조직명 반환: storeName > franchiseName > headOfficeName */
-export function getLowestOrgName(item: EmployeeTodoSelectItem): string {
-  return item.storeName ?? item.franchiseName ?? item.headOfficeName ?? '소속 미지정'
-}
-
 // === 직원 선택 목록 (Selectbox) ===
 // /api/v1/employee-todos/employees — 재직 중(EMPWK_001)이며 삭제되지 않은 직원만 반환
-// purpose=SEARCH: 본사 하위 전체 직원 (가맹점/점포 소속 포함), 검색 툴바용
-// purpose=REGISTER: 선택된 조직 직속 직원만 (본사만 → 본사 직속, 가맹점 → 가맹점 직속), 폼 등록용
+// purpose=BROAD: 본사 하위 전체 직원 (가맹점/점포 소속 포함), 검색 툴바용
+// purpose=STRICT: 선택된 조직 직속 직원만 (본사만 → 본사 직속, 가맹점 → 가맹점 직속), 폼 등록용
 
 export const useEmployeeTodoSelectList = (
   params: EmployeeTodoSelectParams,
