@@ -9,6 +9,7 @@ import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import { Input } from '@/components/common/ui'
 import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
+import { formatEmployeeLabel } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
@@ -97,7 +98,7 @@ export default function EmployeeTodoSearch({
     true,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: `${e.employeeName} (${e.employeeNumber || '사번 미지정'})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: formatEmployeeLabel(e) })),
     [employeeList],
   )
 
@@ -222,7 +223,12 @@ export default function EmployeeTodoSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={filters.employeeName ? employeeOptions.find((opt) => opt.value === filters.employeeName) ?? { value: filters.employeeName, label: filters.employeeName } : null}
+                      value={filters.employeeName
+                        ? employeeOptions.find((opt) => {
+                            const emp = employeeList?.find((e) => String(e.employeeInfoId) === opt.value)
+                            return emp?.employeeName === filters.employeeName
+                          }) ?? { value: filters.employeeName, label: filters.employeeName }
+                        : null}
                       options={employeeOptions}
                       placeholder={employeeError ? '전체' : isEmployeeLoading ? '직원 정보를 조회중입니다.' : '직원 선택'}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
@@ -230,7 +236,15 @@ export default function EmployeeTodoSearch({
                       isClearable
                       creatable
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
-                      onChange={(option) => onChange({ employeeName: option?.value ?? '' })}
+                      onChange={(option) => {
+                        if (!option) {
+                          onChange({ employeeName: '' })
+                          return
+                        }
+                        // 목록에서 선택 → 이름 추출, 자유 입력(creatable) → 입력값 그대로
+                        const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value)
+                        onChange({ employeeName: employee?.employeeName ?? option.value })
+                      }}
                     />
                   </div>
                 </td>

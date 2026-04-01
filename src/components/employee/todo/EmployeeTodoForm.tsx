@@ -17,6 +17,7 @@ import {
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
+import { formatEmployeeLabel } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
@@ -134,7 +135,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${e.employeeNumber || '사번 미지정'})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: formatEmployeeLabel(e) })),
     [employeeList],
   )
 

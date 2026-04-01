@@ -9,6 +9,7 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
+import { formatEmployeeLabel } from '@/util/employee-label';
 import { useAuthStore } from '@/stores/auth-store';
 import { OWNER_CODE } from '@/constants/owner-code';
 
@@ -141,8 +142,8 @@ export default function WorkScheduleSearch({
   const employeeOptions = useMemo(
     () =>
       (employeeList ?? []).map((employee) => ({
-        label: `${employee.employeeName} (${employee.employeeNumber || '사번 미지정'})`,
-        value: employee.employeeName,
+        label: formatEmployeeLabel(employee),
+        value: String(employee.employeeInfoId),
       })),
     [employeeList]
   );
@@ -355,7 +356,12 @@ export default function WorkScheduleSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) ?? { value: form.employeeName, label: form.employeeName } : null}
+                      value={form.employeeName
+                        ? employeeOptions.find((opt) => {
+                            const emp = employeeList?.find((e) => String(e.employeeInfoId) === opt.value);
+                            return emp?.employeeName === form.employeeName;
+                          }) ?? { value: form.employeeName, label: form.employeeName }
+                        : null}
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
@@ -363,12 +369,14 @@ export default function WorkScheduleSearch({
                       isClearable={true}
                       creatable={true}
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
-                      onChange={(option) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          employeeName: option?.value ?? '',
-                        }))
-                      }
+                      onChange={(option) => {
+                        if (!option) {
+                          setForm((prev) => ({ ...prev, employeeName: '' }));
+                          return;
+                        }
+                        const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value);
+                        setForm((prev) => ({ ...prev, employeeName: employee?.employeeName ?? option.value }));
+                      }}
                     />
                   </div>
                 </td>
