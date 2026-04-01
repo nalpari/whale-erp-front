@@ -59,25 +59,43 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State
-  const [payrollMonth, setPayrollMonth] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  // State (기존 데이터가 있으면 초기값으로 설정 — key prop 리마운트로 useEffect 내 setState 제거)
+  const [payrollMonth, setPayrollMonth] = useState(() => {
+    if (!isNewMode && existingStatement?.payrollYearMonth) {
+      return existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
+    }
+    return ''
+  })
+  const [startDate, setStartDate] = useState(() => existingStatement?.settlementStartDate || '')
+  const [endDate, setEndDate] = useState(() => existingStatement?.settlementEndDate || '')
   const [paymentDate, setPaymentDate] = useState(() => {
+    if (!isNewMode && existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
   const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
   const [salaryDay, setSalaryDay] = useState<number>(5)
-  const [isSearched, setIsSearched] = useState(false)
+  const [isSearched, setIsSearched] = useState(() => !isNewMode && (existingStatement?.paymentItems?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
 
-  // 4대보험 공제
-  const [nationalPension, setNationalPension] = useState('')
-  const [healthInsurance, setHealthInsurance] = useState('')
-  const [employmentInsurance, setEmploymentInsurance] = useState('')
-  const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
+  // 4대보험 공제 (기존 데이터에서 초기값 설정)
+  const [nationalPension, setNationalPension] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'NATIONAL_PENSION')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [healthInsurance, setHealthInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'HEALTH_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [employmentInsurance, setEmploymentInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'EMPLOYMENT_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [longTermCareInsurance, setLongTermCareInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'LONG_TERM_CARE_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
 
   // Organization selection state
   const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
@@ -101,7 +119,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     isNewMode && !!headOfficeIdNum
   )
   const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
-    { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },
+    { employeeInfoId: employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
     false
   )
 
@@ -148,42 +166,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return options
   }, [])
 
-  // 기존 데이터 로드 처리
-  useEffect(() => {
-    if (existingStatement && !isNewMode && !payrollMonth) {
-      if (existingStatement.payrollYearMonth) {
-        const yearMonth = existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
-
-        setPayrollMonth(yearMonth)
-      }
-
-      if (existingStatement.settlementStartDate) setStartDate(existingStatement.settlementStartDate)
-
-      if (existingStatement.settlementEndDate) setEndDate(existingStatement.settlementEndDate)
-
-      if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
-
-      if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
-
-      // 공제 항목에서 4대보험 값 로드 (콤마 포맷팅)
-      // 먼저 초기화하여 이전 명세서의 잔여값 방지
-      setNationalPension('')
-      setHealthInsurance('')
-      setEmploymentInsurance('')
-      setLongTermCareInsurance('')
-      if (existingStatement.deductionItems?.length > 0) {
-        existingStatement.deductionItems.forEach(item => {
-          const val = (item.amount || 0).toLocaleString()
-          switch (item.itemCode) {
-            case 'NATIONAL_PENSION': setNationalPension(val); break
-            case 'HEALTH_INSURANCE': setHealthInsurance(val); break
-            case 'EMPLOYMENT_INSURANCE': setEmploymentInsurance(val); break
-            case 'LONG_TERM_CARE_INSURANCE': setLongTermCareInsurance(val); break
-          }
-        })
-      }
-    }
-  }, [existingStatement, isNewMode, payrollMonth])
+  // 기존 데이터 초기화: useState 초기값 + 부모 key prop 리마운트로 처리
+  // useEffect 내 setState 제거 (React Compiler 규칙 준수)
 
   // localStorage에서 수정 데이터 로드
   useEffect(() => {
@@ -331,9 +315,16 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         return
       }
 
+      if (!headOfficeIdNum) {
+        await alert('본사를 먼저 선택해주세요.')
+        return
+      }
+
       try {
         const payrollYearMonth = month.replace('-', '')
         const existingPayrolls = await getPartTimerPayrollStatements({
+          headOfficeId: headOfficeIdNum,
+          franchiseStoreId: franchiseIdNum ?? undefined,
           memberId: employeeInfoId,
           payrollYearMonth
         })
@@ -344,6 +335,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         }
       } catch (error) {
         console.error('급여명세서 중복 확인 실패:', error)
+        await alert('급여명세서 중복 확인 중 오류가 발생했습니다. 다시 시도해주세요.')
+        return
       }
 
       setPayrollMonth(month)
@@ -352,14 +345,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const prevMonth = monthNum === 1 ? 12 : monthNum - 1
       const prevYear = monthNum === 1 ? year - 1 : year
 
-      setStartDate(calculatePaymentDate(prevYear, prevMonth, salaryDay))
-
-      const clampedStartDate = calculatePaymentDate(prevYear, prevMonth, salaryDay)
-      const startDateObj = new Date(clampedStartDate)
-      const endDateObj = new Date(startDateObj)
-      endDateObj.setMonth(endDateObj.getMonth() + 1)
-      endDateObj.setDate(endDateObj.getDate() - 1)
-      setEndDate(`${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`)
+      // 전달 1일 ~ 말일
+      const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
+      setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
+      setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}`)
       setPaymentDate(calculatePaymentDate(year, monthNum, salaryDay))
     } else {
       setPayrollMonth('')

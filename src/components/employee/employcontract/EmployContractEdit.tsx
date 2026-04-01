@@ -650,7 +650,8 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                                   ...prev,
                                   employeeId: selectedId,
                                   employeeName: selectedEmployee.employeeName,
-                                  employeeNumber: selectedEmployee.employeeNumber
+                                  employeeNumber: selectedEmployee.employeeNumber,
+                                  contractClassification: selectedEmployee.contractClassification || prev.contractClassification
                                 }))
                                 if (isCreateMode) {
                                   setSelectedEmployeeInfoId(selectedEmployee.employeeInfoId)

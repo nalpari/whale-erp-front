@@ -5,6 +5,7 @@ import AnimateHeight from 'react-animate-height'
 import { useContractDetail, useDeleteContract, useSendContractEmail } from '@/hooks/queries/use-contract-queries'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
+import api from '@/lib/api'
 
 interface EmployContractDetailDataProps {
   contractId?: number
@@ -80,6 +81,16 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
       return
     }
 
+    if (!contractData.salaryInfo) {
+      await alert('급여 정보가 등록되어 있지 않습니다. 급여 정보를 먼저 등록해 주세요.')
+      return
+    }
+
+    if (!contractData.workHours || contractData.workHours.length === 0) {
+      await alert('계약 근무 시간이 등록되어 있지 않습니다. 근무 시간을 먼저 등록해 주세요.')
+      return
+    }
+
     if (await confirm('이메일을 전송하시겠습니까?')) {
       try {
         await sendEmail(contractId)
@@ -92,7 +103,38 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
   }
 
   const handleDownloadContract = async () => {
-    await alert('계약서(미날인원본)를 다운로드합니다.')
+    if (!contractId) return
+    try {
+      const response = await api.get(`/api/v1/employee/contract/${contractId}/download-docx`, {
+        responseType: 'blob',
+      })
+
+      // Content-Disposition 헤더에서 파일명 추출
+      const disposition = response.headers['content-disposition']
+      let filename = `근로계약서_${contractId}.docx`
+      if (disposition) {
+        const filenameMatch = disposition.match(/filename\*=UTF-8''(.+)/)
+        if (filenameMatch) {
+          filename = decodeURIComponent(filenameMatch[1])
+        }
+      }
+
+      // Blob 다운로드
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('계약서 다운로드 실패:', err)
+      await alert('계약서 다운로드에 실패했습니다.')
+    }
   }
 
   const handleEditHeader = () => {

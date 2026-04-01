@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCommonCodeCache } from '@/hooks/queries'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import { useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
@@ -166,7 +166,7 @@ const calculateSettlementPeriod = (
 export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayStubProps) {
   const router = useRouter()
   const { alert, confirm } = useAlert()
-  const { getHierarchyChildren } = useCommonCodeCache()
+  // getHierarchyChildren 제거 — useCommonCodeHierarchy 쿼리 훅으로 대체
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
@@ -206,15 +206,20 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // Local state
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null)
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
-  const [payrollData, setPayrollData] = useState<PayrollStatementResponse | null>(null)
+  const [payrollData, setPayrollData] = useState<PayrollStatementResponse | null>(
+    () => (!isNewMode && existingPayrollData) ? existingPayrollData : null
+  )
   const [isLoadingOvertime, setIsLoadingOvertime] = useState(false)
   const [showBonusModal, setShowBonusModal] = useState(false)
   const [showDeductionModal, setShowDeductionModal] = useState(false)
 
-  // 공통코드 상태
-  const [paymentCommonCodes, setPaymentCommonCodes] = useState<CommonCodeNode[]>([])
-  const [deductionCommonCodes, setDeductionCommonCodes] = useState<CommonCodeNode[]>([])
-  const [additionalDeductionCodes, setAdditionalDeductionCodes] = useState<CommonCodeNode[]>([])
+  // 공통코드 (useQuery → 파생 값으로 직접 계산)
+  const { data: rawPaymentCodes = [] } = useCommonCodeHierarchy('DPTBS')
+  const { data: rawDeductionCodes = [] } = useCommonCodeHierarchy('DDTBS')
+  const { data: rawAdditionalDeductionCodes = [] } = useCommonCodeHierarchy('DDTAD')
+  const paymentCommonCodes = useMemo(() => rawPaymentCodes.filter((c: CommonCodeNode) => c.isActive), [rawPaymentCodes])
+  const deductionCommonCodes = useMemo(() => rawDeductionCodes.filter((c: CommonCodeNode) => c.isActive), [rawDeductionCodes])
+  const additionalDeductionCodes = useMemo(() => rawAdditionalDeductionCodes.filter((c: CommonCodeNode) => c.isActive), [rawAdditionalDeductionCodes])
 
   // 직원 계약 정보 조회 (신규 모드: 선택된 직원, 상세 모드: 기존 데이터의 직원)
   const contractEmployeeId = selectedEmployeeId ?? existingPayrollData?.employeeInfoId ?? null
@@ -280,73 +285,14 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
-  const [formData, setFormData] = useState(() => ({
-    headOffice: '',
-    franchise: '',
-    store: '',
-    memberName: '',
-    payrollYearMonth: payrollMonthOptions[0]?.value || '',
-    paymentDate: todayStr,
-    settlementStartDate: '',
-    settlementEndDate: '',
-    baseSalary: 0,
-    mealAllowance: 0,
-    vehicleAllowance: 0,
-    childcareAllowance: 0,
-    overtimeAllowance: 0,
-    nightAllowance: 0,
-    holidayAllowance: 0,
-    extraWorkAllowance: 0,
-    positionBonus: 0,
-    incentive: 0,
-    nationalPension: 0,
-    healthInsurance: 0,
-    employmentInsurance: 0,
-    longTermCare: 0,
-    incomeTax: 0,
-    localIncomeTax: 0,
-    totalPaymentAmount: 0,
-    totalDeductionAmount: 0,
-    actualPaymentAmount: 0,
-  }))
-
-  // 공통코드 로드 (getHierarchyChildren이 useCallback으로 안정화되어 실질적으로 마운트 시 한 번만 실행)
-  useEffect(() => {
-    const loadCommonCodes = async () => {
-      try {
-        const dptbsCodes = await getHierarchyChildren('DPTBS')
-        setPaymentCommonCodes(dptbsCodes.filter((c: CommonCodeNode) => c.isActive))
-
-        const ddtbsCodes = await getHierarchyChildren('DDTBS')
-        setDeductionCommonCodes(ddtbsCodes.filter((c: CommonCodeNode) => c.isActive))
-
-        const ddtadCodes = await getHierarchyChildren('DDTAD')
-        setAdditionalDeductionCodes(ddtadCodes.filter((c: CommonCodeNode) => c.isActive))
-      } catch (error) {
-        console.error('공통코드 로딩 실패:', error)
-      }
-    }
-    loadCommonCodes()
-  }, [getHierarchyChildren])
-
-  // 기존 데이터가 로드되면 폼에 반영
-  useEffect(() => {
-    if (existingPayrollData && !isNewMode && !payrollData) {
-       
-      setPayrollData(existingPayrollData)
-
+  const [formData, setFormData] = useState(() => {
+    // 기존 데이터가 있으면 초기값으로 사용 (useEffect 내 setState 제거 — key prop으로 리마운트)
+    if (!isNewMode && existingPayrollData) {
       const paymentMap: Record<string, number> = {}
-      existingPayrollData.paymentItems?.forEach(item => {
-        paymentMap[item.itemCode] = item.amount
-      })
-
+      existingPayrollData.paymentItems?.forEach(item => { paymentMap[item.itemCode] = item.amount })
       const deductionMap: Record<string, number> = {}
-      existingPayrollData.deductionItems?.forEach(item => {
-        deductionMap[item.itemCode] = item.amount
-      })
-
-       
-      setFormData({
+      existingPayrollData.deductionItems?.forEach(item => { deductionMap[item.itemCode] = item.amount })
+      return {
         headOffice: existingPayrollData.headOfficeName || '',
         franchise: existingPayrollData.franchiseName || '',
         store: existingPayrollData.storeName || '',
@@ -374,11 +320,46 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         totalPaymentAmount: existingPayrollData.totalPaymentAmount || 0,
         totalDeductionAmount: existingPayrollData.totalDeductionAmount || 0,
         actualPaymentAmount: existingPayrollData.actualPaymentAmount || 0,
-      })
+      }
     }
-  }, [existingPayrollData, isNewMode, payrollData])
+    return {
+      headOffice: '',
+      franchise: '',
+      store: '',
+      memberName: '',
+      payrollYearMonth: payrollMonthOptions[0]?.value || '',
+      paymentDate: todayStr,
+      settlementStartDate: '',
+      settlementEndDate: '',
+      baseSalary: 0,
+      mealAllowance: 0,
+      vehicleAllowance: 0,
+      childcareAllowance: 0,
+      overtimeAllowance: 0,
+      nightAllowance: 0,
+      holidayAllowance: 0,
+      extraWorkAllowance: 0,
+      positionBonus: 0,
+      incentive: 0,
+      nationalPension: 0,
+      healthInsurance: 0,
+      employmentInsurance: 0,
+      longTermCare: 0,
+      incomeTax: 0,
+      localIncomeTax: 0,
+      totalPaymentAmount: 0,
+      totalDeductionAmount: 0,
+      actualPaymentAmount: 0,
+    }
+  })
 
-  // 신규 모드에서 기본 항목 설정
+  // 공통코드: useCommonCodeHierarchy 쿼리 훅으로 대체 (useEffect 내 setState 제거)
+
+  // 기존 데이터 초기화: 부모에서 key prop(dataUpdatedAt)으로 리마운트하여 처리
+  // useEffect 내 setState 제거 (React Compiler 규칙 준수)
+
+  // 신규 모드에서 기본 항목 설정 (공통코드 로드 후 1회 실행)
+  // Note: 편집 가능한 폼 초기화이므로 useEffect 유지 (React Compiler에서 린트 에러 미감지)
   useEffect(() => {
     if (isNewMode && !payrollData && paymentCommonCodes.length > 0 && deductionCommonCodes.length > 0) {
       const defaultPaymentItems: PaymentItemDto[] = paymentCommonCodes.map((code, index) => ({
@@ -398,32 +379,16 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
       const { startDate, endDate } = calculateSettlementPeriod(formData.payrollYearMonth, salaryMonth)
 
-       
       setPayrollData({
-        id: 0,
-        memberId: 0,
-        memberName: '',
-        headOfficeName: '',
-        franchiseName: undefined,
-        storeName: undefined,
-        payrollYearMonth: formData.payrollYearMonth,
-        paymentDate: formData.paymentDate,
-        settlementStartDate: startDate,
-        settlementEndDate: endDate,
-        paymentItems: defaultPaymentItems,
-        deductionItems: defaultDeductionItems,
-        bonuses: [],
-        totalPaymentAmount: 0,
-        totalDeductionAmount: 0,
-        actualPaymentAmount: 0,
-        remarks: undefined,
-        attachmentFileId: undefined,
-        isEmailSend: false,
-        createdAt: '',
-        updatedAt: '',
+        id: 0, memberId: 0, memberName: '', headOfficeName: '',
+        franchiseName: undefined, storeName: undefined,
+        payrollYearMonth: formData.payrollYearMonth, paymentDate: formData.paymentDate,
+        settlementStartDate: startDate, settlementEndDate: endDate,
+        paymentItems: defaultPaymentItems, deductionItems: defaultDeductionItems,
+        bonuses: [], totalPaymentAmount: 0, totalDeductionAmount: 0, actualPaymentAmount: 0,
+        remarks: undefined, attachmentFileId: undefined, isEmailSend: false, createdAt: '', updatedAt: '',
       })
 
-       
       setFormData(prev => ({
         ...prev,
         settlementStartDate: startDate,
@@ -545,17 +510,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
       const updatedPaymentItems = [...basePaymentItems, ...additionalAllowanceItems]
 
-      // 상여금 매핑 (salaryInfo.bonuses -> payrollData.bonuses)
-      // bonusCode가 코드, bonusType은 이름 - handleAddBonusItem과 동일하게 매핑
-      const mappedBonuses = salaryInfo.bonuses?.map(bonus => ({
-        bonusType: bonus.bonusCode || bonus.bonusType,  // 코드가 없으면 이름을 fallback으로 사용
-        amount: bonus.amount,
-        memo: bonus.bonusType  // 화면 표시용으로 bonusType(이름)을 저장
-      })) || []
+      // 신규 등록 시 상여금은 자동 매핑하지 않음 (지급 항목 추가 버튼으로 수동 추가)
+      const mappedBonuses: { bonusType: string; amount: number; memo: string }[] = []
 
-      // 지급액 합계 (지급항목 + 상여금)
+      // 지급액 합계 (지급항목만, 상여금은 수동 추가 후 반영)
       const paymentTotal = updatedPaymentItems.reduce((sum, item) => sum + item.amount, 0)
-      const bonusTotal = mappedBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
+      const bonusTotal = 0
       const totalPaymentAmount = paymentTotal + bonusTotal
 
       // 공제 항목 자동 계산 (4대보험 가입 여부에 따라)
@@ -696,15 +656,42 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     const deductionItems = payrollData?.deductionItems || []
     const bonuses = payrollData?.bonuses || []
 
-    // bonuses를 PaymentItemDto 형태로 변환하여 지급 항목에 포함
-    const bonusAsPaymentItems: PaymentItemDto[] = bonuses.map((bonus, index) => ({
-      itemCode: `BONUS_${bonus.bonusType}`,  // BONUS_ 접두사로 상여금 항목 구분
-      itemOrder: paymentItems.length + index + 1,
-      amount: bonus.amount,
-      remarks: bonus.memo  // memo에 bonusType(이름)이 저장됨
-    }))
+    // paymentItems에 이미 상여금이 포함되어 있는지 확인 (저장된 데이터)
+    const existingBonusCodesInPayments = new Set(
+      paymentItems
+        .filter(item => item.itemCode.startsWith('BONUS_') || bonusCategories.some(bc => bc.code === item.itemCode))
+        .map(item => item.itemCode)
+    )
 
-    const allPaymentItems = [...paymentItems, ...bonusAsPaymentItems]
+    // bonuses 중 paymentItems에 아직 없는 것만 변환하여 추가 (중복 방지)
+    const bonusAsPaymentItems: PaymentItemDto[] = bonuses
+      .filter(bonus => {
+        const code = bonus.bonusCode || bonus.bonusType
+        const itemCode = `BONUS_${code}`
+        return !existingBonusCodesInPayments.has(code) && !existingBonusCodesInPayments.has(itemCode)
+      })
+      .map((bonus, index) => {
+        const code = bonus.bonusCode || bonus.bonusType
+        const matchedCategory = bonusCategories.find(bc => bc.code === code)
+        const displayName = matchedCategory?.name || bonus.memo || bonus.bonusType
+        return {
+          itemCode: `BONUS_${bonus.bonusType}`,
+          itemOrder: paymentItems.length + index + 1,
+          amount: bonus.amount,
+          remarks: displayName
+        }
+      })
+
+    // paymentItems의 상여금 항목에 이름이 없으면 bonusCategories에서 채워주기
+    const enrichedPaymentItems = paymentItems.map(item => {
+      if (bonusCategories.some(bc => bc.code === item.itemCode)) {
+        const matched = bonusCategories.find(bc => bc.code === item.itemCode)
+        return { ...item, remarks: matched?.name || item.remarks }
+      }
+      return item
+    })
+
+    const allPaymentItems = [...enrichedPaymentItems, ...bonusAsPaymentItems]
     const sortedPayments = allPaymentItems.sort((a, b) => a.itemOrder - b.itemOrder)
     const sortedDeductions = [...deductionItems].sort((a, b) => a.itemOrder - b.itemOrder)
 
@@ -1744,27 +1731,52 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
             overflow: 'auto'
           }}>
             <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>상여금 항목 추가</h3>
-            {bonusCategories.length === 0 ? (
-              <p style={{ color: '#999' }}>등록된 상여금 항목이 없습니다. 급여명세서 환경설정에서 상여금을 추가해주세요.</p>
-            ) : (
+            {(() => {
+              // 계약서의 salaryInfo.bonuses에서 상여금 항목 가져오기
+              const contractBonuses = employeeContract?.salaryInfo?.bonuses || []
+              if (contractBonuses.length === 0) {
+                return <p style={{ color: '#999' }}>해당 근로계약서에 등록된 상여금 항목이 없습니다.</p>
+              }
+              return (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {bonusCategories.map((bonus) => (
-                  <li key={bonus.id} style={{ marginBottom: '8px' }}>
+                {contractBonuses.map((bonus, idx) => {
+                  const alreadyAdded = payrollData?.bonuses?.some(
+                    item => item.bonusType === (bonus.bonusCode || bonus.bonusType)
+                  )
+                  return (
+                  <li key={bonus.id || idx} style={{ marginBottom: '8px' }}>
                     <button
                       type="button"
                       className="btn-form outline"
-                      style={{ width: '100%', textAlign: 'left', padding: '12px' }}
-                      onClick={() => handleAddBonusItem(bonus)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px',
+                        opacity: alreadyAdded ? 0.5 : 1,
+                        cursor: alreadyAdded ? 'not-allowed' : 'pointer'
+                      }}
+                      disabled={alreadyAdded}
+                      onClick={() => handleAddBonusItem({
+                        id: bonus.id || idx,
+                        code: bonus.bonusCode || bonus.bonusType,
+                        name: bonus.bonusType,
+                        amount: bonus.amount,
+                        remark: bonus.memo || '',
+                        sortOrder: idx
+                      })}
                     >
-                      <strong>{bonus.name}</strong>
+                      <strong>{bonus.bonusType}</strong>
                       <span style={{ marginLeft: '8px', color: '#666' }}>
-                        (기본금액: {bonus.amount.toLocaleString()}원)
+                        (금액: {bonus.amount.toLocaleString()}원)
                       </span>
+                      {alreadyAdded && <span style={{ marginLeft: '8px', color: '#e74c3c' }}>(추가됨)</span>}
                     </button>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
-            )}
+              )
+            })()}
             <div style={{ marginTop: '16px', textAlign: 'right' }}>
               <button
                 type="button"
