@@ -331,9 +331,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         return
       }
 
+      if (!headOfficeIdNum) {
+        await alert('본사를 먼저 선택해주세요.')
+        return
+      }
+
       try {
         const payrollYearMonth = month.replace('-', '')
-        if (headOfficeIdNum) {
         const existingPayrolls = await getPartTimerPayrollStatements({
           headOfficeId: headOfficeIdNum,
           franchiseStoreId: franchiseIdNum ?? undefined,
@@ -345,9 +349,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           await alert(`해당 직원의 ${month} 급여명세서가 이미 등록되어 있습니다.`)
           return
         }
-        }
       } catch (error) {
         console.error('급여명세서 중복 확인 실패:', error)
+        await alert('급여명세서 중복 확인 중 오류가 발생했습니다. 다시 시도해주세요.')
+        return
       }
 
       setPayrollMonth(month)
