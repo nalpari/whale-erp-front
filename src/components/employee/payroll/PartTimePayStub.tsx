@@ -59,43 +59,25 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State (기존 데이터가 있으면 초기값으로 설정 — key prop 리마운트로 useEffect 내 setState 제거)
-  const [payrollMonth, setPayrollMonth] = useState(() => {
-    if (!isNewMode && existingStatement?.payrollYearMonth) {
-      return existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
-    }
-    return ''
-  })
-  const [startDate, setStartDate] = useState(() => existingStatement?.settlementStartDate || '')
-  const [endDate, setEndDate] = useState(() => existingStatement?.settlementEndDate || '')
+  // State
+  const [payrollMonth, setPayrollMonth] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [paymentDate, setPaymentDate] = useState(() => {
-    if (!isNewMode && existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
   const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
   const [salaryDay, setSalaryDay] = useState<number>(5)
-  const [isSearched, setIsSearched] = useState(() => !isNewMode && (existingStatement?.paymentItems?.length ?? 0) > 0)
+  const [isSearched, setIsSearched] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
 
-  // 4대보험 공제 (기존 데이터에서 초기값 설정)
-  const [nationalPension, setNationalPension] = useState(() => {
-    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'NATIONAL_PENSION')
-    return item ? (item.amount || 0).toLocaleString() : ''
-  })
-  const [healthInsurance, setHealthInsurance] = useState(() => {
-    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'HEALTH_INSURANCE')
-    return item ? (item.amount || 0).toLocaleString() : ''
-  })
-  const [employmentInsurance, setEmploymentInsurance] = useState(() => {
-    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'EMPLOYMENT_INSURANCE')
-    return item ? (item.amount || 0).toLocaleString() : ''
-  })
-  const [longTermCareInsurance, setLongTermCareInsurance] = useState(() => {
-    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'LONG_TERM_CARE_INSURANCE')
-    return item ? (item.amount || 0).toLocaleString() : ''
-  })
+  // 4대보험 공제
+  const [nationalPension, setNationalPension] = useState('')
+  const [healthInsurance, setHealthInsurance] = useState('')
+  const [employmentInsurance, setEmploymentInsurance] = useState('')
+  const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
 
   // Organization selection state
   const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
@@ -116,7 +98,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: headOfficeIdNum ?? 0, franchiseId: franchiseIdNum ?? undefined, employeeType: 'PART_TIME' },
-    isNewMode && !!headOfficeIdNum
+    isNewMode && !!headOfficeIdNum,
+    true
   )
   const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
     { employeeInfoId: employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
@@ -166,8 +149,35 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return options
   }, [])
 
-  // 기존 데이터 초기화: useState 초기값 + 부모 key prop 리마운트로 처리
-  // useEffect 내 setState 제거 (React Compiler 규칙 준수)
+  // 기존 데이터 로드 처리 (비동기 쿼리 로드 후 폼 초기화)
+  useEffect(() => {
+    if (existingStatement && !isNewMode && !payrollMonth) {
+      if (existingStatement.payrollYearMonth) {
+        const yearMonth = existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
+        setPayrollMonth(yearMonth)
+      }
+      if (existingStatement.settlementStartDate) setStartDate(existingStatement.settlementStartDate)
+      if (existingStatement.settlementEndDate) setEndDate(existingStatement.settlementEndDate)
+      if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
+      if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
+
+      setNationalPension('')
+      setHealthInsurance('')
+      setEmploymentInsurance('')
+      setLongTermCareInsurance('')
+      if (existingStatement.deductionItems?.length > 0) {
+        existingStatement.deductionItems.forEach(item => {
+          const val = (item.amount || 0).toLocaleString()
+          switch (item.itemCode) {
+            case 'NATIONAL_PENSION': setNationalPension(val); break
+            case 'HEALTH_INSURANCE': setHealthInsurance(val); break
+            case 'EMPLOYMENT_INSURANCE': setEmploymentInsurance(val); break
+            case 'LONG_TERM_CARE_INSURANCE': setLongTermCareInsurance(val); break
+          }
+        })
+      }
+    }
+  }, [existingStatement, isNewMode, payrollMonth])
 
   // localStorage에서 수정 데이터 로드
   useEffect(() => {
@@ -436,6 +446,14 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       return
     }
 
+    const totalAmount = editedWorkTimeData
+      ? editedWorkTimeData.grandTotalAmount
+      : (payrollData?.grandTotalAmount ?? 0)
+    if (totalAmount === 0) {
+      await alert('총액이 0원입니다. 근무 시간을 입력한 후 저장해주세요.')
+      return
+    }
+
     const payrollYearMonth = payrollMonth.replace('-', '')
 
     const request: CreatePartTimerPayrollStatementRequest = {
@@ -482,6 +500,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       deductionAmount: item.deductionAmount,
       remarks: item.remarks,
     }))
+
+    const totalPaymentAmount = paymentItems.reduce((sum, item) => sum + item.totalAmount, 0)
+    if (totalPaymentAmount === 0) {
+      await alert('총액이 0원입니다. 저장할 수 없습니다.')
+      return
+    }
 
     // 4대보험 공제 항목 구성
     const deductionItems: PartTimerDeductionItemRequest[] = []

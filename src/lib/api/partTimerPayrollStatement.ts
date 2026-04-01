@@ -156,6 +156,7 @@ export interface DailyWorkRecord {
   paymentAmount: number
   deductionAmount: number
   totalAmount: number
+  contractWorkHours: number
 }
 
 // 주간 소계 타입

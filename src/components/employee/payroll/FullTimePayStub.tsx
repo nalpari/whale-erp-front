@@ -193,7 +193,8 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   )
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: selectedHeadOfficeId ?? 0, franchiseId: selectedFranchiseStoreId ?? undefined, employeeType: 'FULL_TIME' },
-    isEditMode && !!selectedHeadOfficeId
+    isEditMode && !!selectedHeadOfficeId,
+    true
   )
 
   // Mutations

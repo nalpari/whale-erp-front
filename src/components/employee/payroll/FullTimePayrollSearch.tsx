@@ -7,6 +7,7 @@ import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePick
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoCommonCode } from '@/hooks/queries/use-employee-settings-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useFullTimePayrollSearchStore } from '@/stores/search-stores'
 
 interface FullTimePayrollSearchProps {
@@ -115,6 +116,32 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
     return map
   }, [bpTree])
 
+  // 가맹점 ID → 이름 맵
+  const franchiseNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      office.franchises?.forEach((franchise) => {
+        if (franchise.name) map.set(franchise.id, franchise.name)
+      })
+    })
+    return map
+  }, [bpTree])
+
+  // 점포 목록 (점포명 표시용)
+  const { data: storeOptions = [] } = useStoreOptions(
+    appliedFormData?.headOfficeId,
+    appliedFormData?.franchiseId,
+    !!(appliedFormData?.headOfficeId)
+  )
+
+  const storeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    storeOptions.forEach((store) => {
+      map.set(store.id, store.storeName)
+    })
+    return map
+  }, [storeOptions])
+
   // 근무여부 옵션
   const workStatusOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '전체' },
@@ -143,6 +170,14 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
       const name = officeNameMap.get(appliedFormData.headOfficeId)
       if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
     }
+    if (appliedFormData.franchiseId != null) {
+      const name = franchiseNameMap.get(appliedFormData.franchiseId)
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+    }
+    if (appliedFormData.storeId != null) {
+      const name = storeNameMap.get(appliedFormData.storeId)
+      if (name) appliedTags.push({ key: 'store', label: name, category: '점포' })
+    }
     if (appliedFormData.workStatus) {
       const opt = workStatusOptions.find(o => o.value === appliedFormData.workStatus)
       appliedTags.push({ key: 'workStatus', label: opt?.label || appliedFormData.workStatus, category: '근무여부' })
@@ -165,6 +200,8 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
     let updatedDate = appliedDateRange ? { ...appliedDateRange } : { startDate: null, endDate: null }
     switch (key) {
       case 'headOffice': updatedForm.headOfficeId = null; updatedForm.franchiseId = null; updatedForm.storeId = null; updatedForm.employeeClassification = ''; break
+      case 'franchise': updatedForm.franchiseId = null; updatedForm.storeId = null; updatedForm.employeeClassification = ''; break
+      case 'store': updatedForm.storeId = null; break
       case 'workStatus': updatedForm.workStatus = ''; break
       case 'employeeName': updatedForm.employeeName = ''; break
       case 'employeeClassification': updatedForm.employeeClassification = ''; break

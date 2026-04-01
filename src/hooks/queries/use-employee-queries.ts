@@ -154,11 +154,14 @@ export const useEmployeeCertificates = (memberId: number, enabled = true) => {
   })
 }
 
-export const useEmployeeListByType = (params: GetEmployeeListByTypeParams, enabled = true) => {
+export const useEmployeeListByType = (params: GetEmployeeListByTypeParams, enabled = true, filterByContract = false) => {
   return useQuery({
     queryKey: employeeKeys.byType(params),
     queryFn: () => getEmployeeListByType(params),
     enabled,
+    select: filterByContract
+      ? (data) => data.filter((emp) => emp.employmentContractId !== null)
+      : undefined,
   })
 }
 

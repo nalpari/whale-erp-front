@@ -87,7 +87,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const { data: existingStatement } = useOvertimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     headOfficeIdNum ? { headOfficeId: headOfficeIdNum, franchiseId: franchiseIdNum ?? undefined, employeeType: 'FULL_TIME' } : { headOfficeId: 0, employeeType: 'FULL_TIME' },
-    isNewMode && !!headOfficeIdNum
+    isNewMode && !!headOfficeIdNum,
+    true
   )
   const { data: overtimeData, refetch: refetchOvertimeData } = useDailyOvertimeHours(
     { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },

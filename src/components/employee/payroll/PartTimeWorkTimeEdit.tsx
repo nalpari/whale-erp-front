@@ -27,6 +27,7 @@ export interface EditableDailyRecord {
   deductionAmount: number
   totalAmount: number
   contractHourlyWage: number
+  contractWorkHours: number
   weekNumber: number
 }
 
@@ -120,7 +121,12 @@ export default function PartTimeWorkTimeEdit({
         if (parsed.employeeInfoId === employeeInfoId &&
             parsed.startDate === startDate &&
             parsed.endDate === endDate) {
-          setDailyRecords(parsed.editedRecords)
+          // 이전 형식 데이터에 contractWorkHours가 없을 수 있으므로 기본값 보장
+          const records = parsed.editedRecords.map(r => ({
+            ...r,
+            contractWorkHours: r.contractWorkHours ?? 0
+          }))
+          setDailyRecords(records)
           setWeeklyHolidayAllowances(parsed.weeklyHolidayAllowances)
           setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
           loadedFromStorage = true
@@ -154,6 +160,7 @@ export default function PartTimeWorkTimeEdit({
             deductionAmount: record.deductionAmount,
             totalAmount: record.totalAmount,
             contractHourlyWage: payrollData.contractHourlyWageInfo.weekDayHourlyWage,
+            contractWorkHours: record.contractWorkHours,
             weekNumber: getISOWeekNumber(record.date)
           }
         })
@@ -261,9 +268,15 @@ export default function PartTimeWorkTimeEdit({
 
   const handleApplyContractTime = async () => {
     const updatedRecords = dailyRecords.map(record => {
+      const day = new Date(record.date).getDay()
+      const isWeekend = day === 0 || day === 6
+      const wage = isWeekend && contractHourlyWageInfo.holidayHourlyWage > 0
+        ? contractHourlyWageInfo.holidayHourlyWage
+        : contractHourlyWageInfo.weekDayHourlyWage
       const updated = {
         ...record,
-        applyTimelyAmount: contractHourlyWageInfo.weekDayHourlyWage
+        workHours: record.contractWorkHours ?? record.workHours,
+        applyTimelyAmount: wage
       }
       return recalculateRecord(updated)
     })
@@ -277,18 +290,22 @@ export default function PartTimeWorkTimeEdit({
     setDailyRecords(updatedRecords)
     setWeeklyHolidayAllowances(updatedAllowances)
 
-    const grandTotalWorkHours = updatedRecords.reduce((sum, r) => sum + r.workHours, 0)
-    const grandTotalPaymentAmount = updatedRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
-    const grandTotalDeductionAmount = updatedRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
-    const grandTotalAmount = updatedRecords.reduce((sum, r) => sum + r.totalAmount, 0)
+    await alert('계약서 기준 시간과 시급이 적용되었습니다.')
+  }
+
+  const handleSaveWorkTime = async () => {
+    const grandTotalWorkHours = dailyRecords.reduce((sum, r) => sum + r.workHours, 0)
+    const grandTotalPaymentAmount = dailyRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
+    const grandTotalDeductionAmount = dailyRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
+    const grandTotalAmount = dailyRecords.reduce((sum, r) => sum + r.totalAmount, 0)
 
     const editData: WorkTimeEditData = {
       employeeInfoId,
       startDate,
       endDate,
       payrollMonth,
-      editedRecords: updatedRecords,
-      weeklyHolidayAllowances: updatedAllowances,
+      editedRecords: dailyRecords,
+      weeklyHolidayAllowances,
       grandTotalWorkHours,
       grandTotalPaymentAmount,
       grandTotalDeductionAmount,
@@ -301,7 +318,7 @@ export default function PartTimeWorkTimeEdit({
 
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
-    await alert('계약 시급이 적용되었습니다.')
+    await alert('저장되었습니다.')
     const targetPath = id === 'new' ? '/employee/payroll/parttime/new?fromWorkTime=true' : `/employee/payroll/parttime/${id}`
     router.push(targetPath)
   }
@@ -384,6 +401,7 @@ export default function PartTimeWorkTimeEdit({
       <div className="contents-btn">
         <button className="btn-form basic" onClick={handleGoBack}>뒤로가기</button>
         <button className="btn-form primary" onClick={handleApplyContractTime} style={{ backgroundColor: '#3498db', color: '#fff', border: 'none' }}>계약 시간 적용</button>
+        <button className="btn-form basic" onClick={handleSaveWorkTime}>저장</button>
       </div>
 
       {payrollMonth && (
