@@ -166,7 +166,7 @@ export default function WorkScheduleSearch({
   if (employeeOptions !== prevEmployeeOptions) {
     setPrevEmployeeOptions(employeeOptions);
     if (form.employeeName) {
-      const isValid = employeeOptions.some((opt) => opt.value === form.employeeName);
+      const isValid = employeeList?.some((e) => e.employeeName === form.employeeName) ?? false;
       if (!isValid) {
         setForm((prev) => ({ ...prev, employeeName: '' }));
       }
