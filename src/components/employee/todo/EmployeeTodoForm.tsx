@@ -13,7 +13,6 @@ import {
   useStoreOptions,
   useEmployeeTodoDetail,
   useEmployeeTodoSelectList,
-
   useCreateEmployeeTodo,
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
@@ -135,7 +134,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${e.employeeNumber})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${e.employeeNumber || '사번 미지정'})` })),
     [employeeList],
   )
 

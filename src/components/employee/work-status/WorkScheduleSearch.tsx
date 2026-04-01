@@ -141,7 +141,7 @@ export default function WorkScheduleSearch({
   const employeeOptions = useMemo(
     () =>
       (employeeList ?? []).map((employee) => ({
-        label: `${employee.employeeName} (${employee.employeeNumber})`,
+        label: `${employee.employeeName} (${employee.employeeNumber || '사번 미지정'})`,
         value: employee.employeeName,
       })),
     [employeeList]

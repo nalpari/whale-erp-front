@@ -97,7 +97,7 @@ export default function EmployeeTodoSearch({
     true,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: `${e.employeeName} (${e.employeeNumber})` })),
+    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: `${e.employeeName} (${e.employeeNumber || '사번 미지정'})` })),
     [employeeList],
   )
 
