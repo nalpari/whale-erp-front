@@ -13,7 +13,7 @@ export default function FullTimePayrollDetailPage({ params }: PageProps) {
   return (
     <>
       <Location title="정직원 급여명세서 상세" list={['홈', '직원 관리', '급여 명세서', '정직원 급여명세서', '상세']} />
-      <FullTimePayStub id={id} />
+      <FullTimePayStub key={id} id={id} />
     </>
   )
 }
