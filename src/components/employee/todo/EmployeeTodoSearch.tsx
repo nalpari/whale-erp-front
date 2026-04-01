@@ -241,7 +241,8 @@ export default function EmployeeTodoSearch({
                           onChange({ employeeName: '' })
                           return
                         }
-                        // 목록에서 선택 → 이름 추출, 자유 입력(creatable) → 입력값 그대로
+                        // 실제 서버 검색 조건은 employeeName 문자열이다.
+                        // 목록 선택 시에도 이름만 저장하고, 자유 입력(creatable)은 입력값 그대로 보낸다.
                         const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value)
                         onChange({ employeeName: employee?.employeeName ?? option.value })
                       }}

@@ -374,6 +374,8 @@ export default function WorkScheduleSearch({
                           setForm((prev) => ({ ...prev, employeeName: '' }));
                           return;
                         }
+                        // 실제 서버 검색 조건은 employeeName 문자열이다.
+                        // 목록 선택 시에도 이름만 저장하고, 자유 입력(creatable)은 입력값 그대로 보낸다.
                         const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value);
                         setForm((prev) => ({ ...prev, employeeName: employee?.employeeName ?? option.value }));
                       }}

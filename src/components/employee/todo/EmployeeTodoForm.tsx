@@ -323,7 +323,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                         <div className="mx-500">
                           {isEditMode ? (
                             <SearchSelect
-                              value={detail ? { value: String(detail.employeeInfoId), label: detail.employeeName } : null}
+                              value={detail ? { value: String(detail.employeeInfoId), label: formatEmployeeLabel(detail) } : null}
                               options={[]}
                               isDisabled
                               isSearchable={false}
