@@ -62,6 +62,16 @@ export interface EmployeeTodoSelectItem {
   storeName: string | null
 }
 
+// === 직원 선택 파라미터 ===
+export type EmployeeTodoSelectPurpose = 'BROAD' | 'STRICT'
+
+export interface EmployeeTodoSelectParams {
+  purpose: EmployeeTodoSelectPurpose
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
+}
+
 // === 등록 ===
 export interface EmployeeTodoCreateRequest {
   /** 미입력 시 서버가 employeeInfoId의 소속 본사를 자동 설정 */

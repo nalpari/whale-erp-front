@@ -365,9 +365,9 @@ export default function WorkScheduleSearch({
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
-                      isSearchable={true}
-                      isClearable={true}
-                      creatable={true}
+                      isSearchable
+                      isClearable
+                      creatable
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
                       onChange={(option) => {
                         if (!option) {
