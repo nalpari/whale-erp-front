@@ -7,6 +7,7 @@ import { formatDateYmd } from '@/util/date-util'
 import { Input, useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import {
+  useEmployeeDetail,
   useEmployeeCareers,
   useSaveEmployeeCareers,
   useDeleteAllEmployeeCareers
@@ -62,8 +63,12 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
   const [sectionOpen, setSectionOpen] = useState(true)
   const [isValidationAttempted, setIsValidationAttempted] = useState(false)
 
-  // TanStack Query 훅들
-  const { data: careersData, isPending: isCareersLoading } = useEmployeeCareers(employeeId)
+  // employeeInfoId → memberId 변환
+  const { data: employee } = useEmployeeDetail(employeeId)
+  const memberId = employee?.memberId ?? null
+
+  // TanStack Query 훅들 (memberId로 조회)
+  const { data: careersData, isPending: isCareersLoading } = useEmployeeCareers(memberId ?? 0, !!memberId)
   const saveCareersMutation = useSaveEmployeeCareers()
   const deleteAllCareersMutation = useDeleteAllEmployeeCareers()
 
@@ -185,8 +190,12 @@ export default function EmployeeCareerEdit({ employeeId }: EmployeeCareerEditPro
         resignationReason: career.resignationReason
       }))
 
+      if (!memberId) {
+        await alert('회원 정보를 찾을 수 없습니다.')
+        return
+      }
       await saveCareersMutation.mutateAsync({
-        employeeInfoId: employeeId,
+        memberId,
         data: { careers: careersToSave }
       })
       await alert('저장되었습니다.')

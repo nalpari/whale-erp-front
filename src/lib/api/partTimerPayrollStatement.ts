@@ -113,7 +113,7 @@ export interface GetPartTimerPayrollStatementParams {
 // 파트타이머 급여 명세서 목록 조회
 export async function getPartTimerPayrollStatements(params?: GetPartTimerPayrollStatementParams): Promise<PartTimerPayrollStatementListResponse> {
   const response = await api.get<{ data: PartTimerPayrollStatementListResponse }>(
-    '/api/employee/payroll/parttime',
+    '/api/v1/employee/payroll/parttime',
     { params }
   )
 
@@ -136,7 +136,7 @@ export async function getPartTimerPayrollStatements(params?: GetPartTimerPayroll
 // 파트타이머 급여 명세서 상세 조회
 export async function getPartTimerPayrollStatement(id: number): Promise<PartTimerPayrollStatementResponse> {
   const response = await api.get<{ data: PartTimerPayrollStatementResponse }>(
-    `/api/employee/payroll/parttime/${id}`
+    `/api/v1/employee/payroll/parttime/${id}`
   )
 
   if (!response.data?.data) {
@@ -245,7 +245,7 @@ export interface GetDailyWorkHoursParams {
 // 일별 근무 시간 조회
 export async function getDailyWorkHours(params: GetDailyWorkHoursParams): Promise<DailyWorkHoursSummaryResponse | null> {
   const response = await api.get<{ data: DailyWorkHoursSummaryResponse }>(
-    '/api/employee/payroll/parttime/daily-work-hours',
+    '/api/v1/employee/payroll/parttime/daily-work-hours',
     { params }
   )
 
@@ -258,17 +258,17 @@ export async function getDailyWorkHours(params: GetDailyWorkHoursParams): Promis
 
 // 파트타이머 급여 명세서 삭제
 export async function deletePartTimerPayrollStatement(id: number): Promise<void> {
-  await api.delete(`/api/employee/payroll/parttime/${id}`)
+  await api.delete(`/api/v1/employee/payroll/parttime/${id}`)
 }
 
 // 파트타이머 급여 명세서 이메일 전송
 export async function sendPartTimerPayrollEmail(id: number): Promise<void> {
-  await api.post(`/api/employee/payroll/parttime/${id}/send-email`)
+  await api.post(`/api/v1/employee/payroll/parttime/${id}/send-email`)
 }
 
 // 파트타이머 급여 명세서 엑셀 다운로드
 export async function downloadPartTimerPayrollExcel(id: number): Promise<Blob> {
-  const response = await api.get(`/api/employee/payroll/parttime/${id}/download-excel`, {
+  const response = await api.get(`/api/v1/employee/payroll/parttime/${id}/download-excel`, {
     responseType: 'blob'
   })
   return response.data
@@ -311,7 +311,7 @@ export async function createPartTimerPayrollStatement(
   request: CreatePartTimerPayrollStatementRequest
 ): Promise<PartTimerPayrollStatementResponse> {
   const response = await api.post<{ data: PartTimerPayrollStatementResponse }>(
-    '/api/employee/payroll/parttime',
+    '/api/v1/employee/payroll/parttime',
     request
   )
   return response.data.data
@@ -333,5 +333,5 @@ export async function updatePartTimerPayrollStatement(
   id: number,
   request: UpdatePartTimerPayrollStatementRequest
 ): Promise<void> {
-  await api.put(`/api/employee/payroll/parttime/${id}`, request)
+  await api.put(`/api/v1/employee/payroll/parttime/${id}`, request)
 }

@@ -101,7 +101,7 @@ export function useResetAdminPassword() {
 
 /**
  * 관리자 SelectBox 목록 조회
- * GET /api/system/admins/select-options
+ * GET /api/v1/system/admins/select-options
  */
 export function useAdminSelectOptions() {
   return useQuery({
@@ -112,7 +112,7 @@ export function useAdminSelectOptions() {
 
 /**
  * 권한 SelectBox 목록 조회
- * GET /api/system/admins/authority-options
+ * GET /api/v1/system/admins/authority-options
  */
 export function useAuthorityOptions() {
   return useQuery({

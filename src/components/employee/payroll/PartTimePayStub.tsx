@@ -27,6 +27,7 @@ import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { calculatePaymentDate } from '@/lib/utils/payroll'
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -299,7 +300,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const lastDay = new Date(periodYear, periodMonth, 0).getDate()
       setStartDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-01`)
       setEndDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-${lastDay}`)
-      setPaymentDate(`${payrollYear}-${String(payrollMonthNum).padStart(2, '0')}-${String(employee.salaryDay).padStart(2, '0')}`)
+      setPaymentDate(calculatePaymentDate(payrollYear, payrollMonthNum, employee.salaryDay))
     }
   }
 
@@ -351,13 +352,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const prevMonth = monthNum === 1 ? 12 : monthNum - 1
       const prevYear = monthNum === 1 ? year - 1 : year
 
-      setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(salaryDay).padStart(2, '0')}`)
+      setStartDate(calculatePaymentDate(prevYear, prevMonth, salaryDay))
 
-      const currentPaymentDate = new Date(year, monthNum - 1, salaryDay)
-      const endDateObj = new Date(currentPaymentDate)
+      const clampedStartDate = calculatePaymentDate(prevYear, prevMonth, salaryDay)
+      const startDateObj = new Date(clampedStartDate)
+      const endDateObj = new Date(startDateObj)
+      endDateObj.setMonth(endDateObj.getMonth() + 1)
       endDateObj.setDate(endDateObj.getDate() - 1)
       setEndDate(`${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`)
-      setPaymentDate(`${year}-${String(monthNum).padStart(2, '0')}-${String(salaryDay).padStart(2, '0')}`)
+      setPaymentDate(calculatePaymentDate(year, monthNum, salaryDay))
     } else {
       setPayrollMonth('')
       setStartDate('')

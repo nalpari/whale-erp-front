@@ -179,7 +179,7 @@ export const HeaderMenu: HeaderMenuItem[] = [
           {
             id: 49,
             name: 'TO-DO 관리',
-            link: '#',
+            link: '/employee/todo',
           },
         ],
       },
@@ -272,6 +272,26 @@ export const HeaderMenu: HeaderMenuItem[] = [
             name: '공통 데이터 관리',
             link: '#',
           },
+          {
+            id: 55,
+            name: '직원정보 공통코드',
+            link: '/employee/employee-settings',
+          },
+          {
+            id: 56,
+            name: '근로계약서 공통코드',
+            link: '/employee/employee-contract-settings',
+          },
+          {
+            id: 57,
+            name: '급여명세서 공통코드',
+            link: '/employee/payroll/regular/common-code',
+          },
+          {
+            id: 58,
+            name: '공통 데이터 관리',
+            link: '#',
+          }
         ],
       },
       {

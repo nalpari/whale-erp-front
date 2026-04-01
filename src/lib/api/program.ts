@@ -14,7 +14,7 @@ export interface ProgramReorderRequest {
  * 프로그램 목록 조회
  */
 export async function fetchPrograms(menuKind: string, signal?: AbortSignal): Promise<Program[]> {
-  const response = await getWithSchema('/api/system/programs', programListResponseSchema, {
+  const response = await getWithSchema('/api/v1/system/programs', programListResponseSchema, {
     params: { menuKind },
     signal
   })
@@ -25,7 +25,7 @@ export async function fetchPrograms(menuKind: string, signal?: AbortSignal): Pro
  * 프로그램 생성
  */
 export async function createProgram(data: ProgramCreateRequest): Promise<Program> {
-  const response = await postWithSchema('/api/system/programs', data, programResponseSchema)
+  const response = await postWithSchema('/api/v1/system/programs', data, programResponseSchema)
   return response.data
 }
 
@@ -33,7 +33,7 @@ export async function createProgram(data: ProgramCreateRequest): Promise<Program
  * 프로그램 수정
  */
 export async function updateProgram(id: number, data: ProgramUpdateRequest): Promise<Program> {
-  const response = await putWithSchema(`/api/system/programs/${id}`, data, programResponseSchema)
+  const response = await putWithSchema(`/api/v1/system/programs/${id}`, data, programResponseSchema)
   return response.data
 }
 
@@ -41,12 +41,12 @@ export async function updateProgram(id: number, data: ProgramUpdateRequest): Pro
  * 프로그램 삭제
  */
 export async function deleteProgram(id: number): Promise<void> {
-  await api.delete(`/api/system/programs/${id}`)
+  await api.delete(`/api/v1/system/programs/${id}`)
 }
 
 /**
  * 프로그램 순서 변경
  */
 export async function reorderPrograms(data: ProgramReorderRequest): Promise<void> {
-  await api.put('/api/system/programs/reorder', data)
+  await api.put('/api/v1/system/programs/reorder', data)
 }

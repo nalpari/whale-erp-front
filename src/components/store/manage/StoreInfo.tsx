@@ -11,6 +11,7 @@ import { formatDateYmdOrUndefined } from '@/util/date-util'
 import { useAlert } from '@/components/common/ui/Alert'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useStoreManageSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '가맹점 및 점포 관리', '점포 정보 관리']
 
@@ -25,9 +26,16 @@ const DEFAULT_FILTERS: StoreSearchFilters = {
 
 export default function StoreInfo() {
   const router = useRouter()
+  const searchStore = useStoreManageSearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
-  const [filters, setFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<StoreSearchFilters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<StoreSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: StoreSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -78,12 +86,13 @@ export default function StoreInfo() {
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
+    searchStore.reset()
   }
 
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<StoreSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       status: { status: 'ALL' },
       date: { from: null, to: null },

@@ -63,7 +63,9 @@ export default function AdminCreatePage() {
     }
   }
 
-  const handleList = () => {
+  const handleList = async () => {
+    const confirmed = await confirm('취소하시겠습니까?')
+    if (!confirmed) return
     router.push('/system/admin')
   }
 

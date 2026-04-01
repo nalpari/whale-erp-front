@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 
 import { RadioButtonGroup } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
+import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
 
 interface AuthorityFormProps {
@@ -31,12 +33,21 @@ export default function AuthorityForm({
   errors = {},
   context,
 }: AuthorityFormProps) {
+  // 요금제 공통코드 조회
+  const { data: planTypes, isError: isPlanTypesError } = useCommonCodeHierarchy('PLNTYP')
+  const planTypeOptions: SelectOption[] = (planTypes ?? []).map((plan) => ({
+    value: plan.code,
+    label: plan.name,
+  }))
+
   // 현재 폼 데이터
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
     head_office_id: initialData.head_office_id,
     franchisee_id: initialData.franchisee_id,
     name: initialData.name || '',
+    is_bp_master: initialData.is_bp_master ?? false,
+    plan_type_code: initialData.plan_type_code,
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
   }
@@ -45,12 +56,15 @@ export default function AuthorityForm({
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
   const showFranchise = formData.owner_code === 'PRGRP_002_002'
   const isBpDisabled = mode === 'edit'
+  const isPlatform = formData.owner_code === 'PRGRP_001_001'
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
+      // 플랫폼이 아니면 BP Master 초기화
+      ...(value !== 'PRGRP_001_001' && { is_bp_master: false, plan_type_code: undefined }),
     }
     onChange(newData)
   }
@@ -68,6 +82,17 @@ export default function AuthorityForm({
 
   const handleIsUsedChange = (value: boolean) => {
     onChange({ is_used: value })
+  }
+
+  const handleBpMasterChange = (checked: boolean) => {
+    onChange({
+      is_bp_master: checked,
+      plan_type_code: checked ? formData.plan_type_code : undefined,
+    })
+  }
+
+  const handlePlanTypeChange = (value: string | undefined) => {
+    onChange({ plan_type_code: value })
   }
 
   const handleDescriptionChange = (value: string) => {
@@ -160,6 +185,45 @@ export default function AuthorityForm({
                   </div>
                 </td>
               </tr>
+              {isPlatform && (
+                <tr>
+                  <th>BP Master 권한</th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <div className="filed-flx" style={{ gap: '12px', alignItems: 'center' }}>
+                      <div className="toggle-btn">
+                        <input
+                          type="checkbox"
+                          id="toggle-bp-master"
+                          checked={formData.is_bp_master}
+                          onChange={(e) => handleBpMasterChange(e.target.checked)}
+                          disabled={mode === 'edit'}
+                        />
+                        <label className="slider" htmlFor="toggle-bp-master" />
+                      </div>
+                      {formData.is_bp_master && (
+                        <>
+                          <SearchSelect
+                            options={planTypeOptions}
+                            value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
+                            onChange={(opt) => handlePlanTypeChange(opt?.value)}
+                            placeholder="선택"
+                            isClearable
+                            isSearchable={false}
+                            isDisabled={mode === 'edit'}
+                            error={!!errors.plan_type_code}
+                          />
+                          {!formData.plan_type_code && errors.plan_type_code && (
+                            <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
+                          )}
+                          {isPlanTypesError && (
+                            <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
               <tr>
                 <th>
                   운영여부 <span className="red">*</span>

@@ -18,7 +18,7 @@ export const useStoreMenuDetail = (id: number | null) => {
     queryFn: async () => {
       if (id == null) throw new Error('Menu ID is required')
       const response = await api.get<ApiResponse<StoreMenuDetailResponse>>(
-        `/api/master/menu/store/${id}`
+        `/api/v1/master/menu/store/${id}`
       )
       return response.data.data
     },
@@ -31,7 +31,7 @@ export const useDeleteStoreMenu = () => {
   return useMutation({
     mutationFn: async (id: number) => {
       const response = await api.delete<ApiResponse<void>>(
-        `/api/master/menu/store/${id}`
+        `/api/v1/master/menu/store/${id}`
       )
       return response.data
     },
@@ -48,7 +48,7 @@ export const useStoreMenuList = (params: StoreMenuListParams, enabled = true) =>
     queryKey: storeMenuKeys.list(params),
     queryFn: async () => {
       const response = await api.get<ApiResponse<StoreMenuListResponse>>(
-        '/api/master/menu/store',
+        '/api/v1/master/menu/store',
         { params }
       )
       return response.data.data
@@ -62,7 +62,7 @@ export const useBulkUpdateOperationStatus = () => {
   return useMutation({
     mutationFn: async (body: MenuOperationStatusUpdateRequest) => {
       const response = await api.patch<ApiResponse<void>>(
-        '/api/master/menu/store/operation-status',
+        '/api/v1/master/menu/store/operation-status',
         body
       )
       return response.data
@@ -78,7 +78,7 @@ export const useBulkUpdateDisplayOrder = () => {
   return useMutation({
     mutationFn: async (body: MenuDisplayOrderUpdateRequest[]) => {
       const response = await api.patch<ApiResponse<void>>(
-        '/api/master/menu/store/display-order',
+        '/api/v1/master/menu/store/display-order',
         body
       )
       return response.data
@@ -121,7 +121,7 @@ export const useUpdateStoreMenu = () => {
     }) => {
       const formData = buildStoreMenuFormData(payload, files)
       const response = await api.put<ApiResponse<StoreMenuDetailResponse>>(
-        `/api/master/menu/store/${id}`,
+        `/api/v1/master/menu/store/${id}`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
       )

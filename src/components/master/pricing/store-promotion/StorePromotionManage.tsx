@@ -10,6 +10,7 @@ import { PROMOTION_STATUS, PROMOTION_STATUS_LABEL, type StorePromotionListParams
 import { formatDateYmdOrUndefined } from '@/util/date-util'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useStorePromotionSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '마스터', '가격 관리', '점포용 프로모션 가격 관리']
 
@@ -29,9 +30,16 @@ const DEFAULT_FILTERS: PromotionSearchFilters = {
 
 export default function StorePromotionManage() {
   const router = useRouter()
+  const searchStore = useStorePromotionSearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
 
-  const [filters, setFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<PromotionSearchFilters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<PromotionSearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: PromotionSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -76,16 +84,16 @@ export default function StorePromotionManage() {
     setPage(0)
   }
 
+  // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (검색 버튼으로 재검색해야 반영)
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
-    setAppliedFilters(DEFAULT_FILTERS)
-    setPage(0)
+    searchStore.reset()
   }
 
   const handleRemoveFilter = (key: PromotionFilterTagKey) => {
     const resetMap: Record<string, Partial<PromotionSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       promotionStatus: { promotionStatus: '' },
       menuName: { menuName: '' },

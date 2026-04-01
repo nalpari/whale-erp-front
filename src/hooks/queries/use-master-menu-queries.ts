@@ -9,7 +9,7 @@ export const useMasterMenuList = (params: MasterMenuListParams, enabled = true) 
     queryKey: masterMenuKeys.list(params),
     queryFn: async () => {
       const response = await api.get<ApiResponse<PageResponse<MenuResponse>>>(
-        '/api/master/menu/master',
+        '/api/v1/master/menu/master',
         { params }
       )
       return response.data.data
@@ -24,7 +24,7 @@ export const useOperatingOptionMenus = (bpId: number | null, enabled = true) => 
     queryKey: masterMenuKeys.operatingOptions(bpId ?? 0),
     queryFn: async () => {
       const response = await api.get<ApiResponse<MenuResponse[]>>(
-        '/api/master/menu/master/operating-options',
+        '/api/v1/master/menu/master/operating-options',
         { params: { bpId } }
       )
       return response.data.data
@@ -44,7 +44,7 @@ export const useUpdateMenuOperationStatus = () => {
   return useMutation({
     mutationFn: async (data: UpdateMenuOperationStatusRequest) => {
       const response = await api.patch<ApiResponse<void>>(
-        '/api/master/menu/master/operation-status',
+        '/api/v1/master/menu/master/operation-status',
         data
       )
       return response.data
@@ -86,7 +86,7 @@ export const useCreateMenu = () => {
         formData.append('image', image)
       }
       const response = await api.post<ApiResponse<MenuResponse>>(
-        '/api/master/menu/master',
+        '/api/v1/master/menu/master',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
@@ -111,7 +111,7 @@ export const useUpdateMenu = () => {
         formData.append('deleteFileId', String(deleteFileId))
       }
       const response = await api.put<ApiResponse<MenuResponse>>(
-        `/api/master/menu/master/${id}`,
+        `/api/v1/master/menu/master/${id}`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
@@ -129,7 +129,7 @@ export const useMasterMenuDetail = (id: number) => {
     queryKey: masterMenuKeys.detail(id),
     queryFn: async () => {
       const response = await api.get<ApiResponse<MenuDetailResponse>>(
-        `/api/master/menu/master/${id}`
+        `/api/v1/master/menu/master/${id}`
       )
       return response.data.data
     },
@@ -142,7 +142,7 @@ export const useDeleteMenu = () => {
   return useMutation({
     mutationFn: async (id: number) => {
       const response = await api.delete<ApiResponse<void>>(
-        `/api/master/menu/master/${id}`
+        `/api/v1/master/menu/master/${id}`
       )
       return response.data
     },
@@ -165,7 +165,7 @@ export const useSyncMenuToStores = () => {
   return useMutation({
     mutationFn: async (data: SyncMenuToStoresRequest) => {
       const response = await api.post<ApiResponse<void>>(
-        '/api/master/menu/master/sync-to-stores',
+        '/api/v1/master/menu/master/sync-to-stores',
         data
       )
       return response.data

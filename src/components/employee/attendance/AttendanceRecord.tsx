@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import type { AttendanceListParams } from '@/types/attendance'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useAttendanceSearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '직원 관리', '근태 기록']
 
@@ -28,9 +29,16 @@ export default function AttendanceRecord() {
   const router = useRouter()
   const accessToken = useAuthStore((s) => s.accessToken)
 
-  // 로컬 상태 (sessionStorage 저장 없음)
-  const [filters, setFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<AttendanceSearchFilters>(DEFAULT_ATTENDANCE_FILTERS)
+  const searchStore = useAttendanceSearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
+
+  const [filters, setFilters] = useState<AttendanceSearchFilters>(restoredFilters ?? DEFAULT_ATTENDANCE_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<AttendanceSearchFilters>(restoredFilters ?? DEFAULT_ATTENDANCE_FILTERS)
+  const setAppliedFilters = (next: AttendanceSearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
@@ -94,12 +102,13 @@ export default function AttendanceRecord() {
 
   const handleReset = () => {
     setFilters(DEFAULT_ATTENDANCE_FILTERS)
+    searchStore.reset()
   }
 
   const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<AttendanceSearchFilters>> = {
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
       workStatus: { workStatus: 'ALL' },
       employeeName: { employeeName: '' },

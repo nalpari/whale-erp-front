@@ -53,7 +53,7 @@ export default function PromotionSearch({
   onRemoveFilter,
   onAutoSelect,
 }: PromotionSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
   const ownerCode = useAuthStore((s) => s.ownerCode)
@@ -103,11 +103,8 @@ export default function PromotionSearch({
   }
 
   const handleMultiOffice = (isMulti: boolean) => {
-    if (isMulti) {
+    if (isMulti && appliedFilters.officeId == null) {
       setSearchOpen(true)
-      setShowOfficeError(true)
-    } else {
-      setShowOfficeError(false)
     }
   }
 
@@ -178,10 +175,12 @@ export default function PromotionSearch({
                   storeId={filters.storeId}
                   onChange={(next) => {
                     if (next.head_office) setShowOfficeError(false)
+                    // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
+                    const isOrgChanged = next.head_office !== filters.officeId || next.franchise !== filters.franchiseId
                     onChange({
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: isOrgChanged ? (next.store ?? filters.storeId) : next.store,
                     })
                   }}
                   onMultiOffice={handleMultiOffice}

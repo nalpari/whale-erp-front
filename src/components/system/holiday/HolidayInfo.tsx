@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useCallback, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
@@ -9,6 +9,7 @@ import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useHolidayList } from '@/hooks/queries'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 import { useQueryError } from '@/hooks/useQueryError'
+import { useHolidaySearchStore } from '@/stores/search-stores'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -24,8 +25,16 @@ const DEFAULT_FILTERS: HolidaySearchFilters = {
 export default function HolidayInfo() {
   const router = useRouter()
   const [isNavigating, startTransition] = useTransition()
-  const [filters, setFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
-  const [appliedFilters, setAppliedFilters] = useState<HolidaySearchFilters>(DEFAULT_FILTERS)
+  const searchStore = useHolidaySearchStore()
+  const restoredFilters = searchStore.hasSearched ? searchStore.searchParams : null
+
+  const [filters, setFilters] = useState<HolidaySearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const [appliedFilters, _setAppliedFilters] = useState<HolidaySearchFilters>(restoredFilters ?? DEFAULT_FILTERS)
+  const setAppliedFilters = (next: HolidaySearchFilters) => {
+    _setAppliedFilters(next)
+    searchStore.setSearchParams(next )
+    searchStore.setHasSearched(true)
+  }
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
@@ -47,21 +56,22 @@ export default function HolidayInfo() {
   const { data: response, isPending: loading, error: queryError } = useHolidayList(params, canFetchList)
   const errorMessage = useQueryError(queryError)
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = () => {
     setAppliedFilters(filters)
     setPage(0)
-  }, [filters])
+  }
 
   // 초기화: 검색 폼만 초기화, 목록 데이터는 유지 (appliedFilters 변경 안 함)
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
-  }, [])
+    searchStore.reset()
+  }
 
-  const handleRemoveFilter = useCallback((key: string) => {
+  const handleRemoveFilter = (key: string) => {
     const resetMap: Record<string, Partial<HolidaySearchFilters>> = {
       year: { year: null },
-      office: { officeId: null, franchiseId: null, storeId: null },
-      franchise: { franchiseId: null, storeId: null },
+      office: { officeId: null },
+      franchise: { franchiseId: null },
       store: { storeId: null },
     }
     const patch = resetMap[key]
@@ -72,17 +82,13 @@ export default function HolidayInfo() {
     if (key === 'year') return
     setAppliedFilters(nextFilters)
     setPage(0)
-  }, [appliedFilters])
+  }
 
-  const handleFilterChange = useCallback(
-    (next: Partial<HolidaySearchFilters>) => {
-      setFilters((prev) => ({ ...prev, ...next }))
-    },
-    []
-  )
+  const handleFilterChange = (next: Partial<HolidaySearchFilters>) => {
+    setFilters((prev) => ({ ...prev, ...next }))
+  }
 
-  const handleOpenDetail = useCallback(
-    (row: HolidayListItem) => {
+  const handleOpenDetail = (row: HolidayListItem) => {
       startTransition(() => {
         if (row.holidayType === 'LEGAL') {
           router.push(`/system/holiday/legal?year=${row.year}`)
@@ -104,9 +110,7 @@ export default function HolidayInfo() {
 
         router.push(`/system/holiday/detail?${searchParams.toString()}`)
       })
-    },
-    [router]
-  )
+    }
 
   const listData = response?.content ?? []
   const totalCount = response?.totalElements ?? 0

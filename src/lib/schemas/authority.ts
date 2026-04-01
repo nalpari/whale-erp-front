@@ -67,6 +67,8 @@ export const authorityCreateSchema = z.object({
   head_office_id: z.number().optional(),
   franchisee_id: z.number().optional(),
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
+  is_bp_master: z.boolean().optional().default(false),
+  plan_type_code: z.string().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
   details: z.array(z.object({
@@ -75,29 +77,66 @@ export const authorityCreateSchema = z.object({
     can_create_delete: z.boolean(),
     can_update: z.boolean(),
   })).optional(),
-}).refine(
-  (data) => {
-    // 본사 권한인 경우 head_office_id 필수
-    if (data.owner_code === 'PRGRP_002_001') {
-      return !!data.head_office_id
+}).superRefine((data, ctx) => {
+  // BP Master 관련 검증
+  if (data.owner_code !== 'PRGRP_001_001') {
+    if (data.is_bp_master) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['is_bp_master'],
+        message: 'BP Master 권한은 플랫폼 권한에서만 설정할 수 있습니다',
+      })
     }
-    return true
-  },
-  { message: '본사를 선택해주세요', path: ['head_office_id'] }
-).refine(
-  (data) => {
-    // 가맹점 권한인 경우 head_office_id, franchisee_id 필수
-    if (data.owner_code === 'PRGRP_002_002') {
-      return !!data.head_office_id && !!data.franchisee_id
+    if (data.plan_type_code) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['plan_type_code'],
+        message: '요금제는 플랫폼 권한에서만 설정할 수 있습니다',
+      })
     }
-    return true
-  },
-  { message: '본사와 가맹점을 선택해주세요', path: ['franchisee_id'] }
-)
+  }
+
+  if (data.is_bp_master && !data.plan_type_code) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['plan_type_code'],
+      message: '요금제를 선택해주세요',
+    })
+  }
+
+  // BP Master가 아닌데 plan_type_code가 있으면 차단
+  if (!data.is_bp_master && data.plan_type_code) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['plan_type_code'],
+      message: 'BP Master가 아닌 경우 요금제 설정 불가',
+    })
+  }
+
+  // 본사 권한인 경우 head_office_id 필수
+  if (data.owner_code === 'PRGRP_002_001' && !data.head_office_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['head_office_id'],
+      message: '본사를 선택해주세요',
+    })
+  }
+
+  // 가맹점 권한인 경우 head_office_id, franchisee_id 필수
+  if (data.owner_code === 'PRGRP_002_002') {
+    if (!data.head_office_id || !data.franchisee_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['franchisee_id'],
+        message: '본사와 가맹점을 선택해주세요',
+      })
+    }
+  }
+})
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
-// 권한 수정 스키마 (기본정보만)
+// 권한 수정 스키마 (기본정보만, BP Master 권한/요금제는 등록 시 결정되며 수정 불가)
 export const authorityUpdateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_used: z.boolean(),
@@ -138,6 +177,8 @@ export const authorityListItemSchema = z.object({
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
+  is_bp_master: z.boolean().nullable(),
+  plan_type_code: z.string().nullable(),
   is_used: z.boolean(),
   description: z.string().nullable(),
   created_at: z.string(),

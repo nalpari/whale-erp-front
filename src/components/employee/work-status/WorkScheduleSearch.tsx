@@ -6,7 +6,7 @@ import AnimateHeight from 'react-animate-height';
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect';
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect';
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker';
-import { useEmployeeInfoList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
+import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions, getLowestOrgName } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
 import { useAuthStore } from '@/stores/auth-store';
@@ -64,7 +64,7 @@ export default function WorkScheduleSearch({
   onReset,
   onRemoveFilter,
 }: WorkScheduleSearchProps) {
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(!initialQuery?.storeId);
   const [showOfficeError, setShowOfficeError] = useState(false);
 
   const ownerCode = useAuthStore((s) => s.ownerCode);
@@ -79,10 +79,8 @@ export default function WorkScheduleSearch({
   );
 
   const handleMultiOffice = (isMulti: boolean) => {
-    if (isMulti) {
+    if (isMulti && !initialQuery?.officeId) {
       setSearchOpen(true);
-      setShowOfficeError(true);
-      onStoreErrorChange?.(true);
     }
   };
   const [showPeriodError, setShowPeriodError] = useState(false);
@@ -126,28 +124,27 @@ export default function WorkScheduleSearch({
   );
   const [form, setForm] = useState(initialForm);
 
+  // 직원 selectbox — /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
   const {
-    data: employeePage,
+    data: employeeList,
     isPending: isEmployeeLoading,
     error: employeeError,
-  } = useEmployeeInfoList(
+  } = useEmployeeTodoSelectList(
     {
-      officeId: form.officeId ?? undefined,
+      purpose: 'SEARCH',
+      headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: form.storeId ?? undefined,
-      workStatus: 'EMPWK_001',
-      page: 0,
-      size: 100,
     },
     true
   );
   const employeeOptions = useMemo(
     () =>
-      (employeePage?.content ?? []).map((employee) => ({
-        label: employee.employeeName,
+      (employeeList ?? []).map((employee) => ({
+        label: `${employee.employeeName} (${getLowestOrgName(employee)})`,
         value: employee.employeeName,
       })),
-    [employeePage?.content]
+    [employeeList]
   );
   const employeePlaceholder = employeeError
     ? '전체'
@@ -221,11 +218,10 @@ export default function WorkScheduleSearch({
 
     if (key === 'office') {
       nextForm.officeId = null;
-      nextForm.franchiseId = null;
-      nextForm.storeId = null;
       setShowOfficeError(true);
-      onStoreErrorChange?.(true);
       setSearchOpen(true);
+    } else if (key === 'franchise') {
+      nextForm.franchiseId = null;
     } else if (key === 'store') {
       nextForm.storeId = null;
       onStoreErrorChange?.(true);
@@ -235,8 +231,6 @@ export default function WorkScheduleSearch({
       nextForm.to = '';
       setShowPeriodError(true);
       setSearchOpen(true);
-    } else if (key === 'franchise') {
-      nextForm.franchiseId = null;
     } else if (key === 'employeeName') {
       nextForm.employeeName = '';
     } else if (key === 'dayType') {
@@ -341,11 +335,16 @@ export default function WorkScheduleSearch({
                     if (next.store) {
                       onStoreErrorChange?.(false);
                     }
+                    // 본사/가맹점 변경 시 점포값 유지, 점포 직접 삭제(x) 시에는 null 적용
+                    const isOrgChanged = next.head_office !== form.officeId || next.franchise !== form.franchiseId;
+                    const isStoreChanged = !isOrgChanged && next.store !== form.storeId;
                     setForm((prev) => ({
                       ...prev,
                       officeId: next.head_office,
                       franchiseId: next.franchise,
-                      storeId: next.store,
+                      storeId: isOrgChanged ? (next.store ?? prev.storeId) : next.store,
+                      // 조직 변경 시 직원 선택 초기화 (소속 불일치 방지)
+                      employeeName: (isOrgChanged || isStoreChanged) ? '' : prev.employeeName,
                     }));
                   }}
                   onMultiOffice={handleMultiOffice}
@@ -356,12 +355,14 @@ export default function WorkScheduleSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) || null : null}
+                      value={form.employeeName ? employeeOptions.find((opt) => opt.value === form.employeeName) ?? { value: form.employeeName, label: form.employeeName } : null}
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
                       isSearchable={true}
                       isClearable={true}
+                      creatable={true}
+                      formatCreateLabel={(input) => `"${input}" 로 검색`}
                       onChange={(option) =>
                         setForm((prev) => ({
                           ...prev,
@@ -406,7 +407,7 @@ export default function WorkScheduleSearch({
                     endDatePlaceholder="종료일"
                   />
                   {showPeriodError && (
-                    <span className="warning-txt">기간을 선택해주세요.</span>
+                    <span className="warning-txt">※ 필수 입력 항목입니다.</span>
                   )}
                 </td>
               </tr>

@@ -2,6 +2,7 @@ import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import type { CustomerSearchParams } from '@/types/customer'
+import type { EmployeeTodoListParams } from '@/types/employee-todo'
 
 export interface StoreListParams {
   office?: number
@@ -66,14 +67,33 @@ export const storeScheduleKeys = {
   list: (params?: unknown) => [...storeScheduleKeys.lists(), params ?? null] as const,
 }
 
+export type EmployeeTodoSelectPurpose = 'SEARCH' | 'REGISTER'
+
+export interface EmployeeTodoSelectParams {
+  purpose: EmployeeTodoSelectPurpose
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
+}
+
+export const employeeTodoKeys = {
+  all: ['employee-todos'] as const,
+  lists: () => [...employeeTodoKeys.all, 'list'] as const,
+  list: (params: EmployeeTodoListParams) => [...employeeTodoKeys.lists(), params] as const,
+  details: () => [...employeeTodoKeys.all, 'detail'] as const,
+  detail: (id: number) => [...employeeTodoKeys.details(), id] as const,
+  employees: (params?: EmployeeTodoSelectParams) => [...employeeTodoKeys.all, 'employees', params ?? null] as const,
+}
+
 export const employeeKeys = {
   all: ['employees'] as const,
   lists: () => [...employeeKeys.all, 'list'] as const,
   list: (params?: unknown) => [...employeeKeys.lists(), params ?? null] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
   detail: (id: number) => [...employeeKeys.details(), id] as const,
-  careers: (employeeId: number) => [...employeeKeys.all, 'career', employeeId] as const,
-  certificates: (employeeId: number) => [...employeeKeys.all, 'certificate', employeeId] as const,
+  careers: (memberId: number) => [...employeeKeys.all, 'career', memberId] as const,
+  certificates: (memberId: number) => [...employeeKeys.all, 'certificate', memberId] as const,
+  documents: (memberId: number) => [...employeeKeys.all, 'document', memberId] as const,
   byType: (params: { headOfficeId: number; franchiseId?: number; employeeType: string }) =>
     [...employeeKeys.all, 'by-type', params] as const,
   bpAuthorities: (employeeId?: number) => [...employeeKeys.all, 'bpAuthorities', employeeId] as const,

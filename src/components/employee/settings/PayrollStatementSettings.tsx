@@ -136,10 +136,13 @@ export default function PayrollStatementSettings() {
 
   // TanStack Query hooks
   const hasSelection = selectedHeadOfficeId !== null
-  const { data: fetchedSettings, isPending: isLoading } = usePayrollStatementSettings(
+  const { data: fetchedSettings, isPending, fetchStatus } = usePayrollStatementSettings(
     { headOfficeId: selectedHeadOfficeId ?? undefined, franchiseId: selectedFranchiseId ?? undefined },
     hasSelection
   )
+  // enabled=false인 쿼리는 isPending=true이지만 실제 fetch하지 않음 (fetchStatus='idle')
+  // 실제 로딩 중인 경우만 로딩 표시
+  const isLoading = isPending && fetchStatus === 'fetching'
   const saveMutation = useSavePayrollStatementSettings()
 
   const monthOptions: SelectOption[] = useMemo(() => [
@@ -267,7 +270,7 @@ export default function PayrollStatementSettings() {
 
   return (
     <>
-      <Location title="급여명세서 설정" list={['홈', '직원 관리', '급여 명세서', '급여명세서 설정']} />
+      <Location title="급여명세서 공통" list={['홈', '직원 관리', '급여 명세서', '급여명세서 공통']} />
       <div className="contents-wrap">
         {/* 저장 버튼 */}
         <div className="contents-btn">
@@ -314,7 +317,7 @@ export default function PayrollStatementSettings() {
 
                 <table className="default-table">
                   <colgroup>
-                    <col width="180px" />
+                    <col width="220px" />
                     <col />
                   </colgroup>
                   <tbody>
@@ -322,15 +325,13 @@ export default function PayrollStatementSettings() {
                       <th>정직원 급여일 정보 *</th>
                       <td>
                         <div className="filed-flx">
-                          <div className="block" style={{ maxWidth: '120px' }}>
-                            <SearchSelect
-                              options={monthOptions}
-                              value={monthOptions.find(o => o.value === settings.fulltimePaydayMonth) || null}
-                              onChange={(opt) => handleSettingChange('fulltimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
-                              placeholder="선택"
-                            />
-                          </div>
-                          <span style={{ padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: 500 }}>일</span>
+                          <SearchSelect
+                            options={monthOptions}
+                            value={monthOptions.find(o => o.value === settings.fulltimePaydayMonth) || null}
+                            onChange={(opt) => handleSettingChange('fulltimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
+                            placeholder="선택"
+                            fullWidth={false}
+                          />
                           <div className="block" style={{ maxWidth: '80px' }}>
                             <input
                               type="number"
@@ -341,6 +342,7 @@ export default function PayrollStatementSettings() {
                               onChange={(e) => handleSettingChange('fulltimePaydayDay', Number(e.target.value) || 1)}
                             />
                           </div>
+                          <span className="explain">일</span>
                         </div>
                       </td>
                     </tr>
@@ -348,15 +350,13 @@ export default function PayrollStatementSettings() {
                       <th>파트타이머 급여일 정보 *</th>
                       <td>
                         <div className="filed-flx">
-                          <div className="block" style={{ maxWidth: '120px' }}>
-                            <SearchSelect
-                              options={monthOptions}
-                              value={monthOptions.find(o => o.value === settings.parttimePaydayMonth) || null}
-                              onChange={(opt) => handleSettingChange('parttimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
-                              placeholder="선택"
-                            />
-                          </div>
-                          <span style={{ padding: '0 8px', display: 'flex', alignItems: 'center', fontWeight: 500 }}>일</span>
+                          <SearchSelect
+                            options={monthOptions}
+                            value={monthOptions.find(o => o.value === settings.parttimePaydayMonth) || null}
+                            onChange={(opt) => handleSettingChange('parttimePaydayMonth', (opt?.value || 'CURRENT') as 'CURRENT' | 'NEXT')}
+                            placeholder="선택"
+                            fullWidth={false}
+                          />
                           <div className="block" style={{ maxWidth: '80px' }}>
                             <input
                               type="number"
@@ -367,6 +367,7 @@ export default function PayrollStatementSettings() {
                               onChange={(e) => handleSettingChange('parttimePaydayDay', Number(e.target.value) || 1)}
                             />
                           </div>
+                          <span className="explain">일</span>
                         </div>
                       </td>
                     </tr>

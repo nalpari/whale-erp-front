@@ -14,7 +14,7 @@ export const useStorePromotionList = (params: StorePromotionListParams, enabled 
     queryKey: storePromotionKeys.list(params),
     queryFn: async () => {
       const response = await api.get<ApiResponse<StorePromotionListResponse>>(
-        '/api/master/promotion/store',
+        '/api/v1/master/promotion/store',
         { params }
       )
       return response.data.data
@@ -28,7 +28,7 @@ export const useStorePromotionDetail = (id?: number | null) => {
     queryKey: storePromotionKeys.detail(id ?? 0),
     queryFn: async () => {
       const response = await api.get<ApiResponse<StorePromotionDetailResponse>>(
-        `/api/master/promotion/store/${id}`
+        `/api/v1/master/promotion/store/${id}`
       )
       return response.data.data
     },
@@ -41,7 +41,7 @@ export const useCreateStorePromotion = () => {
 
   return useMutation({
     mutationFn: async (data: StorePromotionCreateRequest) => {
-      const response = await api.post('/api/master/promotion/store', data)
+      const response = await api.post('/api/v1/master/promotion/store', data)
       return response.data
     },
     onSuccess: () => {
@@ -57,7 +57,7 @@ export const useUpdateStorePromotion = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: StorePromotionCreateRequest }) => {
-      const response = await api.put(`/api/master/promotion/store/${id}`, data)
+      const response = await api.put(`/api/v1/master/promotion/store/${id}`, data)
       return response.data
     },
     onSuccess: (_, { id }) => {
@@ -74,7 +74,7 @@ export const useDeleteStorePromotion = () => {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const response = await api.delete(`/api/master/promotion/store/${id}`)
+      const response = await api.delete(`/api/v1/master/promotion/store/${id}`)
       return response.data
     },
     onSuccess: (_data, id) => {

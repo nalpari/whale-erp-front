@@ -108,12 +108,6 @@ export interface EmployeeInfoDetailResponse {
   salaryBank?: string | null
   salaryAccountNumber?: string | null
   salaryAccountHolder?: string | null
-  // 파일 ID
-  residentRegistrationFileId?: number | null
-  familyRelationFileId?: number | null
-  healthCheckFileId?: number | null
-  healthCheckExpiryDate?: string | null
-  resumeFileId?: number | null
   // 기타
   memo?: string | null
   iconType?: number | null
@@ -226,7 +220,7 @@ export interface EmployeeListItem {
 // 경력 정보 DTO
 export interface EmployeeCareerResponse {
   id: number
-  employeeInfoId: number
+  memberId: number
   companyName: string
   workplaceType?: string | null
   workplaceTypeName?: string | null
@@ -264,7 +258,7 @@ export interface SaveEmployeeCareersRequest {
 // 자격증 정보 DTO
 export interface EmployeeCertificateResponse {
   id: number
-  employeeInfoId: number
+  memberId: number
   certificateName: string
   validityStartDate?: string | null
   validityEndDate?: string | null
@@ -319,13 +313,21 @@ export interface UpdateEmployeeInfoRequest {
   salaryBank?: string | null
   salaryAccountNumber?: string | null
   salaryAccountHolder?: string | null
-  // 파일 ID
-  residentRegistrationFileId?: number | null
-  familyRelationFileId?: number | null
-  healthCheckFileId?: number | null
-  healthCheckExpiryDate?: string | null
-  resumeFileId?: number | null
   // 기타
   memo?: string | null
   iconType?: number | null
+}
+
+// 회원 문서 타입
+export type MemberDocumentType = 'RESIDENT_REGISTRATION' | 'FAMILY_RELATION' | 'HEALTH_CHECK' | 'RESUME'
+
+// 회원 문서 (주민등록등본, 가족관계증명서, 건강진단결과서, 이력서)
+export interface MemberDocument {
+  id: number
+  documentType: MemberDocumentType
+  uploadFileId: number
+  fileName: string | null
+  fileSize: number | null
+  expiryDate: string | null
+  createdAt: string | null
 }

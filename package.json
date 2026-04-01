@@ -1,7 +1,7 @@
 {
   "name": "whale-erp-front",
   "version": "0.1.0",
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.33.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

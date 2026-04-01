@@ -14,7 +14,7 @@ export const usePriceMasterList = (params: PriceMasterListParams, enabled = true
     queryKey: priceMasterKeys.list(params),
     queryFn: async () => {
       const response = await getWithSchema(
-        '/api/master/price/master',
+        '/api/v1/master/price/master',
         priceMasterPagedResponseSchema,
         { params }
       )
@@ -30,7 +30,7 @@ export const useCreatePriceSchedule = () => {
   return useMutation({
     mutationFn: async (data: PriceScheduleSaveRequest[]) => {
       const response = await postWithSchema(
-        '/api/master/price/master/schedule',
+        '/api/v1/master/price/master/schedule',
         data,
         priceScheduleSaveListResponseSchema
       )
@@ -48,7 +48,7 @@ export const useCancelPriceSchedule = () => {
   return useMutation({
     mutationFn: async (menuIds: number[]) => {
       return await putWithSchema(
-        '/api/master/price/master/schedule/cancel',
+        '/api/v1/master/price/master/schedule/cancel',
         menuIds,
         apiResponseSchema(z.unknown())
       )
