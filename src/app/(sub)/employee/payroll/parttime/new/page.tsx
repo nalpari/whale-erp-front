@@ -6,7 +6,7 @@ import PartTimePayStub from '@/components/employee/payroll/PartTimePayStub'
 
 function PartTimePayrollNewContent() {
   const searchParams = useSearchParams()
-  const fromWorkTime = searchParams.get('fromWorkTime') === 'true'
+  const fromWorkTime = searchParams.get('fromWorkTimeEdit') === 'true'
 
   return (
     <>

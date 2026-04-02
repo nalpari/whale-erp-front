@@ -319,6 +319,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       await alert('지급 월을 선택하고 기간을 설정해주세요.')
       return
     }
+    if (!isSearched) {
+      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
+      return
+    }
     // 돌아올 때 복원할 폼 상태 저장 (신규/기존 수정 모드 모두)
     localStorage.setItem(OVERTIME_FORM_STATE_STORAGE_KEY, JSON.stringify({
       selectedHeadquarter,

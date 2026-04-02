@@ -286,15 +286,21 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           }
         })
       }
-      // 저장된 상여금 중 isActive=false인 항목의 id를 disabledBonusIds에 초기화
+      // 저장된 상여금 중 isActive=false인 항목을 계약서 상여금 ID로 매핑하여 disabledBonusIds 초기화
       if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        const disabledIds = existingStatement.bonusItems
-          .filter(b => !b.isActive)
-          .map(b => b.id)
+        const inactiveNames = new Set(
+          existingStatement.bonusItems
+            .filter(b => !b.isActive)
+            .map(b => b.bonusName)
+        )
+        const disabledIds = contractBonuses
+          .filter(cb => inactiveNames.has(cb.bonusType))
+          .map(cb => cb.id)
+          .filter((id): id is number => id !== undefined)
         setDisabledBonusIds(new Set(disabledIds))
       }
     }
-  }, [existingStatement, isNewMode, payrollMonth, bpTree])
+  }, [existingStatement, isNewMode, payrollMonth, bpTree, contractBonuses])
 
   // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
   useEffect(() => {
@@ -460,6 +466,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
     if (!startDate || !endDate) {
       await alert('급여지급월을 선택하고 기간을 설정해주세요.')
+      return
+    }
+    if (!isSearched) {
+      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
       return
     }
     // 돌아올 때 복원할 폼 전체 상태 저장
@@ -708,15 +718,19 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     const bonusItems = (() => {
-      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영
+      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영 (contractBonus ID 기준)
       if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        return existingStatement.bonusItems.map(b => ({
-          bonusName: b.bonusName,
-          bonusAmount: b.bonusAmount,
-          deductionAmount: disabledBonusIds.has(b.id) ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
-          isActive: !disabledBonusIds.has(b.id),
-          itemOrder: b.itemOrder,
-        }))
+        return existingStatement.bonusItems.map(b => {
+          const contractBonus = contractBonuses.find(cb => cb.bonusType === b.bonusName)
+          const isDisabled = contractBonus?.id !== undefined ? disabledBonusIds.has(contractBonus.id) : false
+          return {
+            bonusName: b.bonusName,
+            bonusAmount: b.bonusAmount,
+            deductionAmount: isDisabled ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
+            isActive: !isDisabled,
+            itemOrder: b.itemOrder,
+          }
+        })
       }
       // 저장된 상여 없으면 계약서 기반
       if (contractBonuses.length > 0) {
@@ -970,6 +984,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
             <button className="btn-form outline s" onClick={handleSendEmail} disabled={sendEmailMutation.isPending}>이메일 전송</button>
             <button className="btn-form outline s" onClick={handleDownloadExcel} disabled={downloadExcelMutation.isPending}>다운로드</button>
             <button className="btn-form gray" onClick={handleDelete} disabled={deleteMutation.isPending}>삭제</button>
+            <button className="btn-form basic" onClick={handleUpdate} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? '수정 중...' : '수정'}
+            </button>
           </>
         )}
         {isEditMode && (
@@ -1251,12 +1268,18 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           isActive: true,
                           itemOrder: i + 1,
                         }))
-                    // 합계: disabledBonusIds 기준으로 항상 계산 (저장/fallback 구분 없이)
+                    // 합계: contractBonus ID 기준으로 항상 계산 (저장/fallback 구분 없이)
                     const savedActiveBonusTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
+                      ? existingStatement.bonusItems!.filter(b => {
+                          const cb = contractBonuses.find(c => c.bonusType === b.bonusName)
+                          return cb?.id !== undefined ? !disabledBonusIds.has(cb.id) : true
+                        }).reduce((s, b) => s + b.bonusAmount, 0)
                       : activeBonuses.reduce((s, b) => s + b.amount, 0)
                     const savedActiveBonusDeductionTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
+                      ? existingStatement.bonusItems!.filter(b => {
+                          const cb = contractBonuses.find(c => c.bonusType === b.bonusName)
+                          return cb?.id !== undefined ? !disabledBonusIds.has(cb.id) : true
+                        }).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
                       : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
                     const totalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
                     const subTotal = existingStatement.totalAmount - dailyDeduction
@@ -1286,13 +1309,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         )}
                         {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
                         {displayBonuses.map((bonus) => {
-                          const isActive = !disabledBonusIds.has(bonus.id)
+                          const contractBonus = contractBonuses.find(cb => cb.bonusType === bonus.bonusName)
+                          const toggleId = contractBonus?.id ?? bonus.id
+                          const isActive = !disabledBonusIds.has(toggleId)
                           return (
                           <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
                             <td><strong>{bonus.bonusName}</strong></td>
                             <td className="al-c">
                               <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(toggleId)} style={{ display: 'none' }} />
                                 <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
                                   <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
                                 </span>
@@ -1418,7 +1443,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
                     const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
                     const subTotal = payrollData.grandTotalAmount
-                    const totalDeduction = dailyDeduction + activeBonusDeductionTotal
+                    const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+                    const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
+                    const totalDeduction = dailyDeduction + insuranceDeduction + activeBonusDeductionTotal
                     const finalTotal = payrollData.grandTotalPaymentAmount + activeBonusTotal - totalDeduction
                     return (
                       <>

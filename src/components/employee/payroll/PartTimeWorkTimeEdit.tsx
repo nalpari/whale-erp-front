@@ -192,7 +192,7 @@ export default function PartTimeWorkTimeEdit({
 
   const handleGoBack = () => {
     const targetPath = id === 'new'
-      ? '/employee/payroll/parttime/new?fromWorkTime=true'
+      ? '/employee/payroll/parttime/new?fromWorkTimeEdit=true'
       : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
@@ -333,7 +333,7 @@ export default function PartTimeWorkTimeEdit({
 
     await alert('저장되었습니다.')
     const targetPath = id === 'new'
-      ? '/employee/payroll/parttime/new?fromWorkTime=true'
+      ? '/employee/payroll/parttime/new?fromWorkTimeEdit=true'
       : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
