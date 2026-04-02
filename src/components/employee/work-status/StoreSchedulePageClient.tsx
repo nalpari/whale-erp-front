@@ -243,7 +243,9 @@ export default function StoreSchedulePageClient() {
         title="매장별 근무 계획표"
         list={['Home', '직원 관리', '근무 현황', '매장별 근무 계획표']}
       />
+      {/* key로 initialQuery 변경 시 리마운트 — render-time setState 없이 form 초기화 */}
       <WorkScheduleSearch
+        key={JSON.stringify(initialQuery)}
         resultCount={resultCount}
         isLoading={isLoading}
         showStoreError={showStoreError}

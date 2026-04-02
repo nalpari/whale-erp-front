@@ -9,7 +9,7 @@ import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import { Input } from '@/components/common/ui'
 import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
-import { formatEmployeeLabel } from '@/util/employee-label'
+import { formatEmployeeLabel, resolveEmployeeName } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
@@ -237,19 +237,7 @@ export default function EmployeeTodoSearch({
                       isClearable
                       creatable
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
-                      onChange={(option) => {
-                        if (!option) {
-                          onChange({ employeeName: '' })
-                          return
-                        }
-                        if ((option as { __isNew__?: boolean }).__isNew__) {
-                          onChange({ employeeName: option.value })
-                          return
-                        }
-                        const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value)
-                        if (!employee) return
-                        onChange({ employeeName: employee.employeeName })
-                      }}
+                      onChange={(option) => onChange({ employeeName: resolveEmployeeName(option, employeeList) })}
                     />
                   </div>
                 </td>

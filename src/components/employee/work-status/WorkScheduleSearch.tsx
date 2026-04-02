@@ -9,7 +9,7 @@ import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDat
 import { useEmployeeTodoSelectList, useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries';
 import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
-import { formatEmployeeLabel } from '@/util/employee-label';
+import { formatEmployeeLabel, resolveEmployeeName } from '@/util/employee-label';
 import { useAuthStore } from '@/stores/auth-store';
 import { OWNER_CODE } from '@/constants/owner-code';
 
@@ -125,7 +125,8 @@ export default function WorkScheduleSearch({
   );
   const [form, setForm] = useState(initialForm);
 
-  // 직원 selectbox — /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
+  // 직원 selectbox (creatable — 자유 입력 허용)
+  // /api/v1/employee-todos/employees 는 재직 중이며 삭제되지 않은 직원만 반환
   const {
     data: employeeList,
     isPending: isEmployeeLoading,
@@ -147,37 +148,25 @@ export default function WorkScheduleSearch({
       })),
     [employeeList]
   );
+  // employeeList 로딩 완료 후 선택된 직원이 목록에 없으면 파생 값으로 빈 문자열 처리
+  // (form.employeeName 자체는 변경하지 않음 — set-state-in-render 방지)
+  const effectiveEmployeeName = useMemo(() => {
+    if (!form.employeeName || isEmployeeLoading) return form.employeeName;
+    if (!employeeList) return form.employeeName;
+    const isValid = employeeList.some((e) => e.employeeName === form.employeeName);
+    return isValid ? form.employeeName : '';
+  }, [form.employeeName, employeeList, isEmployeeLoading]);
   const selectedEmployeeOption = useMemo(() => {
-    if (!form.employeeName) return null;
-    const emp = employeeList?.find((e) => e.employeeName === form.employeeName);
+    if (!effectiveEmployeeName) return null;
+    const emp = employeeList?.find((e) => e.employeeName === effectiveEmployeeName);
     if (emp) return { value: String(emp.employeeInfoId), label: formatEmployeeLabel(emp) };
-    return { value: form.employeeName, label: form.employeeName };
-  }, [form.employeeName, employeeList]);
-  const employeePlaceholder = employeeError
-    ? '전체'
-    : isEmployeeLoading
-      ? '직원 정보를 조회중입니다.'
+    return { value: effectiveEmployeeName, label: effectiveEmployeeName };
+  }, [effectiveEmployeeName, employeeList]);
+  const employeePlaceholder = isEmployeeLoading
+    ? '직원 정보를 조회중입니다.'
+    : employeeError
+      ? '직원 목록 조회 실패'
       : '전체';
-
-  // render-time setState: initialForm이 실제로 변경될 때만 form 동기화
-  // (마운트 시 실행 방지 — bpTree auto-apply 값을 덮어쓰지 않음)
-  const [prevInitialForm, setPrevInitialForm] = useState(initialForm);
-  if (initialForm !== prevInitialForm) {
-    setPrevInitialForm(initialForm);
-    setForm(initialForm);
-  }
-
-  // render-time: employeeOptions 변경 시 현재 선택된 employeeName이 유효한지 체크
-  const [prevEmployeeOptions, setPrevEmployeeOptions] = useState(employeeOptions);
-  if (employeeOptions !== prevEmployeeOptions) {
-    setPrevEmployeeOptions(employeeOptions);
-    if (form.employeeName) {
-      const isValid = employeeList?.some((e) => e.employeeName === form.employeeName) ?? false;
-      if (!isValid) {
-        setForm((prev) => ({ ...prev, employeeName: '' }));
-      }
-    }
-  }
 
   useEffect(() => {
     if (!autoSearchKey || autoSearchRef.current === autoSearchKey) return;
@@ -271,8 +260,8 @@ export default function WorkScheduleSearch({
     if (form.storeId) {
       query.storeId = form.storeId;
     }
-    if (form.employeeName.trim()) {
-      query.employeeName = form.employeeName.trim();
+    if (effectiveEmployeeName.trim()) {
+      query.employeeName = effectiveEmployeeName.trim();
     }
     if (form.dayType) {
       query.dayType = form.dayType as DayType;
@@ -370,19 +359,9 @@ export default function WorkScheduleSearch({
                       isClearable
                       creatable
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
-                      onChange={(option) => {
-                        if (!option) {
-                          setForm((prev) => ({ ...prev, employeeName: '' }));
-                          return;
-                        }
-                        if ((option as { __isNew__?: boolean }).__isNew__) {
-                          setForm((prev) => ({ ...prev, employeeName: option.value }));
-                          return;
-                        }
-                        const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value);
-                        if (!employee) return;
-                        setForm((prev) => ({ ...prev, employeeName: employee.employeeName }));
-                      }}
+                      onChange={(option) =>
+                        setForm((prev) => ({ ...prev, employeeName: resolveEmployeeName(option, employeeList) }))
+                      }
                     />
                   </div>
                 </td>

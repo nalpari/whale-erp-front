@@ -53,7 +53,7 @@ export interface EmployeeTodoDetailResponse {
 // === 직원 선택 목록 (Selectbox) ===
 export interface EmployeeTodoSelectItem {
   employeeInfoId: number
-  /** API 응답에 포함되나 이 프로젝트에서 직접 참조하지 않는 필드 */
+  /** API 응답에 포함되나 직원 할 일(employee-todo) 도메인에서는 미사용 */
   memberId: number | null
   employeeNumber: string
   employeeName: string
