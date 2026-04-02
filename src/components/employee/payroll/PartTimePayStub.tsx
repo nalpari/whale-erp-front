@@ -286,23 +286,26 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           }
         })
       }
-      // 저장된 상여금 중 isActive=false인 항목을 계약서 상여금 ID로 매핑하여 disabledBonusIds 초기화
+      // 저장된 상여금 중 isActive=false인 항목의 id를 disabledBonusIds에 초기화
       if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        const inactiveNames = new Set(
-          existingStatement.bonusItems
-            .filter(b => !b.isActive)
-            .map(b => b.bonusName)
-        )
-        const disabledIds = contractBonuses
-          .filter(cb => inactiveNames.has(cb.bonusType))
-          .map(cb => cb.id)
-          .filter((id): id is number => id !== undefined)
+        const disabledIds = existingStatement.bonusItems
+          .filter(b => !b.isActive)
+          .map(b => b.id)
         setDisabledBonusIds(new Set(disabledIds))
       }
     }
-  }, [existingStatement, isNewMode, payrollMonth, bpTree, contractBonuses])
+  }, [existingStatement, isNewMode, payrollMonth, bpTree])
 
   // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
+  // 저장 후 서버에서 bonusItems ID가 재생성되므로, 데이터 변경 시 disabledBonusIds 재동기화
+  useEffect(() => {
+    if (!existingStatement?.bonusItems) return
+    const disabledIds = existingStatement.bonusItems
+      .filter(b => !b.isActive)
+      .map(b => b.id)
+    setDisabledBonusIds(new Set(disabledIds))
+  }, [existingStatement?.bonusItems])
+
   useEffect(() => {
     if (fromWorkTimeEdit && isEditMode && !editedWorkTimeData) {
       // 폼 전체 상태 복원
@@ -718,19 +721,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     const bonusItems = (() => {
-      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영 (contractBonus ID 기준)
+      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영
       if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        return existingStatement.bonusItems.map(b => {
-          const contractBonus = contractBonuses.find(cb => cb.bonusType === b.bonusName)
-          const isDisabled = contractBonus?.id !== undefined ? disabledBonusIds.has(contractBonus.id) : false
-          return {
-            bonusName: b.bonusName,
-            bonusAmount: b.bonusAmount,
-            deductionAmount: isDisabled ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
-            isActive: !isDisabled,
-            itemOrder: b.itemOrder,
-          }
-        })
+        return existingStatement.bonusItems.map(b => ({
+          bonusName: b.bonusName,
+          bonusAmount: b.bonusAmount,
+          deductionAmount: disabledBonusIds.has(b.id) ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
+          isActive: !disabledBonusIds.has(b.id),
+          itemOrder: b.itemOrder,
+        }))
       }
       // 저장된 상여 없으면 계약서 기반
       if (contractBonuses.length > 0) {
@@ -1268,18 +1267,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           isActive: true,
                           itemOrder: i + 1,
                         }))
-                    // 합계: contractBonus ID 기준으로 항상 계산 (저장/fallback 구분 없이)
+                    // 합계: disabledBonusIds 기준으로 항상 계산 (저장/fallback 구분 없이)
                     const savedActiveBonusTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => {
-                          const cb = contractBonuses.find(c => c.bonusType === b.bonusName)
-                          return cb?.id !== undefined ? !disabledBonusIds.has(cb.id) : true
-                        }).reduce((s, b) => s + b.bonusAmount, 0)
+                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
                       : activeBonuses.reduce((s, b) => s + b.amount, 0)
                     const savedActiveBonusDeductionTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => {
-                          const cb = contractBonuses.find(c => c.bonusType === b.bonusName)
-                          return cb?.id !== undefined ? !disabledBonusIds.has(cb.id) : true
-                        }).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
+                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
                       : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
                     const totalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
                     const subTotal = existingStatement.totalAmount - dailyDeduction
@@ -1309,15 +1302,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         )}
                         {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
                         {displayBonuses.map((bonus) => {
-                          const contractBonus = contractBonuses.find(cb => cb.bonusType === bonus.bonusName)
-                          const toggleId = contractBonus?.id ?? bonus.id
-                          const isActive = !disabledBonusIds.has(toggleId)
+                          const isActive = !disabledBonusIds.has(bonus.id)
                           return (
                           <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
                             <td><strong>{bonus.bonusName}</strong></td>
                             <td className="al-c">
                               <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(toggleId)} style={{ display: 'none' }} />
+                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
                                 <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
                                   <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
                                 </span>
