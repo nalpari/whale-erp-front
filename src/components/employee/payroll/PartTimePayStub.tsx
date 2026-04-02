@@ -54,39 +54,69 @@ interface PartTimePayStubProps {
   id: string
   isEditMode?: boolean
   fromWorkTimeEdit?: boolean
+  onSaveSuccess?: () => void
 }
 
-export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: PartTimePayStubProps) {
+export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false, onSaveSuccess }: PartTimePayStubProps) {
   const router = useRouter()
   const { alert, confirm } = useAlert()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State
-  const [payrollMonth, setPayrollMonth] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  // TanStack Query: 기존 명세서 데이터를 useState 초기화보다 먼저 조회
+  // 부모에서 key prop 변경 시 컴포넌트가 리마운트되고, 캐시에 최신 데이터가 있으면
+  // 첫 렌더에서 동기적으로 반환되어 아래 lazy 초기화에서 올바른 값을 읽을 수 있다.
+  const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
+
+  // State (lazy 초기화: 부모 key prop 리마운트 시 서버 데이터로 올바르게 초기화됨)
+  const [payrollMonth, setPayrollMonth] = useState(() => {
+    if (!existingStatement?.payrollYearMonth) return ''
+    const ym = existingStatement.payrollYearMonth
+    return `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
+  })
+  const [startDate, setStartDate] = useState(() => existingStatement?.settlementStartDate ?? '')
+  const [endDate, setEndDate] = useState(() => existingStatement?.settlementEndDate ?? '')
   const [paymentDate, setPaymentDate] = useState(() => {
+    if (existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
-  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
+  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
   const [salaryDay, setSalaryDay] = useState<number>(5)
-  const [isSearched, setIsSearched] = useState(false)
+  const [isSearched, setIsSearched] = useState(() => (existingStatement?.paymentItems?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
-  // 상여금 ON/OFF (비활성화된 상여금 id Set, 기본값: 모두 활성화)
-  const [disabledBonusIds, setDisabledBonusIds] = useState<Set<number>>(new Set())
+  // 상여금 ON/OFF (비활성화된 상여금 id Set, lazy 초기화로 remount 시 서버 데이터 반영)
+  const [disabledBonusIds, setDisabledBonusIds] = useState<Set<number>>(() => {
+    if (!existingStatement?.bonusItems?.length) return new Set<number>()
+    return new Set(existingStatement.bonusItems.filter(b => !b.isActive).map(b => b.id))
+  })
 
-  // 4대보험 공제
-  const [nationalPension, setNationalPension] = useState('')
-  const [healthInsurance, setHealthInsurance] = useState('')
-  const [employmentInsurance, setEmploymentInsurance] = useState('')
-  const [longTermCareInsurance, setLongTermCareInsurance] = useState('')
+  // 4대보험 공제 (lazy 초기화)
+  const [nationalPension, setNationalPension] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'NATIONAL_PENSION')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [healthInsurance, setHealthInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'HEALTH_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [employmentInsurance, setEmploymentInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'EMPLOYMENT_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
+  const [longTermCareInsurance, setLongTermCareInsurance] = useState(() => {
+    const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'LONG_TERM_CARE_INSURANCE')
+    return item ? (item.amount || 0).toLocaleString() : ''
+  })
 
-  // Organization selection state
-  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
-  const [selectedFranchise, setSelectedFranchise] = useState<string>('')
+  // Organization selection state (lazy 초기화)
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>(() =>
+    existingStatement?.headOfficeId ? String(existingStatement.headOfficeId) : ''
+  )
+  const [selectedFranchise, setSelectedFranchise] = useState<string>(() =>
+    existingStatement?.franchiseId ? String(existingStatement.franchiseId) : ''
+  )
   const [selectedStore, setSelectedStore] = useState<string>('')
 
   // BP 트리 데이터
@@ -99,8 +129,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
   const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
-  // TanStack Query hooks
-  const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: headOfficeIdNum ?? 0, franchiseId: franchiseIdNum ?? undefined, employeeType: 'PART_TIME' },
     isNewMode && !!headOfficeIdNum,
@@ -242,70 +270,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return options
   }, [])
 
-  // 기존 데이터 로드 처리 (비동기 쿼리 로드 후 폼 초기화)
-  useEffect(() => {
-    if (existingStatement && !isNewMode && !payrollMonth) {
-      if (existingStatement.payrollYearMonth) {
-        const yearMonth = existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
-        setPayrollMonth(yearMonth)
-      }
-      if (existingStatement.settlementStartDate) setStartDate(existingStatement.settlementStartDate)
-      if (existingStatement.settlementEndDate) setEndDate(existingStatement.settlementEndDate)
-      if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
-      if (existingStatement.paymentItems?.length > 0) setIsSearched(true)
-
-      // 수정 모드에서 조직/직원 필드 초기화 (bpTree 기반 ID 매칭)
-      if (existingStatement.employeeInfoId) setEmployeeInfoId(existingStatement.employeeInfoId)
-      if (existingStatement.headOfficeId) {
-        setSelectedHeadquarter(String(existingStatement.headOfficeId))
-      } else if (existingStatement.headOfficeName && bpTree.length > 0) {
-        const office = bpTree.find(o => o.name === existingStatement.headOfficeName)
-        if (office) setSelectedHeadquarter(String(office.id))
-      }
-      if (existingStatement.franchiseId) {
-        setSelectedFranchise(String(existingStatement.franchiseId))
-      } else if (existingStatement.franchiseName && bpTree.length > 0) {
-        for (const office of bpTree) {
-          const franchise = office.franchises?.find(f => f.name === existingStatement.franchiseName)
-          if (franchise) { setSelectedFranchise(String(franchise.id)); break }
-        }
-      }
-
-      setNationalPension('')
-      setHealthInsurance('')
-      setEmploymentInsurance('')
-      setLongTermCareInsurance('')
-      if (existingStatement.deductionItems?.length > 0) {
-        existingStatement.deductionItems.forEach(item => {
-          const val = (item.amount || 0).toLocaleString()
-          switch (item.itemCode) {
-            case 'NATIONAL_PENSION': setNationalPension(val); break
-            case 'HEALTH_INSURANCE': setHealthInsurance(val); break
-            case 'EMPLOYMENT_INSURANCE': setEmploymentInsurance(val); break
-            case 'LONG_TERM_CARE_INSURANCE': setLongTermCareInsurance(val); break
-          }
-        })
-      }
-      // 저장된 상여금 중 isActive=false인 항목의 id를 disabledBonusIds에 초기화
-      if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        const disabledIds = existingStatement.bonusItems
-          .filter(b => !b.isActive)
-          .map(b => b.id)
-        setDisabledBonusIds(new Set(disabledIds))
-      }
-    }
-  }, [existingStatement, isNewMode, payrollMonth, bpTree])
-
-  // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
-  // 저장 후 서버에서 bonusItems ID가 재생성되므로, 데이터 변경 시 disabledBonusIds 재동기화
-  useEffect(() => {
-    if (!existingStatement?.bonusItems) return
-    const disabledIds = existingStatement.bonusItems
-      .filter(b => !b.isActive)
-      .map(b => b.id)
-    setDisabledBonusIds(new Set(disabledIds))
-  }, [existingStatement?.bonusItems])
-
   useEffect(() => {
     if (fromWorkTimeEdit && isEditMode && !editedWorkTimeData) {
       // 폼 전체 상태 복원
@@ -342,6 +306,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           if (s.startDate && s.endDate) setIsSearched(true)
         } catch (e) {
           console.error('폼 상태 복원 실패:', e)
+          localStorage.removeItem(NEWFORM_STATE_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
 
@@ -362,10 +328,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           setIsSearched(true)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
+          localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
     }
-  }, [fromWorkTimeEdit, isEditMode, isNewMode, editedWorkTimeData])
+  }, [fromWorkTimeEdit, isEditMode, editedWorkTimeData, alert])
 
   const handleGoToList = () => {
     router.push('/employee/payroll/parttime')
@@ -575,6 +543,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setIsSearched(true)
     } catch (error) {
       console.error('일별 근무 시간 조회 실패:', error)
+      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
@@ -640,6 +609,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     const payrollYearMonth = payrollMonth.replace('-', '')
 
+    if (contractBonuses.length > 0 && !payrollSettings) {
+      await alert('세율 설정을 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.')
+      return
+    }
+
+    // [의도적 차이] 신규 저장(handleSave)은 계약서 기반 상여금(contractBonuses)만 사용.
+    // 기존 명세서가 없으므로 existingStatement.bonusItems 폴백 로직은 불필요.
     const bonusItems = contractBonuses.length > 0
       ? contractBonuses.map((b, i) => ({
           bonusName: b.bonusType,
@@ -650,6 +626,22 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         }))
       : undefined
 
+    const parseAmount = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+    const deductionItems: PartTimerDeductionItemRequest[] = []
+    let order = 1
+    if (parseAmount(nationalPension) > 0) {
+      deductionItems.push({ itemCode: 'NATIONAL_PENSION', itemOrder: order++, amount: parseAmount(nationalPension), remarks: '국민연금' })
+    }
+    if (parseAmount(healthInsurance) > 0) {
+      deductionItems.push({ itemCode: 'HEALTH_INSURANCE', itemOrder: order++, amount: parseAmount(healthInsurance), remarks: '건강보험' })
+    }
+    if (parseAmount(employmentInsurance) > 0) {
+      deductionItems.push({ itemCode: 'EMPLOYMENT_INSURANCE', itemOrder: order++, amount: parseAmount(employmentInsurance), remarks: '고용보험' })
+    }
+    if (parseAmount(longTermCareInsurance) > 0) {
+      deductionItems.push({ itemCode: 'LONG_TERM_CARE_INSURANCE', itemOrder: order++, amount: parseAmount(longTermCareInsurance), remarks: '장기요양보험' })
+    }
+
     const request: CreatePartTimerPayrollStatementRequest = {
       employeeInfoId,
       payrollYearMonth,
@@ -658,6 +650,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       paymentDate,
       remarks: undefined,
       paymentItems,
+      deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
       bonusItems,
     }
 
@@ -720,6 +713,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       deductionItems.push({ itemCode: 'LONG_TERM_CARE_INSURANCE', itemOrder: order++, amount: parseAmount(longTermCareInsurance), remarks: '장기요양보험' })
     }
 
+    const hasBonusItems = (existingStatement.bonusItems?.length ?? 0) > 0 || contractBonuses.length > 0
+    if (hasBonusItems && !payrollSettings) {
+      await alert('세율 설정을 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.')
+      return
+    }
+
+    // [의도적 차이] 수정(handleUpdate)은 existingStatement.bonusItems 우선 사용.
+    // 서버에 저장된 상여 데이터(금액, 순서 등)를 보존하고 isActive 상태만 갱신한다.
+    // 저장된 상여가 없는 경우(최초 상여 추가 시)에만 contractBonuses로 폴백한다.
     const bonusItems = (() => {
       // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영
       if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
@@ -757,6 +759,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     try {
       await updateMutation.mutateAsync({ id: statementId, request })
       await alert('수정되었습니다.')
+      onSaveSuccess?.()
     } catch (error) {
       console.error('수정 실패:', error)
       await alert('수정 중 오류가 발생했습니다.')

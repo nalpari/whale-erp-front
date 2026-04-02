@@ -218,7 +218,7 @@ export const payrollKeys = {
     list: (params: OvertimePayrollListParams) => [...payrollKeys.overtime.lists(), params] as const,
     details: () => [...payrollKeys.overtime.all(), 'detail'] as const,
     detail: (id: number) => [...payrollKeys.overtime.details(), id] as const,
-    dailyOvertimeHours: (params: { employeeInfoId: number; startDate: string; endDate: string; headOfficeId?: number; franchiseId?: number }) =>
+    dailyOvertimeHours: (params: { employeeInfoId: number; startDate: string; endDate: string; headOfficeId?: number; franchiseId?: number; storeId?: number }) =>
       [...payrollKeys.overtime.all(), 'daily-overtime-hours', params] as const,
   },
 }

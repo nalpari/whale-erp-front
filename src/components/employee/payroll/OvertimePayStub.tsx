@@ -26,6 +26,9 @@ import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 
+// 연장근무 수당 배율 (통상임금의 1.5배 — 근로기준법 제56조)
+const OVERTIME_RATE_MULTIPLIER = 1.5
+
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
   if (!dateStr) return null
@@ -58,17 +61,25 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State
-  const [payrollMonth, setPayrollMonth] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  // TanStack Query: 기존 명세서 데이터를 useState 초기화보다 먼저 조회
+  const { data: existingStatement } = useOvertimePayrollDetail(statementId)
+
+  // State (lazy 초기화: 부모 key prop 리마운트 시 서버 데이터로 올바르게 초기화됨)
+  const [payrollMonth, setPayrollMonth] = useState(() => {
+    if (!existingStatement?.allowanceYearMonth) return ''
+    const ym = existingStatement.allowanceYearMonth
+    return `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
+  })
+  const [startDate, setStartDate] = useState(() => existingStatement?.calculationStartDate ?? '')
+  const [endDate, setEndDate] = useState(() => existingStatement?.calculationEndDate ?? '')
   const [paymentDate, setPaymentDate] = useState(() => {
+    if (existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
-  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
-  const [remarks, setRemarks] = useState('')
-  const [isSearched, setIsSearched] = useState(false)
+  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
+  const [remarks, setRemarks] = useState(() => existingStatement?.remarks ?? '')
+  const [isSearched, setIsSearched] = useState(() => (existingStatement?.details?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
@@ -88,8 +99,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
   const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
-  // TanStack Query hooks
-  const { data: existingStatement } = useOvertimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     headOfficeIdNum ? { headOfficeId: headOfficeIdNum, franchiseId: franchiseIdNum ?? undefined, employeeType: 'FULL_TIME' } : { headOfficeId: 0, employeeType: 'FULL_TIME' },
     isNewMode && !!headOfficeIdNum,
@@ -116,41 +125,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   // React 19: derived state
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
-
-  // 기존 데이터 로드 처리
-  useEffect(() => {
-    if (existingStatement && !isNewMode && !payrollMonth) {
-      if (existingStatement.allowanceYearMonth) {
-        const ym = existingStatement.allowanceYearMonth
-        const yearMonth = `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
-
-        setPayrollMonth(yearMonth)
-      }
-
-      if (existingStatement.calculationStartDate) setStartDate(existingStatement.calculationStartDate)
-
-      if (existingStatement.calculationEndDate) setEndDate(existingStatement.calculationEndDate)
-
-      if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
-
-      if (existingStatement.remarks) setRemarks(existingStatement.remarks)
-
-      if (existingStatement.details?.length > 0) setIsSearched(true)
-
-      // 수정 모드에서 조직/직원 필드 초기화 (bpTree 기반 이름→ID 매칭)
-      if (existingStatement.employeeInfoId) setEmployeeInfoId(existingStatement.employeeInfoId)
-      if (existingStatement.headOfficeName && bpTree.length > 0) {
-        const office = bpTree.find(o => o.name === existingStatement.headOfficeName)
-        if (office) {
-          setSelectedHeadquarter(String(office.id))
-          if (existingStatement.franchiseName) {
-            const franchise = office.franchises?.find(f => f.name === existingStatement.franchiseName)
-            if (franchise) setSelectedFranchise(String(franchise.id))
-          }
-        }
-      }
-    }
-  }, [existingStatement, isNewMode, payrollMonth, bpTree])
 
   // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
   useEffect(() => {
@@ -182,6 +156,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
           localStorage.removeItem(OVERTIME_FORM_STATE_STORAGE_KEY)
         } catch (e) {
           console.error('폼 상태 복원 실패:', e)
+          localStorage.removeItem(OVERTIME_FORM_STATE_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
 
@@ -209,10 +185,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
           localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
+          localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
     }
-  }, [fromWorkTimeEdit, isEditMode, isNewMode, editedWorkTimeData])
+  }, [fromWorkTimeEdit, isEditMode, editedWorkTimeData, alert])
 
   const handleGoToList = () => {
     router.push('/employee/payroll/overtime')
@@ -388,6 +366,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setIsSearched(true)
     } catch (error) {
       console.error('일별 연장근무 시간 조회 실패:', error)
+      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
@@ -436,7 +415,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               workDay: record.date,
               workHour: record.overtimeHours,
               breakTimeHour: 0,
-              contractTimelyAmount: Math.round(record.applyTimelyAmount / 1.5),
+              contractTimelyAmount: Math.round(record.applyTimelyAmount / OVERTIME_RATE_MULTIPLIER),
               applyTimelyAmount: record.applyTimelyAmount,
               actualOvertimeHours: record.overtimeHours,
               overtimeStartTime: record.overtimeStartTime,
@@ -512,7 +491,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               workDay: record.date,
               workHour: record.overtimeHours,
               breakTimeHour: 0,
-              contractTimelyAmount: Math.round(record.applyTimelyAmount / 1.5),
+              contractTimelyAmount: Math.round(record.applyTimelyAmount / OVERTIME_RATE_MULTIPLIER),
               applyTimelyAmount: record.applyTimelyAmount,
               actualOvertimeHours: record.overtimeHours,
               overtimeStartTime: record.overtimeStartTime,
