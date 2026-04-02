@@ -7,8 +7,9 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
 import RadioButtonGroup from '@/components/common/ui/RadioButtonGroup'
 import { Input } from '@/components/common/ui'
-import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList, getLowestOrgName } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
+import { formatEmployeeLabel, resolveEmployeeName } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
@@ -89,7 +90,7 @@ export default function EmployeeTodoSearch({
     error: employeeError,
   } = useEmployeeTodoSelectList(
     {
-      purpose: 'SEARCH',
+      purpose: 'BROAD',
       headOfficeId: filters.officeId ?? undefined,
       franchiseId: filters.franchiseId ?? undefined,
       storeId: filters.storeId ?? undefined,
@@ -97,9 +98,15 @@ export default function EmployeeTodoSearch({
     true,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: e.employeeName, label: `${e.employeeName} (${getLowestOrgName(e)})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: formatEmployeeLabel(e) })),
     [employeeList],
   )
+  const selectedEmployeeOption = useMemo(() => {
+    if (!filters.employeeName) return null
+    const emp = employeeList?.find((e) => e.employeeName === filters.employeeName)
+    if (emp) return { value: String(emp.employeeInfoId), label: formatEmployeeLabel(emp) }
+    return { value: filters.employeeName, label: filters.employeeName }
+  }, [filters.employeeName, employeeList])
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti && appliedFilters.officeId == null) {
@@ -222,15 +229,15 @@ export default function EmployeeTodoSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={filters.employeeName ? employeeOptions.find((opt) => opt.value === filters.employeeName) ?? { value: filters.employeeName, label: filters.employeeName } : null}
+                      value={selectedEmployeeOption}
                       options={employeeOptions}
-                      placeholder={employeeError ? '전체' : isEmployeeLoading ? '직원 정보를 조회중입니다.' : '직원 선택'}
+                      placeholder={isEmployeeLoading ? '직원 정보를 조회중입니다.' : employeeError ? '직원 목록 조회 실패' : '직원 선택'}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
                       isSearchable
                       isClearable
                       creatable
                       formatCreateLabel={(input) => `"${input}" 로 검색`}
-                      onChange={(option) => onChange({ employeeName: option?.value ?? '' })}
+                      onChange={(option) => onChange({ employeeName: resolveEmployeeName(option, employeeList) })}
                     />
                   </div>
                 </td>

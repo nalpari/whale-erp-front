@@ -13,11 +13,11 @@ import {
   useStoreOptions,
   useEmployeeTodoDetail,
   useEmployeeTodoSelectList,
-  getLowestOrgName,
   useCreateEmployeeTodo,
   useUpdateEmployeeTodo,
 } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
+import { formatEmployeeLabel } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
@@ -127,7 +127,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     isPending: empLoading,
   } = useEmployeeTodoSelectList(
     {
-      purpose: 'REGISTER',
+      purpose: 'STRICT',
       headOfficeId: form.officeId ?? undefined,
       franchiseId: form.franchiseId ?? undefined,
       storeId: effectiveStoreId ?? undefined,
@@ -135,7 +135,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     !isEditMode,
   )
   const employeeOptions: SelectOption[] = useMemo(
-    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: `${e.employeeName} (${getLowestOrgName(e)})` })),
+    () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: formatEmployeeLabel(e) })),
     [employeeList],
   )
 
@@ -323,7 +323,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
                         <div className="mx-500">
                           {isEditMode ? (
                             <SearchSelect
-                              value={detail ? { value: String(detail.employeeInfoId), label: detail.employeeName } : null}
+                              value={detail ? { value: String(detail.employeeInfoId), label: formatEmployeeLabel(detail) } : null}
                               options={[]}
                               isDisabled
                               isSearchable={false}
