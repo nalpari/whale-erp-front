@@ -19,5 +19,9 @@ export function resolveEmployeeName(
   if (!option) return ''
   if (option.__isNew__) return option.value
   const emp = employeeList?.find((e) => String(e.employeeInfoId) === option.value)
-  return emp?.employeeName ?? option.label
+  if (!emp) {
+    console.warn(`[resolveEmployeeName] ID=${option.value} 매칭 실패 (employeeList length=${employeeList?.length ?? 'undefined'})`)
+    return ''
+  }
+  return emp.employeeName
 }
