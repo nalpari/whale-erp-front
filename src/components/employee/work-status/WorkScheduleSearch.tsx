@@ -147,6 +147,12 @@ export default function WorkScheduleSearch({
       })),
     [employeeList]
   );
+  const selectedEmployeeOption = useMemo(() => {
+    if (!form.employeeName) return null;
+    const emp = employeeList?.find((e) => e.employeeName === form.employeeName);
+    if (emp) return { value: String(emp.employeeInfoId), label: formatEmployeeLabel(emp) };
+    return { value: form.employeeName, label: form.employeeName };
+  }, [form.employeeName, employeeList]);
   const employeePlaceholder = employeeError
     ? '전체'
     : isEmployeeLoading
@@ -356,12 +362,7 @@ export default function WorkScheduleSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={form.employeeName
-                        ? employeeOptions.find((opt) => {
-                            const emp = employeeList?.find((e) => String(e.employeeInfoId) === opt.value);
-                            return emp?.employeeName === form.employeeName;
-                          }) ?? { value: form.employeeName, label: form.employeeName }
-                        : null}
+                      value={selectedEmployeeOption}
                       options={employeeOptions}
                       placeholder={employeePlaceholder}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
@@ -374,10 +375,13 @@ export default function WorkScheduleSearch({
                           setForm((prev) => ({ ...prev, employeeName: '' }));
                           return;
                         }
-                        // 실제 서버 검색 조건은 employeeName 문자열이다.
-                        // 목록 선택 시에도 이름만 저장하고, 자유 입력(creatable)은 입력값 그대로 보낸다.
+                        if ((option as { __isNew__?: boolean }).__isNew__) {
+                          setForm((prev) => ({ ...prev, employeeName: option.value }));
+                          return;
+                        }
                         const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value);
-                        setForm((prev) => ({ ...prev, employeeName: employee?.employeeName ?? option.value }));
+                        if (!employee) return;
+                        setForm((prev) => ({ ...prev, employeeName: employee.employeeName }));
                       }}
                     />
                   </div>

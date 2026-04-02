@@ -101,6 +101,12 @@ export default function EmployeeTodoSearch({
     () => (employeeList ?? []).map((e) => ({ value: String(e.employeeInfoId), label: formatEmployeeLabel(e) })),
     [employeeList],
   )
+  const selectedEmployeeOption = useMemo(() => {
+    if (!filters.employeeName) return null
+    const emp = employeeList?.find((e) => e.employeeName === filters.employeeName)
+    if (emp) return { value: String(emp.employeeInfoId), label: formatEmployeeLabel(emp) }
+    return { value: filters.employeeName, label: filters.employeeName }
+  }, [filters.employeeName, employeeList])
 
   const handleMultiOffice = (isMulti: boolean) => {
     if (isMulti && appliedFilters.officeId == null) {
@@ -223,12 +229,7 @@ export default function EmployeeTodoSearch({
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      value={filters.employeeName
-                        ? employeeOptions.find((opt) => {
-                            const emp = employeeList?.find((e) => String(e.employeeInfoId) === opt.value)
-                            return emp?.employeeName === filters.employeeName
-                          }) ?? { value: filters.employeeName, label: filters.employeeName }
-                        : null}
+                      value={selectedEmployeeOption}
                       options={employeeOptions}
                       placeholder={employeeError ? '전체' : isEmployeeLoading ? '직원 정보를 조회중입니다.' : '직원 선택'}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
@@ -241,10 +242,13 @@ export default function EmployeeTodoSearch({
                           onChange({ employeeName: '' })
                           return
                         }
-                        // 실제 서버 검색 조건은 employeeName 문자열이다.
-                        // 목록 선택 시에도 이름만 저장하고, 자유 입력(creatable)은 입력값 그대로 보낸다.
+                        if ((option as { __isNew__?: boolean }).__isNew__) {
+                          onChange({ employeeName: option.value })
+                          return
+                        }
                         const employee = employeeList?.find((e) => String(e.employeeInfoId) === option.value)
-                        onChange({ employeeName: employee?.employeeName ?? option.value })
+                        if (!employee) return
+                        onChange({ employeeName: employee.employeeName })
                       }}
                     />
                   </div>
