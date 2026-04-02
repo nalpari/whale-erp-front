@@ -16,6 +16,9 @@ export default function OvertimeWorkTimeEditPage({ params }: PageProps) {
   const endDate = searchParams.get('endDate') || ''
   const employeeInfoId = searchParams.get('employeeInfoId') || ''
   const payrollMonth = searchParams.get('payrollMonth') || ''
+  const headOfficeId = searchParams.get('headOfficeId') ?? undefined
+  const franchiseId = searchParams.get('franchiseId') ?? undefined
+  const storeId = searchParams.get('storeId') ?? undefined
 
   return (
     <>
@@ -26,6 +29,9 @@ export default function OvertimeWorkTimeEditPage({ params }: PageProps) {
         endDate={endDate}
         employeeInfoId={employeeInfoId}
         payrollMonth={payrollMonth}
+        headOfficeId={headOfficeId}
+        franchiseId={franchiseId}
+        storeId={storeId}
       />
     </>
   )

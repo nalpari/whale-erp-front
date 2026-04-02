@@ -917,8 +917,7 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
                 </table>
               )}
 
-              {/* 상여금 종류/상여금 - 파트타임이 아닌 경우에만 표시 */}
-              {contractClassification !== 'CNTCFWK_003' && (
+              {/* 상여금 종류/상여금 */}
               <table className="default-table">
                 <colgroup>
                   <col width="180px" />
@@ -1058,7 +1057,6 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
                   </tr>
                 </tbody>
               </table>
-              )}
             </div>
           </div>
         </AnimateHeight>

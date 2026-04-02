@@ -60,6 +60,9 @@ export interface PartTimerPayrollStatementListItem {
 export interface PartTimerPayrollStatementResponse {
   id: number
   memberId: number
+  employeeInfoId?: number
+  headOfficeId?: number
+  franchiseId?: number
   memberName: string
   payrollYearMonth: string
   settlementStartDate: string
@@ -72,6 +75,7 @@ export interface PartTimerPayrollStatementResponse {
   isEmailSend: boolean
   paymentItems: PartTimerPaymentItemResponse[]
   deductionItems: PartTimerDeductionItemResponse[]
+  bonusItems?: BonusItemResponse[]
   weeklyPaidHolidayAllowances: WeeklyPaidHolidayAllowanceResponse[]
   headOfficeName?: string
   franchiseName?: string
@@ -156,6 +160,7 @@ export interface DailyWorkRecord {
   paymentAmount: number
   deductionAmount: number
   totalAmount: number
+  contractWorkHours: number
 }
 
 // 주간 소계 타입
@@ -274,6 +279,25 @@ export async function downloadPartTimerPayrollExcel(id: number): Promise<Blob> {
   return response.data
 }
 
+// 파트타이머 상여금 항목 요청 타입
+export interface BonusItemRequest {
+  bonusName: string
+  bonusAmount: number
+  deductionAmount: number
+  isActive: boolean
+  itemOrder: number
+}
+
+// 파트타이머 상여금 항목 응답 타입
+export interface BonusItemResponse {
+  id: number
+  bonusName: string
+  bonusAmount: number
+  deductionAmount: number
+  isActive: boolean
+  itemOrder: number
+}
+
 // 파트타이머 지급 항목 요청 타입
 export interface PartTimerPaymentItemRequest {
   workDay: string // YYYY-MM-DD
@@ -304,6 +328,7 @@ export interface CreatePartTimerPayrollStatementRequest {
   remarks?: string
   paymentItems: PartTimerPaymentItemRequest[]
   deductionItems?: PartTimerDeductionItemRequest[]
+  bonusItems?: BonusItemRequest[]
 }
 
 // 파트타이머 급여 명세서 생성
@@ -326,6 +351,7 @@ export interface UpdatePartTimerPayrollStatementRequest {
   remarks?: string
   paymentItems: PartTimerPaymentItemRequest[]
   deductionItems?: PartTimerDeductionItemRequest[]
+  bonusItems?: BonusItemRequest[]
 }
 
 // 파트타이머 급여 명세서 수정

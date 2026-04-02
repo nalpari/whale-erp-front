@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import DatePicker from '../../ui/common/DatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useAlert } from '@/components/common/ui'
@@ -11,17 +12,22 @@ import {
   useSendOvertimePayrollEmail,
   useDownloadOvertimePayrollExcel,
 } from '@/hooks/queries/use-payroll-queries'
+import { payrollKeys } from '@/hooks/queries/query-keys'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
-import { createOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
+import { createOvertimeAllowanceStatement, updateOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
 import type {
   DailyOvertimeHoursItem,
   OvertimeAllowanceItemDto,
   PostOvertimeAllowanceStatementRequest,
+  PutOvertimeAllowanceStatementRequest,
 } from '@/lib/api/overtimeAllowanceStatement'
 import { OvertimeWorkTimeEditData, EditableOvertimeRecord, EditableWeeklySubtotal } from './OvertimeWorkTimeEdit'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+
+// 연장근무 수당 배율 (통상임금의 1.5배 — 근로기준법 제56조)
+const OVERTIME_RATE_MULTIPLIER = 1.5
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -40,6 +46,7 @@ const formatDateToString = (date: Date | null): string => {
 
 // localStorage 키
 const OVERTIME_WORKTIME_EDIT_STORAGE_KEY = 'overtime_worktime_edit_data'
+const OVERTIME_FORM_STATE_STORAGE_KEY = 'overtime_form_state'
 
 interface OvertimePayStubProps {
   id: string
@@ -49,21 +56,30 @@ interface OvertimePayStubProps {
 
 export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: OvertimePayStubProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { alert, confirm } = useAlert()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State
-  const [payrollMonth, setPayrollMonth] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  // TanStack Query: 기존 명세서 데이터를 useState 초기화보다 먼저 조회
+  const { data: existingStatement } = useOvertimePayrollDetail(statementId)
+
+  // State (lazy 초기화: 부모 key prop 리마운트 시 서버 데이터로 올바르게 초기화됨)
+  const [payrollMonth, setPayrollMonth] = useState(() => {
+    if (!existingStatement?.allowanceYearMonth) return ''
+    const ym = existingStatement.allowanceYearMonth
+    return `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
+  })
+  const [startDate, setStartDate] = useState(() => existingStatement?.calculationStartDate ?? '')
+  const [endDate, setEndDate] = useState(() => existingStatement?.calculationEndDate ?? '')
   const [paymentDate, setPaymentDate] = useState(() => {
+    if (existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
-  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
-  const [remarks, setRemarks] = useState('')
-  const [isSearched, setIsSearched] = useState(false)
+  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
+  const [remarks, setRemarks] = useState(() => existingStatement?.remarks ?? '')
+  const [isSearched, setIsSearched] = useState(() => (existingStatement?.details?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
@@ -83,14 +99,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
   const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
-  // TanStack Query hooks
-  const { data: existingStatement } = useOvertimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     headOfficeIdNum ? { headOfficeId: headOfficeIdNum, franchiseId: franchiseIdNum ?? undefined, employeeType: 'FULL_TIME' } : { headOfficeId: 0, employeeType: 'FULL_TIME' },
-    isNewMode && !!headOfficeIdNum
+    isNewMode && !!headOfficeIdNum,
+    true
   )
+  const storeIdNum = selectedStore ? parseInt(selectedStore) : null
+
   const { data: overtimeData, refetch: refetchOvertimeData } = useDailyOvertimeHours(
-    { employeeInfoId: employeeInfoId ?? 0, startDate, endDate },
+    {
+      employeeInfoId: employeeInfoId ?? 0,
+      startDate,
+      endDate,
+      headOfficeId: headOfficeIdNum ?? undefined,
+      franchiseId: franchiseIdNum ?? undefined,
+      storeId: storeIdNum ?? undefined,
+    },
     false
   )
 
@@ -102,59 +126,71 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   // React 19: derived state
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
 
-  // 기존 데이터 로드 처리
+  // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
   useEffect(() => {
-    if (existingStatement && !isNewMode && !payrollMonth) {
-      if (existingStatement.allowanceYearMonth) {
-        const ym = existingStatement.allowanceYearMonth
-        const yearMonth = `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
-
-        setPayrollMonth(yearMonth)
+    if (fromWorkTimeEdit && isEditMode && !editedWorkTimeData) {
+      // 폼 상태 복원 (신규/기존 수정 모드 모두)
+      const savedFormState = localStorage.getItem(OVERTIME_FORM_STATE_STORAGE_KEY)
+      if (savedFormState) {
+        try {
+          const s = JSON.parse(savedFormState) as {
+            selectedHeadquarter: string
+            selectedFranchise: string
+            selectedStore: string
+            employeeInfoId: number | null
+            payrollMonth: string
+            startDate: string
+            endDate: string
+            paymentDate: string
+            remarks: string
+          }
+          if (s.selectedHeadquarter) setSelectedHeadquarter(s.selectedHeadquarter)
+          if (s.selectedFranchise) setSelectedFranchise(s.selectedFranchise)
+          if (s.selectedStore) setSelectedStore(s.selectedStore)
+          if (s.employeeInfoId != null) setEmployeeInfoId(s.employeeInfoId)
+          if (s.payrollMonth) setPayrollMonth(s.payrollMonth)
+          if (s.startDate) setStartDate(s.startDate)
+          if (s.endDate) setEndDate(s.endDate)
+          if (s.paymentDate) setPaymentDate(s.paymentDate)
+          if (s.remarks) setRemarks(s.remarks)
+          localStorage.removeItem(OVERTIME_FORM_STATE_STORAGE_KEY)
+        } catch (e) {
+          console.error('폼 상태 복원 실패:', e)
+          localStorage.removeItem(OVERTIME_FORM_STATE_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
+        }
       }
 
-      if (existingStatement.calculationStartDate) setStartDate(existingStatement.calculationStartDate)
-
-      if (existingStatement.calculationEndDate) setEndDate(existingStatement.calculationEndDate)
-
-      if (existingStatement.paymentDate) setPaymentDate(existingStatement.paymentDate)
-
-      if (existingStatement.remarks) setRemarks(existingStatement.remarks)
-
-      if (existingStatement.details?.length > 0) setIsSearched(true)
-    }
-  }, [existingStatement, isNewMode, payrollMonth])
-
-  // localStorage에서 수정 데이터 로드
-  useEffect(() => {
-    if (fromWorkTimeEdit && isNewMode && !editedWorkTimeData) {
       const savedData = localStorage.getItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
       if (savedData) {
         try {
           const parsed: OvertimeWorkTimeEditData = JSON.parse(savedData)
-           
+
           setEditedWorkTimeData(parsed)
-           
+
           if (parsed.payrollMonth) setPayrollMonth(parsed.payrollMonth)
-           
+
           if (parsed.startDate) setStartDate(parsed.startDate)
-           
+
           if (parsed.endDate) setEndDate(parsed.endDate)
           if (parsed.employeeInfoId) {
             const empId = parseInt(parsed.employeeInfoId)
-             
+
             setEmployeeInfoId(empId)
           }
-           
+
           setIsSearched(true)
 
           // 로드 후 localStorage에서 제거하여 stale reads 방지
           localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
+          localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
     }
-  }, [fromWorkTimeEdit, isNewMode, editedWorkTimeData])
+  }, [fromWorkTimeEdit, isEditMode, editedWorkTimeData, alert])
 
   const handleGoToList = () => {
     router.push('/employee/payroll/overtime')
@@ -261,11 +297,30 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       await alert('지급 월을 선택하고 기간을 설정해주세요.')
       return
     }
+    if (!isSearched) {
+      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
+      return
+    }
+    // 돌아올 때 복원할 폼 상태 저장 (신규/기존 수정 모드 모두)
+    localStorage.setItem(OVERTIME_FORM_STATE_STORAGE_KEY, JSON.stringify({
+      selectedHeadquarter,
+      selectedFranchise,
+      selectedStore,
+      employeeInfoId,
+      payrollMonth,
+      startDate,
+      endDate,
+      paymentDate,
+      remarks,
+    }))
     const params = new URLSearchParams({
       startDate,
       endDate,
       employeeInfoId: String(employeeInfoId),
-      payrollMonth
+      payrollMonth,
+      ...(headOfficeIdNum ? { headOfficeId: String(headOfficeIdNum) } : {}),
+      ...(franchiseIdNum ? { franchiseId: String(franchiseIdNum) } : {}),
+      ...(storeIdNum ? { storeId: String(storeIdNum) } : {}),
     })
     router.push(`/employee/payroll/overtime/${id}/worktime?${params.toString()}`)
   }
@@ -311,6 +366,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setIsSearched(true)
     } catch (error) {
       console.error('일별 연장근무 시간 조회 실패:', error)
+      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
@@ -359,7 +415,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               workDay: record.date,
               workHour: record.overtimeHours,
               breakTimeHour: 0,
-              contractTimelyAmount: Math.round(record.applyTimelyAmount / 1.5),
+              contractTimelyAmount: Math.round(record.applyTimelyAmount / OVERTIME_RATE_MULTIPLIER),
               applyTimelyAmount: record.applyTimelyAmount,
               actualOvertimeHours: record.overtimeHours,
               overtimeStartTime: record.overtimeStartTime,
@@ -386,7 +442,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
       await createOvertimeAllowanceStatement(request)
 
-      // 저장 성공 시 localStorage cleanup
+      // 저장 성공 시 목록 캐시 무효화 및 localStorage cleanup
+      queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.lists() })
       localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
 
       await alert('연장근무 수당명세서가 생성되었습니다.')
@@ -394,6 +451,80 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     } catch (error) {
       console.error('연장근무 수당명세서 저장 실패:', error)
       await alert('저장 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // 기존 명세서 수정 핸들러
+  const handleUpdate = async () => {
+    if (!statementId || !existingStatement) return
+
+    if (!payrollMonth || !startDate || !endDate) {
+      await alert('지급 월과 기간을 설정해주세요.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      let details: OvertimeAllowanceItemDto[] = []
+
+      if (editedWorkTimeData) {
+        details = editedWorkTimeData.editedRecords.map(record => ({
+          workDay: record.date,
+          workHour: record.overtimeHours,
+          breakTimeHour: 0,
+          contractTimelyAmount: record.contractHourlyWage,
+          applyTimelyAmount: record.applyTimelyAmount,
+          actualOvertimeHours: record.overtimeHours,
+          overtimeStartTime: record.overtimeStartTime,
+          overtimeEndTime: record.overtimeEndTime,
+          deductionAmount: record.deductionAmount,
+          actualPaymentAmount: record.paymentAmount
+        }))
+      } else if (overtimeData) {
+        details = overtimeData.items
+          .filter(item => item.type === 'DAILY' && item.dailyRecord)
+          .map(item => {
+            const record = item.dailyRecord!
+            return {
+              workDay: record.date,
+              workHour: record.overtimeHours,
+              breakTimeHour: 0,
+              contractTimelyAmount: Math.round(record.applyTimelyAmount / OVERTIME_RATE_MULTIPLIER),
+              applyTimelyAmount: record.applyTimelyAmount,
+              actualOvertimeHours: record.overtimeHours,
+              overtimeStartTime: record.overtimeStartTime,
+              overtimeEndTime: record.overtimeEndTime,
+              deductionAmount: record.deductionAmount,
+              actualPaymentAmount: record.paymentAmount
+            }
+          })
+      } else {
+        details = existingStatement.details
+      }
+
+      const request: PutOvertimeAllowanceStatementRequest = {
+        allowanceYearMonth: payrollMonth.replace('-', ''),
+        calculationStartDate: startDate,
+        calculationEndDate: endDate,
+        paymentDate: paymentDate || undefined,
+        remarks: remarks || undefined,
+        details
+      }
+
+      await updateOvertimeAllowanceStatement(statementId, request)
+
+      // 수정 성공 시 캐시 무효화 및 localStorage cleanup
+      queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.lists() })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.detail(statementId) })
+      localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+
+      await alert('수정되었습니다.')
+      router.push(`/employee/payroll/overtime/${statementId}`)
+    } catch (error) {
+      console.error('연장근무 수당명세서 수정 실패:', error)
+      await alert('수정 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }
@@ -568,8 +699,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               <button className="btn-form gray" onClick={handleDelete}>삭제</button>
             )}
             <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
-            <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? '저장중...' : '저장'}
+            <button
+              className="btn-form basic"
+              onClick={isNewMode ? handleSave : handleUpdate}
+              disabled={isSaving}
+            >
+              {isSaving ? '저장 중...' : '저장'}
             </button>
           </>
         )}
@@ -784,7 +919,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     데이터를 조회하고 있습니다...
                   </td>
                 </tr>
-              ) : !isEditMode && existingStatement && existingStatement.details.length > 0 ? (
+              ) : existingStatement && existingStatement.details.length > 0 && !editedWorkTimeData && !overtimeData ? (
                 <>
                   {existingStatement.details.map((item, index) => renderExistingDetailRow(item, index))}
                   <tr className="grand-total">

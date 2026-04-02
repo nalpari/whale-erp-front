@@ -7,6 +7,7 @@ import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePick
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useEmployContractSearchStore } from '@/stores/search-stores'
 
 interface EmployContractSearchProps {
@@ -92,6 +93,32 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     return map
   }, [bpTree])
 
+  // 가맹점 ID → 이름 맵
+  const franchiseNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    bpTree.forEach((office) => {
+      office.franchises?.forEach((franchise) => {
+        if (franchise.name) map.set(franchise.id, franchise.name)
+      })
+    })
+    return map
+  }, [bpTree])
+
+  // 점포 목록 (점포명 표시용)
+  const { data: storeOptions = [] } = useStoreOptions(
+    appliedFormData?.headOfficeOrganizationId,
+    appliedFormData?.franchiseOrganizationId,
+    !!(appliedFormData?.headOfficeOrganizationId)
+  )
+
+  const storeNameMap = useMemo(() => {
+    const map = new Map<number, string>()
+    storeOptions.forEach((store) => {
+      map.set(store.id, store.storeName)
+    })
+    return map
+  }, [storeOptions])
+
   // 근무여부 옵션
   const workStatusOptions: SelectOption[] = useMemo(() => [
     { value: '', label: '전체' },
@@ -134,6 +161,14 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     if (appliedFormData.headOfficeOrganizationId != null) {
       const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
       if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+    }
+    if (appliedFormData.franchiseOrganizationId != null) {
+      const name = franchiseNameMap.get(appliedFormData.franchiseOrganizationId)
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+    }
+    if (appliedFormData.storeId != null) {
+      const name = storeNameMap.get(appliedFormData.storeId)
+      if (name) appliedTags.push({ key: 'store', label: name, category: '점포' })
     }
     if (appliedFormData.workStatus) {
       const opt = workStatusOptions.find(o => o.value === appliedFormData.workStatus)
@@ -208,6 +243,8 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
     const updated = { ...appliedFormData, workDays: [...appliedFormData.workDays] }
     switch (key) {
       case 'headOffice': updated.headOfficeOrganizationId = null; updated.franchiseOrganizationId = null; updated.storeId = null; updated.employeeClassification = ''; break
+      case 'franchise': updated.franchiseOrganizationId = null; updated.storeId = null; updated.employeeClassification = ''; break
+      case 'store': updated.storeId = null; break
       case 'workStatus': updated.workStatus = ''; break
       case 'employeeName': updated.employeeName = ''; break
       case 'workDays': updated.workDays = []; break

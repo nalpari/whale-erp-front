@@ -196,8 +196,8 @@ export const useUpdatePartTimePayroll = () => {
   return useMutation({
     mutationFn: ({ id, request }: { id: number; request: UpdatePartTimerPayrollStatementRequest }) =>
       updatePartTimerPayrollStatement(id, request),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: payrollKeys.partTime.detail(id) })
+    onSuccess: async (_, { id }) => {
+      await queryClient.invalidateQueries({ queryKey: payrollKeys.partTime.detail(id) })
       queryClient.invalidateQueries({ queryKey: payrollKeys.partTime.lists() })
     },
   })
@@ -251,9 +251,9 @@ export const useOvertimePayrollDetail = (id?: number | null) => {
 }
 
 export const useDailyOvertimeHours = (
-  params: Omit<GetDailyOvertimeHoursParams, 'headOfficeId' | 'franchiseStoreId' | 'storeId'> & {
+  params: Omit<GetDailyOvertimeHoursParams, 'headOfficeId' | 'franchiseId' | 'storeId'> & {
     headOfficeId?: number
-    franchiseStoreId?: number
+    franchiseId?: number
     storeId?: number
   },
   enabled = true
@@ -263,6 +263,9 @@ export const useDailyOvertimeHours = (
       employeeInfoId: params.employeeInfoId,
       startDate: params.startDate,
       endDate: params.endDate,
+      headOfficeId: params.headOfficeId,
+      franchiseId: params.franchiseId,
+      storeId: params.storeId,
     }),
     queryFn: () => getDailyOvertimeHoursSummary(params),
     enabled,

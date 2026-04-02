@@ -26,6 +26,8 @@ import type {
 import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { useContractsByEmployee, useContractList } from '@/hooks/queries/use-contract-queries'
+import { usePayrollStatementSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { calculatePaymentDate } from '@/lib/utils/payroll'
 
@@ -46,40 +48,51 @@ const formatDateToString = (date: Date | null): string => {
 
 // localStorage 키
 const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
+const NEWFORM_STATE_STORAGE_KEY = 'parttime_newform_state'
 
 interface PartTimePayStubProps {
   id: string
   isEditMode?: boolean
   fromWorkTimeEdit?: boolean
+  onSaveSuccess?: () => void
 }
 
-export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: PartTimePayStubProps) {
+export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false, onSaveSuccess }: PartTimePayStubProps) {
   const router = useRouter()
   const { alert, confirm } = useAlert()
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
-  // State (기존 데이터가 있으면 초기값으로 설정 — key prop 리마운트로 useEffect 내 setState 제거)
+  // TanStack Query: 기존 명세서 데이터를 useState 초기화보다 먼저 조회
+  // 부모에서 key prop 변경 시 컴포넌트가 리마운트되고, 캐시에 최신 데이터가 있으면
+  // 첫 렌더에서 동기적으로 반환되어 아래 lazy 초기화에서 올바른 값을 읽을 수 있다.
+  const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
+
+  // State (lazy 초기화: 부모 key prop 리마운트 시 서버 데이터로 올바르게 초기화됨)
   const [payrollMonth, setPayrollMonth] = useState(() => {
-    if (!isNewMode && existingStatement?.payrollYearMonth) {
-      return existingStatement.payrollYearMonth.substring(0, 4) + '-' + existingStatement.payrollYearMonth.substring(4, 6)
-    }
-    return ''
+    if (!existingStatement?.payrollYearMonth) return ''
+    const ym = existingStatement.payrollYearMonth
+    return `${ym.substring(0, 4)}-${ym.substring(4, 6)}`
   })
-  const [startDate, setStartDate] = useState(() => existingStatement?.settlementStartDate || '')
-  const [endDate, setEndDate] = useState(() => existingStatement?.settlementEndDate || '')
+  const [startDate, setStartDate] = useState(() => existingStatement?.settlementStartDate ?? '')
+  const [endDate, setEndDate] = useState(() => existingStatement?.settlementEndDate ?? '')
   const [paymentDate, setPaymentDate] = useState(() => {
-    if (!isNewMode && existingStatement?.paymentDate) return existingStatement.paymentDate
+    if (existingStatement?.paymentDate) return existingStatement.paymentDate
     const today = new Date()
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   })
-  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(null)
+  const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
   const [salaryDay, setSalaryDay] = useState<number>(5)
-  const [isSearched, setIsSearched] = useState(() => !isNewMode && (existingStatement?.paymentItems?.length ?? 0) > 0)
+  const [isSearched, setIsSearched] = useState(() => (existingStatement?.paymentItems?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
+  // 상여금 ON/OFF (비활성화된 상여금 id Set, lazy 초기화로 remount 시 서버 데이터 반영)
+  const [disabledBonusIds, setDisabledBonusIds] = useState<Set<number>>(() => {
+    if (!existingStatement?.bonusItems?.length) return new Set<number>()
+    return new Set(existingStatement.bonusItems.filter(b => !b.isActive).map(b => b.id))
+  })
 
-  // 4대보험 공제 (기존 데이터에서 초기값 설정)
+  // 4대보험 공제 (lazy 초기화)
   const [nationalPension, setNationalPension] = useState(() => {
     const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'NATIONAL_PENSION')
     return item ? (item.amount || 0).toLocaleString() : ''
@@ -97,9 +110,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return item ? (item.amount || 0).toLocaleString() : ''
   })
 
-  // Organization selection state
-  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
-  const [selectedFranchise, setSelectedFranchise] = useState<string>('')
+  // Organization selection state (lazy 초기화)
+  const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>(() =>
+    existingStatement?.headOfficeId ? String(existingStatement.headOfficeId) : ''
+  )
+  const [selectedFranchise, setSelectedFranchise] = useState<string>(() =>
+    existingStatement?.franchiseId ? String(existingStatement.franchiseId) : ''
+  )
   const [selectedStore, setSelectedStore] = useState<string>('')
 
   // BP 트리 데이터
@@ -112,15 +129,59 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const franchiseIdNum = selectedFranchise ? parseInt(selectedFranchise) : null
   const { data: storeOptionList = [] } = useStoreOptions(headOfficeIdNum, franchiseIdNum)
 
-  // TanStack Query hooks
-  const { data: existingStatement, isPending: isDetailLoading } = usePartTimePayrollDetail(statementId)
   const { data: employeeList = [] } = useEmployeeListByType(
     { headOfficeId: headOfficeIdNum ?? 0, franchiseId: franchiseIdNum ?? undefined, employeeType: 'PART_TIME' },
-    isNewMode && !!headOfficeIdNum
+    isNewMode && !!headOfficeIdNum,
+    true
   )
   const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
     { employeeInfoId: employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
     false
+  )
+
+  // 근로계약서 상여금 조회
+  // - employeeInfoId가 있으면 useContractsByEmployee 사용
+  // - 없으면(기존 명세서 상세) headOfficeId + 이름으로 useContractList 폴백
+  const contractEmployeeId = employeeInfoId ?? existingStatement?.employeeInfoId ?? 0
+  const { data: contractList = [] } = useContractsByEmployee(contractEmployeeId, contractEmployeeId > 0)
+
+  // headOfficeId 파생:
+  // 1순위: 선택된 본사 (편집 모드)
+  // 2순위: existingStatement.headOfficeId (백엔드 응답)
+  // 3순위: bpTree에서 headOfficeName으로 검색
+  const headOfficeIdForContract = useMemo(() => {
+    if (headOfficeIdNum) return headOfficeIdNum
+    if (existingStatement?.headOfficeId) return existingStatement.headOfficeId
+    if (!existingStatement?.headOfficeName || bpTree.length === 0) return 0
+    const office = bpTree.find(o => o.name === existingStatement.headOfficeName)
+    return office?.id ?? 0
+  }, [headOfficeIdNum, existingStatement?.headOfficeId, existingStatement?.headOfficeName, bpTree])
+
+  const { data: contractListByHead } = useContractList(
+    { headOfficeId: headOfficeIdForContract, size: 200 },
+    contractEmployeeId === 0 && headOfficeIdForContract > 0
+  )
+
+  // 급여명세서 설정 (파트타이머 세율 조회)
+  // franchiseId 파생:
+  // 1순위: 선택된 가맹점 (편집 모드)
+  // 2순위: existingStatement.franchiseId (백엔드 응답)
+  // 3순위: bpTree에서 franchiseName으로 검색 (상세 조회 모드)
+  const settingsHeadOfficeId = headOfficeIdForContract || undefined
+  const settingsFranchiseId = useMemo(() => {
+    if (franchiseIdNum) return franchiseIdNum
+    if (existingStatement?.franchiseId) return existingStatement.franchiseId
+    if (!existingStatement?.franchiseName || bpTree.length === 0) return undefined
+    for (const office of bpTree) {
+      const franchise = office.franchises?.find(f => f.name === existingStatement.franchiseName)
+      if (franchise) return franchise.id
+    }
+    return undefined
+  }, [franchiseIdNum, existingStatement?.franchiseId, existingStatement?.franchiseName, bpTree])
+
+  const { data: payrollSettings } = usePayrollStatementSettings(
+    { headOfficeId: settingsHeadOfficeId, franchiseId: settingsFranchiseId },
+    settingsHeadOfficeId != null
   )
 
   // Mutations
@@ -131,6 +192,49 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   // React 19: derived state
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
+
+  // 가장 최근 계약의 상여금 (파생값)
+  // employeeInfoId로 조회된 계약 우선, 없으면 headOfficeId + 직원명으로 폴백
+  const contractBonuses = useMemo(() => {
+    if (contractList.length > 0) {
+      const sorted = [...contractList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      return sorted[0]?.salaryInfo?.bonuses ?? []
+    }
+    if (contractListByHead?.content && existingStatement?.memberName) {
+      const filtered = contractListByHead.content.filter(c => c.member?.name === existingStatement.memberName)
+      if (filtered.length > 0) {
+        const sorted = [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        return sorted[0]?.salaryInfo?.bonuses ?? []
+      }
+    }
+    return []
+  }, [contractList, contractListByHead, existingStatement?.memberName])
+
+  // 활성화된 상여금 (토글 ON인 것만)
+  const activeBonuses = useMemo(
+    () => contractBonuses.filter(b => !disabledBonusIds.has(b.id)),
+    [contractBonuses, disabledBonusIds]
+  )
+
+  // 파트타이머 상여금 세율 (근로소득세율 + 지방소득세율)
+  const bonusTaxRate = useMemo(() => {
+    const income = payrollSettings?.parttimeIncomeTaxRate ?? 3
+    const local = payrollSettings?.parttimeLocalTaxRate ?? 0.3
+    return (income + local) / 100
+  }, [payrollSettings?.parttimeIncomeTaxRate, payrollSettings?.parttimeLocalTaxRate])
+
+  // 상여금 공제액 계산 헬퍼
+  const calcBonusDeduction = (amount: number) => Math.floor(amount * bonusTaxRate)
+
+  // 상여금 ON/OFF 토글
+  const handleToggleBonus = (bonusId: number) => {
+    setDisabledBonusIds(prev => {
+      const next = new Set(prev)
+      if (next.has(bonusId)) next.delete(bonusId)
+      else next.add(bonusId)
+      return next
+    })
+  }
 
   // Select options
   const headquarterOptions: SelectOption[] = useMemo(() =>
@@ -166,32 +270,70 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return options
   }, [])
 
-  // 기존 데이터 초기화: useState 초기값 + 부모 key prop 리마운트로 처리
-  // useEffect 내 setState 제거 (React Compiler 규칙 준수)
-
-  // localStorage에서 수정 데이터 로드
   useEffect(() => {
-    if (fromWorkTimeEdit && isNewMode && !editedWorkTimeData) {
+    if (fromWorkTimeEdit && isEditMode && !editedWorkTimeData) {
+      // 폼 전체 상태 복원
+      const savedFormState = localStorage.getItem(NEWFORM_STATE_STORAGE_KEY)
+      if (savedFormState) {
+        try {
+          const s = JSON.parse(savedFormState) as {
+            selectedHeadquarter: string
+            selectedFranchise: string
+            selectedStore: string
+            employeeInfoId: number | null
+            payrollMonth: string
+            startDate: string
+            endDate: string
+            paymentDate: string
+            nationalPension: string
+            healthInsurance: string
+            employmentInsurance: string
+            longTermCareInsurance: string
+          }
+          if (s.selectedHeadquarter) setSelectedHeadquarter(s.selectedHeadquarter)
+          if (s.selectedFranchise) setSelectedFranchise(s.selectedFranchise)
+          if (s.selectedStore) setSelectedStore(s.selectedStore)
+          if (s.employeeInfoId != null) setEmployeeInfoId(s.employeeInfoId)
+          if (s.payrollMonth) setPayrollMonth(s.payrollMonth)
+          if (s.startDate) setStartDate(s.startDate)
+          if (s.endDate) setEndDate(s.endDate)
+          if (s.paymentDate) setPaymentDate(s.paymentDate)
+          if (s.nationalPension) setNationalPension(s.nationalPension)
+          if (s.healthInsurance) setHealthInsurance(s.healthInsurance)
+          if (s.employmentInsurance) setEmploymentInsurance(s.employmentInsurance)
+          if (s.longTermCareInsurance) setLongTermCareInsurance(s.longTermCareInsurance)
+          // 날짜가 있으면 검색 완료 상태로 설정
+          if (s.startDate && s.endDate) setIsSearched(true)
+        } catch (e) {
+          console.error('폼 상태 복원 실패:', e)
+          localStorage.removeItem(NEWFORM_STATE_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
+        }
+      }
+
+      // 근무시간 수정 데이터 복원
       const savedData = localStorage.getItem(WORKTIME_EDIT_STORAGE_KEY)
       if (savedData) {
         try {
           const parsed: WorkTimeEditData = JSON.parse(savedData)
-           
+
           setEditedWorkTimeData(parsed)
-           
+
           if (parsed.payrollMonth) setPayrollMonth(parsed.payrollMonth)
-           
+
           if (parsed.startDate) setStartDate(parsed.startDate)
-           
+
           if (parsed.endDate) setEndDate(parsed.endDate)
-           
+
           setIsSearched(true)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
+          localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
+          void alert('이전 편집 데이터를 불러오는 데 실패했습니다. 데이터를 다시 입력해주세요.')
         }
       }
     }
-  }, [fromWorkTimeEdit, isNewMode, editedWorkTimeData])
+  }, [fromWorkTimeEdit, isEditMode, editedWorkTimeData, alert])
 
   const handleGoToList = () => {
     router.push('/employee/payroll/parttime')
@@ -297,6 +439,25 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       await alert('급여지급월을 선택하고 기간을 설정해주세요.')
       return
     }
+    if (!isSearched) {
+      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
+      return
+    }
+    // 돌아올 때 복원할 폼 전체 상태 저장
+    localStorage.setItem(NEWFORM_STATE_STORAGE_KEY, JSON.stringify({
+      selectedHeadquarter,
+      selectedFranchise,
+      selectedStore,
+      employeeInfoId,
+      payrollMonth,
+      startDate,
+      endDate,
+      paymentDate,
+      nationalPension,
+      healthInsurance,
+      employmentInsurance,
+      longTermCareInsurance,
+    }))
     const params = new URLSearchParams({
       startDate,
       endDate,
@@ -373,6 +534,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
+    localStorage.removeItem(NEWFORM_STATE_STORAGE_KEY)
     setEditedWorkTimeData(null)
 
     setIsLoading(true)
@@ -381,6 +543,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setIsSearched(true)
     } catch (error) {
       console.error('일별 근무 시간 조회 실패:', error)
+      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
@@ -436,7 +599,48 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       return
     }
 
+    const totalAmount = editedWorkTimeData
+      ? editedWorkTimeData.grandTotalAmount
+      : (payrollData?.grandTotalAmount ?? 0)
+    if (totalAmount === 0) {
+      await alert('총액이 0원입니다. 근무 시간을 입력한 후 저장해주세요.')
+      return
+    }
+
     const payrollYearMonth = payrollMonth.replace('-', '')
+
+    if (contractBonuses.length > 0 && !payrollSettings) {
+      await alert('세율 설정을 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.')
+      return
+    }
+
+    // [의도적 차이] 신규 저장(handleSave)은 계약서 기반 상여금(contractBonuses)만 사용.
+    // 기존 명세서가 없으므로 existingStatement.bonusItems 폴백 로직은 불필요.
+    const bonusItems = contractBonuses.length > 0
+      ? contractBonuses.map((b, i) => ({
+          bonusName: b.bonusType,
+          bonusAmount: b.amount,
+          deductionAmount: disabledBonusIds.has(b.id) ? 0 : calcBonusDeduction(b.amount),
+          isActive: !disabledBonusIds.has(b.id),
+          itemOrder: i + 1,
+        }))
+      : undefined
+
+    const parseAmount = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+    const deductionItems: PartTimerDeductionItemRequest[] = []
+    let order = 1
+    if (parseAmount(nationalPension) > 0) {
+      deductionItems.push({ itemCode: 'NATIONAL_PENSION', itemOrder: order++, amount: parseAmount(nationalPension), remarks: '국민연금' })
+    }
+    if (parseAmount(healthInsurance) > 0) {
+      deductionItems.push({ itemCode: 'HEALTH_INSURANCE', itemOrder: order++, amount: parseAmount(healthInsurance), remarks: '건강보험' })
+    }
+    if (parseAmount(employmentInsurance) > 0) {
+      deductionItems.push({ itemCode: 'EMPLOYMENT_INSURANCE', itemOrder: order++, amount: parseAmount(employmentInsurance), remarks: '고용보험' })
+    }
+    if (parseAmount(longTermCareInsurance) > 0) {
+      deductionItems.push({ itemCode: 'LONG_TERM_CARE_INSURANCE', itemOrder: order++, amount: parseAmount(longTermCareInsurance), remarks: '장기요양보험' })
+    }
 
     const request: CreatePartTimerPayrollStatementRequest = {
       employeeInfoId,
@@ -445,7 +649,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       settlementEndDate: endDate,
       paymentDate,
       remarks: undefined,
-      paymentItems
+      paymentItems,
+      deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
+      bonusItems,
     }
 
     setIsLoading(true)
@@ -483,6 +689,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       remarks: item.remarks,
     }))
 
+    const totalPaymentAmount = paymentItems.reduce((sum, item) => sum + item.totalAmount, 0)
+    if (totalPaymentAmount === 0) {
+      await alert('총액이 0원입니다. 저장할 수 없습니다.')
+      return
+    }
+
     // 4대보험 공제 항목 구성
     const deductionItems: PartTimerDeductionItemRequest[] = []
     const parseAmount = (val: string) => parseInt(val.replace(/,/g, '')) || 0
@@ -501,6 +713,39 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       deductionItems.push({ itemCode: 'LONG_TERM_CARE_INSURANCE', itemOrder: order++, amount: parseAmount(longTermCareInsurance), remarks: '장기요양보험' })
     }
 
+    const hasBonusItems = (existingStatement.bonusItems?.length ?? 0) > 0 || contractBonuses.length > 0
+    if (hasBonusItems && !payrollSettings) {
+      await alert('세율 설정을 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.')
+      return
+    }
+
+    // [의도적 차이] 수정(handleUpdate)은 existingStatement.bonusItems 우선 사용.
+    // 서버에 저장된 상여 데이터(금액, 순서 등)를 보존하고 isActive 상태만 갱신한다.
+    // 저장된 상여가 없는 경우(최초 상여 추가 시)에만 contractBonuses로 폴백한다.
+    const bonusItems = (() => {
+      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영
+      if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
+        return existingStatement.bonusItems.map(b => ({
+          bonusName: b.bonusName,
+          bonusAmount: b.bonusAmount,
+          deductionAmount: disabledBonusIds.has(b.id) ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
+          isActive: !disabledBonusIds.has(b.id),
+          itemOrder: b.itemOrder,
+        }))
+      }
+      // 저장된 상여 없으면 계약서 기반
+      if (contractBonuses.length > 0) {
+        return contractBonuses.map((b, i) => ({
+          bonusName: b.bonusType,
+          bonusAmount: b.amount,
+          deductionAmount: disabledBonusIds.has(b.id) ? 0 : calcBonusDeduction(b.amount),
+          isActive: !disabledBonusIds.has(b.id),
+          itemOrder: i + 1,
+        }))
+      }
+      return undefined
+    })()
+
     const request: UpdatePartTimerPayrollStatementRequest = {
       payrollYearMonth: payrollMonth.replace('-', ''),
       settlementStartDate: startDate,
@@ -508,11 +753,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       paymentDate,
       paymentItems,
       deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
+      bonusItems,
     }
 
     try {
       await updateMutation.mutateAsync({ id: statementId, request })
       await alert('수정되었습니다.')
+      onSaveSuccess?.()
     } catch (error) {
       console.error('수정 실패:', error)
       await alert('수정 중 오류가 발생했습니다.')
@@ -644,6 +891,84 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     )
   }
 
+  const renderEditedWorkTimeWeekly = (data: WorkTimeEditData) => {
+    const sortedAllowances = [...data.weeklyHolidayAllowances].sort(
+      (a, b) => a.weekStartDate.localeCompare(b.weekStartDate)
+    )
+    const rows: React.ReactNode[] = []
+
+    sortedAllowances.forEach((allowance, wi) => {
+      const records = data.editedRecords
+        .filter(r => r.date >= allowance.weekStartDate && r.date <= allowance.weekEndDate)
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      const weekWorkHours = records.reduce((s, r) => s + r.workHours, 0)
+      const weekPayment = records.reduce((s, r) => s + r.paymentAmount, 0)
+      const weekDeduction = records.reduce((s, r) => s + r.deductionAmount, 0)
+      const weekTotal = records.reduce((s, r) => s + r.totalAmount, 0)
+
+      // 일별 행
+      records.forEach((record) => {
+        const isModified = record.workHours !== record.originalWorkHours || record.applyTimelyAmount !== record.originalApplyTimelyAmount
+        rows.push(
+          <tr key={`w${wi}-d-${record.date}`} className={record.workHours === 0 ? 'disabled' : ''}>
+            <td>
+              {record.date} ({record.dayOfWeekKorean})
+              {isModified && <span style={{ color: '#e74c3c', marginLeft: '4px' }}>*</span>}
+            </td>
+            <td className="al-r">{formatNumber(record.workHours)}</td>
+            <td className="al-r">{formatNumber(record.applyTimelyAmount)}</td>
+            <td className="al-r">{formatNumber(record.paymentAmount)}</td>
+            <td className="al-r">{formatNumber(record.deductionAmount)}</td>
+            <td className="al-r">{formatNumber(record.totalAmount)}</td>
+          </tr>
+        )
+      })
+
+      // 소계
+      rows.push(
+        <tr key={`w${wi}-sub`} className="gray">
+          <td>소계 ({allowance.weekNumber}주차)</td>
+          <td className="al-r">{formatNumber(weekWorkHours)}</td>
+          <td className="al-r">-</td>
+          <td className="al-r">{formatNumber(weekPayment)}</td>
+          <td className="al-r">{formatNumber(weekDeduction)}</td>
+          <td className="al-r">{formatNumber(weekTotal)}</td>
+        </tr>
+      )
+
+      // 주휴수당
+      rows.push(
+        <tr key={`w${wi}-holiday`} className="yellow">
+          <td>주휴수당 ({allowance.weekNumber}주차){allowance.isEligible ? '' : ' (미대상)'}</td>
+          <td className="al-r">{allowance.isEligible ? allowance.holidayAllowanceHours.toFixed(2) : 0}</td>
+          <td className="al-r">{formatNumber(allowance.applyTimelyAmount)}</td>
+          <td className="al-r">{formatNumber(allowance.isEligible ? allowance.holidayAllowanceAmount : 0)}</td>
+          <td className="al-r">{formatNumber(allowance.isEligible ? allowance.deductionAmount : 0)}</td>
+          <td className="al-r">{formatNumber(allowance.isEligible ? allowance.totalAmount : 0)}</td>
+        </tr>
+      )
+
+      // 주차 합계
+      const totalHours = weekWorkHours + (allowance.isEligible ? allowance.holidayAllowanceHours : 0)
+      const totalPayment = weekPayment + (allowance.isEligible ? allowance.holidayAllowanceAmount : 0)
+      const totalDeduction = weekDeduction + (allowance.isEligible ? allowance.deductionAmount : 0)
+      const totalNet = weekTotal + (allowance.isEligible ? allowance.totalAmount : 0)
+      rows.push(
+        <tr key={`w${wi}-total`} className="blue">
+          <td>합계 ({allowance.weekNumber}주차)</td>
+          <td className="al-r">{totalHours.toFixed(2)}</td>
+          <td className="al-r">{formatNumber(allowance.applyTimelyAmount)}</td>
+          <td className="al-r">{formatNumber(totalPayment)}</td>
+          <td className="al-r">{formatNumber(totalDeduction)}</td>
+          <td className="al-r">{formatNumber(totalNet)}</td>
+        </tr>
+      )
+    })
+
+    return rows
+  }
+
   if (isDetailLoading && !isNewMode) {
     return (
       <div className="contents-wrap">
@@ -670,8 +995,14 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           <>
             <button className="btn-form outline s" onClick={handleGoToWorkTimeEdit}>근무 시간 수정</button>
             <button className="btn-form gray" onClick={() => router.back()} type="button">취소</button>
-            <button className="btn-form basic" onClick={handleSave} disabled={isLoading}>
-              {isLoading ? '저장 중...' : '저장'}
+            <button
+              className="btn-form basic"
+              onClick={isNewMode ? handleSave : handleUpdate}
+              disabled={isNewMode ? isLoading : updateMutation.isPending}
+            >
+              {isNewMode
+                ? (isLoading ? '저장 중...' : '저장')
+                : (updateMutation.isPending ? '저장 중...' : '저장')}
             </button>
           </>
         )}
@@ -923,26 +1254,165 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <>
                   {existingStatement.paymentItems.map((item, index) => renderExistingPaymentItemRow(item, index))}
                   {existingStatement.weeklyPaidHolidayAllowances?.map((item, index) => renderWeeklyPaidHolidayAllowanceRow(item, index))}
-                  <tr className="grand-total">
-                    <td><strong>최종합</strong></td>
-                    <td className="al-r"><strong>{formatNumber(existingStatement.paymentItems.reduce((sum, item) => sum + item.workHour, 0))}</strong></td>
-                    <td className="al-r"><strong>-</strong></td>
-                    <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(existingStatement.totalDeductionAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(existingStatement.actualPaymentAmount)}</strong></td>
-                  </tr>
+                  {(() => {
+                    const dailyDeduction = existingStatement.paymentItems.reduce((s, i) => s + i.deductionAmount, 0)
+                      + (existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.deductionAmount, 0) ?? 0)
+                    const insuranceDeduction = existingStatement.deductionItems?.reduce((s, i) => s + i.amount, 0) ?? 0
+                    // bonusItems: 저장된 데이터 있으면 사용, 없거나 빈 배열이면 계약서 기반 fallback
+                    const hasSavedBonuses = existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0
+                    const displayBonuses = hasSavedBonuses
+                      ? existingStatement.bonusItems!
+                      : contractBonuses.map((b, i) => ({
+                          id: b.id,
+                          bonusName: b.bonusType,
+                          bonusAmount: b.amount,
+                          deductionAmount: calcBonusDeduction(b.amount),
+                          isActive: true,
+                          itemOrder: i + 1,
+                        }))
+                    // 합계: disabledBonusIds 기준으로 항상 계산 (저장/fallback 구분 없이)
+                    const savedActiveBonusTotal = hasSavedBonuses
+                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
+                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
+                    const savedActiveBonusDeductionTotal = hasSavedBonuses
+                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
+                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
+                    const totalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
+                    const subTotal = existingStatement.totalAmount - dailyDeduction
+                    const totalDeduction = dailyDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
+                    const finalTotal = existingStatement.totalAmount + savedActiveBonusTotal - totalDeduction
+                    return (
+                      <>
+                        {/* 급여소계 */}
+                        <tr className="grand-total">
+                          <td><strong>급여소계</strong></td>
+                          <td className="al-r"><strong>{formatNumber(totalWorkHours)}</strong></td>
+                          <td className="al-r"><strong>-</strong></td>
+                          <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                        </tr>
+                        {/* 4대보험 공제액 */}
+                        {insuranceDeduction > 0 && (
+                          <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
+                            <td><strong>공제액</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
+                            <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                          </tr>
+                        )}
+                        {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
+                        {displayBonuses.map((bonus) => {
+                          const isActive = !disabledBonusIds.has(bonus.id)
+                          return (
+                          <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
+                            <td><strong>{bonus.bonusName}</strong></td>
+                            <td className="al-c">
+                              <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                                <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                  <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                                </span>
+                              </label>
+                            </td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
+                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
+                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
+                          </tr>
+                        )})}
+
+                        {/* 급여합계 */}
+                        <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                          <td><strong>급여합계</strong></td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">-</td>
+                          <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount + savedActiveBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                        </tr>
+                      </>
+                    )
+                  })()}
                 </>
               ) : isEditMode && editedWorkTimeData && editedWorkTimeData.editedRecords.length > 0 ? (
                 <>
-                  {editedWorkTimeData.editedRecords.map((record, index) => renderEditedWorkTimeRow(record, index))}
-                  <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
-                    <td><strong>총 합계</strong></td>
-                    <td className="al-r"><strong>{editedWorkTimeData.grandTotalWorkHours.toFixed(2)}</strong></td>
-                    <td className="al-r"><strong>-</strong></td>
-                    <td className="al-r"><strong>{formatNumber(editedWorkTimeData.grandTotalPaymentAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(editedWorkTimeData.grandTotalDeductionAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(editedWorkTimeData.grandTotalAmount)}</strong></td>
-                  </tr>
+                  {editedWorkTimeData.weeklyHolidayAllowances.length > 0
+                    ? renderEditedWorkTimeWeekly(editedWorkTimeData)
+                    : editedWorkTimeData.editedRecords.map((record, index) => renderEditedWorkTimeRow(record, index))
+                  }
+                  {(() => {
+                    const eligible = editedWorkTimeData.weeklyHolidayAllowances.filter(a => a.isEligible)
+                    const gtWorkHours = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.workHours, 0)
+                      + eligible.reduce((s, a) => s + a.holidayAllowanceHours, 0)
+                    const gtPayment = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.paymentAmount, 0)
+                      + eligible.reduce((s, a) => s + a.holidayAllowanceAmount, 0)
+                    const gtDeduction = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.deductionAmount, 0)
+                      + eligible.reduce((s, a) => s + a.deductionAmount, 0)
+                    const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+                    const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
+                    const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
+                    const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
+                    const subTotal = gtPayment - gtDeduction
+                    const totalDeduction = gtDeduction + insuranceDeduction + activeBonusDeductionTotal
+                    const finalTotal = gtPayment + activeBonusTotal - totalDeduction
+                    return (
+                      <>
+                        {/* 급여소계 */}
+                        <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                          <td><strong>급여소계</strong></td>
+                          <td className="al-r"><strong>{gtWorkHours.toFixed(2)}</strong></td>
+                          <td className="al-r"><strong>-</strong></td>
+                          <td className="al-r"><strong>{formatNumber(gtPayment)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(gtDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                        </tr>
+                        {/* 4대보험 공제액 */}
+                        {insuranceDeduction > 0 && (
+                          <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
+                            <td><strong>공제액</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
+                            <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                          </tr>
+                        )}
+                        {/* 상여금 행들 */}
+                        {contractBonuses.map((bonus) => {
+                          const isActive = !disabledBonusIds.has(bonus.id)
+                          return (
+                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
+                              <td><strong>{bonus.bonusType}</strong></td>
+                              <td className="al-c">
+                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                                  </span>
+                                </label>
+                              </td>
+                              <td className="al-r">-</td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount - calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
+                            </tr>
+                          )
+                        })}
+                        {/* 급여합계 */}
+                        <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                          <td><strong>급여합계</strong></td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">-</td>
+                          <td className="al-r"><strong>{formatNumber(gtPayment + activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                        </tr>
+                      </>
+                    )
+                  })()}
                 </>
               ) : !isSearched ? (
                 <tr>
@@ -962,14 +1432,59 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
               ) : (
                 <>
                   {payrollData.items.map((item, index) => renderTableRow(item, index))}
-                  <tr className="grand-total">
-                    <td><strong>최종합</strong></td>
-                    <td className="al-r"><strong>{formatNumber(payrollData.grandTotalWorkHours)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(payrollData.applyTimelyAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(payrollData.grandTotalDeductionAmount)}</strong></td>
-                    <td className="al-r"><strong>{formatNumber(payrollData.grandTotalAmount)}</strong></td>
-                  </tr>
+                  {(() => {
+                    const dailyDeduction = payrollData.grandTotalDeductionAmount
+                    const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
+                    const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
+                    const subTotal = payrollData.grandTotalAmount
+                    const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+                    const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
+                    const totalDeduction = dailyDeduction + insuranceDeduction + activeBonusDeductionTotal
+                    const finalTotal = payrollData.grandTotalPaymentAmount + activeBonusTotal - totalDeduction
+                    return (
+                      <>
+                        {/* 급여소계 */}
+                        <tr className="grand-total">
+                          <td><strong>급여소계</strong></td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalWorkHours)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.applyTimelyAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                        </tr>
+                        {/* 상여금 행들 */}
+                        {contractBonuses.map((bonus) => {
+                          const isActive = !disabledBonusIds.has(bonus.id)
+                          return (
+                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
+                              <td><strong>{bonus.bonusType}</strong></td>
+                              <td className="al-c">
+                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                                  </span>
+                                </label>
+                              </td>
+                              <td className="al-r">-</td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount - calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
+                            </tr>
+                          )
+                        })}
+                        {/* 급여합계 */}
+                        <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                          <td><strong>급여합계</strong></td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">-</td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount + activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                        </tr>
+                      </>
+                    )
+                  })()}
                 </>
               )}
             </tbody>

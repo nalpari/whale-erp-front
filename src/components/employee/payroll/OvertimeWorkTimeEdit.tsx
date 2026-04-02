@@ -12,6 +12,9 @@ interface OvertimeWorkTimeEditProps {
   endDate?: string
   employeeInfoId?: string
   payrollMonth?: string
+  headOfficeId?: string
+  franchiseId?: string
+  storeId?: string
 }
 
 // 편집 가능한 일별 연장근무 데이터 타입
@@ -77,7 +80,10 @@ export default function OvertimeWorkTimeEdit({
   startDate = '',
   endDate = '',
   employeeInfoId = '',
-  payrollMonth = ''
+  payrollMonth = '',
+  headOfficeId = '',
+  franchiseId = '',
+  storeId = '',
 }: OvertimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -88,7 +94,14 @@ export default function OvertimeWorkTimeEdit({
 
   // TanStack Query: 일별 연장근무 시간 조회
   const { data: overtimeData, isPending: isLoading } = useDailyOvertimeHours(
-    { employeeInfoId: parseInt(employeeInfoId) || 0, startDate, endDate },
+    {
+      employeeInfoId: parseInt(employeeInfoId) || 0,
+      startDate,
+      endDate,
+      headOfficeId: headOfficeId ? parseInt(headOfficeId) : undefined,
+      franchiseId: franchiseId ? parseInt(franchiseId) : undefined,
+      storeId: storeId ? parseInt(storeId) : undefined,
+    },
     !!startDate && !!endDate && !!employeeInfoId
   )
 
@@ -163,7 +176,9 @@ export default function OvertimeWorkTimeEdit({
   }
 
   const handleGoBack = () => {
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new' : `/employee/payroll/overtime/${id}`
+    const targetPath = id === 'new'
+      ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true'
+      : `/employee/payroll/overtime/${id}/edit?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
 
@@ -249,48 +264,12 @@ export default function OvertimeWorkTimeEdit({
     localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
     await alert('저장되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
+    const targetPath = id === 'new'
+      ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true'
+      : `/employee/payroll/overtime/${id}/edit?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
 
-  const handleApplyContractTime = async () => {
-    const updatedRecords = dailyRecords.map(record => {
-      const updated = {
-        ...record,
-        applyTimelyAmount: Math.round(record.contractHourlyWage * 1.5)
-      }
-      return recalculateRecord(updated)
-    })
-
-    const updatedSubtotals = recalculateWeeklySubtotals(updatedRecords)
-    setDailyRecords(updatedRecords)
-    setWeeklySubtotals(updatedSubtotals)
-
-    const grandTotalOvertimeHours = updatedRecords.reduce((sum, r) => sum + r.overtimeHours, 0)
-    const grandTotalPaymentAmount = updatedRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
-    const grandTotalDeductionAmount = updatedRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
-    const grandTotalAmount = updatedRecords.reduce((sum, r) => sum + r.totalAmount, 0)
-
-    const editData: OvertimeWorkTimeEditData = {
-      employeeInfoId,
-      startDate,
-      endDate,
-      payrollMonth,
-      editedRecords: updatedRecords,
-      weeklySubtotals: updatedSubtotals,
-      grandTotalOvertimeHours,
-      grandTotalPaymentAmount,
-      grandTotalDeductionAmount,
-      grandTotalAmount,
-      applyTimelyAmount
-    }
-
-    localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
-
-    await alert('계약 시급이 적용되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
-    router.push(targetPath)
-  }
 
   const handleOvertimeHoursChange = (index: number, hours: number) => {
     setDailyRecords(prev => {
@@ -371,7 +350,7 @@ export default function OvertimeWorkTimeEdit({
     <div className="contents-wrap">
       <div className="contents-btn">
         <button className="btn-form basic" onClick={handleGoBack}>뒤로가기</button>
-        <button className="btn-form outline s" onClick={handleApplyContractTime}>계약 시간 적용</button>
+
         <button className="btn-form primary" onClick={handleSave}>저장</button>
       </div>
       <div className="contents-body">
