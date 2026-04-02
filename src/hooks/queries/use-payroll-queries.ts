@@ -251,9 +251,9 @@ export const useOvertimePayrollDetail = (id?: number | null) => {
 }
 
 export const useDailyOvertimeHours = (
-  params: Omit<GetDailyOvertimeHoursParams, 'headOfficeId' | 'franchiseStoreId' | 'storeId'> & {
+  params: Omit<GetDailyOvertimeHoursParams, 'headOfficeId' | 'franchiseId' | 'storeId'> & {
     headOfficeId?: number
-    franchiseStoreId?: number
+    franchiseId?: number
     storeId?: number
   },
   enabled = true
@@ -263,6 +263,8 @@ export const useDailyOvertimeHours = (
       employeeInfoId: params.employeeInfoId,
       startDate: params.startDate,
       endDate: params.endDate,
+      headOfficeId: params.headOfficeId,
+      franchiseId: params.franchiseId,
     }),
     queryFn: () => getDailyOvertimeHoursSummary(params),
     enabled,

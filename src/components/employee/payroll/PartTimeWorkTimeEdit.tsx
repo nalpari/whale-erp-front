@@ -191,7 +191,10 @@ export default function PartTimeWorkTimeEdit({
   }
 
   const handleGoBack = () => {
-    router.push(`/employee/payroll/parttime/${id}`)
+    const targetPath = id === 'new'
+      ? '/employee/payroll/parttime/new?fromWorkTime=true'
+      : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
+    router.push(targetPath)
   }
 
   const recalculateRecord = (record: EditableDailyRecord): EditableDailyRecord => {
@@ -294,10 +297,20 @@ export default function PartTimeWorkTimeEdit({
   }
 
   const handleSaveWorkTime = async () => {
-    const grandTotalWorkHours = dailyRecords.reduce((sum, r) => sum + r.workHours, 0)
-    const grandTotalPaymentAmount = dailyRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
-    const grandTotalDeductionAmount = dailyRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
-    const grandTotalAmount = dailyRecords.reduce((sum, r) => sum + r.totalAmount, 0)
+    const eligibleAllowances = weeklyHolidayAllowances.filter(a => a.isEligible)
+
+    const grandTotalWorkHours =
+      dailyRecords.reduce((sum, r) => sum + r.workHours, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.holidayAllowanceHours, 0)
+    const grandTotalPaymentAmount =
+      dailyRecords.reduce((sum, r) => sum + r.paymentAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.holidayAllowanceAmount, 0)
+    const grandTotalDeductionAmount =
+      dailyRecords.reduce((sum, r) => sum + r.deductionAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.deductionAmount, 0)
+    const grandTotalAmount =
+      dailyRecords.reduce((sum, r) => sum + r.totalAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.totalAmount, 0)
 
     const editData: WorkTimeEditData = {
       employeeInfoId,
@@ -319,7 +332,9 @@ export default function PartTimeWorkTimeEdit({
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
     await alert('저장되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/parttime/new?fromWorkTime=true' : `/employee/payroll/parttime/${id}`
+    const targetPath = id === 'new'
+      ? '/employee/payroll/parttime/new?fromWorkTime=true'
+      : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
     router.push(targetPath)
   }
 

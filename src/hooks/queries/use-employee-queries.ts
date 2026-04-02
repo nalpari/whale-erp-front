@@ -160,7 +160,7 @@ export const useEmployeeListByType = (params: GetEmployeeListByTypeParams, enabl
     queryFn: () => getEmployeeListByType(params),
     enabled,
     select: filterByContract
-      ? (data) => data.filter((emp) => emp.employmentContractId !== null)
+      ? (data) => data.filter((emp) => emp.employmentContractId !== null && emp.memberId !== null)
       : undefined,
   })
 }

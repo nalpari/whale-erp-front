@@ -439,18 +439,32 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
                 <tbody>
                   {/* 파트타임인 경우 시급 정보만 표시 */}
                   {header?.contractClassification === 'CNTCFWK_003' ? (
-                    <tr>
-                      <th>급여항목/금액</th>
-                      <td>
-                        <ul className="detail-data-list">
-                          <li className="detail-data-item">
-                            <span className="detail-data-text">
-                              평일 시급 : {(salaryInfo?.weekDayAllowance || 0).toLocaleString()}원 | 연장근무 시급 : {(salaryInfo?.overtimeDayAllowance || 0).toLocaleString()}원 | 휴일근무 시급 : {(salaryInfo?.holidayAllowanceTime || 0).toLocaleString()}원
-                            </span>
-                          </li>
-                        </ul>
-                      </td>
-                    </tr>
+                    <>
+                      <tr>
+                        <th>급여항목/금액</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              <span className="detail-data-text">
+                                평일 시급 : {(salaryInfo?.weekDayAllowance || 0).toLocaleString()}원 | 연장근무 시급 : {(salaryInfo?.overtimeDayAllowance || 0).toLocaleString()}원 | 휴일근무 시급 : {(salaryInfo?.holidayAllowanceTime || 0).toLocaleString()}원
+                              </span>
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>상여금</th>
+                        <td>
+                          <ul className="detail-data-list">
+                            <li className="detail-data-item">
+                              <span className="detail-data-text">
+                                {getBonusText()}
+                              </span>
+                            </li>
+                          </ul>
+                        </td>
+                      </tr>
+                    </>
                   ) : (
                     <>
                       <tr>
