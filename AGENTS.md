@@ -1,4 +1,5 @@
 <!-- BEGIN:nextjs-agent-rules -->
+@CLAUDE.md
 
 # Next.js: ALWAYS read docs before coding
 

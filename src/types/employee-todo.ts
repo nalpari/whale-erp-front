@@ -53,11 +53,23 @@ export interface EmployeeTodoDetailResponse {
 // === 직원 선택 목록 (Selectbox) ===
 export interface EmployeeTodoSelectItem {
   employeeInfoId: number
+  /** API 응답에 포함되나 직원 할 일(employee-todo) 도메인에서는 미사용 */
+  memberId: number | null
   employeeNumber: string
   employeeName: string
   headOfficeName: string
   franchiseName: string | null
   storeName: string | null
+}
+
+// === 직원 선택 파라미터 ===
+export type EmployeeTodoSelectPurpose = 'BROAD' | 'STRICT'
+
+export interface EmployeeTodoSelectParams {
+  purpose: EmployeeTodoSelectPurpose
+  headOfficeId?: number
+  franchiseId?: number
+  storeId?: number
 }
 
 // === 등록 ===
