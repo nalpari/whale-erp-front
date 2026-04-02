@@ -231,7 +231,7 @@ export default function EmployeeTodoSearch({
                     <SearchSelect
                       value={selectedEmployeeOption}
                       options={employeeOptions}
-                      placeholder={employeeError ? '전체' : isEmployeeLoading ? '직원 정보를 조회중입니다.' : '직원 선택'}
+                      placeholder={isEmployeeLoading ? '직원 정보를 조회중입니다.' : employeeError ? '직원 목록 조회 실패' : '직원 선택'}
                       isDisabled={isEmployeeLoading || Boolean(employeeError)}
                       isSearchable
                       isClearable
