@@ -444,10 +444,9 @@ export default function OvertimeWorkTimeEdit({
                 dailyRecords.map((record, index) => {
                   const hours = Math.floor(record.overtimeHours)
                   const minutes = Math.round((record.overtimeHours % 1) * 60)
-                  const isNoWork = record.overtimeHours === 0
 
                   return (
-                    <tr key={record.date} className={isNoWork ? 'disabled' : ''}>
+                    <tr key={record.date}>
                       <td>{record.date} ({record.dayOfWeekKorean})</td>
                       <td>
                         {record.overtimeStartTime && record.overtimeEndTime

@@ -306,6 +306,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       if (savedData) {
         try {
           const parsed: WorkTimeEditData = JSON.parse(savedData)
+          if (parsed.payrollMonth) setPayrollMonth(parsed.payrollMonth)
+          if (parsed.startDate) setStartDate(parsed.startDate)
+          if (parsed.endDate) setEndDate(parsed.endDate)
           setEditedWorkTimeData(parsed)
         } catch {
           localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
@@ -541,7 +544,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         const preload: WorkTimeEditData = {
           employeeInfoId: String(existingStatement.employeeInfoId),
           startDate, endDate,
-          payrollMonth: `${existingStatement.payrollYearMonth.substring(0, 4)}-${existingStatement.payrollYearMonth.substring(4, 6)}`,
+          payrollMonth,
           editedRecords, weeklyHolidayAllowances,
           grandTotalWorkHours: existingStatement.paymentItems.reduce((s, p) => s + p.workHour, 0),
           grandTotalPaymentAmount: existingStatement.paymentItems.reduce((s, p) => s + p.totalAmount, 0),
@@ -556,7 +559,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         startDate,
         endDate,
         employeeInfoId: String(existingStatement!.employeeInfoId),
-        payrollMonth: `${existingStatement!.payrollYearMonth.substring(0, 4)}-${existingStatement!.payrollYearMonth.substring(4, 6)}`,
+        payrollMonth,
         returnToDetail: 'true',
       })
       router.push(`/employee/payroll/parttime/${id}/worktime?${params.toString()}`)

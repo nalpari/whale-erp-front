@@ -831,6 +831,44 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     )
   }
 
+  const renderExistingDetailTable = () => {
+    if (!existingStatement) return null
+
+    const rangeStartDate = startDate || existingStatement.calculationStartDate
+    const rangeEndDate = endDate || existingStatement.calculationEndDate
+    const detailMap = new Map(existingStatement.details.map(detail => [detail.workDay, detail]))
+    const rows: React.ReactNode[] = []
+    const current = new Date(rangeStartDate)
+    const endValue = new Date(rangeEndDate)
+
+    while (current <= endValue) {
+      const year = current.getFullYear()
+      const month = String(current.getMonth() + 1).padStart(2, '0')
+      const day = String(current.getDate()).padStart(2, '0')
+      const date = `${year}-${month}-${day}`
+      const detail = detailMap.get(date)
+
+      if (detail) {
+        rows.push(renderExistingDetailRow(detail, rows.length))
+      } else {
+        rows.push(
+          <tr key={`detail-empty-${date}`}>
+            <td>{date} ({getDayOfWeekKorean(date)})</td>
+            <td className="al-r">0</td>
+            <td className="al-r">0</td>
+            <td className="al-r">0</td>
+            <td className="al-r">0</td>
+            <td className="al-r">0</td>
+          </tr>
+        )
+      }
+
+      current.setDate(current.getDate() + 1)
+    }
+
+    return rows
+  }
+
   const renderEditedWorkTimeRow = (record: EditableOvertimeRecord, index: number) => {
     return (
       <tr key={`edited-${index}`}>
@@ -1164,7 +1202,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 </tr>
               ) : existingStatement && existingStatement.details.length > 0 && !editedWorkTimeData && !overtimeData ? (
                 <>
-                  {existingStatement.details.map((item, index) => renderExistingDetailRow(item, index))}
+                  {renderExistingDetailTable()}
                   <tr className="grand-total">
                     <td><strong>최종합</strong></td>
                     <td className="al-r"><strong>{formatNumber(existingStatement.totalOvertimeHours)}</strong></td>
