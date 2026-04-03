@@ -456,25 +456,32 @@ export default function OvertimeWorkTimeEdit({
                       </td>
                       <td>
                         <div className="filed-flx">
-                          <div className="filed-flx g8">
-                            <div className="mx-100">
-                              <SearchSelect
-                                options={hourOptions}
-                                value={hourOptions.find(opt => opt.value === String(hours)) || null}
-                                onChange={(opt) => handleOvertimeHoursChange(index, parseInt(opt?.value || '0'))}
-                                placeholder="시간"
-                              />
+                          <div
+                            className="filed-flx"
+                            style={{ gap: '80px', flexWrap: 'nowrap' }}
+                          >
+                            <div className="filed-flx" style={{ gap: '12px', flexWrap: 'nowrap', minWidth: '132px' }}>
+                              <div className="mx-100" style={{ minWidth: '96px' }}>
+                                <SearchSelect
+                                  options={hourOptions}
+                                  value={hourOptions.find(opt => opt.value === String(hours)) || null}
+                                  onChange={(opt) => handleOvertimeHoursChange(index, parseInt(opt?.value || '0'))}
+                                  placeholder="시간"
+                                />
+                              </div>
+                              <span className="won" style={{ minWidth: '24px', textAlign: 'center' }}>시간</span>
                             </div>
-                            <span className="won">시간</span>
-                            <div className="mx-100">
-                              <SearchSelect
-                                options={minuteOptions}
-                                value={minuteOptions.find(opt => opt.value === String(minutes)) || null}
-                                onChange={(opt) => handleOvertimeMinutesChange(index, parseInt(opt?.value || '0'))}
-                                placeholder="분"
-                              />
+                            <div className="filed-flx" style={{ gap: '12px', flexWrap: 'nowrap', minWidth: '124px' }}>
+                              <div className="mx-100" style={{ minWidth: '96px' }}>
+                                <SearchSelect
+                                  options={minuteOptions}
+                                  value={minuteOptions.find(opt => opt.value === String(minutes)) || null}
+                                  onChange={(opt) => handleOvertimeMinutesChange(index, parseInt(opt?.value || '0'))}
+                                  placeholder="분"
+                                />
+                              </div>
+                              <span className="won" style={{ minWidth: '16px', textAlign: 'center' }}>분</span>
                             </div>
-                            <span className="won">분</span>
                           </div>
                         </div>
                       </td>
