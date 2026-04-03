@@ -71,6 +71,21 @@ export interface WorkTimeEditData {
 // localStorage 키
 const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
 
+// 날짜 범위 내 모든 날짜 생성
+const generateDateRange = (start: string, end: string): string[] => {
+  const dates: string[] = []
+  const current = new Date(start)
+  const endDate = new Date(end)
+  while (current <= endDate) {
+    dates.push(current.toISOString().split('T')[0])
+    current.setDate(current.getDate() + 1)
+  }
+  return dates
+}
+
+const DAY_OF_WEEK_KOREAN = ['일', '월', '화', '수', '목', '금', '토']
+const DAY_OF_WEEK_ENGLISH = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+
 // ISO 주차 번호 계산 함수
 const getISOWeekNumber = (dateStr: string): number => {
   const date = new Date(dateStr)
@@ -111,8 +126,8 @@ export default function PartTimeWorkTimeEdit({
     !!startDate && !!endDate && !!employeeInfoId
   )
 
-  // React 19 패턴: 렌더 단계에서 데이터 로드 처리
-  if (payrollData && !isDataLoaded && startDate && endDate && employeeInfoId) {
+  // API 로드 완료 후 데이터 초기화 (payrollData가 null이어도 기간 내 전체 날짜 생성)
+  if (!isLoading && !isDataLoaded && startDate && endDate && employeeInfoId) {
     // localStorage 확인
     const savedData = localStorage.getItem(WORKTIME_EDIT_STORAGE_KEY)
     let loadedFromStorage = false
@@ -139,14 +154,15 @@ export default function PartTimeWorkTimeEdit({
     }
 
     if (!loadedFromStorage) {
-      // API 데이터 변환
-      setEmployeeName(payrollData.memberName || '')
-      setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
-      setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
-      setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
-      setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
+      // API 데이터 변환 (null이면 빈 배열 사용)
+      const defaultWage = payrollData?.contractHourlyWageInfo?.weekDayHourlyWage ?? 0
+      setEmployeeName(payrollData?.memberName || '')
+      if (payrollData?.contractHourlyWageInfo) setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
+      setPreviousMonthWorkHours(payrollData?.previousMonthWorkHours || 0)
+      setPreviousMonthWorkStartDate(payrollData?.previousMonthWorkStartDate || null)
+      setPreviousMonthWorkEndDate(payrollData?.previousMonthWorkEndDate || null)
 
-      const editableRecords: EditableDailyRecord[] = payrollData.items
+      const apiRecords: EditableDailyRecord[] = (payrollData?.items ?? [])
         .filter(item => item.type === 'DAILY' && item.dailyRecord)
         .map(item => {
           const record = item.dailyRecord!
@@ -161,13 +177,38 @@ export default function PartTimeWorkTimeEdit({
             paymentAmount: record.paymentAmount,
             deductionAmount: record.deductionAmount,
             totalAmount: record.totalAmount,
-            contractHourlyWage: payrollData.contractHourlyWageInfo.weekDayHourlyWage,
+            contractHourlyWage: defaultWage,
             contractWorkHours: record.contractWorkHours,
             weekNumber: getISOWeekNumber(record.date)
           }
         })
 
-      const holidayAllowances: EditableWeeklyHolidayAllowance[] = payrollData.items
+      // API가 반환하지 않은 날짜를 기간 내 전체 날짜로 채우기
+      const apiDates = new Set(apiRecords.map(r => r.date))
+      const allDates = generateDateRange(startDate, endDate)
+      const missingDates = allDates.filter(d => !apiDates.has(d))
+      const filledRecords: EditableDailyRecord[] = missingDates.map(date => {
+        const dayIdx = new Date(date).getDay()
+        return {
+          date,
+          dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
+          dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
+          originalWorkHours: 0,
+          workHours: 0,
+          originalApplyTimelyAmount: defaultWage,
+          applyTimelyAmount: defaultWage,
+          paymentAmount: 0,
+          deductionAmount: 0,
+          totalAmount: 0,
+          contractHourlyWage: defaultWage,
+          contractWorkHours: 0,
+          weekNumber: getISOWeekNumber(date)
+        }
+      })
+
+      const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
+
+      const holidayAllowances: EditableWeeklyHolidayAllowance[] = (payrollData?.items ?? [])
         .filter(item => item.type === 'WEEKLY_HOLIDAY_ALLOWANCE' && item.weeklyHolidayAllowance)
         .map(item => {
           const allowance = item.weeklyHolidayAllowance!

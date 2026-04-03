@@ -83,7 +83,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   })
   const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
   const [salaryDay, setSalaryDay] = useState<number>(5)
-  const [isSearched, setIsSearched] = useState(() => (existingStatement?.paymentItems?.length ?? 0) > 0)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
   // 상여금 ON/OFF (비활성화된 상여금 id Set, lazy 초기화로 remount 시 서버 데이터 반영)
@@ -134,9 +133,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     isNewMode && !!headOfficeIdNum,
     true
   )
-  const { data: payrollData, refetch: refetchPayrollData } = useDailyWorkHours(
-    { employeeInfoId: employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
-    false
+  const payrollQueryEnabled = !!((employeeInfoId ?? existingStatement?.employeeInfoId) && startDate && endDate)
+  const { data: payrollData, isPending: isPayrollPending } = useDailyWorkHours(
+    { employeeInfoId: employeeInfoId ?? existingStatement?.employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
+    payrollQueryEnabled
   )
 
   // 근로계약서 상여금 조회
@@ -317,8 +317,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           if (s.healthInsurance) setHealthInsurance(s.healthInsurance)
           if (s.employmentInsurance) setEmploymentInsurance(s.employmentInsurance)
           if (s.longTermCareInsurance) setLongTermCareInsurance(s.longTermCareInsurance)
-          // 날짜가 있으면 검색 완료 상태로 설정
-          if (s.startDate && s.endDate) setIsSearched(true)
         } catch (e) {
           console.error('폼 상태 복원 실패:', e)
           localStorage.removeItem(NEWFORM_STATE_STORAGE_KEY)
@@ -339,8 +337,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           if (parsed.startDate) setStartDate(parsed.startDate)
 
           if (parsed.endDate) setEndDate(parsed.endDate)
-
-          setIsSearched(true)
         } catch (error) {
           console.error('localStorage 데이터 파싱 실패:', error)
           localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
@@ -446,17 +442,90 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }
 
   const handleGoToWorkTimeEdit = async () => {
-    // 상세 모드: existingStatement 기반으로 이동
+    // 상세 모드: 바로 이동
     if (!isEditMode) {
-      if (!existingStatement?.paymentItems?.length) {
-        await alert('근무 데이터가 없습니다.')
+      if (!startDate || !endDate) {
+        await alert('기간을 설정해주세요.')
         return
       }
+
+      // 기존 명세서 데이터를 localStorage에 미리 저장 (worktime edit에서 기존 등록값을 보여주기 위함)
+      if (existingStatement) {
+        const DAY_KOR = ['일', '월', '화', '수', '목', '금', '토']
+        const DAY_ENG = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+        const isoWeek = (dateStr: string) => {
+          const d = new Date(dateStr)
+          const day = d.getDay()
+          const thu = new Date(d)
+          thu.setDate(d.getDate() - ((day + 6) % 7) + 3)
+          const firstThu = new Date(thu.getFullYear(), 0, 4)
+          return 1 + Math.round(((thu.getTime() - firstThu.getTime()) / 86400000 - 3 + ((firstThu.getDay() + 6) % 7)) / 7)
+        }
+        const genDates = (s: string, e: string) => {
+          const dates: string[] = []
+          const cur = new Date(s)
+          const end = new Date(e)
+          while (cur <= end) { dates.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate() + 1) }
+          return dates
+        }
+
+        const itemMap = new Map(existingStatement.paymentItems.map(p => [p.workDay, p]))
+        const defaultWage = existingStatement.paymentItems[0]?.contractTimelyAmount ?? 0
+        const defaultApply = existingStatement.paymentItems[0]?.applyTimelyAmount ?? 0
+
+        const editedRecords = genDates(startDate, endDate).map(date => {
+          const item = itemMap.get(date)
+          const di = new Date(date).getDay()
+          return item ? {
+            date, dayOfWeek: DAY_ENG[di], dayOfWeekKorean: DAY_KOR[di],
+            originalWorkHours: item.workHour, workHours: item.workHour,
+            originalApplyTimelyAmount: item.applyTimelyAmount, applyTimelyAmount: item.applyTimelyAmount,
+            paymentAmount: item.totalAmount, deductionAmount: item.deductionAmount,
+            totalAmount: item.totalAmount - item.deductionAmount,
+            contractHourlyWage: item.contractTimelyAmount, contractWorkHours: 0,
+            weekNumber: isoWeek(date)
+          } : {
+            date, dayOfWeek: DAY_ENG[di], dayOfWeekKorean: DAY_KOR[di],
+            originalWorkHours: 0, workHours: 0,
+            originalApplyTimelyAmount: defaultApply, applyTimelyAmount: defaultApply,
+            paymentAmount: 0, deductionAmount: 0, totalAmount: 0,
+            contractHourlyWage: defaultWage, contractWorkHours: 0,
+            weekNumber: isoWeek(date)
+          }
+        })
+
+        const weeklyHolidayAllowances = (existingStatement.weeklyPaidHolidayAllowances ?? []).map(w => ({
+          weekStartDate: w.weekStartDate ?? '',
+          weekEndDate: w.weekEndDate ?? '',
+          weekNumber: w.workWeek,
+          totalWorkHours: w.workTime,
+          holidayAllowanceHours: w.applyTimelyAmount > 0 ? w.totalAmount / w.applyTimelyAmount : 0,
+          applyTimelyAmount: w.applyTimelyAmount,
+          holidayAllowanceAmount: w.totalAmount,
+          deductionAmount: w.deductionAmount,
+          totalAmount: w.netAmount,
+          isEligible: w.totalAmount > 0,
+        }))
+
+        const preload: WorkTimeEditData = {
+          employeeInfoId: String(existingStatement.employeeInfoId),
+          startDate, endDate,
+          payrollMonth: `${existingStatement.payrollYearMonth.substring(0, 4)}-${existingStatement.payrollYearMonth.substring(4, 6)}`,
+          editedRecords, weeklyHolidayAllowances,
+          grandTotalWorkHours: existingStatement.paymentItems.reduce((s, p) => s + p.workHour, 0),
+          grandTotalPaymentAmount: existingStatement.paymentItems.reduce((s, p) => s + p.totalAmount, 0),
+          grandTotalDeductionAmount: existingStatement.totalDeductionAmount,
+          grandTotalAmount: existingStatement.actualPaymentAmount,
+          contractHourlyWageInfo: { weekDayHourlyWage: defaultWage, overtimeHourlyWage: 0, holidayHourlyWage: 0 },
+        }
+        localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(preload))
+      }
+
       const params = new URLSearchParams({
-        startDate: existingStatement.settlementStartDate,
-        endDate: existingStatement.settlementEndDate,
-        employeeInfoId: String(existingStatement.employeeInfoId),
-        payrollMonth: `${existingStatement.payrollYearMonth.substring(0, 4)}-${existingStatement.payrollYearMonth.substring(4, 6)}`,
+        startDate,
+        endDate,
+        employeeInfoId: String(existingStatement!.employeeInfoId),
+        payrollMonth: `${existingStatement!.payrollYearMonth.substring(0, 4)}-${existingStatement!.payrollYearMonth.substring(4, 6)}`,
         returnToDetail: 'true',
       })
       router.push(`/employee/payroll/parttime/${id}/worktime?${params.toString()}`)
@@ -470,10 +539,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
     if (!startDate || !endDate) {
       await alert('급여지급월을 선택하고 기간을 설정해주세요.')
-      return
-    }
-    if (!isSearched) {
-      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
       return
     }
     // 돌아올 때 복원할 폼 전체 상태 저장
@@ -501,7 +566,23 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }
 
   const handlePayrollMonthChange = async (month: string) => {
-    if (!isEditMode) return
+    // 상세 모드: 기간 자동 설정만 허용 (중복 확인 없이)
+    if (!isEditMode) {
+      if (month) {
+        setPayrollMonth(month)
+        const [year, monthNum] = month.split('-').map(Number)
+        const prevMonth = monthNum === 1 ? 12 : monthNum - 1
+        const prevYear = monthNum === 1 ? year - 1 : year
+        const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
+        setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
+        setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}`)
+      } else {
+        setPayrollMonth('')
+        setStartDate('')
+        setEndDate('')
+      }
+      return
+    }
 
     if (month) {
       if (!employeeInfoId) {
@@ -552,36 +633,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
   }
 
-  // React 19 Compiler가 자동 최적화
-  const handleSearch = async () => {
-    if (!isEditMode) return
-
-    if (!employeeInfoId) {
-      await alert('파트타이머를 선택해주세요.')
-      return
-    }
-
-    if (!payrollMonth || !startDate || !endDate) {
-      await alert('급여지급월과 기간을 설정해주세요.')
-      return
-    }
-
-    localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
-    localStorage.removeItem(NEWFORM_STATE_STORAGE_KEY)
-    setEditedWorkTimeData(null)
-
-    setIsLoading(true)
-    try {
-      await refetchPayrollData()
-      setIsSearched(true)
-    } catch (error) {
-      console.error('일별 근무 시간 조회 실패:', error)
-      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleSave = async () => {
     if (!employeeInfoId) {
       await alert('파트타이머를 선택해주세요.')
@@ -628,7 +679,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     if (paymentItems.length === 0) {
-      await alert('저장할 근무 데이터가 없습니다. 기간을 설정하고 검색 버튼을 클릭해주세요.')
+      await alert('저장할 근무 데이터가 없습니다. 기간을 설정하고 근무시간 수정에서 데이터를 입력해주세요.')
       return
     }
 
@@ -1097,7 +1148,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setStartDate('')
                             setEndDate('')
                             setPaymentDate('')
-                            setIsSearched(false)
                           }}
                           placeholder="본사 선택"
                         />
@@ -1118,7 +1168,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setStartDate('')
                             setEndDate('')
                             setPaymentDate('')
-                            setIsSearched(false)
                           }}
                           placeholder="가맹점 선택"
                         />
@@ -1144,7 +1193,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           setStartDate('')
                           setEndDate('')
                           setPaymentDate('')
-                          setIsSearched(false)
                         }}
                         placeholder="점포 선택"
                       />
@@ -1195,6 +1243,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         value={monthOptions.find(o => o.value === payrollMonth)}
                         onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
                         placeholder="선택"
+                        isDisabled={!isEditMode}
                       />
                     </div>
                     {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>급여 지급일 : {paymentDate}</span>}
@@ -1210,19 +1259,16 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="date-picker-wrap">
                       <DatePicker
                         value={parseStringToDate(startDate)}
-                        onChange={(date) => setStartDate(formatDateToString(date))}
+                        onChange={(date) => { setStartDate(formatDateToString(date)) }}
+                        disabled={!isEditMode}
                       />
                       <span>~</span>
                       <DatePicker
                         value={parseStringToDate(endDate)}
-                        onChange={(date) => setEndDate(formatDateToString(date))}
+                        onChange={(date) => { setEndDate(formatDateToString(date)) }}
+                        disabled={!isEditMode}
                       />
                     </div>
-                    {isEditMode && (
-                      <button className="btn-form outline s" onClick={handleSearch} disabled={isLoading}>
-                        {isLoading ? '조회중...' : '검색'}
-                      </button>
-                    )}
                   </div>
                 </td>
               </tr>
@@ -1291,7 +1337,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {isPayrollPending ? (
                 <tr>
                   <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
                     데이터를 조회하고 있습니다...
@@ -1355,10 +1401,16 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   {existingStatement.paymentItems.map((item, index) => renderExistingPaymentItemRow(item, index))}
                   {existingStatement.weeklyPaidHolidayAllowances?.map((item, index) => renderWeeklyPaidHolidayAllowanceRow(item, index))}
                   {(() => {
-                    const dailyDeduction = existingStatement.paymentItems.reduce((s, i) => s + i.deductionAmount, 0)
-                      + (existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.deductionAmount, 0) ?? 0)
+                    // ─── 공제 분리 ───────────────────────────────────────────
+                    // 일자별 공제 (paymentItems 기준만)
+                    const paymentItemsDeduction = existingStatement.paymentItems.reduce((s, i) => s + i.deductionAmount, 0)
+                    // 주휴수당 공제
+                    const holidayDeduction = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.deductionAmount, 0) ?? 0
+                    // 4대보험 공제
                     const insuranceDeduction = existingStatement.deductionItems?.reduce((s, i) => s + i.amount, 0) ?? 0
-                    // bonusItems: 저장된 데이터 있으면 사용, 없거나 빈 배열이면 계약서 기반 fallback
+
+                    // ─── bonusItems ──────────────────────────────────────────
+                    // 저장된 데이터 있으면 사용, 없거나 빈 배열이면 계약서 기반 fallback
                     const hasSavedBonuses = existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0
                     const displayBonuses = hasSavedBonuses
                       ? existingStatement.bonusItems!
@@ -1370,27 +1422,36 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           isActive: true,
                           itemOrder: i + 1,
                         }))
-                    // 합계: disabledBonusIds 기준으로 항상 계산 (저장/fallback 구분 없이)
                     const savedActiveBonusTotal = hasSavedBonuses
                       ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
                       : activeBonuses.reduce((s, b) => s + b.amount, 0)
                     const savedActiveBonusDeductionTotal = hasSavedBonuses
                       ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
                       : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
-                    const totalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
-                    const subTotal = existingStatement.totalAmount - dailyDeduction
-                    const totalDeduction = dailyDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
+
+                    // ─── 급여소계: 일자별(paymentItems)만 ────────────────────
+                    // 백엔드 totalAmount = 일별 합계 + 주휴수당 이미 포함
+                    // → 일자별만 직접 합산해야 순수 일자별 금액
+                    const dailyPaymentTotal = existingStatement.paymentItems.reduce((s, i) => s + i.totalAmount, 0)
+                    const subTotalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
+                    const subTotalNet = dailyPaymentTotal - paymentItemsDeduction
+
+                    // ─── 급여합계: 전체 (일자별 + 주휴수당 + 상여) ───────────
+                    // existingStatement.totalAmount = 일별 + 주휴수당 (백엔드 계산)
+                    const holidayWorkHours = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, w) => s + w.workTime, 0) ?? 0
+                    const totalWorkHours = subTotalWorkHours + holidayWorkHours
+                    const totalDeduction = paymentItemsDeduction + holidayDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
                     const finalTotal = existingStatement.totalAmount + savedActiveBonusTotal - totalDeduction
                     return (
                       <>
-                        {/* 급여소계 */}
+                        {/* 급여소계: 일자별(paymentItems) 합만 */}
                         <tr className="grand-total">
                           <td><strong>급여소계</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalWorkHours)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalWorkHours)}</strong></td>
                           <td className="al-r"><strong>-</strong></td>
-                          <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(dailyDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(dailyPaymentTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(paymentItemsDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalNet)}</strong></td>
                         </tr>
                         {/* 4대보험 공제액 */}
                         {insuranceDeduction > 0 && (
@@ -1424,10 +1485,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           </tr>
                         )})}
 
-                        {/* 급여합계 */}
+                        {/* 급여합계: 일자별 + 주휴수당(totalAmount에 포함) + 상여 전체 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
-                          <td className="al-r">-</td>
+                          <td className="al-r"><strong>{formatNumber(totalWorkHours)}</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount + savedActiveBonusTotal)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
@@ -1514,19 +1575,13 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     )
                   })()}
                 </>
-              ) : !isSearched ? (
-                <tr>
-                  <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
-                    {isEditMode
-                      ? '급여지급월을 선택하고 기간 설정 후 검색 버튼을 클릭해주세요.'
-                      : '등록된 급여 데이터가 없습니다.'
-                    }
-                  </td>
-                </tr>
               ) : !payrollData || payrollData.items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
-                    조회된 데이터가 없습니다.
+                    {!payrollQueryEnabled
+                      ? (isEditMode ? '직원을 선택하고 기간을 설정하면 데이터가 자동으로 조회됩니다.' : '등록된 급여 데이터가 없습니다.')
+                      : '조회된 데이터가 없습니다.'
+                    }
                   </td>
                 </tr>
               ) : (

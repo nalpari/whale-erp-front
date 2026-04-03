@@ -80,8 +80,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   })
   const [employeeInfoId, setEmployeeInfoId] = useState<number | null>(() => existingStatement?.employeeInfoId ?? null)
   const [remarks, setRemarks] = useState(() => existingStatement?.remarks ?? '')
-  const [isSearched, setIsSearched] = useState(() => (existingStatement?.details?.length ?? 0) > 0)
-  const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
 
@@ -107,16 +105,17 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   )
   const storeIdNum = selectedStore ? parseInt(selectedStore) : null
 
-  const { data: overtimeData, refetch: refetchOvertimeData } = useDailyOvertimeHours(
+  const overtimeQueryEnabled = !!((employeeInfoId ?? existingStatement?.employeeInfoId) && startDate && endDate)
+  const { data: overtimeData, isPending: isOvertimePending } = useDailyOvertimeHours(
     {
-      employeeInfoId: employeeInfoId ?? 0,
+      employeeInfoId: employeeInfoId ?? existingStatement?.employeeInfoId ?? 0,
       startDate,
       endDate,
       headOfficeId: headOfficeIdNum ?? undefined,
       franchiseId: franchiseIdNum ?? undefined,
       storeId: storeIdNum ?? undefined,
     },
-    false
+    overtimeQueryEnabled
   )
 
   // Mutations
@@ -194,8 +193,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
             setEmployeeInfoId(empId)
           }
-
-          setIsSearched(true)
 
           // 로드 후 localStorage에서 제거하여 stale reads 방지
           localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
@@ -305,17 +302,76 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }
 
   const handleGoToWorkTimeEdit = async () => {
-    // 상세 모드: existingStatement 기반으로 이동
+    // 상세 모드: 바로 이동
     if (!isEditMode) {
-      if (!existingStatement?.details?.length) {
-        await alert('근무 데이터가 없습니다.')
+      if (!startDate || !endDate) {
+        await alert('기간을 설정해주세요.')
         return
       }
+
+      // 기존 명세서 데이터를 localStorage에 미리 저장 (worktime edit에서 기존 등록값을 보여주기 위함)
+      if (existingStatement) {
+        const DAY_KOR = ['일', '월', '화', '수', '목', '금', '토']
+        const DAY_ENG = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+        const isoWeek = (dateStr: string) => {
+          const d = new Date(dateStr)
+          const day = d.getDay()
+          const thu = new Date(d)
+          thu.setDate(d.getDate() - ((day + 6) % 7) + 3)
+          const firstThu = new Date(thu.getFullYear(), 0, 4)
+          return 1 + Math.round(((thu.getTime() - firstThu.getTime()) / 86400000 - 3 + ((firstThu.getDay() + 6) % 7)) / 7)
+        }
+        const genDates = (s: string, e: string) => {
+          const dates: string[] = []
+          const cur = new Date(s)
+          const end = new Date(e)
+          while (cur <= end) { dates.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate() + 1) }
+          return dates
+        }
+
+        const detailMap = new Map(existingStatement.details.map(d => [d.workDay, d]))
+        const defaultApply = existingStatement.details[0]?.applyTimelyAmount ?? 0
+        const editedRecords: EditableOvertimeRecord[] = genDates(startDate, endDate).map(date => {
+          const det = detailMap.get(date)
+          const di = new Date(date).getDay()
+          return det ? {
+            id: det.id,
+            date, dayOfWeek: DAY_ENG[di], dayOfWeekKorean: DAY_KOR[di],
+            originalOvertimeHours: det.actualOvertimeHours, overtimeHours: det.actualOvertimeHours,
+            overtimeStartTime: det.overtimeStartTime, overtimeEndTime: det.overtimeEndTime,
+            originalApplyTimelyAmount: det.applyTimelyAmount, applyTimelyAmount: det.applyTimelyAmount,
+            paymentAmount: det.actualPaymentAmount, deductionAmount: det.deductionAmount,
+            totalAmount: det.actualPaymentAmount - det.deductionAmount,
+            contractHourlyWage: det.contractTimelyAmount, weekNumber: isoWeek(date)
+          } : {
+            date, dayOfWeek: DAY_ENG[di], dayOfWeekKorean: DAY_KOR[di],
+            originalOvertimeHours: 0, overtimeHours: 0,
+            overtimeStartTime: undefined, overtimeEndTime: undefined,
+            originalApplyTimelyAmount: defaultApply, applyTimelyAmount: defaultApply,
+            paymentAmount: 0, deductionAmount: 0, totalAmount: 0,
+            contractHourlyWage: defaultApply, weekNumber: isoWeek(date)
+          }
+        })
+
+        const preload: OvertimeWorkTimeEditData = {
+          employeeInfoId: String(existingStatement.employeeInfoId),
+          startDate, endDate,
+          payrollMonth: `${existingStatement.allowanceYearMonth.substring(0, 4)}-${existingStatement.allowanceYearMonth.substring(4, 6)}`,
+          editedRecords, weeklySubtotals: [],
+          grandTotalOvertimeHours: existingStatement.totalOvertimeHours,
+          grandTotalPaymentAmount: existingStatement.grossOvertimeAmount,
+          grandTotalDeductionAmount: existingStatement.totalDeductionAmount,
+          grandTotalAmount: existingStatement.actualOvertimeAmount,
+          applyTimelyAmount: defaultApply,
+        }
+        localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(preload))
+      }
+
       const params = new URLSearchParams({
-        startDate: existingStatement.calculationStartDate,
-        endDate: existingStatement.calculationEndDate,
-        employeeInfoId: String(existingStatement.employeeInfoId),
-        payrollMonth: `${existingStatement.allowanceYearMonth.substring(0, 4)}-${existingStatement.allowanceYearMonth.substring(4, 6)}`,
+        startDate,
+        endDate,
+        employeeInfoId: String(existingStatement!.employeeInfoId),
+        payrollMonth: `${existingStatement!.allowanceYearMonth.substring(0, 4)}-${existingStatement!.allowanceYearMonth.substring(4, 6)}`,
         returnToDetail: 'true',
       })
       router.push(`/employee/payroll/overtime/${id}/worktime?${params.toString()}`)
@@ -329,10 +385,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
     if (!startDate || !endDate) {
       await alert('지급 월을 선택하고 기간을 설정해주세요.')
-      return
-    }
-    if (!isSearched) {
-      await alert('기간 설정에 기간을 입력하고 검색한 후 수정할 수 있습니다.')
       return
     }
     // 돌아올 때 복원할 폼 상태 저장 (신규/기존 수정 모드 모두)
@@ -360,7 +412,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }
 
   const handlePayrollMonthChange = (month: string) => {
-    if (!isEditMode) return
+    // 상세 모드: 기간 자동 설정만 허용
+    if (!isEditMode) {
+      setPayrollMonth(month)
+      if (month) {
+        const [year, monthNum] = month.split('-').map(Number)
+        const prevMonth = monthNum === 1 ? 12 : monthNum - 1
+        const prevYear = monthNum === 1 ? year - 1 : year
+        const lastDay = new Date(prevYear, prevMonth, 0).getDate()
+        setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
+        setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${lastDay}`)
+      } else {
+        setStartDate('')
+        setEndDate('')
+      }
+      return
+    }
 
     setPayrollMonth(month)
 
@@ -377,32 +444,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate('')
       setEndDate('')
       setPaymentDate('')
-    }
-  }
-
-  // React 19 Compiler가 자동 최적화
-  const handleSearch = async () => {
-    if (!isEditMode) return
-
-    if (!employeeInfoId) {
-      await alert('직원을 선택해주세요.')
-      return
-    }
-
-    if (!payrollMonth || !startDate || !endDate) {
-      await alert('지급 월과 기간을 설정해주세요.')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      await refetchOvertimeData()
-      setIsSearched(true)
-    } catch (error) {
-      console.error('일별 연장근무 시간 조회 실패:', error)
-      await alert('데이터 조회에 실패했습니다. 잠시 후 다시 시도해주세요.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -428,18 +469,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       let details: OvertimeAllowanceItemDto[] = []
 
       if (editedWorkTimeData) {
-        details = editedWorkTimeData.editedRecords.map(record => ({
-          workDay: record.date,
-          workHour: record.overtimeHours,
-          breakTimeHour: 0,
-          contractTimelyAmount: record.contractHourlyWage,
-          applyTimelyAmount: record.applyTimelyAmount,
-          actualOvertimeHours: record.overtimeHours,
-          overtimeStartTime: record.overtimeStartTime,
-          overtimeEndTime: record.overtimeEndTime,
-          deductionAmount: record.deductionAmount,
-          actualPaymentAmount: record.paymentAmount
-        }))
+        details = editedWorkTimeData.editedRecords
+          // id 없고 연장근무 시간도 0인 레코드는 기존에 없던 빈 날짜 → 제외
+          .filter(record => record.id !== undefined || record.overtimeHours > 0)
+          .map(record => ({
+            ...(record.id !== undefined ? { id: record.id } : {}),
+            workDay: record.date,
+            workHour: record.overtimeHours,
+            breakTimeHour: 0,
+            contractTimelyAmount: record.contractHourlyWage,
+            applyTimelyAmount: record.applyTimelyAmount,
+            actualOvertimeHours: record.overtimeHours,
+            overtimeStartTime: record.overtimeStartTime,
+            overtimeEndTime: record.overtimeEndTime,
+            deductionAmount: record.deductionAmount,
+            actualPaymentAmount: record.paymentAmount
+          }))
       } else if (overtimeData) {
         details = overtimeData.items
           .filter(item => item.type === 'DAILY' && item.dailyRecord)
@@ -504,18 +549,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       let details: OvertimeAllowanceItemDto[] = []
 
       if (editedWorkTimeData) {
-        details = editedWorkTimeData.editedRecords.map(record => ({
-          workDay: record.date,
-          workHour: record.overtimeHours,
-          breakTimeHour: 0,
-          contractTimelyAmount: record.contractHourlyWage,
-          applyTimelyAmount: record.applyTimelyAmount,
-          actualOvertimeHours: record.overtimeHours,
-          overtimeStartTime: record.overtimeStartTime,
-          overtimeEndTime: record.overtimeEndTime,
-          deductionAmount: record.deductionAmount,
-          actualPaymentAmount: record.paymentAmount
-        }))
+        details = editedWorkTimeData.editedRecords
+          // id 없고 연장근무 시간도 0인 레코드는 기존에 없던 빈 날짜 → 제외
+          .filter(record => record.id !== undefined || record.overtimeHours > 0)
+          .map(record => ({
+            ...(record.id !== undefined ? { id: record.id } : {}),
+            workDay: record.date,
+            workHour: record.overtimeHours,
+            breakTimeHour: 0,
+            contractTimelyAmount: record.contractHourlyWage,
+            applyTimelyAmount: record.applyTimelyAmount,
+            actualOvertimeHours: record.overtimeHours,
+            overtimeStartTime: record.overtimeStartTime,
+            overtimeEndTime: record.overtimeEndTime,
+            deductionAmount: record.deductionAmount,
+            actualPaymentAmount: record.paymentAmount
+          }))
       } else if (overtimeData) {
         details = overtimeData.items
           .filter(item => item.type === 'DAILY' && item.dailyRecord)
@@ -549,9 +598,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
       await updateOvertimeAllowanceStatement(statementId, request)
 
-      // 수정 성공 시 캐시 무효화 및 localStorage cleanup
-      queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.lists() })
-      queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.detail(statementId) })
+      // 수정 성공 시 캐시 무효화
+      // overtime.all() 범위로 invalidate → detail + lists + dailyOvertimeHours 모두 무효화
+      // dailyOvertimeHours도 함께 무효화해야 저장 전 stale data가 테이블에 표시되는 문제를 막을 수 있음
+      await queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.all() })
       localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
       setEditedWorkTimeData(null)
 
@@ -794,7 +844,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setStartDate('')
                             setEndDate('')
                             setPaymentDate('')
-                            setIsSearched(false)
                           }}
                           placeholder="본사 선택"
                         />
@@ -815,7 +864,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setStartDate('')
                             setEndDate('')
                             setPaymentDate('')
-                            setIsSearched(false)
                           }}
                           placeholder="가맹점 선택"
                         />
@@ -841,7 +889,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           setStartDate('')
                           setEndDate('')
                           setPaymentDate('')
-                          setIsSearched(false)
                         }}
                         placeholder="점포 선택"
                       />
@@ -908,19 +955,16 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="date-picker-wrap">
                       <DatePicker
                         value={parseStringToDate(startDate)}
-                        onChange={(date) => isEditMode && setStartDate(formatDateToString(date))}
+                        onChange={(date) => { setStartDate(formatDateToString(date)) }}
+                        disabled={!isEditMode}
                       />
                       <span>~</span>
                       <DatePicker
                         value={parseStringToDate(endDate)}
-                        onChange={(date) => isEditMode && setEndDate(formatDateToString(date))}
+                        onChange={(date) => { setEndDate(formatDateToString(date)) }}
+                        disabled={!isEditMode}
                       />
                     </div>
-                    {isEditMode && (
-                      <button className="btn-form outline s" onClick={handleSearch} disabled={isLoading}>
-                        {isLoading ? '조회중...' : '검색'}
-                      </button>
-                    )}
                   </div>
                 </td>
               </tr>
@@ -955,7 +999,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {isOvertimePending ? (
                 <tr>
                   <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
                     데이터를 조회하고 있습니다...
@@ -985,19 +1029,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <td className="al-r"><strong>{formatNumber(editedWorkTimeData.grandTotalAmount)}</strong></td>
                   </tr>
                 </>
-              ) : !isSearched ? (
-                <tr>
-                  <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
-                    {isEditMode
-                      ? '지급 월을 선택하고 기간 설정 후 검색 버튼을 클릭해주세요.'
-                      : '등록된 연장근무 수당 데이터가 없습니다.'
-                    }
-                  </td>
-                </tr>
               ) : !overtimeData || overtimeData.items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
-                    조회된 데이터가 없습니다.
+                    {!overtimeQueryEnabled
+                      ? (isEditMode ? '직원을 선택하고 기간을 설정하면 데이터가 자동으로 조회됩니다.' : '등록된 연장근무 수당 데이터가 없습니다.')
+                      : '조회된 데이터가 없습니다.'
+                    }
                   </td>
                 </tr>
               ) : (

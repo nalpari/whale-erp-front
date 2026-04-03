@@ -20,6 +20,7 @@ interface OvertimeWorkTimeEditProps {
 
 // 편집 가능한 일별 연장근무 데이터 타입
 export interface EditableOvertimeRecord {
+  id?: number
   date: string
   dayOfWeek: string
   dayOfWeekKorean: string
@@ -65,6 +66,21 @@ export interface OvertimeWorkTimeEditData {
 // localStorage 키
 const OVERTIME_WORKTIME_EDIT_STORAGE_KEY = 'overtime_worktime_edit_data'
 
+// 날짜 범위 내 모든 날짜 생성
+const generateDateRange = (start: string, end: string): string[] => {
+  const dates: string[] = []
+  const current = new Date(start)
+  const endDate = new Date(end)
+  while (current <= endDate) {
+    dates.push(current.toISOString().split('T')[0])
+    current.setDate(current.getDate() + 1)
+  }
+  return dates
+}
+
+const DAY_OF_WEEK_KOREAN = ['일', '월', '화', '수', '목', '금', '토']
+const DAY_OF_WEEK_ENGLISH = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+
 // ISO 주차 번호 계산 함수
 const getISOWeekNumber = (dateStr: string): number => {
   const date = new Date(dateStr)
@@ -107,8 +123,8 @@ export default function OvertimeWorkTimeEdit({
     !!startDate && !!endDate && !!employeeInfoId
   )
 
-  // React 19 패턴: 렌더 단계에서 데이터 로드 처리
-  if (overtimeData && !isDataLoaded && startDate && endDate && employeeInfoId) {
+  // API 로드 완료 후 데이터 초기화 (overtimeData가 null이어도 기간 내 전체 날짜 생성)
+  if (!isLoading && !isDataLoaded && startDate && endDate && employeeInfoId) {
     // 1. localStorage에 저장된 수정 데이터가 있는지 확인
     const savedData = localStorage.getItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
     let loadedFromStorage = false
@@ -130,10 +146,11 @@ export default function OvertimeWorkTimeEdit({
     }
 
     if (!loadedFromStorage) {
-      // 2. 저장된 데이터가 없으면 API 데이터 사용
-      setApplyTimelyAmount(overtimeData.applyTimelyAmount || 0)
+      // 2. 저장된 데이터가 없으면 API 데이터 + 빈 날짜 채우기
+      const defaultApplyTimelyAmount = overtimeData?.applyTimelyAmount || 0
+      setApplyTimelyAmount(defaultApplyTimelyAmount)
 
-      const editableRecords: EditableOvertimeRecord[] = overtimeData.items
+      const apiRecords: EditableOvertimeRecord[] = (overtimeData?.items ?? [])
         .filter(item => item.type === 'DAILY' && item.dailyRecord)
         .map(item => {
           const record = item.dailyRecord!
@@ -155,7 +172,33 @@ export default function OvertimeWorkTimeEdit({
           }
         })
 
-      const subtotals: EditableWeeklySubtotal[] = overtimeData.items
+      // API가 반환하지 않은 날짜(0시간)를 기간 내 전체 날짜로 채우기
+      const apiDates = new Set(apiRecords.map(r => r.date))
+      const allDates = generateDateRange(startDate, endDate)
+      const missingDates = allDates.filter(d => !apiDates.has(d))
+      const filledRecords: EditableOvertimeRecord[] = missingDates.map(date => {
+        const dayIdx = new Date(date).getDay()
+        return {
+          date,
+          dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
+          dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
+          originalOvertimeHours: 0,
+          overtimeHours: 0,
+          overtimeStartTime: undefined,
+          overtimeEndTime: undefined,
+          originalApplyTimelyAmount: defaultApplyTimelyAmount,
+          applyTimelyAmount: defaultApplyTimelyAmount,
+          paymentAmount: 0,
+          deductionAmount: 0,
+          totalAmount: 0,
+          contractHourlyWage: defaultApplyTimelyAmount,
+          weekNumber: getISOWeekNumber(date)
+        }
+      })
+
+      const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
+
+      const subtotals: EditableWeeklySubtotal[] = (overtimeData?.items ?? [])
         .filter(item => item.type === 'WEEKLY_SUBTOTAL' && item.weeklySubtotal)
         .map(item => {
           const subtotal = item.weeklySubtotal!
