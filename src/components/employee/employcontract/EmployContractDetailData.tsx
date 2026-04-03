@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import { useContractDetail, useDeleteContract, useSendContractEmail } from '@/hooks/queries/use-contract-queries'
+import { useEmployeeDetail } from '@/hooks/queries/use-employee-queries'
 import { useAlert } from '@/components/common/ui'
 import { useQueryError } from '@/hooks/useQueryError'
 import api from '@/lib/api'
@@ -43,6 +44,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
     contractId ?? 0,
     !!contractId
   )
+  const { data: employeeDetail } = useEmployeeDetail(contractData?.employeeInfoId ?? null)
   const errorMessage = useQueryError(error, '근로 계약 정보를 불러오는데 실패했습니다.')
 
   // 삭제 및 이메일 전송 mutation
@@ -270,6 +272,8 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
   const saturdayInfo = getWorkHourInfo('SATURDAY')
   const sundayInfo = getWorkHourInfo('SUNDAY')
   const weekdayInfo = getWeekdayWorkInfo()
+  const displayEmployeeNumber = contractData.member?.employeeNumber || employeeDetail?.employeeNumber || '-'
+  const displayEmployeeName = contractData.member?.name || employeeDetail?.employeeName || contractData.employeeInfoName || '-'
 
   return (
     <div className="master-detail-data">
@@ -323,7 +327,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
                       <ul className="detail-data-list">
                         <li className="detail-data-item">
                           <span className="detail-data-text">
-                            {contractData.member?.employeeNumber || '-'} | {contractData.member?.name || contractData.employeeInfoName || '-'}
+                            {displayEmployeeNumber} | {displayEmployeeName}
                           </span>
                         </li>
                       </ul>
@@ -335,7 +339,7 @@ export default function EmployContractDetailData({ contractId }: EmployContractD
                       <ul className="detail-data-list">
                         <li className="detail-data-item">
                           <span className="detail-data-text">
-                            - | <a href="#" style={{ color: '#007bff', textDecoration: 'underline' }}>-</a> | <a href="#" style={{ color: '#007bff', textDecoration: 'underline' }}>-</a> | {header?.jobDescription || '-'}
+                            {contractData.headOfficeOrganizationName || '-'} | {contractData.franchiseOrganizationName || '-'} | {contractData.storeName || '-'} | {header?.jobDescription || '-'}
                           </span>
                         </li>
                       </ul>
