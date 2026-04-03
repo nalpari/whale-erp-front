@@ -407,13 +407,9 @@ export default function WorkingHours({ contractId }: WorkingHoursProps) {
         <div className="content-wrap">
           <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
             <div className="slidebox-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button className="btn-form outline" onClick={handleBack} style={{ padding: '4px 8px' }}>
-                  <span style={{ fontSize: '16px' }}>&lt;</span>
-                </button>
-                <h2>계약 근무 시간</h2>
-              </div>
+              <h2>계약 근무 시간</h2>
               <div className="slidebox-btn-wrap">
+                <button className="slidebox-btn" onClick={handleBack} disabled={isSaving}>취소</button>
                 <button className="slidebox-btn" onClick={handleSave} disabled={isSaving}>
                   {isSaving ? '저장 중...' : '저장'}
                 </button>

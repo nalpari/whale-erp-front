@@ -12,6 +12,7 @@ interface PartTimeWorkTimeEditProps {
   endDate?: string
   employeeInfoId?: string
   payrollMonth?: string
+  returnToDetail?: boolean
 }
 
 // 편집 가능한 일별 근무 데이터 타입
@@ -86,7 +87,8 @@ export default function PartTimeWorkTimeEdit({
   startDate = '',
   endDate = '',
   employeeInfoId = '',
-  payrollMonth = ''
+  payrollMonth = '',
+  returnToDetail = false,
 }: PartTimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -190,11 +192,15 @@ export default function PartTimeWorkTimeEdit({
     setIsDataLoaded(true)
   }
 
+  const getReturnPath = (withFromParam = false) => {
+    const suffix = withFromParam ? '?fromWorkTimeEdit=true' : ''
+    if (returnToDetail) return `/employee/payroll/parttime/${id}${suffix}`
+    if (id === 'new') return `/employee/payroll/parttime/new${suffix}`
+    return `/employee/payroll/parttime/${id}/edit${suffix}`
+  }
+
   const handleGoBack = () => {
-    const targetPath = id === 'new'
-      ? '/employee/payroll/parttime/new?fromWorkTimeEdit=true'
-      : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
-    router.push(targetPath)
+    router.push(getReturnPath())
   }
 
   const recalculateRecord = (record: EditableDailyRecord): EditableDailyRecord => {
@@ -332,10 +338,7 @@ export default function PartTimeWorkTimeEdit({
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
     await alert('저장되었습니다.')
-    const targetPath = id === 'new'
-      ? '/employee/payroll/parttime/new?fromWorkTimeEdit=true'
-      : `/employee/payroll/parttime/${id}/edit?fromWorkTimeEdit=true`
-    router.push(targetPath)
+    router.push(getReturnPath(true))
   }
 
   const handleWorkHoursChange = (index: number, hours: number) => {

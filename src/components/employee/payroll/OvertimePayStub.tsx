@@ -52,9 +52,10 @@ interface OvertimePayStubProps {
   id: string
   isEditMode?: boolean
   fromWorkTimeEdit?: boolean
+  onSaveSuccess?: () => void
 }
 
-export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false }: OvertimePayStubProps) {
+export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false, onSaveSuccess }: OvertimePayStubProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { alert, confirm } = useAlert()
@@ -125,6 +126,21 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
   // React 19: derived state
   const selectedEmployee = employeeList.find(emp => emp.employeeInfoId === employeeInfoId) ?? null
+
+  // 상세 모드에서 근무시간 수정 후 돌아왔을 때 editedWorkTimeData 로드
+  useEffect(() => {
+    if (fromWorkTimeEdit && !isEditMode && !editedWorkTimeData) {
+      const savedData = localStorage.getItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+      if (savedData) {
+        try {
+          const parsed: OvertimeWorkTimeEditData = JSON.parse(savedData)
+          setEditedWorkTimeData(parsed)
+        } catch {
+          localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+        }
+      }
+    }
+  }, [fromWorkTimeEdit, isEditMode, editedWorkTimeData])
 
   // localStorage에서 수정 데이터 로드 (신규/기존 수정 모드 모두 지원)
   useEffect(() => {
@@ -289,6 +305,24 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }
 
   const handleGoToWorkTimeEdit = async () => {
+    // 상세 모드: existingStatement 기반으로 이동
+    if (!isEditMode) {
+      if (!existingStatement?.details?.length) {
+        await alert('근무 데이터가 없습니다.')
+        return
+      }
+      const params = new URLSearchParams({
+        startDate: existingStatement.calculationStartDate,
+        endDate: existingStatement.calculationEndDate,
+        employeeInfoId: String(existingStatement.employeeInfoId),
+        payrollMonth: `${existingStatement.allowanceYearMonth.substring(0, 4)}-${existingStatement.allowanceYearMonth.substring(4, 6)}`,
+        returnToDetail: 'true',
+      })
+      router.push(`/employee/payroll/overtime/${id}/worktime?${params.toString()}`)
+      return
+    }
+
+    // 편집 모드: 기존 로직
     if (!employeeInfoId) {
       await alert('직원을 선택해주세요.')
       return
@@ -519,9 +553,13 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.lists() })
       queryClient.invalidateQueries({ queryKey: payrollKeys.overtime.detail(statementId) })
       localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+      setEditedWorkTimeData(null)
 
       await alert('수정되었습니다.')
-      router.push(`/employee/payroll/overtime/${statementId}`)
+      onSaveSuccess?.()
+      if (isEditMode) {
+        router.push(`/employee/payroll/overtime/${statementId}`)
+      }
     } catch (error) {
       console.error('연장근무 수당명세서 수정 실패:', error)
       await alert('수정 중 오류가 발생했습니다.')
@@ -689,7 +727,11 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
           <>
             <button className="btn-form outline s" onClick={handleSendEmail}>이메일 전송</button>
             <button className="btn-form outline s" onClick={handleDownloadExcel}>다운로드</button>
+            <button className="btn-form outline s" onClick={handleGoToWorkTimeEdit}>근무시간 수정</button>
             <button className="btn-form gray" onClick={handleDelete}>삭제</button>
+            <button className="btn-form basic" onClick={handleUpdate} disabled={isSaving}>
+              {isSaving ? '저장 중...' : '수정'}
+            </button>
           </>
         )}
         {isEditMode && (

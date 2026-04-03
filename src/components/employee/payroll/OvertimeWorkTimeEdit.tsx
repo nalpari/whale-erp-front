@@ -15,6 +15,7 @@ interface OvertimeWorkTimeEditProps {
   headOfficeId?: string
   franchiseId?: string
   storeId?: string
+  returnToDetail?: boolean
 }
 
 // 편집 가능한 일별 연장근무 데이터 타입
@@ -84,6 +85,7 @@ export default function OvertimeWorkTimeEdit({
   headOfficeId = '',
   franchiseId = '',
   storeId = '',
+  returnToDetail = false,
 }: OvertimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -175,11 +177,15 @@ export default function OvertimeWorkTimeEdit({
     setIsDataLoaded(true)
   }
 
+  const getReturnPath = (withFromParam = false) => {
+    const suffix = withFromParam ? '?fromWorkTimeEdit=true' : ''
+    if (returnToDetail) return `/employee/payroll/overtime/${id}${suffix}`
+    if (id === 'new') return `/employee/payroll/overtime/new${suffix}`
+    return `/employee/payroll/overtime/${id}/edit${suffix}`
+  }
+
   const handleGoBack = () => {
-    const targetPath = id === 'new'
-      ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true'
-      : `/employee/payroll/overtime/${id}/edit?fromWorkTimeEdit=true`
-    router.push(targetPath)
+    router.push(getReturnPath())
   }
 
   // 계산 로직
@@ -264,10 +270,7 @@ export default function OvertimeWorkTimeEdit({
     localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
     await alert('저장되었습니다.')
-    const targetPath = id === 'new'
-      ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true'
-      : `/employee/payroll/overtime/${id}/edit?fromWorkTimeEdit=true`
-    router.push(targetPath)
+    router.push(getReturnPath(true))
   }
 
 
