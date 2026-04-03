@@ -18,7 +18,7 @@ import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import { useContractsByEmployee } from '@/hooks/queries/use-contract-queries'
 import { useFileInfo, useFileDownloadUrl } from '@/hooks/queries/use-file-queries'
 import { getOvertimeAllowanceStatements, getOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
-import { getPayrollStatements } from '@/lib/api/payrollStatement'
+import { getPayrollStatement, getPayrollStatements } from '@/lib/api/payrollStatement'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -54,6 +54,13 @@ const getErrorMessage = (error: unknown): string => {
 interface FullTimePayStubProps {
   id: string
   isEditMode?: boolean
+}
+
+interface FullTimePeriodSnapshot {
+  payrollYearMonth: string
+  paymentDate: string
+  settlementStartDate: string
+  settlementEndDate: string
 }
 
 // 기본 지급 항목 코드 매핑
@@ -256,6 +263,11 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     ...storeOptionList.map(store => ({ value: String(store.id), label: store.storeName }))
   ], [storeOptionList])
 
+  const selectedEmployeeMemberId = useMemo(() => {
+    if (!selectedEmployeeId) return undefined
+    return employeeList.find(emp => emp.employeeInfoId === selectedEmployeeId)?.memberId ?? undefined
+  }, [employeeList, selectedEmployeeId])
+
   // 오늘 날짜
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -327,6 +339,23 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       actualPaymentAmount: 0,
     }
   })
+  const lastValidPeriodRef = useRef<FullTimePeriodSnapshot>({
+    payrollYearMonth: formData.payrollYearMonth,
+    paymentDate: formData.paymentDate,
+    settlementStartDate: formData.settlementStartDate,
+    settlementEndDate: formData.settlementEndDate,
+  })
+
+  useEffect(() => {
+    if (!isNewMode && existingPayrollData) {
+      lastValidPeriodRef.current = {
+        payrollYearMonth: existingPayrollData.payrollYearMonth,
+        paymentDate: existingPayrollData.paymentDate,
+        settlementStartDate: existingPayrollData.settlementStartDate,
+        settlementEndDate: existingPayrollData.settlementEndDate,
+      }
+    }
+  }, [isNewMode, existingPayrollData])
 
   // 공통코드: useCommonCodeHierarchy 쿼리 훅으로 대체 (useEffect 내 setState 제거)
 
@@ -371,6 +400,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         settlementStartDate: startDate,
         settlementEndDate: endDate
       }))
+      lastValidPeriodRef.current = {
+        payrollYearMonth: formData.payrollYearMonth,
+        paymentDate: paymentDate || formData.paymentDate,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate,
+      }
     }
   }, [isNewMode, payrollData, paymentCommonCodes, deductionCommonCodes, employeeContract, formData.payrollYearMonth, formData.paymentDate])
 
@@ -604,6 +639,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         totalDeductionAmount,
         actualPaymentAmount: totalPaymentAmount - totalDeductionAmount
       }))
+      lastValidPeriodRef.current = {
+        payrollYearMonth: formData.payrollYearMonth,
+        paymentDate: newPaymentDate || formData.paymentDate,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate,
+      }
     } else {
       // salaryInfo가 없으면 정산 기간만 업데이트
       setPayrollData(prev => {
@@ -621,6 +662,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
         settlementStartDate: startDate,
         settlementEndDate: endDate
       }))
+      lastValidPeriodRef.current = {
+        payrollYearMonth: formData.payrollYearMonth,
+        paymentDate: newPaymentDate || formData.paymentDate,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate,
+      }
     }
   }, [isNewMode, employeeContract, selectedEmployeeId, payrollData, formData.payrollYearMonth])
 
@@ -762,6 +809,54 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       settlementStartDate: startDate,
       settlementEndDate: endDate
     }))
+    if (isEditMode) {
+      lastValidPeriodRef.current = {
+        payrollYearMonth: newPayrollYearMonth,
+        paymentDate: newPaymentDate,
+        settlementStartDate: startDate,
+        settlementEndDate: endDate,
+      }
+    }
+  }
+
+  const hasDateOverlapConflict = async (excludeId?: number) => {
+    const memberId = existingPayrollData?.memberId ?? selectedEmployeeMemberId
+    const employeeInfoId = existingPayrollData?.employeeInfoId ?? selectedEmployeeId ?? undefined
+    const headOfficeId = existingPayrollData?.headOfficeId ?? selectedHeadOfficeId ?? undefined
+
+    if ((!memberId && !employeeInfoId) || !headOfficeId || !formData.settlementStartDate || !formData.settlementEndDate) {
+      return false
+    }
+
+    const listResult = await getPayrollStatements({
+      headOfficeId,
+      size: 200,
+    })
+
+    const candidateIds = listResult.content
+      .filter((statement) => {
+        if (statement.id === (excludeId ?? 0)) return false
+
+        if (employeeInfoId && statement.employeeInfoId === employeeInfoId) return true
+        if (memberId && statement.memberId === memberId) return true
+        return false
+      })
+      .map(statement => statement.id)
+
+    if (candidateIds.length === 0) return false
+
+    const details = await Promise.all(candidateIds.map(id => getPayrollStatement(id)))
+
+    return details.some((statement) => {
+      const isSameEmployee =
+        (employeeInfoId && statement.employeeInfoId === employeeInfoId) ||
+        (memberId && statement.memberId === memberId)
+
+      if (!isSameEmployee) return false
+
+      return formData.settlementStartDate <= statement.settlementEndDate &&
+        formData.settlementEndDate >= statement.settlementStartDate
+    })
   }
 
   const handleSearch = async () => {
@@ -770,62 +865,27 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       return
     }
 
-    // 신규 모드: 선택된 폼 값 사용, 상세/편집 모드: existingPayrollData 사용
-    const memberId = existingPayrollData?.memberId ?? selectedEmployeeId ?? undefined
-    const headOfficeId = existingPayrollData?.headOfficeId ?? selectedHeadOfficeId ?? undefined
-
     try {
-      // 1) payrollYearMonth 기준 충돌 검사
-      const result = await getPayrollStatements({
-        memberId,
-        headOfficeId,
-        payrollYearMonth: formData.payrollYearMonth,
-        size: 100,
-      })
-
-      const conflicting = result.content.filter(s => s.id !== (existingPayrollData?.id ?? 0))
-      if (conflicting.length > 0) {
+      const hasConflict = await hasDateOverlapConflict(existingPayrollData?.id)
+      if (hasConflict) {
         await alert('해당 기간에 급여명세서가 이미 존재합니다.')
-        if (existingPayrollData) {
-          setFormData(prev => ({
-            ...prev,
-            settlementStartDate: existingPayrollData.settlementStartDate,
-            settlementEndDate: existingPayrollData.settlementEndDate,
-          }))
-        }
+        const snapshot = lastValidPeriodRef.current
+        setFormData(prev => ({
+          ...prev,
+          payrollYearMonth: snapshot.payrollYearMonth,
+          paymentDate: snapshot.paymentDate,
+          settlementStartDate: snapshot.settlementStartDate,
+          settlementEndDate: snapshot.settlementEndDate,
+        }))
         return
       }
 
-      // 2) 날짜 범위 충돌 검사: 정산 기간이 다른 월에 걸쳐 있는 경우 overlap 확인
-      const startYm = formData.settlementStartDate.substring(0, 7).replace('-', '')
-      const endYm = formData.settlementEndDate.substring(0, 7).replace('-', '')
-
-      if (startYm !== formData.payrollYearMonth || endYm !== formData.payrollYearMonth) {
-        const rangeResult = await getPayrollStatements({
-          memberId,
-          headOfficeId,
-          size: 200,
-        })
-
-        const rangeConflicting = rangeResult.content.filter(s => {
-          if (s.id === (existingPayrollData?.id ?? 0)) return false
-          return formData.settlementStartDate <= s.settlementEndDate &&
-            formData.settlementEndDate >= s.settlementStartDate
-        })
-
-        if (rangeConflicting.length > 0) {
-          await alert('해당 기간에 급여명세서가 이미 존재합니다.')
-          if (existingPayrollData) {
-            setFormData(prev => ({
-              ...prev,
-              settlementStartDate: existingPayrollData.settlementStartDate,
-              settlementEndDate: existingPayrollData.settlementEndDate,
-            }))
-          }
-          return
-        }
+      lastValidPeriodRef.current = {
+        payrollYearMonth: formData.payrollYearMonth,
+        paymentDate: formData.paymentDate,
+        settlementStartDate: formData.settlementStartDate,
+        settlementEndDate: formData.settlementEndDate,
       }
-
       setIsSearchDone(true)
     } catch {
       await alert('검색 중 오류가 발생했습니다.')
@@ -1039,6 +1099,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       }
 
       try {
+        const hasConflict = await hasDateOverlapConflict()
+        if (hasConflict) {
+          await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+          return
+        }
+
         // 상여금 항목을 지급 항목으로 병합 (payroll_payment_items에 저장)
         const bonusAsPaymentItems = (payrollData.bonuses || [])
           .filter(b => b.amount > 0)
@@ -1090,6 +1156,12 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     if (!statementId || !payrollData) return
 
     try {
+      const hasConflict = await hasDateOverlapConflict(statementId)
+      if (hasConflict) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
       // 상여금 항목을 지급 항목으로 병합 (payroll_payment_items에 저장)
       const bonusAsPaymentItems = (payrollData.bonuses || [])
         .filter(b => b.amount > 0)

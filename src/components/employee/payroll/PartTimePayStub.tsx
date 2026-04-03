@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import DatePicker from '../../ui/common/DatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
@@ -13,7 +13,11 @@ import {
   useDownloadPartTimePayrollExcel,
 } from '@/hooks/queries/use-payroll-queries'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
-import { createPartTimerPayrollStatement, getPartTimerPayrollStatements } from '@/lib/api/partTimerPayrollStatement'
+import {
+  createPartTimerPayrollStatement,
+  getPartTimerPayrollStatement,
+  getPartTimerPayrollStatements
+} from '@/lib/api/partTimerPayrollStatement'
 import type {
   DailyWorkHoursItem,
   PartTimerPaymentItemResponse,
@@ -55,6 +59,13 @@ interface PartTimePayStubProps {
   isEditMode?: boolean
   fromWorkTimeEdit?: boolean
   onSaveSuccess?: () => void
+}
+
+interface PartTimePeriodSnapshot {
+  payrollMonth: string
+  startDate: string
+  endDate: string
+  paymentDate: string
 }
 
 export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false, onSaveSuccess }: PartTimePayStubProps) {
@@ -118,6 +129,23 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     existingStatement?.franchiseId ? String(existingStatement.franchiseId) : ''
   )
   const [selectedStore, setSelectedStore] = useState<string>('')
+  const lastValidPeriodRef = useRef<PartTimePeriodSnapshot>({
+    payrollMonth,
+    startDate,
+    endDate,
+    paymentDate,
+  })
+
+  useEffect(() => {
+    if (!isEditMode && existingStatement) {
+      lastValidPeriodRef.current = {
+        payrollMonth: `${existingStatement.payrollYearMonth.substring(0, 4)}-${existingStatement.payrollYearMonth.substring(4, 6)}`,
+        startDate: existingStatement.settlementStartDate,
+        endDate: existingStatement.settlementEndDate,
+        paymentDate: existingStatement.paymentDate,
+      }
+    }
+  }, [isEditMode, existingStatement])
 
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
@@ -429,6 +457,14 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate(startDate)
       setEndDate(endDate)
       setPaymentDate(paymentDate)
+      if (isEditMode) {
+        lastValidPeriodRef.current = {
+          payrollMonth: payrollMonthStr,
+          startDate,
+          endDate,
+          paymentDate,
+        }
+      }
     }
   }
 
@@ -569,6 +605,14 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         const { startDate, endDate } = calculatePayrollPeriod(month, 'SLRCF_002', salaryDay)
         setStartDate(startDate)
         setEndDate(endDate)
+        if (isEditMode) {
+          lastValidPeriodRef.current = {
+            payrollMonth: month,
+            startDate,
+            endDate,
+            paymentDate,
+          }
+        }
       } else {
         setPayrollMonth('')
         setStartDate('')
@@ -618,6 +662,14 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate(startDate)
       setEndDate(endDate)
       setPaymentDate(paymentDate)
+      if (isEditMode) {
+        lastValidPeriodRef.current = {
+          payrollMonth: month,
+          startDate,
+          endDate,
+          paymentDate,
+        }
+      }
     } else {
       setPayrollMonth('')
       setStartDate('')
@@ -626,16 +678,44 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
   }
 
+  const hasDateOverlapConflict = async (excludeId?: number) => {
+    const memberId = selectedEmployee?.memberId ?? existingStatement?.memberId
+    const headOfficeId = headOfficeIdNum ?? existingStatement?.headOfficeId
+
+    if (!memberId || !headOfficeId || !startDate || !endDate) {
+      return false
+    }
+
+    const listResult = await getPartTimerPayrollStatements({
+      memberId,
+      headOfficeId,
+      size: 200,
+    })
+
+    const candidateIds = listResult.content
+      .filter(statement => statement.id !== excludeId)
+      .map(statement => statement.id)
+
+    if (candidateIds.length === 0) return false
+
+    const details = await Promise.all(candidateIds.map(id => getPartTimerPayrollStatement(id)))
+
+    return details.some(statement =>
+      startDate <= statement.settlementEndDate &&
+      endDate >= statement.settlementStartDate
+    )
+  }
+
   const handleSearch = async () => {
     if (!payrollMonth || !startDate || !endDate) {
       await alert('급여지급월과 기간을 모두 입력해주세요.')
       return
     }
 
-    const payrollYearMonth = payrollMonth.replace('-', '')
-    // 신규/편집 모드: 선택된 폼 값 우선, 상세 모드: existingStatement 사용
-    const memberId = employeeInfoId ?? existingStatement?.memberId
-    const headOfficeId = headOfficeIdNum ?? existingStatement?.headOfficeId
+      const payrollYearMonth = payrollMonth.replace('-', '')
+      // 신규/편집 모드: 선택된 폼 값 우선, 상세 모드: existingStatement 사용
+      const memberId = selectedEmployee?.memberId ?? existingStatement?.memberId
+      const headOfficeId = headOfficeIdNum ?? existingStatement?.headOfficeId
 
     try {
       // 1) payrollYearMonth 기준 충돌 검사
@@ -649,24 +729,31 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const conflicting = result.content.filter(s => s.id !== statementId)
       if (conflicting.length > 0) {
         await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        const snapshot = lastValidPeriodRef.current
+        setPayrollMonth(snapshot.payrollMonth)
+        setStartDate(snapshot.startDate)
+        setEndDate(snapshot.endDate)
+        setPaymentDate(snapshot.paymentDate)
         return
       }
 
-      // 2) 날짜 범위 충돌 검사
-      const dateResult = await getPartTimerPayrollStatements({
-        memberId,
-        headOfficeId,
+      const hasDateConflict = await hasDateOverlapConflict(statementId)
+      if (hasDateConflict) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        const snapshot = lastValidPeriodRef.current
+        setPayrollMonth(snapshot.payrollMonth)
+        setStartDate(snapshot.startDate)
+        setEndDate(snapshot.endDate)
+        setPaymentDate(snapshot.paymentDate)
+        return
+      }
+
+      lastValidPeriodRef.current = {
+        payrollMonth,
         startDate,
         endDate,
-        size: 100,
-      })
-
-      const dateConflicting = dateResult.content.filter(s => s.id !== statementId)
-      if (dateConflicting.length > 0) {
-        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
-        return
+        paymentDate,
       }
-
       setIsSearchDone(true)
     } catch {
       await alert('검색 중 오류가 발생했습니다.')
@@ -735,6 +822,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     if (contractBonuses.length > 0 && !payrollSettings) {
       await alert('세율 설정을 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도해주세요.')
+      return
+    }
+
+    const hasDateConflict = await hasDateOverlapConflict()
+    if (hasDateConflict) {
+      await alert('해당 기간에 급여명세서가 이미 존재합니다.')
       return
     }
 
@@ -892,6 +985,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     }
 
     try {
+      const hasDateConflict = await hasDateOverlapConflict(statementId)
+      if (hasDateConflict) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
       await updateMutation.mutateAsync({ id: statementId, request })
       localStorage.removeItem(WORKTIME_EDIT_STORAGE_KEY)
       setEditedWorkTimeData(null)

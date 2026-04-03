@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import DatePicker from '../../ui/common/DatePicker'
@@ -14,7 +14,12 @@ import {
 } from '@/hooks/queries/use-payroll-queries'
 import { payrollKeys } from '@/hooks/queries/query-keys'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
-import { createOvertimeAllowanceStatement, updateOvertimeAllowanceStatement, getOvertimeAllowanceStatements } from '@/lib/api/overtimeAllowanceStatement'
+import {
+  createOvertimeAllowanceStatement,
+  getOvertimeAllowanceStatement,
+  getOvertimeAllowanceStatements,
+  updateOvertimeAllowanceStatement
+} from '@/lib/api/overtimeAllowanceStatement'
 import type {
   DailyOvertimeHoursItem,
   OvertimeAllowanceItemDto,
@@ -56,6 +61,13 @@ interface OvertimePayStubProps {
   onSaveSuccess?: () => void
 }
 
+interface OvertimePeriodSnapshot {
+  payrollMonth: string
+  startDate: string
+  endDate: string
+  paymentDate: string
+}
+
 export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEdit = false, onSaveSuccess }: OvertimePayStubProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -89,6 +101,23 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
   const [selectedFranchise, setSelectedFranchise] = useState<string>('')
   const [selectedStore, setSelectedStore] = useState<string>('')
+  const lastValidPeriodRef = useRef<OvertimePeriodSnapshot>({
+    payrollMonth,
+    startDate,
+    endDate,
+    paymentDate,
+  })
+
+  useEffect(() => {
+    if (!isEditMode && existingStatement) {
+      lastValidPeriodRef.current = {
+        payrollMonth: `${existingStatement.allowanceYearMonth.substring(0, 4)}-${existingStatement.allowanceYearMonth.substring(4, 6)}`,
+        startDate: existingStatement.calculationStartDate,
+        endDate: existingStatement.calculationEndDate,
+        paymentDate: existingStatement.paymentDate || '',
+      }
+    }
+  }, [isEditMode, existingStatement])
 
   // BP 트리 데이터
   const { accessToken, affiliationId } = useAuthStore()
@@ -299,6 +328,14 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate(startDate)
       setEndDate(endDate)
       setPaymentDate(paymentDate)
+      if (isEditMode) {
+        lastValidPeriodRef.current = {
+          payrollMonth: payrollMonthStr,
+          startDate,
+          endDate,
+          paymentDate,
+        }
+      }
     }
   }
 
@@ -429,6 +466,14 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
         const lastDay = new Date(prevYear, prevMonth, 0).getDate()
         setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
         setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${lastDay}`)
+        if (isEditMode) {
+          lastValidPeriodRef.current = {
+            payrollMonth: month,
+            startDate: `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`,
+            endDate: `${prevYear}-${String(prevMonth).padStart(2, '0')}-${lastDay}`,
+            paymentDate,
+          }
+        }
       } else {
         setStartDate('')
         setEndDate('')
@@ -447,11 +492,46 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate(startDate)
       setEndDate(endDate)
       setPaymentDate(paymentDate)
+      if (isEditMode) {
+        lastValidPeriodRef.current = {
+          payrollMonth: month,
+          startDate,
+          endDate,
+          paymentDate,
+        }
+      }
     } else {
       setStartDate('')
       setEndDate('')
       setPaymentDate('')
     }
+  }
+
+  const hasDateOverlapConflict = async (excludeId?: number) => {
+    const memberId = selectedEmployee?.memberId ?? existingStatement?.memberId
+    const headOfficeId = headOfficeIdNum ?? bpTree.find(o => o.name === existingStatement?.headOfficeName)?.id ?? undefined
+
+    if (!memberId || !headOfficeId || !startDate || !endDate) {
+      return false
+    }
+
+    const listResult = await getOvertimeAllowanceStatements({
+      headOfficeId,
+      size: 200,
+    })
+
+    const candidateIds = listResult.content
+      .filter(statement => statement.id !== excludeId && statement.memberId === memberId)
+      .map(statement => statement.id)
+
+    if (candidateIds.length === 0) return false
+
+    const details = await Promise.all(candidateIds.map(id => getOvertimeAllowanceStatement(id)))
+
+    return details.some(statement =>
+      startDate <= statement.calculationEndDate &&
+      endDate >= statement.calculationStartDate
+    )
   }
 
   const handleSearch = async () => {
@@ -462,7 +542,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     const allowanceYearMonth = payrollMonth.replace('-', '')
     // 신규/편집 모드: 선택된 폼 값 우선, 상세 모드: existingStatement 사용
-    const memberId = employeeInfoId ?? existingStatement?.memberId
+    const memberId = selectedEmployee?.memberId ?? existingStatement?.memberId
     const headOfficeId = headOfficeIdNum ?? bpTree.find(o => o.name === existingStatement?.headOfficeName)?.id ?? undefined
 
     try {
@@ -476,23 +556,31 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const conflicting = result.content.filter(s => s.id !== statementId && s.memberId === memberId)
       if (conflicting.length > 0) {
         await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        const snapshot = lastValidPeriodRef.current
+        setPayrollMonth(snapshot.payrollMonth)
+        setStartDate(snapshot.startDate)
+        setEndDate(snapshot.endDate)
+        setPaymentDate(snapshot.paymentDate)
         return
       }
 
-      // 2) 날짜 범위 충돌 검사
-      const dateResult = await getOvertimeAllowanceStatements({
-        headOfficeId,
-        calculationStartDate: startDate,
-        calculationEndDate: endDate,
-        size: 100,
-      })
-
-      const dateConflicting = dateResult.content.filter(s => s.id !== statementId && s.memberId === memberId)
-      if (dateConflicting.length > 0) {
+      const hasDateConflict = await hasDateOverlapConflict(statementId)
+      if (hasDateConflict) {
         await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        const snapshot = lastValidPeriodRef.current
+        setPayrollMonth(snapshot.payrollMonth)
+        setStartDate(snapshot.startDate)
+        setEndDate(snapshot.endDate)
+        setPaymentDate(snapshot.paymentDate)
         return
       }
 
+      lastValidPeriodRef.current = {
+        payrollMonth,
+        startDate,
+        endDate,
+        paymentDate,
+      }
       setIsSearchDone(true)
     } catch {
       await alert('검색 중 오류가 발생했습니다.')
@@ -518,6 +606,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     setIsSaving(true)
     try {
+      const hasDateConflict = await hasDateOverlapConflict()
+      if (hasDateConflict) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
       let details: OvertimeAllowanceItemDto[] = []
 
       if (editedWorkTimeData) {
@@ -598,6 +692,12 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
     setIsSaving(true)
     try {
+      const hasDateConflict = await hasDateOverlapConflict(statementId)
+      if (hasDateConflict) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
       let details: OvertimeAllowanceItemDto[] = []
 
       if (editedWorkTimeData) {

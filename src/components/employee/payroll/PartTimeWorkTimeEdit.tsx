@@ -86,6 +86,28 @@ const generateDateRange = (start: string, end: string): string[] => {
 const DAY_OF_WEEK_KOREAN = ['일', '월', '화', '수', '목', '금', '토']
 const DAY_OF_WEEK_ENGLISH = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 
+const getWeekRange = (dateStr: string): { weekStartDate: string; weekEndDate: string } => {
+  const date = new Date(dateStr)
+  const dayOfWeek = date.getDay()
+  const monday = new Date(date)
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  monday.setDate(date.getDate() + diffToMonday)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+
+  const format = (value: Date) => {
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const day = String(value.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  return {
+    weekStartDate: format(monday),
+    weekEndDate: format(sunday),
+  }
+}
+
 // ISO 주차 번호 계산 함수
 const getISOWeekNumber = (dateStr: string): number => {
   const date = new Date(dateStr)
@@ -516,16 +538,54 @@ export default function PartTimeWorkTimeEdit({
               </thead>
               <tbody>
                 {(() => {
-                  const sortedAllowances = [...weeklyHolidayAllowances].sort(
-                    (a, b) => a.weekStartDate.localeCompare(b.weekStartDate)
+                  const allowanceMap = new Map(
+                    weeklyHolidayAllowances.map(allowance => [`${allowance.weekStartDate}_${allowance.weekEndDate}`, allowance])
                   )
 
-                  const weekGroups = sortedAllowances.map(allowance => {
-                    const records = dailyRecords.filter(record => {
-                      return record.date >= allowance.weekStartDate && record.date <= allowance.weekEndDate
-                    }).sort((a, b) => a.date.localeCompare(b.date))
-                    return { allowance, records }
-                  })
+                  const weekGroups = Array.from(
+                    dailyRecords.reduce((map, record) => {
+                      const { weekStartDate, weekEndDate } = getWeekRange(record.date)
+                      const key = `${weekStartDate}_${weekEndDate}`
+                      const current = map.get(key)
+
+                      if (current) {
+                        current.records.push(record)
+                      } else {
+                        map.set(key, {
+                          key,
+                          weekStartDate,
+                          weekEndDate,
+                          records: [record],
+                        })
+                      }
+
+                      return map
+                    }, new Map<string, {
+                      key: string
+                      weekStartDate: string
+                      weekEndDate: string
+                      records: EditableDailyRecord[]
+                    }>())
+                      .values()
+                  )
+                    .map(group => {
+                      const records = group.records.sort((a, b) => a.date.localeCompare(b.date))
+                      const allowance = allowanceMap.get(group.key) ?? {
+                        weekStartDate: group.weekStartDate,
+                        weekEndDate: group.weekEndDate,
+                        weekNumber: records[0]?.weekNumber ?? 0,
+                        totalWorkHours: records.reduce((sum, record) => sum + record.workHours, 0),
+                        holidayAllowanceHours: 0,
+                        applyTimelyAmount: records[0]?.applyTimelyAmount ?? contractHourlyWageInfo.weekDayHourlyWage,
+                        holidayAllowanceAmount: 0,
+                        deductionAmount: 0,
+                        totalAmount: 0,
+                        isEligible: false,
+                      }
+
+                      return { allowance, records }
+                    })
+                    .sort((a, b) => a.allowance.weekStartDate.localeCompare(b.allowance.weekStartDate))
 
                   const hasPreviousMonthWorkHours = previousMonthWorkHours > 0
 
