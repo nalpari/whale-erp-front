@@ -1359,11 +1359,27 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       + eligible.reduce((s, a) => s + a.deductionAmount, 0)
                     const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
                     const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
-                    const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
+                    // 저장된 bonusItems 우선, 없으면 계약서 기반 fallback
+                    const hasSavedBonuses = existingStatement?.bonusItems != null && existingStatement.bonusItems.length > 0
+                    const displayBonuses = hasSavedBonuses
+                      ? existingStatement!.bonusItems!
+                      : contractBonuses.map((b, i) => ({
+                          id: b.id,
+                          bonusName: b.bonusType,
+                          bonusAmount: b.amount,
+                          deductionAmount: calcBonusDeduction(b.amount),
+                          isActive: true,
+                          itemOrder: i + 1,
+                        }))
+                    const savedActiveBonusTotal = hasSavedBonuses
+                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
+                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
+                    const savedActiveBonusDeductionTotal = hasSavedBonuses
+                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
+                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
                     const subTotal = gtPayment - gtDeduction
-                    const totalDeduction = gtDeduction + insuranceDeduction + activeBonusDeductionTotal
-                    const finalTotal = gtPayment + activeBonusTotal - totalDeduction
+                    const totalDeduction = gtDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
+                    const finalTotal = gtPayment + savedActiveBonusTotal - totalDeduction
                     return (
                       <>
                         <tr className="grand-total">
@@ -1384,11 +1400,31 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
                           </tr>
                         )}
+                        {displayBonuses.map((bonus) => {
+                          const isActive = !disabledBonusIds.has(bonus.id)
+                          return (
+                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
+                              <td><strong>{bonus.bonusName}</strong></td>
+                              <td className="al-c">
+                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                                  </span>
+                                </label>
+                              </td>
+                              <td className="al-r">-</td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
+                            </tr>
+                          )
+                        })}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment + activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(gtPayment + savedActiveBonusTotal)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
                         </tr>
@@ -1514,11 +1550,27 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       + eligible.reduce((s, a) => s + a.deductionAmount, 0)
                     const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
                     const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
-                    const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
+                    // 저장된 bonusItems 우선, 없으면 계약서 기반 fallback
+                    const hasSavedBonuses = existingStatement?.bonusItems != null && existingStatement.bonusItems.length > 0
+                    const displayBonuses = hasSavedBonuses
+                      ? existingStatement!.bonusItems!
+                      : contractBonuses.map((b, i) => ({
+                          id: b.id,
+                          bonusName: b.bonusType,
+                          bonusAmount: b.amount,
+                          deductionAmount: calcBonusDeduction(b.amount),
+                          isActive: true,
+                          itemOrder: i + 1,
+                        }))
+                    const savedActiveBonusTotal = hasSavedBonuses
+                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
+                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
+                    const savedActiveBonusDeductionTotal = hasSavedBonuses
+                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
+                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
                     const subTotal = gtPayment - gtDeduction
-                    const totalDeduction = gtDeduction + insuranceDeduction + activeBonusDeductionTotal
-                    const finalTotal = gtPayment + activeBonusTotal - totalDeduction
+                    const totalDeduction = gtDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
+                    const finalTotal = gtPayment + savedActiveBonusTotal - totalDeduction
                     return (
                       <>
                         {/* 급여소계 */}
@@ -1541,12 +1593,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
                           </tr>
                         )}
-                        {/* 상여금 행들 */}
-                        {contractBonuses.map((bonus) => {
+                        {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
+                        {displayBonuses.map((bonus) => {
                           const isActive = !disabledBonusIds.has(bonus.id)
                           return (
                             <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
-                              <td><strong>{bonus.bonusType}</strong></td>
+                              <td><strong>{bonus.bonusName}</strong></td>
                               <td className="al-c">
                                 <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
                                   <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
@@ -1556,9 +1608,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                                 </label>
                               </td>
                               <td className="al-r">-</td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount - calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
+                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
                             </tr>
                           )
                         })}
@@ -1567,7 +1619,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           <td><strong>급여합계</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment + activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(gtPayment + savedActiveBonusTotal)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
                         </tr>

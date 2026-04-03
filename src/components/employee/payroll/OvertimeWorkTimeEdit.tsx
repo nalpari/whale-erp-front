@@ -228,6 +228,7 @@ export default function OvertimeWorkTimeEdit({
   }
 
   const handleGoBack = () => {
+    localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
     router.push(getReturnPath())
   }
 

@@ -105,7 +105,15 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   )
   const storeIdNum = selectedStore ? parseInt(selectedStore) : null
 
-  const overtimeQueryEnabled = !!((employeeInfoId ?? existingStatement?.employeeInfoId) && startDate && endDate)
+  const hasExistingDetails = !!(existingStatement?.details && existingStatement.details.length > 0)
+  const overtimeQueryEnabled = !!(
+    (employeeInfoId ?? existingStatement?.employeeInfoId) &&
+    startDate &&
+    endDate &&
+    // 저장된 상세 데이터가 있고 편집 중이 아니면 자동 조회 비활성화
+    // (신규 작성, 근무시간 수정 후 복귀, 상세 없는 기존 명세서는 조회 허용)
+    (isNewMode || editedWorkTimeData !== null || !hasExistingDetails)
+  )
   const { data: overtimeData, isPending: isOvertimePending } = useDailyOvertimeHours(
     {
       employeeInfoId: employeeInfoId ?? existingStatement?.employeeInfoId ?? 0,
@@ -331,6 +339,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
         const detailMap = new Map(existingStatement.details.map(d => [d.workDay, d]))
         const defaultApply = existingStatement.details[0]?.applyTimelyAmount ?? 0
+        const defaultContract = existingStatement.details[0]?.contractTimelyAmount ?? 0
         const editedRecords: EditableOvertimeRecord[] = genDates(startDate, endDate).map(date => {
           const det = detailMap.get(date)
           const di = new Date(date).getDay()
@@ -349,7 +358,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
             overtimeStartTime: undefined, overtimeEndTime: undefined,
             originalApplyTimelyAmount: defaultApply, applyTimelyAmount: defaultApply,
             paymentAmount: 0, deductionAmount: 0, totalAmount: 0,
-            contractHourlyWage: defaultApply, weekNumber: isoWeek(date)
+            contractHourlyWage: defaultContract, weekNumber: isoWeek(date)
           }
         })
 
@@ -999,7 +1008,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
               </tr>
             </thead>
             <tbody>
-              {isOvertimePending ? (
+              {isOvertimePending && overtimeQueryEnabled ? (
                 <tr>
                   <td colSpan={6} className="al-c" style={{ padding: '40px 0', color: '#999' }}>
                     데이터를 조회하고 있습니다...
