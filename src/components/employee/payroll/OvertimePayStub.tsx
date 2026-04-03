@@ -14,7 +14,7 @@ import {
 } from '@/hooks/queries/use-payroll-queries'
 import { payrollKeys } from '@/hooks/queries/query-keys'
 import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
-import { createOvertimeAllowanceStatement, updateOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
+import { createOvertimeAllowanceStatement, updateOvertimeAllowanceStatement, getOvertimeAllowanceStatements } from '@/lib/api/overtimeAllowanceStatement'
 import type {
   DailyOvertimeHoursItem,
   OvertimeAllowanceItemDto,
@@ -82,6 +82,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [remarks, setRemarks] = useState(() => existingStatement?.remarks ?? '')
   const [isSaving, setIsSaving] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<OvertimeWorkTimeEditData | null>(null)
+  const [isSearchDone, setIsSearchDone] = useState(false)
 
   // Organization selection state
   const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
@@ -111,8 +112,8 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     startDate &&
     endDate &&
     // 저장된 상세 데이터가 있고 편집 중이 아니면 자동 조회 비활성화
-    // (신규 작성, 근무시간 수정 후 복귀, 상세 없는 기존 명세서는 조회 허용)
-    (isNewMode || editedWorkTimeData !== null || !hasExistingDetails)
+    // (신규 작성, 근무시간 수정 후 복귀, 상세 없는 기존 명세서, 검색 완료 후 새 날짜 범위 조회는 허용)
+    (isNewMode || editedWorkTimeData !== null || !hasExistingDetails || isSearchDone)
   )
   const { data: overtimeData, isPending: isOvertimePending } = useDailyOvertimeHours(
     {
@@ -312,6 +313,10 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleGoToWorkTimeEdit = async () => {
     // 상세 모드: 바로 이동
     if (!isEditMode) {
+      if (!isSearchDone) {
+        await alert('검색을 먼저 진행해주세요.')
+        return
+      }
       if (!startDate || !endDate) {
         await alert('기간을 설정해주세요.')
         return
@@ -423,6 +428,7 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handlePayrollMonthChange = (month: string) => {
     // 상세 모드: 기간 자동 설정만 허용
     if (!isEditMode) {
+      setIsSearchDone(false)
       setPayrollMonth(month)
       if (month) {
         const [year, monthNum] = month.split('-').map(Number)
@@ -453,6 +459,51 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate('')
       setEndDate('')
       setPaymentDate('')
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!payrollMonth || !startDate || !endDate) {
+      await alert('지급 월과 기간을 모두 입력해주세요.')
+      return
+    }
+
+    const allowanceYearMonth = payrollMonth.replace('-', '')
+    // 신규/편집 모드: 선택된 폼 값 우선, 상세 모드: existingStatement 사용
+    const memberId = employeeInfoId ?? existingStatement?.memberId
+    const headOfficeId = headOfficeIdNum ?? bpTree.find(o => o.name === existingStatement?.headOfficeName)?.id ?? undefined
+
+    try {
+      // 1) allowanceYearMonth 기준 충돌 검사 (client-side memberId 필터)
+      const result = await getOvertimeAllowanceStatements({
+        headOfficeId,
+        allowanceYearMonth,
+        size: 100,
+      })
+
+      const conflicting = result.content.filter(s => s.id !== statementId && s.memberId === memberId)
+      if (conflicting.length > 0) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
+      // 2) 날짜 범위 충돌 검사
+      const dateResult = await getOvertimeAllowanceStatements({
+        headOfficeId,
+        calculationStartDate: startDate,
+        calculationEndDate: endDate,
+        size: 100,
+      })
+
+      const dateConflicting = dateResult.content.filter(s => s.id !== statementId && s.memberId === memberId)
+      if (dateConflicting.length > 0) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
+      setIsSearchDone(true)
+    } catch {
+      await alert('검색 중 오류가 발생했습니다.')
     }
   }
 
@@ -948,7 +999,6 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         value={_monthOptions.find(opt => opt.value === payrollMonth) || null}
                         onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
                         placeholder="선택"
-                        isDisabled={!isEditMode}
                       />
                     </div>
                     {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>지급일 : {paymentDate}</span>}
@@ -964,16 +1014,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="date-picker-wrap">
                       <DatePicker
                         value={parseStringToDate(startDate)}
-                        onChange={(date) => { setStartDate(formatDateToString(date)) }}
-                        disabled={!isEditMode}
+                        onChange={(date) => { setStartDate(formatDateToString(date)); setIsSearchDone(false) }}
                       />
                       <span>~</span>
                       <DatePicker
                         value={parseStringToDate(endDate)}
-                        onChange={(date) => { setEndDate(formatDateToString(date)) }}
-                        disabled={!isEditMode}
+                        onChange={(date) => { setEndDate(formatDateToString(date)); setIsSearchDone(false) }}
                       />
                     </div>
+                    <button
+                      type="button"
+                      className="btn-form outline s act"
+                      onClick={handleSearch}
+                      style={{ marginLeft: '10px', whiteSpace: 'nowrap' }}
+                    >
+                      검색
+                    </button>
                   </div>
                 </td>
               </tr>

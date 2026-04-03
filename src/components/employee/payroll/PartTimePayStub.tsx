@@ -85,6 +85,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [salaryDay, setSalaryDay] = useState<number>(5)
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
+  const [isSearchDone, setIsSearchDone] = useState(false)
   // 상여금 ON/OFF (비활성화된 상여금 id Set, lazy 초기화로 remount 시 서버 데이터 반영)
   const [disabledBonusIds, setDisabledBonusIds] = useState<Set<number>>(() => {
     if (!existingStatement?.bonusItems?.length) return new Set<number>()
@@ -444,6 +445,10 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handleGoToWorkTimeEdit = async () => {
     // 상세 모드: 바로 이동
     if (!isEditMode) {
+      if (!isSearchDone) {
+        await alert('검색을 먼저 진행해주세요.')
+        return
+      }
       if (!startDate || !endDate) {
         await alert('기간을 설정해주세요.')
         return
@@ -568,6 +573,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const handlePayrollMonthChange = async (month: string) => {
     // 상세 모드: 기간 자동 설정만 허용 (중복 확인 없이)
     if (!isEditMode) {
+      setIsSearchDone(false)
       if (month) {
         setPayrollMonth(month)
         const [year, monthNum] = month.split('-').map(Number)
@@ -630,6 +636,53 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setStartDate('')
       setEndDate('')
       setPaymentDate('')
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!payrollMonth || !startDate || !endDate) {
+      await alert('급여지급월과 기간을 모두 입력해주세요.')
+      return
+    }
+
+    const payrollYearMonth = payrollMonth.replace('-', '')
+    // 신규/편집 모드: 선택된 폼 값 우선, 상세 모드: existingStatement 사용
+    const memberId = employeeInfoId ?? existingStatement?.memberId
+    const headOfficeId = headOfficeIdNum ?? existingStatement?.headOfficeId
+
+    try {
+      // 1) payrollYearMonth 기준 충돌 검사
+      const result = await getPartTimerPayrollStatements({
+        memberId,
+        headOfficeId,
+        payrollYearMonth,
+        size: 100,
+      })
+
+      const conflicting = result.content.filter(s => s.id !== statementId)
+      if (conflicting.length > 0) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
+      // 2) 날짜 범위 충돌 검사
+      const dateResult = await getPartTimerPayrollStatements({
+        memberId,
+        headOfficeId,
+        startDate,
+        endDate,
+        size: 100,
+      })
+
+      const dateConflicting = dateResult.content.filter(s => s.id !== statementId)
+      if (dateConflicting.length > 0) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        return
+      }
+
+      setIsSearchDone(true)
+    } catch {
+      await alert('검색 중 오류가 발생했습니다.')
     }
   }
 
@@ -1243,7 +1296,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         value={monthOptions.find(o => o.value === payrollMonth)}
                         onChange={(opt) => handlePayrollMonthChange(opt?.value || '')}
                         placeholder="선택"
-                        isDisabled={!isEditMode}
                       />
                     </div>
                     {paymentDate && <span className="info-text" style={{ marginLeft: '50px', whiteSpace: 'nowrap' }}>급여 지급일 : {paymentDate}</span>}
@@ -1259,16 +1311,22 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     <div className="date-picker-wrap">
                       <DatePicker
                         value={parseStringToDate(startDate)}
-                        onChange={(date) => { setStartDate(formatDateToString(date)) }}
-                        disabled={!isEditMode}
+                        onChange={(date) => { setStartDate(formatDateToString(date)); setIsSearchDone(false) }}
                       />
                       <span>~</span>
                       <DatePicker
                         value={parseStringToDate(endDate)}
-                        onChange={(date) => { setEndDate(formatDateToString(date)) }}
-                        disabled={!isEditMode}
+                        onChange={(date) => { setEndDate(formatDateToString(date)); setIsSearchDone(false) }}
                       />
                     </div>
+                    <button
+                      type="button"
+                      className="btn-form outline s act"
+                      onClick={handleSearch}
+                      style={{ marginLeft: '10px', whiteSpace: 'nowrap' }}
+                    >
+                      검색
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -1432,7 +1490,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                     )
                   })()}
                 </>
-              ) : !isEditMode && existingStatement && (existingStatement.paymentItems.length > 0 || existingStatement.weeklyPaidHolidayAllowances?.length > 0) ? (
+              ) : !isEditMode && !isSearchDone && existingStatement && (existingStatement.paymentItems.length > 0 || existingStatement.weeklyPaidHolidayAllowances?.length > 0) ? (
                 <>
                   {existingStatement.paymentItems.map((item, index) => renderExistingPaymentItemRow(item, index))}
                   {existingStatement.weeklyPaidHolidayAllowances?.map((item, index) => renderWeeklyPaidHolidayAllowanceRow(item, index))}

@@ -18,6 +18,7 @@ import { useEmployeeListByType } from '@/hooks/queries/use-employee-queries'
 import { useContractsByEmployee } from '@/hooks/queries/use-contract-queries'
 import { useFileInfo, useFileDownloadUrl } from '@/hooks/queries/use-file-queries'
 import { getOvertimeAllowanceStatements, getOvertimeAllowanceStatement } from '@/lib/api/overtimeAllowanceStatement'
+import { getPayrollStatements } from '@/lib/api/payrollStatement'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
@@ -211,6 +212,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
     () => (!isNewMode && existingPayrollData) ? existingPayrollData : null
   )
   const [isLoadingOvertime, setIsLoadingOvertime] = useState(false)
+  const [isSearchDone, setIsSearchDone] = useState(false)
   const [showBonusModal, setShowBonusModal] = useState(false)
   const [showDeductionModal, setShowDeductionModal] = useState(false)
 
@@ -777,6 +779,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
 
   // 급여 지급월 변경 핸들러 - React 19 Compiler가 자동 최적화
   const handlePayrollYearMonthChange = (newPayrollYearMonth: string) => {
+    setIsSearchDone(false)
     const salaryMonth = employeeContract?.employmentContractHeader?.salaryMonth || 'SLRCF_001'
     const salaryDay = employeeContract?.employmentContractHeader?.salaryDay ?? 5
     const { startDate, endDate } = calculateSettlementPeriod(newPayrollYearMonth, salaryMonth)
@@ -791,6 +794,74 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
       settlementStartDate: startDate,
       settlementEndDate: endDate
     }))
+  }
+
+  const handleSearch = async () => {
+    if (!formData.payrollYearMonth || !formData.settlementStartDate || !formData.settlementEndDate) {
+      await alert('급여 지급월과 정산 기간을 모두 입력해주세요.')
+      return
+    }
+
+    // 신규 모드: 선택된 폼 값 사용, 상세/편집 모드: existingPayrollData 사용
+    const memberId = existingPayrollData?.memberId ?? selectedEmployeeId ?? undefined
+    const headOfficeId = existingPayrollData?.headOfficeId ?? selectedHeadOfficeId ?? undefined
+
+    try {
+      // 1) payrollYearMonth 기준 충돌 검사
+      const result = await getPayrollStatements({
+        memberId,
+        headOfficeId,
+        payrollYearMonth: formData.payrollYearMonth,
+        size: 100,
+      })
+
+      const conflicting = result.content.filter(s => s.id !== (existingPayrollData?.id ?? 0))
+      if (conflicting.length > 0) {
+        await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+        if (existingPayrollData) {
+          setFormData(prev => ({
+            ...prev,
+            settlementStartDate: existingPayrollData.settlementStartDate,
+            settlementEndDate: existingPayrollData.settlementEndDate,
+          }))
+        }
+        return
+      }
+
+      // 2) 날짜 범위 충돌 검사: 정산 기간이 다른 월에 걸쳐 있는 경우 overlap 확인
+      const startYm = formData.settlementStartDate.substring(0, 7).replace('-', '')
+      const endYm = formData.settlementEndDate.substring(0, 7).replace('-', '')
+
+      if (startYm !== formData.payrollYearMonth || endYm !== formData.payrollYearMonth) {
+        const rangeResult = await getPayrollStatements({
+          memberId,
+          headOfficeId,
+          size: 200,
+        })
+
+        const rangeConflicting = rangeResult.content.filter(s => {
+          if (s.id === (existingPayrollData?.id ?? 0)) return false
+          return formData.settlementStartDate <= s.settlementEndDate &&
+            formData.settlementEndDate >= s.settlementStartDate
+        })
+
+        if (rangeConflicting.length > 0) {
+          await alert('해당 기간에 급여명세서가 이미 존재합니다.')
+          if (existingPayrollData) {
+            setFormData(prev => ({
+              ...prev,
+              settlementStartDate: existingPayrollData.settlementStartDate,
+              settlementEndDate: existingPayrollData.settlementEndDate,
+            }))
+          }
+          return
+        }
+      }
+
+      setIsSearchDone(true)
+    } catch {
+      await alert('검색 중 오류가 발생했습니다.')
+    }
   }
 
   // 숫자 포맷팅
@@ -1338,7 +1409,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                         type="date"
                         className="input-frame"
                         value={formData.settlementStartDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, settlementStartDate: e.target.value }))}
+                        onChange={(e) => { setFormData(prev => ({ ...prev, settlementStartDate: e.target.value })); setIsSearchDone(false) }}
                       />
                     </div>
                     <span className="explain">~</span>
@@ -1347,9 +1418,17 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
                         type="date"
                         className="input-frame"
                         value={formData.settlementEndDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, settlementEndDate: e.target.value }))}
+                        onChange={(e) => { setFormData(prev => ({ ...prev, settlementEndDate: e.target.value })); setIsSearchDone(false) }}
                       />
                     </div>
+                    <button
+                      type="button"
+                      className={`btn-form outline s${isSearchDone ? '' : ' act'}`}
+                      onClick={handleSearch}
+                      style={{ marginLeft: '10px', whiteSpace: 'nowrap' }}
+                    >
+                      {isSearchDone ? '검색완료' : '검색'}
+                    </button>
                   </div>
                 </td>
                 <th>파일로 대체</th>
