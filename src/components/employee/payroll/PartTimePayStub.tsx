@@ -29,7 +29,7 @@ import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useContractsByEmployee, useContractList } from '@/hooks/queries/use-contract-queries'
 import { usePayrollStatementSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { calculatePaymentDate } from '@/lib/utils/payroll'
+import { calculatePayrollPeriod } from '@/lib/utils/payroll'
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -416,29 +416,19 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const now = new Date()
       const currentYear = now.getFullYear()
       const currentMonth = now.getMonth() + 1
-
-      const isNextMonth = employee.salaryMonth === 'SLRCF_002'
-
       const payrollYear = currentYear
       const payrollMonthNum = currentMonth
       const payrollMonthStr = `${payrollYear}-${String(payrollMonthNum).padStart(2, '0')}`
+      const { startDate, endDate, paymentDate } = calculatePayrollPeriod(
+        payrollMonthStr,
+        employee.salaryMonth,
+        employee.salaryDay
+      )
+
       setPayrollMonth(payrollMonthStr)
-
-      let periodYear: number
-      let periodMonth: number
-
-      if (isNextMonth) {
-        periodMonth = currentMonth === 1 ? 12 : currentMonth - 1
-        periodYear = currentMonth === 1 ? currentYear - 1 : currentYear
-      } else {
-        periodMonth = currentMonth
-        periodYear = currentYear
-      }
-
-      const lastDay = new Date(periodYear, periodMonth, 0).getDate()
-      setStartDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-01`)
-      setEndDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-${lastDay}`)
-      setPaymentDate(calculatePaymentDate(payrollYear, payrollMonthNum, employee.salaryDay))
+      setStartDate(startDate)
+      setEndDate(endDate)
+      setPaymentDate(paymentDate)
     }
   }
 
@@ -576,12 +566,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       setIsSearchDone(false)
       if (month) {
         setPayrollMonth(month)
-        const [year, monthNum] = month.split('-').map(Number)
-        const prevMonth = monthNum === 1 ? 12 : monthNum - 1
-        const prevYear = monthNum === 1 ? year - 1 : year
-        const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
-        setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
-        setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}`)
+        const { startDate, endDate } = calculatePayrollPeriod(month, 'SLRCF_002', salaryDay)
+        setStartDate(startDate)
+        setEndDate(endDate)
       } else {
         setPayrollMonth('')
         setStartDate('')
@@ -622,15 +609,15 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
 
       setPayrollMonth(month)
 
-      const [year, monthNum] = month.split('-').map(Number)
-      const prevMonth = monthNum === 1 ? 12 : monthNum - 1
-      const prevYear = monthNum === 1 ? year - 1 : year
+      const selectedEmployeeContract = employeeList.find(emp => emp.employeeInfoId === employeeInfoId)
+      const salaryMonth = selectedEmployeeContract?.salaryMonth || 'SLRCF_001'
+      const salaryDayValue = selectedEmployeeContract?.salaryDay ?? salaryDay
+      const { startDate, endDate, paymentDate } = calculatePayrollPeriod(month, salaryMonth, salaryDayValue)
 
-      // 전달 1일 ~ 말일
-      const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
-      setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
-      setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(lastDayOfPrevMonth).padStart(2, '0')}`)
-      setPaymentDate(calculatePaymentDate(year, monthNum, salaryDay))
+      setSalaryDay(salaryDayValue)
+      setStartDate(startDate)
+      setEndDate(endDate)
+      setPaymentDate(paymentDate)
     } else {
       setPayrollMonth('')
       setStartDate('')

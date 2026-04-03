@@ -25,6 +25,7 @@ import { OvertimeWorkTimeEditData, EditableOvertimeRecord, EditableWeeklySubtota
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { calculatePayrollPeriod } from '@/lib/utils/payroll'
 
 // 연장근무 수당 배율 (통상임금의 1.5배 — 근로기준법 제56조)
 const OVERTIME_RATE_MULTIPLIER = 1.5
@@ -284,29 +285,20 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
       const now = new Date()
       const currentYear = now.getFullYear()
       const currentMonth = now.getMonth() + 1
-
-      const isNextMonth = employee.salaryMonth === 'SLRCF_002'
       const payrollYear = currentYear
       const payrollMonthNum = currentMonth
 
       const payrollMonthStr = `${payrollYear}-${String(payrollMonthNum).padStart(2, '0')}`
+      const { startDate, endDate, paymentDate } = calculatePayrollPeriod(
+        payrollMonthStr,
+        employee.salaryMonth,
+        employee.salaryDay
+      )
+
       setPayrollMonth(payrollMonthStr)
-
-      let periodYear: number
-      let periodMonth: number
-
-      if (isNextMonth) {
-        periodMonth = currentMonth === 1 ? 12 : currentMonth - 1
-        periodYear = currentMonth === 1 ? currentYear - 1 : currentYear
-      } else {
-        periodMonth = currentMonth
-        periodYear = currentYear
-      }
-
-      const lastDay = new Date(periodYear, periodMonth, 0).getDate()
-      setStartDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-01`)
-      setEndDate(`${periodYear}-${String(periodMonth).padStart(2, '0')}-${lastDay}`)
-      setPaymentDate(`${payrollYear}-${String(payrollMonthNum).padStart(2, '0')}-${String(employee.salaryDay).padStart(2, '0')}`)
+      setStartDate(startDate)
+      setEndDate(endDate)
+      setPaymentDate(paymentDate)
     }
   }
 
@@ -447,14 +439,14 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
     setPayrollMonth(month)
 
     if (month) {
-      const [year, monthNum] = month.split('-').map(Number)
-      const prevMonth = monthNum === 1 ? 12 : monthNum - 1
-      const prevYear = monthNum === 1 ? year - 1 : year
-      const lastDay = new Date(prevYear, prevMonth, 0).getDate()
+      const selectedEmployeeContract = employeeList.find(emp => emp.employeeInfoId === employeeInfoId)
+      const salaryMonth = selectedEmployeeContract?.salaryMonth || 'SLRCF_001'
+      const salaryDay = selectedEmployeeContract?.salaryDay ?? 5
+      const { startDate, endDate, paymentDate } = calculatePayrollPeriod(month, salaryMonth, salaryDay)
 
-      setStartDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-01`)
-      setEndDate(`${prevYear}-${String(prevMonth).padStart(2, '0')}-${lastDay}`)
-      setPaymentDate(`${year}-${String(monthNum).padStart(2, '0')}-05`)
+      setStartDate(startDate)
+      setEndDate(endDate)
+      setPaymentDate(paymentDate)
     } else {
       setStartDate('')
       setEndDate('')
