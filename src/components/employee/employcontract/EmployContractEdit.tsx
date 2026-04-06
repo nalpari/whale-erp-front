@@ -525,7 +525,8 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
         <div className="slidebox-header">
           <h2>근로 계약 Header 정보</h2>
           <div className="slidebox-btn-wrap">
-            <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
+            <button className="slidebox-btn" onClick={handleCancel} disabled={isSaving}>취소</button>
+            <button className="slidebox-btn" onClick={handleSave} disabled={isSaving}>
               {isSaving ? '저장 중...' : '저장'}
             </button>
             <button className="slidebox-btn arr" onClick={() => setHeaderInfoOpen(!headerInfoOpen)} aria-label={headerInfoOpen ? '근로 계약 Header 정보 접기' : '근로 계약 Header 정보 펼치기'}>

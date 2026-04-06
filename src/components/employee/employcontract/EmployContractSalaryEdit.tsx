@@ -360,18 +360,14 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
       {/* 급여 정보 */}
       <div className={`slidebox-wrap ${salaryInfoOpen ? '' : 'close'}`}>
         <div className="slidebox-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button className="btn-form outline" onClick={handleBack} style={{ padding: '4px 8px' }} aria-label="상세 페이지로 돌아가기">
-              <span style={{ fontSize: '16px' }}>&lt;</span>
-            </button>
-            <h2>급여 정보</h2>
-          </div>
+          <h2>급여 정보</h2>
           <div className="slidebox-btn-wrap">
             {/* 파트타임이 아닌 경우에만 계산기 버튼 표시 */}
             {contractClassification !== 'CNTCFWK_003' && (
               <button className="btn-form outline" onClick={handleCalculator}>연봉 및 통상시급 계산기</button>
             )}
-            <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
+            <button className="slidebox-btn" onClick={handleBack} disabled={isSaving}>취소</button>
+            <button className="slidebox-btn" onClick={handleSave} disabled={isSaving}>
               {isSaving ? '저장 중...' : '저장'}
             </button>
           </div>

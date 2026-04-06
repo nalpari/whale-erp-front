@@ -19,6 +19,7 @@ export default function OvertimeWorkTimeEditPage({ params }: PageProps) {
   const headOfficeId = searchParams.get('headOfficeId') ?? undefined
   const franchiseId = searchParams.get('franchiseId') ?? undefined
   const storeId = searchParams.get('storeId') ?? undefined
+  const returnToDetail = searchParams.get('returnToDetail') === 'true'
 
   return (
     <>
@@ -32,6 +33,7 @@ export default function OvertimeWorkTimeEditPage({ params }: PageProps) {
         headOfficeId={headOfficeId}
         franchiseId={franchiseId}
         storeId={storeId}
+        returnToDetail={returnToDetail}
       />
     </>
   )
