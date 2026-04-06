@@ -13,6 +13,8 @@ interface PartTimeWorkTimeEditProps {
   employeeInfoId?: string
   payrollMonth?: string
   returnToDetail?: boolean
+  headOfficeId?: string
+  franchiseId?: string
 }
 
 // 편집 가능한 일별 근무 데이터 타입
@@ -126,6 +128,8 @@ export default function PartTimeWorkTimeEdit({
   employeeInfoId = '',
   payrollMonth = '',
   returnToDetail = false,
+  headOfficeId = '',
+  franchiseId = '',
 }: PartTimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -144,7 +148,13 @@ export default function PartTimeWorkTimeEdit({
 
   // TanStack Query hook
   const { data: payrollData, isPending: isLoading } = useDailyWorkHours(
-    { employeeInfoId: parseInt(employeeInfoId) || 0, startDate, endDate },
+    {
+      employeeInfoId: parseInt(employeeInfoId) || 0,
+      startDate,
+      endDate,
+      headOfficeId: parseInt(headOfficeId) || undefined,
+      franchiseId: parseInt(franchiseId) || undefined,
+    },
     !!startDate && !!endDate && !!employeeInfoId
   )
 
@@ -160,14 +170,36 @@ export default function PartTimeWorkTimeEdit({
         if (parsed.employeeInfoId === employeeInfoId &&
             parsed.startDate === startDate &&
             parsed.endDate === endDate) {
-          // 이전 형식 데이터에 contractWorkHours가 없을 수 있으므로 기본값 보장
+          // API에서 contractWorkHours를 날짜별로 맵핑 (localStorage preload 시 0으로 고정된 값을 보정)
+          const apiContractHoursMap = new Map<string, number>()
+          if (payrollData?.items) {
+            payrollData.items
+              .filter(item => item.type === 'DAILY' && item.dailyRecord)
+              .forEach(item => {
+                apiContractHoursMap.set(item.dailyRecord!.date, item.dailyRecord!.contractWorkHours)
+              })
+          }
+
           const records = parsed.editedRecords.map(r => ({
             ...r,
-            contractWorkHours: r.contractWorkHours ?? 0
+            // API 값 우선 사용 (기존 명세서 preload 시 0으로 고정된 문제 해결)
+            contractWorkHours: apiContractHoursMap.get(r.date) ?? r.contractWorkHours ?? 0
           }))
           setDailyRecords(records)
           setWeeklyHolidayAllowances(parsed.weeklyHolidayAllowances)
-          setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
+          // API의 contractHourlyWageInfo 우선 사용 (overtimeHourlyWage, holidayHourlyWage 포함)
+          if (payrollData?.contractHourlyWageInfo) {
+            setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
+          } else {
+            setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
+          }
+          // previousMonthWorkHours도 API에서 가져오기
+          if (payrollData) {
+            setEmployeeName(payrollData.memberName || '')
+            setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
+            setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
+            setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
+          }
           loadedFromStorage = true
         }
       } catch (e) {

@@ -164,7 +164,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   )
   const payrollQueryEnabled = !!((employeeInfoId ?? existingStatement?.employeeInfoId) && startDate && endDate)
   const { data: payrollData, isPending: isPayrollPending } = useDailyWorkHours(
-    { employeeInfoId: employeeInfoId ?? existingStatement?.employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseStoreId: franchiseIdNum ?? undefined, startDate, endDate },
+    { employeeInfoId: employeeInfoId ?? existingStatement?.employeeInfoId ?? 0, headOfficeId: headOfficeIdNum ?? undefined, franchiseId: franchiseIdNum ?? undefined, startDate, endDate },
     payrollQueryEnabled
   )
 
@@ -561,6 +561,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
         employeeInfoId: String(existingStatement!.employeeInfoId),
         payrollMonth,
         returnToDetail: 'true',
+        ...(existingStatement!.headOfficeId && { headOfficeId: String(existingStatement!.headOfficeId) }),
+        ...(existingStatement!.franchiseId && { franchiseId: String(existingStatement!.franchiseId) }),
       })
       router.push(`/employee/payroll/parttime/${id}/worktime?${params.toString()}`)
       return
@@ -594,7 +596,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       startDate,
       endDate,
       employeeInfoId: String(employeeInfoId),
-      payrollMonth
+      payrollMonth,
+      ...(headOfficeIdNum && { headOfficeId: String(headOfficeIdNum) }),
+      ...(franchiseIdNum && { franchiseId: String(franchiseIdNum) }),
     })
     router.push(`/employee/payroll/parttime/${id}/worktime?${params.toString()}`)
   }

@@ -172,9 +172,9 @@ export const usePartTimePayrollDetail = (id?: number | null) => {
 }
 
 export const useDailyWorkHours = (
-  params: Omit<GetDailyWorkHoursParams, 'headOfficeId' | 'franchiseStoreId' | 'storeId'> & {
+  params: Omit<GetDailyWorkHoursParams, 'headOfficeId' | 'franchiseId' | 'storeId'> & {
     headOfficeId?: number
-    franchiseStoreId?: number
+    franchiseId?: number
     storeId?: number
   },
   enabled = true

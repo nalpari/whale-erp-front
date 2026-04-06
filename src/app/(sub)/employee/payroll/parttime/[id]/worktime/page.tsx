@@ -17,6 +17,8 @@ export default function PartTimeWorkTimeEditPage({ params }: PageProps) {
   const employeeInfoId = searchParams.get('employeeInfoId') || ''
   const payrollMonth = searchParams.get('payrollMonth') || ''
   const returnToDetail = searchParams.get('returnToDetail') === 'true'
+  const headOfficeId = searchParams.get('headOfficeId') || ''
+  const franchiseId = searchParams.get('franchiseId') || ''
 
   return (
     <>
@@ -28,6 +30,8 @@ export default function PartTimeWorkTimeEditPage({ params }: PageProps) {
         employeeInfoId={employeeInfoId}
         payrollMonth={payrollMonth}
         returnToDetail={returnToDetail}
+        headOfficeId={headOfficeId}
+        franchiseId={franchiseId}
       />
     </>
   )

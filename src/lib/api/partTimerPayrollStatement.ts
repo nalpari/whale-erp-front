@@ -240,7 +240,7 @@ export interface DailyWorkHoursSummaryResponse {
 // 일별 근무 시간 조회 파라미터
 export interface GetDailyWorkHoursParams {
   headOfficeId?: number
-  franchiseStoreId?: number
+  franchiseId?: number
   storeId?: number
   employeeInfoId: number
   startDate: string
