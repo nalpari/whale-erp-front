@@ -1612,41 +1612,39 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                       ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
                       : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
 
-                    // ─── 급여소계: 일자별(paymentItems)만 ────────────────────
-                    // 백엔드 totalAmount = 일별 합계 + 주휴수당 이미 포함
-                    // → 일자별만 직접 합산해야 순수 일자별 금액
+                    // ─── 급여소계: 일자별 + 주휴수당 ────────────────────────
                     const dailyPaymentTotal = existingStatement.paymentItems.reduce((s, i) => s + i.totalAmount, 0)
                     const subTotalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
-                    const subTotalNet = dailyPaymentTotal - paymentItemsDeduction
+                    const holidayPaymentTotal = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.totalAmount, 0) ?? 0
+                    const holidayWorkHours = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, w) => s + w.workTime, 0) ?? 0
+                    const subTotalPayment = dailyPaymentTotal + holidayPaymentTotal
+                    const subTotalDeductionAmt = paymentItemsDeduction + holidayDeduction
+                    const subTotalWorkHoursAll = subTotalWorkHours + holidayWorkHours
+                    const subTotalNet = subTotalPayment - subTotalDeductionAmt
 
                     // ─── 급여합계: 전체 (일자별 + 주휴수당 + 상여) ───────────
-                    // existingStatement.totalAmount = 일별 + 주휴수당 (백엔드 계산)
-                    const holidayWorkHours = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, w) => s + w.workTime, 0) ?? 0
-                    const totalWorkHours = subTotalWorkHours + holidayWorkHours
                     const totalDeduction = paymentItemsDeduction + holidayDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
                     const finalTotal = existingStatement.totalAmount + savedActiveBonusTotal - totalDeduction
                     return (
                       <>
-                        {/* 급여소계: 일자별(paymentItems) 합만 */}
+                        {/* 급여소계: 일자별 + 주휴수당 */}
                         <tr className="grand-total">
                           <td><strong>급여소계</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotalWorkHours)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalWorkHoursAll)}</strong></td>
                           <td className="al-r"><strong>-</strong></td>
-                          <td className="al-r"><strong>{formatNumber(dailyPaymentTotal)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(paymentItemsDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalPayment)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalDeductionAmt)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(subTotalNet)}</strong></td>
                         </tr>
-                        {/* 4대보험 공제액 */}
-                        {insuranceDeduction > 0 && (
-                          <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
-                            <td><strong>공제액</strong></td>
-                            <td className="al-r">-</td>
-                            <td className="al-r">-</td>
-                            <td className="al-r">-</td>
-                            <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
-                            <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
-                          </tr>
-                        )}
+                        {/* 4대보험 공제액: 0원이어도 항상 표시 */}
+                        <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
+                          <td><strong>공제액</strong></td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">-</td>
+                          <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
+                          <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                        </tr>
                         {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
                         {displayBonuses.map((bonus) => {
                           const isActive = !disabledBonusIds.has(bonus.id)
@@ -1671,7 +1669,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                         {/* 급여합계: 일자별 + 주휴수당(totalAmount에 포함) + 상여 전체 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalWorkHours)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(subTotalWorkHoursAll)}</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount + savedActiveBonusTotal)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
