@@ -28,3 +28,76 @@ export function calculatePaymentDateFromYearMonth(payrollYearMonth: string, sala
   const month = parseInt(payrollYearMonth.substring(4, 6), 10)
   return calculatePaymentDate(year, month, salaryDay)
 }
+
+function parsePayrollYearMonth(payrollYearMonth: string): { year: number; month: number } | null {
+  if (!payrollYearMonth) return null
+
+  const normalized = payrollYearMonth.replace('-', '')
+  if (normalized.length !== 6) return null
+
+  const year = parseInt(normalized.substring(0, 4), 10)
+  const month = parseInt(normalized.substring(4, 6), 10)
+
+  if (Number.isNaN(year) || Number.isNaN(month) || month < 1 || month > 12) {
+    return null
+  }
+
+  return { year, month }
+}
+
+function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export interface PayrollPeriod {
+  startDate: string
+  endDate: string
+  paymentDate: string
+}
+
+/**
+ * 급여 계약의 지급 기준(당월/익월)과 지급일에 따라 자동 정산 기간을 계산한다.
+ *
+ * - 익월(SLRCF_002): 지난달 1일 ~ 지난달 말일
+ * - 당월(SLRCF_001): 지난 지급일 ~ 이번 지급일 - 1일
+ */
+export function calculatePayrollPeriod(
+  payrollYearMonth: string,
+  salaryMonth: string,
+  salaryDay: number
+): PayrollPeriod {
+  const parsed = parsePayrollYearMonth(payrollYearMonth)
+  if (!parsed) {
+    return { startDate: '', endDate: '', paymentDate: '' }
+  }
+
+  const { year, month } = parsed
+  const paymentDate = calculatePaymentDate(year, month, salaryDay)
+
+  if (salaryMonth === 'SLRCF_002') {
+    const settlementMonth = month === 1 ? 12 : month - 1
+    const settlementYear = month === 1 ? year - 1 : year
+    const lastDay = new Date(settlementYear, settlementMonth, 0).getDate()
+
+    return {
+      startDate: `${settlementYear}-${String(settlementMonth).padStart(2, '0')}-01`,
+      endDate: `${settlementYear}-${String(settlementMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+      paymentDate,
+    }
+  }
+
+  const previousMonth = month === 1 ? 12 : month - 1
+  const previousYear = month === 1 ? year - 1 : year
+  const previousPaymentDate = calculatePaymentDate(previousYear, previousMonth, salaryDay)
+  const endDateValue = new Date(year, month - 1, Math.min(salaryDay, new Date(year, month, 0).getDate()))
+  endDateValue.setDate(endDateValue.getDate() - 1)
+
+  return {
+    startDate: previousPaymentDate,
+    endDate: formatDate(endDateValue),
+    paymentDate,
+  }
+}

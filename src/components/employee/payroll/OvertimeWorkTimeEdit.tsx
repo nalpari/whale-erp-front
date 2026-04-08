@@ -12,10 +12,15 @@ interface OvertimeWorkTimeEditProps {
   endDate?: string
   employeeInfoId?: string
   payrollMonth?: string
+  headOfficeId?: string
+  franchiseId?: string
+  storeId?: string
+  returnToDetail?: boolean
 }
 
 // 편집 가능한 일별 연장근무 데이터 타입
 export interface EditableOvertimeRecord {
+  id?: number
   date: string
   dayOfWeek: string
   dayOfWeekKorean: string
@@ -61,6 +66,21 @@ export interface OvertimeWorkTimeEditData {
 // localStorage 키
 const OVERTIME_WORKTIME_EDIT_STORAGE_KEY = 'overtime_worktime_edit_data'
 
+// 날짜 범위 내 모든 날짜 생성
+const generateDateRange = (start: string, end: string): string[] => {
+  const dates: string[] = []
+  const current = new Date(start)
+  const endDate = new Date(end)
+  while (current <= endDate) {
+    dates.push(current.toISOString().split('T')[0])
+    current.setDate(current.getDate() + 1)
+  }
+  return dates
+}
+
+const DAY_OF_WEEK_KOREAN = ['일', '월', '화', '수', '목', '금', '토']
+const DAY_OF_WEEK_ENGLISH = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+
 // ISO 주차 번호 계산 함수
 const getISOWeekNumber = (dateStr: string): number => {
   const date = new Date(dateStr)
@@ -77,7 +97,11 @@ export default function OvertimeWorkTimeEdit({
   startDate = '',
   endDate = '',
   employeeInfoId = '',
-  payrollMonth = ''
+  payrollMonth = '',
+  headOfficeId = '',
+  franchiseId = '',
+  storeId = '',
+  returnToDetail = false,
 }: OvertimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -88,12 +112,19 @@ export default function OvertimeWorkTimeEdit({
 
   // TanStack Query: 일별 연장근무 시간 조회
   const { data: overtimeData, isPending: isLoading } = useDailyOvertimeHours(
-    { employeeInfoId: parseInt(employeeInfoId) || 0, startDate, endDate },
+    {
+      employeeInfoId: parseInt(employeeInfoId) || 0,
+      startDate,
+      endDate,
+      headOfficeId: headOfficeId ? parseInt(headOfficeId) : undefined,
+      franchiseId: franchiseId ? parseInt(franchiseId) : undefined,
+      storeId: storeId ? parseInt(storeId) : undefined,
+    },
     !!startDate && !!endDate && !!employeeInfoId
   )
 
-  // React 19 패턴: 렌더 단계에서 데이터 로드 처리
-  if (overtimeData && !isDataLoaded && startDate && endDate && employeeInfoId) {
+  // API 로드 완료 후 데이터 초기화 (overtimeData가 null이어도 기간 내 전체 날짜 생성)
+  if (!isLoading && !isDataLoaded && startDate && endDate && employeeInfoId) {
     // 1. localStorage에 저장된 수정 데이터가 있는지 확인
     const savedData = localStorage.getItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
     let loadedFromStorage = false
@@ -115,10 +146,11 @@ export default function OvertimeWorkTimeEdit({
     }
 
     if (!loadedFromStorage) {
-      // 2. 저장된 데이터가 없으면 API 데이터 사용
-      setApplyTimelyAmount(overtimeData.applyTimelyAmount || 0)
+      // 2. 저장된 데이터가 없으면 API 데이터 + 빈 날짜 채우기
+      const defaultApplyTimelyAmount = overtimeData?.applyTimelyAmount || 0
+      setApplyTimelyAmount(defaultApplyTimelyAmount)
 
-      const editableRecords: EditableOvertimeRecord[] = overtimeData.items
+      const apiRecords: EditableOvertimeRecord[] = (overtimeData?.items ?? [])
         .filter(item => item.type === 'DAILY' && item.dailyRecord)
         .map(item => {
           const record = item.dailyRecord!
@@ -140,7 +172,33 @@ export default function OvertimeWorkTimeEdit({
           }
         })
 
-      const subtotals: EditableWeeklySubtotal[] = overtimeData.items
+      // API가 반환하지 않은 날짜(0시간)를 기간 내 전체 날짜로 채우기
+      const apiDates = new Set(apiRecords.map(r => r.date))
+      const allDates = generateDateRange(startDate, endDate)
+      const missingDates = allDates.filter(d => !apiDates.has(d))
+      const filledRecords: EditableOvertimeRecord[] = missingDates.map(date => {
+        const dayIdx = new Date(date).getDay()
+        return {
+          date,
+          dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
+          dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
+          originalOvertimeHours: 0,
+          overtimeHours: 0,
+          overtimeStartTime: undefined,
+          overtimeEndTime: undefined,
+          originalApplyTimelyAmount: defaultApplyTimelyAmount,
+          applyTimelyAmount: defaultApplyTimelyAmount,
+          paymentAmount: 0,
+          deductionAmount: 0,
+          totalAmount: 0,
+          contractHourlyWage: defaultApplyTimelyAmount,
+          weekNumber: getISOWeekNumber(date)
+        }
+      })
+
+      const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
+
+      const subtotals: EditableWeeklySubtotal[] = (overtimeData?.items ?? [])
         .filter(item => item.type === 'WEEKLY_SUBTOTAL' && item.weeklySubtotal)
         .map(item => {
           const subtotal = item.weeklySubtotal!
@@ -162,9 +220,16 @@ export default function OvertimeWorkTimeEdit({
     setIsDataLoaded(true)
   }
 
+  const getReturnPath = (withFromParam = false) => {
+    const suffix = withFromParam ? '?fromWorkTimeEdit=true' : ''
+    if (returnToDetail) return `/employee/payroll/overtime/${id}${suffix}`
+    if (id === 'new') return `/employee/payroll/overtime/new${suffix}`
+    return `/employee/payroll/overtime/${id}/edit${suffix}`
+  }
+
   const handleGoBack = () => {
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new' : `/employee/payroll/overtime/${id}`
-    router.push(targetPath)
+    localStorage.removeItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY)
+    router.push(getReturnPath())
   }
 
   // 계산 로직
@@ -249,48 +314,9 @@ export default function OvertimeWorkTimeEdit({
     localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
     await alert('저장되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
-    router.push(targetPath)
+    router.push(getReturnPath(true))
   }
 
-  const handleApplyContractTime = async () => {
-    const updatedRecords = dailyRecords.map(record => {
-      const updated = {
-        ...record,
-        applyTimelyAmount: Math.round(record.contractHourlyWage * 1.5)
-      }
-      return recalculateRecord(updated)
-    })
-
-    const updatedSubtotals = recalculateWeeklySubtotals(updatedRecords)
-    setDailyRecords(updatedRecords)
-    setWeeklySubtotals(updatedSubtotals)
-
-    const grandTotalOvertimeHours = updatedRecords.reduce((sum, r) => sum + r.overtimeHours, 0)
-    const grandTotalPaymentAmount = updatedRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
-    const grandTotalDeductionAmount = updatedRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
-    const grandTotalAmount = updatedRecords.reduce((sum, r) => sum + r.totalAmount, 0)
-
-    const editData: OvertimeWorkTimeEditData = {
-      employeeInfoId,
-      startDate,
-      endDate,
-      payrollMonth,
-      editedRecords: updatedRecords,
-      weeklySubtotals: updatedSubtotals,
-      grandTotalOvertimeHours,
-      grandTotalPaymentAmount,
-      grandTotalDeductionAmount,
-      grandTotalAmount,
-      applyTimelyAmount
-    }
-
-    localStorage.setItem(OVERTIME_WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
-
-    await alert('계약 시급이 적용되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/overtime/new?fromWorkTimeEdit=true' : `/employee/payroll/overtime/${id}?fromWorkTimeEdit=true`
-    router.push(targetPath)
-  }
 
   const handleOvertimeHoursChange = (index: number, hours: number) => {
     setDailyRecords(prev => {
@@ -371,7 +397,7 @@ export default function OvertimeWorkTimeEdit({
     <div className="contents-wrap">
       <div className="contents-btn">
         <button className="btn-form basic" onClick={handleGoBack}>뒤로가기</button>
-        <button className="btn-form outline s" onClick={handleApplyContractTime}>계약 시간 적용</button>
+
         <button className="btn-form primary" onClick={handleSave}>저장</button>
       </div>
       <div className="contents-body">
@@ -418,10 +444,9 @@ export default function OvertimeWorkTimeEdit({
                 dailyRecords.map((record, index) => {
                   const hours = Math.floor(record.overtimeHours)
                   const minutes = Math.round((record.overtimeHours % 1) * 60)
-                  const isNoWork = record.overtimeHours === 0
 
                   return (
-                    <tr key={record.date} className={isNoWork ? 'disabled' : ''}>
+                    <tr key={record.date}>
                       <td>{record.date} ({record.dayOfWeekKorean})</td>
                       <td>
                         {record.overtimeStartTime && record.overtimeEndTime
@@ -431,25 +456,32 @@ export default function OvertimeWorkTimeEdit({
                       </td>
                       <td>
                         <div className="filed-flx">
-                          <div className="filed-flx g8">
-                            <div className="mx-100">
-                              <SearchSelect
-                                options={hourOptions}
-                                value={hourOptions.find(opt => opt.value === String(hours)) || null}
-                                onChange={(opt) => handleOvertimeHoursChange(index, parseInt(opt?.value || '0'))}
-                                placeholder="시간"
-                              />
+                          <div
+                            className="filed-flx"
+                            style={{ gap: '80px', flexWrap: 'nowrap' }}
+                          >
+                            <div className="filed-flx" style={{ gap: '12px', flexWrap: 'nowrap', minWidth: '132px' }}>
+                              <div className="mx-100" style={{ minWidth: '96px' }}>
+                                <SearchSelect
+                                  options={hourOptions}
+                                  value={hourOptions.find(opt => opt.value === String(hours)) || null}
+                                  onChange={(opt) => handleOvertimeHoursChange(index, parseInt(opt?.value || '0'))}
+                                  placeholder="시간"
+                                />
+                              </div>
+                              <span className="won" style={{ minWidth: '24px', textAlign: 'center' }}>시간</span>
                             </div>
-                            <span className="won">시간</span>
-                            <div className="mx-100">
-                              <SearchSelect
-                                options={minuteOptions}
-                                value={minuteOptions.find(opt => opt.value === String(minutes)) || null}
-                                onChange={(opt) => handleOvertimeMinutesChange(index, parseInt(opt?.value || '0'))}
-                                placeholder="분"
-                              />
+                            <div className="filed-flx" style={{ gap: '12px', flexWrap: 'nowrap', minWidth: '124px' }}>
+                              <div className="mx-100" style={{ minWidth: '96px' }}>
+                                <SearchSelect
+                                  options={minuteOptions}
+                                  value={minuteOptions.find(opt => opt.value === String(minutes)) || null}
+                                  onChange={(opt) => handleOvertimeMinutesChange(index, parseInt(opt?.value || '0'))}
+                                  placeholder="분"
+                                />
+                              </div>
+                              <span className="won" style={{ minWidth: '16px', textAlign: 'center' }}>분</span>
                             </div>
-                            <span className="won">분</span>
                           </div>
                         </div>
                       </td>

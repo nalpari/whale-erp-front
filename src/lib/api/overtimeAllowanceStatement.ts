@@ -39,6 +39,7 @@ export interface OvertimeAllowanceStatementResponse {
 export interface OvertimeAllowanceStatementDetailResponse {
   id: number
   memberId: number
+  employeeInfoId?: number
   memberName: string
   allowanceYearMonth: string
   calculationStartDate: string
@@ -127,7 +128,7 @@ export async function getOvertimeAllowanceStatement(id: number): Promise<Overtim
 // 일별 연장근무 시간 조회 파라미터
 export interface GetDailyOvertimeHoursParams {
   headOfficeId?: number
-  franchiseStoreId?: number
+  franchiseId?: number
   storeId?: number
   employeeInfoId: number
   startDate: string

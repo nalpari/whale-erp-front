@@ -2,7 +2,7 @@ import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
 import type { CustomerSearchParams } from '@/types/customer'
-import type { EmployeeTodoListParams } from '@/types/employee-todo'
+import type { EmployeeTodoListParams, EmployeeTodoSelectParams } from '@/types/employee-todo'
 
 export interface StoreListParams {
   office?: number
@@ -67,14 +67,7 @@ export const storeScheduleKeys = {
   list: (params?: unknown) => [...storeScheduleKeys.lists(), params ?? null] as const,
 }
 
-export type EmployeeTodoSelectPurpose = 'SEARCH' | 'REGISTER'
-
-export interface EmployeeTodoSelectParams {
-  purpose: EmployeeTodoSelectPurpose
-  headOfficeId?: number
-  franchiseId?: number
-  storeId?: number
-}
+export type { EmployeeTodoSelectPurpose, EmployeeTodoSelectParams } from '@/types/employee-todo'
 
 export const employeeTodoKeys = {
   all: ['employee-todos'] as const,
@@ -225,7 +218,7 @@ export const payrollKeys = {
     list: (params: OvertimePayrollListParams) => [...payrollKeys.overtime.lists(), params] as const,
     details: () => [...payrollKeys.overtime.all(), 'detail'] as const,
     detail: (id: number) => [...payrollKeys.overtime.details(), id] as const,
-    dailyOvertimeHours: (params: { employeeInfoId: number; startDate: string; endDate: string }) =>
+    dailyOvertimeHours: (params: { employeeInfoId: number; startDate: string; endDate: string; headOfficeId?: number; franchiseId?: number; storeId?: number }) =>
       [...payrollKeys.overtime.all(), 'daily-overtime-hours', params] as const,
   },
 }

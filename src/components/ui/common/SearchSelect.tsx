@@ -12,6 +12,8 @@ import CreatableSelect from 'react-select/creatable'
 export interface SelectOption {
   value: string
   label: string
+  /** creatable 모드에서 사용자가 직접 입력한 옵션일 때 true (react-select 내부 플래그) */
+  __isNew__?: boolean
 }
 
 interface SearchSelectBaseProps {

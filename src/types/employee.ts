@@ -104,8 +104,9 @@ export interface EmployeeInfoDetailResponse {
   hireDate?: string | null
   resignationDate?: string | null
   resignationReason?: string | null
-  // 급여 계좌 정보
-  salaryBank?: string | null
+  // 급여 계좌 정보 (join)
+  salaryAccountId?: number | null
+  salaryBankName?: string | null
   salaryAccountNumber?: string | null
   salaryAccountHolder?: string | null
   // 기타
@@ -139,7 +140,8 @@ export type EmployeeInfoListResponse = {
   hireDate: string
   resignationDate?: string | null
   resignationReason?: string | null
-  salaryBank?: string | null
+  salaryAccountId?: number | null
+  salaryBankName?: string | null
   salaryAccountNumber?: string | null
   salaryAccountHolder?: string | null
   residentRegistrationFileId?: number | null
@@ -309,10 +311,6 @@ export interface UpdateEmployeeInfoRequest {
   hireDate: string  // 필수값
   resignationDate?: string | null
   resignationReason?: string | null
-  // 급여 정보
-  salaryBank?: string | null
-  salaryAccountNumber?: string | null
-  salaryAccountHolder?: string | null
   // 기타
   memo?: string | null
   iconType?: number | null

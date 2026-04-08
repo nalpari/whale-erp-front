@@ -12,6 +12,9 @@ interface PartTimeWorkTimeEditProps {
   endDate?: string
   employeeInfoId?: string
   payrollMonth?: string
+  returnToDetail?: boolean
+  headOfficeId?: string
+  franchiseId?: string
 }
 
 // 편집 가능한 일별 근무 데이터 타입
@@ -27,6 +30,7 @@ export interface EditableDailyRecord {
   deductionAmount: number
   totalAmount: number
   contractHourlyWage: number
+  contractWorkHours: number
   weekNumber: number
 }
 
@@ -69,6 +73,43 @@ export interface WorkTimeEditData {
 // localStorage 키
 const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
 
+// 날짜 범위 내 모든 날짜 생성
+const generateDateRange = (start: string, end: string): string[] => {
+  const dates: string[] = []
+  const current = new Date(start)
+  const endDate = new Date(end)
+  while (current <= endDate) {
+    dates.push(current.toISOString().split('T')[0])
+    current.setDate(current.getDate() + 1)
+  }
+  return dates
+}
+
+const DAY_OF_WEEK_KOREAN = ['일', '월', '화', '수', '목', '금', '토']
+const DAY_OF_WEEK_ENGLISH = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+
+const getWeekRange = (dateStr: string): { weekStartDate: string; weekEndDate: string } => {
+  const date = new Date(dateStr)
+  const dayOfWeek = date.getDay()
+  const monday = new Date(date)
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  monday.setDate(date.getDate() + diffToMonday)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+
+  const format = (value: Date) => {
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const day = String(value.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  return {
+    weekStartDate: format(monday),
+    weekEndDate: format(sunday),
+  }
+}
+
 // ISO 주차 번호 계산 함수
 const getISOWeekNumber = (dateStr: string): number => {
   const date = new Date(dateStr)
@@ -85,7 +126,10 @@ export default function PartTimeWorkTimeEdit({
   startDate = '',
   endDate = '',
   employeeInfoId = '',
-  payrollMonth = ''
+  payrollMonth = '',
+  returnToDetail = false,
+  headOfficeId = '',
+  franchiseId = '',
 }: PartTimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
@@ -104,12 +148,18 @@ export default function PartTimeWorkTimeEdit({
 
   // TanStack Query hook
   const { data: payrollData, isPending: isLoading } = useDailyWorkHours(
-    { employeeInfoId: parseInt(employeeInfoId) || 0, startDate, endDate },
+    {
+      employeeInfoId: parseInt(employeeInfoId) || 0,
+      startDate,
+      endDate,
+      headOfficeId: parseInt(headOfficeId) || undefined,
+      franchiseId: parseInt(franchiseId) || undefined,
+    },
     !!startDate && !!endDate && !!employeeInfoId
   )
 
-  // React 19 패턴: 렌더 단계에서 데이터 로드 처리
-  if (payrollData && !isDataLoaded && startDate && endDate && employeeInfoId) {
+  // API 로드 완료 후 데이터 초기화 (payrollData가 null이어도 기간 내 전체 날짜 생성)
+  if (!isLoading && !isDataLoaded && startDate && endDate && employeeInfoId) {
     // localStorage 확인
     const savedData = localStorage.getItem(WORKTIME_EDIT_STORAGE_KEY)
     let loadedFromStorage = false
@@ -120,9 +170,36 @@ export default function PartTimeWorkTimeEdit({
         if (parsed.employeeInfoId === employeeInfoId &&
             parsed.startDate === startDate &&
             parsed.endDate === endDate) {
-          setDailyRecords(parsed.editedRecords)
+          // API에서 contractWorkHours를 날짜별로 맵핑 (localStorage preload 시 0으로 고정된 값을 보정)
+          const apiContractHoursMap = new Map<string, number>()
+          if (payrollData?.items) {
+            payrollData.items
+              .filter(item => item.type === 'DAILY' && item.dailyRecord)
+              .forEach(item => {
+                apiContractHoursMap.set(item.dailyRecord!.date, item.dailyRecord!.contractWorkHours)
+              })
+          }
+
+          const records = parsed.editedRecords.map(r => ({
+            ...r,
+            // API 값 우선 사용 (기존 명세서 preload 시 0으로 고정된 문제 해결)
+            contractWorkHours: apiContractHoursMap.get(r.date) ?? r.contractWorkHours ?? 0
+          }))
+          setDailyRecords(records)
           setWeeklyHolidayAllowances(parsed.weeklyHolidayAllowances)
-          setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
+          // API의 contractHourlyWageInfo 우선 사용 (overtimeHourlyWage, holidayHourlyWage 포함)
+          if (payrollData?.contractHourlyWageInfo) {
+            setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
+          } else {
+            setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
+          }
+          // previousMonthWorkHours도 API에서 가져오기
+          if (payrollData) {
+            setEmployeeName(payrollData.memberName || '')
+            setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
+            setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
+            setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
+          }
           loadedFromStorage = true
         }
       } catch (e) {
@@ -131,14 +208,15 @@ export default function PartTimeWorkTimeEdit({
     }
 
     if (!loadedFromStorage) {
-      // API 데이터 변환
-      setEmployeeName(payrollData.memberName || '')
-      setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
-      setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
-      setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
-      setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
+      // API 데이터 변환 (null이면 빈 배열 사용)
+      const defaultWage = payrollData?.contractHourlyWageInfo?.weekDayHourlyWage ?? 0
+      setEmployeeName(payrollData?.memberName || '')
+      if (payrollData?.contractHourlyWageInfo) setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
+      setPreviousMonthWorkHours(payrollData?.previousMonthWorkHours || 0)
+      setPreviousMonthWorkStartDate(payrollData?.previousMonthWorkStartDate || null)
+      setPreviousMonthWorkEndDate(payrollData?.previousMonthWorkEndDate || null)
 
-      const editableRecords: EditableDailyRecord[] = payrollData.items
+      const apiRecords: EditableDailyRecord[] = (payrollData?.items ?? [])
         .filter(item => item.type === 'DAILY' && item.dailyRecord)
         .map(item => {
           const record = item.dailyRecord!
@@ -153,12 +231,38 @@ export default function PartTimeWorkTimeEdit({
             paymentAmount: record.paymentAmount,
             deductionAmount: record.deductionAmount,
             totalAmount: record.totalAmount,
-            contractHourlyWage: payrollData.contractHourlyWageInfo.weekDayHourlyWage,
+            contractHourlyWage: defaultWage,
+            contractWorkHours: record.contractWorkHours,
             weekNumber: getISOWeekNumber(record.date)
           }
         })
 
-      const holidayAllowances: EditableWeeklyHolidayAllowance[] = payrollData.items
+      // API가 반환하지 않은 날짜를 기간 내 전체 날짜로 채우기
+      const apiDates = new Set(apiRecords.map(r => r.date))
+      const allDates = generateDateRange(startDate, endDate)
+      const missingDates = allDates.filter(d => !apiDates.has(d))
+      const filledRecords: EditableDailyRecord[] = missingDates.map(date => {
+        const dayIdx = new Date(date).getDay()
+        return {
+          date,
+          dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
+          dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
+          originalWorkHours: 0,
+          workHours: 0,
+          originalApplyTimelyAmount: defaultWage,
+          applyTimelyAmount: defaultWage,
+          paymentAmount: 0,
+          deductionAmount: 0,
+          totalAmount: 0,
+          contractHourlyWage: defaultWage,
+          contractWorkHours: 0,
+          weekNumber: getISOWeekNumber(date)
+        }
+      })
+
+      const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
+
+      const holidayAllowances: EditableWeeklyHolidayAllowance[] = (payrollData?.items ?? [])
         .filter(item => item.type === 'WEEKLY_HOLIDAY_ALLOWANCE' && item.weeklyHolidayAllowance)
         .map(item => {
           const allowance = item.weeklyHolidayAllowance!
@@ -183,8 +287,15 @@ export default function PartTimeWorkTimeEdit({
     setIsDataLoaded(true)
   }
 
+  const getReturnPath = (withFromParam = false) => {
+    const suffix = withFromParam ? '?fromWorkTimeEdit=true' : ''
+    if (returnToDetail) return `/employee/payroll/parttime/${id}${suffix}`
+    if (id === 'new') return `/employee/payroll/parttime/new${suffix}`
+    return `/employee/payroll/parttime/${id}/edit${suffix}`
+  }
+
   const handleGoBack = () => {
-    router.push(`/employee/payroll/parttime/${id}`)
+    router.push(getReturnPath())
   }
 
   const recalculateRecord = (record: EditableDailyRecord): EditableDailyRecord => {
@@ -261,9 +372,15 @@ export default function PartTimeWorkTimeEdit({
 
   const handleApplyContractTime = async () => {
     const updatedRecords = dailyRecords.map(record => {
+      const day = new Date(record.date).getDay()
+      const isWeekend = day === 0 || day === 6
+      const wage = isWeekend && contractHourlyWageInfo.holidayHourlyWage > 0
+        ? contractHourlyWageInfo.holidayHourlyWage
+        : contractHourlyWageInfo.weekDayHourlyWage
       const updated = {
         ...record,
-        applyTimelyAmount: contractHourlyWageInfo.weekDayHourlyWage
+        workHours: record.contractWorkHours ?? record.workHours,
+        applyTimelyAmount: wage
       }
       return recalculateRecord(updated)
     })
@@ -277,18 +394,32 @@ export default function PartTimeWorkTimeEdit({
     setDailyRecords(updatedRecords)
     setWeeklyHolidayAllowances(updatedAllowances)
 
-    const grandTotalWorkHours = updatedRecords.reduce((sum, r) => sum + r.workHours, 0)
-    const grandTotalPaymentAmount = updatedRecords.reduce((sum, r) => sum + r.paymentAmount, 0)
-    const grandTotalDeductionAmount = updatedRecords.reduce((sum, r) => sum + r.deductionAmount, 0)
-    const grandTotalAmount = updatedRecords.reduce((sum, r) => sum + r.totalAmount, 0)
+    await alert('계약서 기준 시간과 시급이 적용되었습니다.')
+  }
+
+  const handleSaveWorkTime = async () => {
+    const eligibleAllowances = weeklyHolidayAllowances.filter(a => a.isEligible)
+
+    const grandTotalWorkHours =
+      dailyRecords.reduce((sum, r) => sum + r.workHours, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.holidayAllowanceHours, 0)
+    const grandTotalPaymentAmount =
+      dailyRecords.reduce((sum, r) => sum + r.paymentAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.holidayAllowanceAmount, 0)
+    const grandTotalDeductionAmount =
+      dailyRecords.reduce((sum, r) => sum + r.deductionAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.deductionAmount, 0)
+    const grandTotalAmount =
+      dailyRecords.reduce((sum, r) => sum + r.totalAmount, 0) +
+      eligibleAllowances.reduce((sum, a) => sum + a.totalAmount, 0)
 
     const editData: WorkTimeEditData = {
       employeeInfoId,
       startDate,
       endDate,
       payrollMonth,
-      editedRecords: updatedRecords,
-      weeklyHolidayAllowances: updatedAllowances,
+      editedRecords: dailyRecords,
+      weeklyHolidayAllowances,
       grandTotalWorkHours,
       grandTotalPaymentAmount,
       grandTotalDeductionAmount,
@@ -301,9 +432,8 @@ export default function PartTimeWorkTimeEdit({
 
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
 
-    await alert('계약 시급이 적용되었습니다.')
-    const targetPath = id === 'new' ? '/employee/payroll/parttime/new?fromWorkTime=true' : `/employee/payroll/parttime/${id}`
-    router.push(targetPath)
+    await alert('저장되었습니다.')
+    router.push(getReturnPath(true))
   }
 
   const handleWorkHoursChange = (index: number, hours: number) => {
@@ -384,6 +514,7 @@ export default function PartTimeWorkTimeEdit({
       <div className="contents-btn">
         <button className="btn-form basic" onClick={handleGoBack}>뒤로가기</button>
         <button className="btn-form primary" onClick={handleApplyContractTime} style={{ backgroundColor: '#3498db', color: '#fff', border: 'none' }}>계약 시간 적용</button>
+        <button className="btn-form basic" onClick={handleSaveWorkTime}>저장</button>
       </div>
 
       {payrollMonth && (
@@ -439,16 +570,54 @@ export default function PartTimeWorkTimeEdit({
               </thead>
               <tbody>
                 {(() => {
-                  const sortedAllowances = [...weeklyHolidayAllowances].sort(
-                    (a, b) => a.weekStartDate.localeCompare(b.weekStartDate)
+                  const allowanceMap = new Map(
+                    weeklyHolidayAllowances.map(allowance => [`${allowance.weekStartDate}_${allowance.weekEndDate}`, allowance])
                   )
 
-                  const weekGroups = sortedAllowances.map(allowance => {
-                    const records = dailyRecords.filter(record => {
-                      return record.date >= allowance.weekStartDate && record.date <= allowance.weekEndDate
-                    }).sort((a, b) => a.date.localeCompare(b.date))
-                    return { allowance, records }
-                  })
+                  const weekGroups = Array.from(
+                    dailyRecords.reduce((map, record) => {
+                      const { weekStartDate, weekEndDate } = getWeekRange(record.date)
+                      const key = `${weekStartDate}_${weekEndDate}`
+                      const current = map.get(key)
+
+                      if (current) {
+                        current.records.push(record)
+                      } else {
+                        map.set(key, {
+                          key,
+                          weekStartDate,
+                          weekEndDate,
+                          records: [record],
+                        })
+                      }
+
+                      return map
+                    }, new Map<string, {
+                      key: string
+                      weekStartDate: string
+                      weekEndDate: string
+                      records: EditableDailyRecord[]
+                    }>())
+                      .values()
+                  )
+                    .map(group => {
+                      const records = group.records.sort((a, b) => a.date.localeCompare(b.date))
+                      const allowance = allowanceMap.get(group.key) ?? {
+                        weekStartDate: group.weekStartDate,
+                        weekEndDate: group.weekEndDate,
+                        weekNumber: records[0]?.weekNumber ?? 0,
+                        totalWorkHours: records.reduce((sum, record) => sum + record.workHours, 0),
+                        holidayAllowanceHours: 0,
+                        applyTimelyAmount: records[0]?.applyTimelyAmount ?? contractHourlyWageInfo.weekDayHourlyWage,
+                        holidayAllowanceAmount: 0,
+                        deductionAmount: 0,
+                        totalAmount: 0,
+                        isEligible: false,
+                      }
+
+                      return { allowance, records }
+                    })
+                    .sort((a, b) => a.allowance.weekStartDate.localeCompare(b.allowance.weekStartDate))
 
                   const hasPreviousMonthWorkHours = previousMonthWorkHours > 0
 

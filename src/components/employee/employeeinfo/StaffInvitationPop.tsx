@@ -92,6 +92,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
   const [contractClassification, setContractClassification] = useState<ContractClassificationType>('CNTCFWK_001')
+  const [hireDate, setHireDate] = useState('')
   const [nationalPensionEnrolled, setNationalPensionEnrolled] = useState(false)
   const [healthInsuranceEnrolled, setHealthInsuranceEnrolled] = useState(false)
   const [employmentInsuranceEnrolled, setEmploymentInsuranceEnrolled] = useState(false)
@@ -163,6 +164,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     if (!contractStartDate) {
       errors.contractStartDate = '계약 시작일을 선택해주세요.'
     }
+    if (!hireDate && !contractStartDate) {
+      errors.contractStartDate = '입사일 또는 계약 시작일을 선택해주세요.'
+    }
     if (!noEndDate && !contractEndDate) {
       errors.contractEndDate = '계약 종료일을 선택해주세요.'
     }
@@ -203,6 +207,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     }
     if (!contractStartDate) {
       errors.contractStartDate = '계약 시작일을 선택해주세요.'
+    }
+    if (!hireDate && !contractStartDate) {
+      errors.contractStartDate = '입사일 또는 계약 시작일을 선택해주세요.'
     }
     if (!noEndDate && !contractEndDate) {
       errors.contractEndDate = '계약 종료일을 선택해주세요.'
@@ -268,6 +275,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         return wh
       })
 
+      // 입사일이 비어있으면 계약 시작일로 보정
+      const finalHireDate = hireDate || contractStartDate
+
       const requestData: PostEmployeeInfoRequest = {
         workplaceType,
         headOfficeOrganizationId: headOfficeOrganizationId!,
@@ -275,7 +285,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         storeId,
         employeeName: employeeName.trim(),
         mobilePhone: mobilePhone.trim() || null,
-        hireDate: contractStartDate, // 입사일을 계약 시작일로 설정
+        hireDate: finalHireDate,
         contractClassification,
         nationalPensionEnrolled,
         healthInsuranceEnrolled,
@@ -309,6 +319,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setEmployeeName('')
     setMobilePhone('')
     setContractClassification('CNTCFWK_001')
+    setHireDate('')
     setNationalPensionEnrolled(false)
     setHealthInsuranceEnrolled(false)
     setEmploymentInsuranceEnrolled(false)
@@ -377,8 +388,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
-    { value: 'SLRCC_001', label: '월급' },
-    { value: 'SLRCC_002', label: '주급' }
+    { value: 'SLRCC_001', label: '시급' },
+    { value: 'SLRCC_002', label: '월급' }
   ], [])
 
   const salaryMonthOptions: SelectOption[] = useMemo(() => [
@@ -548,6 +559,46 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     </td>
                   </tr>
                   <tr>
+                    <th>
+                      계약 분류 <span className="red">*</span>
+                    </th>
+                    <td>
+                      <div className="block">
+                        <SearchSelect
+                          options={[
+                            { value: 'CNTCFWK_001', label: '포괄연봉제' },
+                            { value: 'CNTCFWK_002', label: '비포괄연봉제' },
+                            { value: 'CNTCFWK_003', label: '파트타임' }
+                          ]}
+                          value={{ value: contractClassification, label: contractClassification === 'CNTCFWK_001' ? '포괄연봉제' : contractClassification === 'CNTCFWK_002' ? '비포괄연봉제' : '파트타임' }}
+                          onChange={(opt) => setContractClassification((opt?.value || 'CNTCFWK_001') as ContractClassificationType)}
+                          placeholder="계약 분류 선택"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>
+                      입사일 <span className="red">*</span>
+                    </th>
+                    <td>
+                      <DatePicker
+                        value={hireDate ? new Date(hireDate) : null}
+                        onChange={(date: Date | null) => {
+                          if (date) {
+                            const y = date.getFullYear()
+                            const m = String(date.getMonth() + 1).padStart(2, '0')
+                            const d = String(date.getDate()).padStart(2, '0')
+                            setHireDate(`${y}-${m}-${d}`)
+                          } else {
+                            setHireDate('')
+                          }
+                        }}
+                        placeholder="입사일 선택"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
                     <th>4대 보험 가입 유무</th>
                     <td>
                       <div className="filed-flx">
@@ -625,7 +676,10 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               const y = range.startDate.getFullYear()
                               const m = String(range.startDate.getMonth() + 1).padStart(2, '0')
                               const d = String(range.startDate.getDate()).padStart(2, '0')
-                              setContractStartDate(`${y}-${m}-${d}`)
+                              const dateStr = `${y}-${m}-${d}`
+                              setContractStartDate(dateStr)
+                              // 입사일이 비어있으면 계약 시작일로 자동 설정
+                              if (!hireDate) setHireDate(dateStr)
                             } else {
                               setContractStartDate('')
                             }
