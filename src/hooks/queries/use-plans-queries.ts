@@ -159,7 +159,7 @@ export const useSubscribePlan = () => {
     return useMutation({
         mutationFn: async (planId: number) => {
             const response = await api.put<ApiResponse<null>>(
-                `/api/v1/subscription/subscribe/${planId}`
+                `/api/v1/subscription/plans/${planId}/subscribe`
             )
             return response.data
         },
