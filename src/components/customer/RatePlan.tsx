@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSubscribePlan } from '@/hooks/queries/use-plans-queries'
 import { useAlert } from '@/components/common/ui'
@@ -103,8 +103,6 @@ const DB_ID_TO_PLAN_MAP: Record<number, string> = Object.fromEntries(
 )
 
 export default function RatePlan() {
-  const [hoveredDisabledSubscribePlanId, setHoveredDisabledSubscribePlanId] =
-    useState<string | null>(null)
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
   const subscribeMutation = useSubscribePlan()
   const { alert, confirm } = useAlert()
@@ -138,8 +136,6 @@ export default function RatePlan() {
     <div className="content-wrap">
       <div className="rate-plan-wrap">
         {RATE_PLANS.map((plan) => {
-          const showDisabledSubscribe =
-            subscribedPlanId !== plan.id && plan.id !== 'free'
           return (
           <div
             key={plan.id}
@@ -157,23 +153,23 @@ export default function RatePlan() {
                 </span>
                 <span>/월</span>
               </div>
-              <div
-                className="plan-btn-wrap"
-                onMouseEnter={() => {
-                  if (showDisabledSubscribe)
-                    setHoveredDisabledSubscribePlanId(plan.id)
-                }}
-                onMouseLeave={() => {
-                  if (showDisabledSubscribe)
-                    setHoveredDisabledSubscribePlanId(null)
-                }}
-              >
+              <div className="plan-btn-wrap">
                 {subscribedPlanId === plan.id ? (
                   <div className="service-btn block use-plan">이용중</div>
+                ) : plan.id !== 'free' ? (
+                  <button
+                    type="button"
+                    className="service-btn block"
+                    style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                    disabled
+                  >
+                    준비중
+                    <i className="icon-subscribe" />
+                  </button>
                 ) : (
                   <button
                     type="button"
-                    className={`service-btn block${showDisabledSubscribe && hoveredDisabledSubscribePlanId === plan.id ? ' use-plan' : ''}`}
+                    className="service-btn block"
                     style={{ cursor: 'pointer' }}
                     disabled={subscribeMutation.isPending}
                     onClick={() => handleSubscribe(plan.id)}
