@@ -34,6 +34,17 @@ export interface EditableDailyRecord {
   weekNumber: number
 }
 
+// 편집 가능한 상여금 데이터 타입
+export interface EditableBonusItem {
+  id: number
+  bonusCode?: string
+  bonusName: string
+  bonusAmount: number
+  deductionAmount: number
+  isActive: boolean
+  itemOrder: number
+}
+
 // 주휴수당 데이터 타입
 export interface EditableWeeklyHolidayAllowance {
   weekStartDate: string
@@ -68,10 +79,13 @@ export interface WorkTimeEditData {
   previousMonthWorkHours?: number
   previousMonthWorkStartDate?: string
   previousMonthWorkEndDate?: string
+  bonusItems?: EditableBonusItem[]
+  bonusTaxRate?: number
 }
 
 // localStorage 키
 const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
+const BONUS_PRELOAD_STORAGE_KEY = 'parttime_bonus_preload_data'
 
 // 날짜 범위 내 모든 날짜 생성
 const generateDateRange = (start: string, end: string): string[] => {
@@ -145,6 +159,8 @@ export default function PartTimeWorkTimeEdit({
   const [previousMonthWorkStartDate, setPreviousMonthWorkStartDate] = useState<string | null>(null)
   const [previousMonthWorkEndDate, setPreviousMonthWorkEndDate] = useState<string | null>(null)
   const [isDataLoaded, setIsDataLoaded] = useState(false)
+  const [bonusItems, setBonusItems] = useState<EditableBonusItem[]>([])
+  const [bonusTaxRate, setBonusTaxRate] = useState(0.033)
 
   // TanStack Query hook
   const { data: payrollData, isPending: isLoading } = useDailyWorkHours(
@@ -199,6 +215,21 @@ export default function PartTimeWorkTimeEdit({
             setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
             setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
             setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
+          }
+          // 보너스 데이터 로드
+          if (parsed.bonusItems !== undefined) {
+            setBonusItems(parsed.bonusItems)
+            setBonusTaxRate(parsed.bonusTaxRate ?? 0.033)
+          } else {
+            // 별도 preload 키 확인 (신규 편집 모드에서 PartTimePayStub이 저장한 데이터)
+            const bonusPreloadStr = localStorage.getItem(BONUS_PRELOAD_STORAGE_KEY)
+            if (bonusPreloadStr) {
+              try {
+                const bp = JSON.parse(bonusPreloadStr) as { bonusItems: EditableBonusItem[]; bonusTaxRate: number }
+                setBonusItems(bp.bonusItems)
+                setBonusTaxRate(bp.bonusTaxRate)
+              } catch {}
+            }
           }
           loadedFromStorage = true
         }
@@ -282,6 +313,16 @@ export default function PartTimeWorkTimeEdit({
 
       setDailyRecords(editableRecords)
       setWeeklyHolidayAllowances(holidayAllowances)
+
+      // 보너스 preload 데이터 로드 (신규/편집 모드)
+      const bonusPreloadStr = localStorage.getItem(BONUS_PRELOAD_STORAGE_KEY)
+      if (bonusPreloadStr) {
+        try {
+          const bp = JSON.parse(bonusPreloadStr) as { bonusItems: EditableBonusItem[]; bonusTaxRate: number }
+          setBonusItems(bp.bonusItems)
+          setBonusTaxRate(bp.bonusTaxRate)
+        } catch {}
+      }
     }
 
     setIsDataLoaded(true)
@@ -427,7 +468,9 @@ export default function PartTimeWorkTimeEdit({
       contractHourlyWageInfo,
       previousMonthWorkHours: previousMonthWorkHours || undefined,
       previousMonthWorkStartDate: previousMonthWorkStartDate || undefined,
-      previousMonthWorkEndDate: previousMonthWorkEndDate || undefined
+      previousMonthWorkEndDate: previousMonthWorkEndDate || undefined,
+      bonusItems: bonusItems.length > 0 ? bonusItems : undefined,
+      bonusTaxRate,
     }
 
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
@@ -450,6 +493,18 @@ export default function PartTimeWorkTimeEdit({
 
       return newRecords
     })
+  }
+
+  const handleToggleBonus = (id: number) => {
+    setBonusItems(prev => prev.map(b => b.id === id ? { ...b, isActive: !b.isActive } : b))
+  }
+
+  const handleBonusAmountChange = (id: number, amount: number) => {
+    setBonusItems(prev => prev.map(b => {
+      if (b.id !== id) return b
+      const deductionAmount = Math.floor(amount * bonusTaxRate)
+      return { ...b, bonusAmount: amount, deductionAmount }
+    }))
   }
 
   const handleApplyTimelyAmountChange = (index: number, amount: number) => {
@@ -731,6 +786,39 @@ export default function PartTimeWorkTimeEdit({
                         <td className="al-r"><strong>{formatNumber(grandTotalDeductionAmount)}</strong></td>
                         <td className="al-r"><strong>{formatNumber(grandTotalAmount)}</strong></td>
                       </tr>
+                      {bonusItems.map((bonus) => (
+                        <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: bonus.isActive ? '#333' : '#aaa' }}>
+                          <td><strong>{bonus.bonusName}</strong></td>
+                          <td className="al-c">
+                            <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <input type="checkbox" checked={bonus.isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                              <span style={{ width: '40px', height: '22px', backgroundColor: bonus.isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: bonus.isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                              </span>
+                            </label>
+                          </td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">
+                            {bonus.isActive ? (
+                              <div className="filed-flx" style={{ justifyContent: 'flex-end' }}>
+                                <input
+                                  type="text"
+                                  className="input-frame al-r"
+                                  value={formatNumber(bonus.bonusAmount)}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/,/g, '')
+                                    handleBonusAmountChange(bonus.id, parseInt(value) || 0)
+                                  }}
+                                  style={{ width: '100px' }}
+                                />
+                                <span style={{ marginLeft: '4px' }}>원</span>
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="al-r"><strong style={{ color: bonus.isActive ? '#333' : '#aaa' }}>{bonus.isActive ? formatNumber(bonus.deductionAmount) : '-'}</strong></td>
+                          <td className="al-r"><strong style={{ color: bonus.isActive ? '#333' : '#aaa' }}>{bonus.isActive ? formatNumber(bonus.bonusAmount - bonus.deductionAmount) : '-'}</strong></td>
+                        </tr>
+                      ))}
                     </>
                   )
                 })()}

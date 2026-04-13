@@ -1058,14 +1058,6 @@ export default function EmployContractSalaryEdit({ contractId }: EmployContractS
         </AnimateHeight>
       </div>
 
-      {/* 하단 버튼 */}
-      <div className="detail-btn-wrap" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-        <button className="btn-form gray" onClick={handleBack} disabled={isSaving}>취소</button>
-        <button className="btn-form basic" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? '저장 중...' : '저장'}
-        </button>
-      </div>
-
       {/* 연봉 및 통상시급 계산기 팝업 */}
       <SalaryCalculationPop
         key={isCalculatorOpen ? `salary-${contractClassification}` : 'closed'}
