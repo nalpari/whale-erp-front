@@ -281,6 +281,7 @@ export async function downloadPartTimerPayrollExcel(id: number): Promise<Blob> {
 
 // 파트타이머 상여금 항목 요청 타입
 export interface BonusItemRequest {
+  bonusCode?: string
   bonusName: string
   bonusAmount: number
   deductionAmount: number
@@ -291,6 +292,7 @@ export interface BonusItemRequest {
 // 파트타이머 상여금 항목 응답 타입
 export interface BonusItemResponse {
   id: number
+  bonusCode?: string
   bonusName: string
   bonusAmount: number
   deductionAmount: number

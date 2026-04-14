@@ -47,6 +47,7 @@ export interface PostEmployeeInfoRequest {
   storeId?: number | null
   employeeName: string
   mobilePhone?: string | null
+  email: string
   hireDate: string // YYYY-MM-DD
 
   // 계약 정보
