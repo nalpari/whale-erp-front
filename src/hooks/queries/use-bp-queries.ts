@@ -7,20 +7,30 @@ import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } fro
 
 /**
  * 현재 조직의 BP 정보 조회 훅.
- * - 사이드바 로고/브랜드명 표시용
+ * - 사이드바 로고/브랜드명 표시 + 마이페이지 사업자 정보 화면용
  * - affiliation 헤더로 현재 조직의 BP 자동 필터링
  * - affiliationId를 query key에 포함하여 조직 전환 시 캐시 분리
+ *
+ * 구현 메모:
+ * 목록 API는 민감 필드를 마스킹/null 처리하므로, 목록으로 ID만 획득한 뒤
+ * 상세 API로 평문 BpDetailResponse를 가져온다.
  */
 export const useMyOrganizationBp = () => {
   const affiliationId = useAuthStore((s) => s.affiliationId)
   return useQuery({
     queryKey: bpKeys.myOrganization(affiliationId),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
+      const listResponse = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
         '/api/v1/master/bp',
         { params: { page: 0, size: 1 } }
       )
-      return response.data.data?.content?.[0] ?? null
+      const bpId = listResponse.data.data?.content?.[0]?.id
+      if (!bpId) return null
+
+      const detailResponse = await api.get<ApiResponse<BpDetailResponse>>(
+        `/api/v1/master/bp/${bpId}`
+      )
+      return detailResponse.data.data ?? null
     },
     enabled: !!affiliationId,
     staleTime: 5 * 60 * 1000,
