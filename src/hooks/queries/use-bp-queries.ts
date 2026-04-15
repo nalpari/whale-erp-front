@@ -17,6 +17,7 @@ import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } fro
  */
 export const useMyOrganizationBp = () => {
   const affiliationId = useAuthStore((s) => s.affiliationId)
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: bpKeys.myOrganization(affiliationId),
     queryFn: async () => {
@@ -25,12 +26,13 @@ export const useMyOrganizationBp = () => {
         { params: { page: 0, size: 1 } }
       )
       const bpId = listResponse.data.data?.content?.[0]?.id
-      if (!bpId) return null
+      // bpId === 0 도 유효 ID로 취급 (폴스 네거티브 방지)
+      if (bpId == null) return null
 
-      const detailResponse = await api.get<ApiResponse<BpDetailResponse>>(
-        `/api/v1/master/bp/${bpId}`
-      )
-      return detailResponse.data.data ?? null
+      const detail = await getBpDetail(bpId)
+      // detail 캐시와 공유: useBpDetail(bpId) 호출 시 재요청 회피
+      queryClient.setQueryData(bpKeys.detail(bpId), detail)
+      return detail
     },
     enabled: !!affiliationId,
     staleTime: 5 * 60 * 1000,
