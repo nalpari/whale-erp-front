@@ -14,6 +14,9 @@ interface CustomerSearchProps {
   totalCount: number
 }
 
+/** 휴대폰 번호 뒷자리 최대 입력 자릿수 */
+const MOBILE_PHONE_SUFFIX_LENGTH = 4
+
 const initialFormData = {
   isOperate: null as number | null,
   name: '',
@@ -222,10 +225,17 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
                 <td>
                   <div className="data-filed">
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={MOBILE_PHONE_SUFFIX_LENGTH}
                       placeholder="뒷 4자리 입력 (예: 5678)"
                       value={formData.mobilePhoneLast4}
-                      onChange={(e) => handleInputChange('mobilePhoneLast4', e.target.value.slice(0, 4))}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'mobilePhoneLast4',
+                          e.target.value.replace(/\D/g, '').slice(0, MOBILE_PHONE_SUFFIX_LENGTH)
+                        )
+                      }
                       onKeyDown={handleKeyDown}
                       showClear
                       onClear={() => handleInputChange('mobilePhoneLast4', '')}
