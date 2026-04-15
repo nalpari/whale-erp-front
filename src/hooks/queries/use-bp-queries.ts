@@ -78,6 +78,8 @@ export const useBpDetail = (id?: number | null) => {
       return response.data.data
     },
     enabled: !!id,
+    // useMyOrganizationBp와 동일한 캐시 공유/일관성 정책
+    staleTime: 5 * 60 * 1000,
   })
 }
 
