@@ -1,4 +1,5 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import { bpKeys } from './query-keys'
 import { useAuthStore } from '@/stores/auth-store'
@@ -36,6 +37,13 @@ export const useMyOrganizationBp = () => {
     },
     enabled: !!affiliationId,
     staleTime: 5 * 60 * 1000,
+    // 2-step 호출 구조라 실패 시 목록+상세 양쪽이 재호출되어 트래픽 증폭.
+    // 5xx 에러에 한해 1회만 재시도하여 증폭 범위 축소.
+    retry: (failureCount, error) => {
+      if (failureCount >= 1) return false
+      const status = error instanceof AxiosError ? error.response?.status : undefined
+      return status != null && status >= 500
+    },
   })
 }
 
