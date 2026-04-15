@@ -15,6 +15,10 @@ import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } fro
  * 구현 메모:
  * 목록 API는 민감 필드를 마스킹/null 처리하므로, 목록으로 ID만 획득한 뒤
  * 상세 API로 평문 BpDetailResponse를 가져온다.
+ *
+ * 반환값 의미:
+ * - `data === null` — 현재 조직에 연결된 BP 자체가 없음 (정상 상태, Empty 화면)
+ * - `isError === true` — 네트워크/서버 장애 또는 상세 응답 본문이 비어 있음
  */
 export const useMyOrganizationBp = () => {
   const affiliationId = useAuthStore((s) => s.affiliationId)
@@ -28,9 +32,15 @@ export const useMyOrganizationBp = () => {
       )
       const bpId = listResponse.data.data?.content?.[0]?.id
       // bpId === 0 도 유효 ID로 취급 (폴스 네거티브 방지)
+      // bpId 자체가 없는 경우 "조직 없음" 상태로 null 반환 (정상 종료)
       if (bpId == null) return null
 
       const detail = await getBpDetail(bpId, { signal })
+      // 목록에는 ID가 있었는데 상세 응답이 비어 있으면 백엔드 응답 이상으로 간주.
+      // isError로 올려서 "조직 없음" null 상태와 구분 가능하도록 한다.
+      if (detail == null) {
+        throw new Error('BP 상세 응답이 비어있습니다')
+      }
       // detail 캐시와 공유: useBpDetail(bpId) 호출 시 재요청 회피
       queryClient.setQueryData(bpKeys.detail(bpId), detail)
       return detail
