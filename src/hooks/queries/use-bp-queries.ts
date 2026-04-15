@@ -21,16 +21,16 @@ export const useMyOrganizationBp = () => {
   const queryClient = useQueryClient()
   return useQuery({
     queryKey: bpKeys.myOrganization(affiliationId),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const listResponse = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
         '/api/v1/master/bp',
-        { params: { page: 0, size: 1 } }
+        { params: { page: 0, size: 1 }, signal }
       )
       const bpId = listResponse.data.data?.content?.[0]?.id
       // bpId === 0 도 유효 ID로 취급 (폴스 네거티브 방지)
       if (bpId == null) return null
 
-      const detail = await getBpDetail(bpId)
+      const detail = await getBpDetail(bpId, { signal })
       // detail 캐시와 공유: useBpDetail(bpId) 호출 시 재요청 회피
       queryClient.setQueryData(bpKeys.detail(bpId), detail)
       return detail
@@ -84,9 +84,17 @@ export const useBpDetail = (id?: number | null) => {
 /**
  * BP 상세 조회 함수.
  * - 훅 외부(예: 이벤트 핸들러/비동기 로직)에서 사용한다.
+ * - React Query queryFn 내부에서 호출할 때는 `options.signal` 을 전달하면
+ *   쿼리 취소 시 진행 중인 요청도 함께 abort 된다.
  */
-export const getBpDetail = async (id: number): Promise<BpDetailResponse> => {
-  const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/v1/master/bp/${id}`)
+export const getBpDetail = async (
+  id: number,
+  options?: { signal?: AbortSignal }
+): Promise<BpDetailResponse> => {
+  const response = await api.get<ApiResponse<BpDetailResponse>>(
+    `/api/v1/master/bp/${id}`,
+    { signal: options?.signal }
+  )
   return response.data.data
 }
 
