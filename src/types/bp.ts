@@ -97,7 +97,6 @@ export interface BpListParams {
     companyName?: string
     businessRegistrationNumber?: string
     representativeName?: string
-    representativeMobilePhone?: string
     address1?: string
     address2?: string
     createdAtFrom?: string
