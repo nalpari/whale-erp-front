@@ -18,7 +18,7 @@ const initialFormData = {
   isOperate: null as number | null,
   name: '',
   loginId: '',
-  mobilePhone: '',
+  mobilePhoneLast4: '',
   socialAuthType: '',
   joinDateFrom: '',
   joinDateTo: '',
@@ -31,7 +31,7 @@ const buildSearchParams = (data: FormData): Omit<CustomerSearchParams, 'page' | 
   if (data.isOperate !== null) params.isOperate = data.isOperate
   if (data.name) params.name = data.name
   if (data.loginId) params.loginId = data.loginId
-  if (data.mobilePhone) params.mobilePhone = data.mobilePhone
+  if (data.mobilePhoneLast4) params.mobilePhoneLast4 = data.mobilePhoneLast4
   if (data.socialAuthType) params.socialAuthType = data.socialAuthType
   if (data.joinDateFrom) params.joinDateFrom = data.joinDateFrom
   if (data.joinDateTo) params.joinDateTo = data.joinDateTo
@@ -42,7 +42,7 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
   isOperate: (sp.isOperate as number) ?? null,
   name: (sp.name as string) || '',
   loginId: (sp.loginId as string) || '',
-  mobilePhone: (sp.mobilePhone as string) || '',
+  mobilePhoneLast4: (sp.mobilePhoneLast4 as string) || '',
   socialAuthType: (sp.socialAuthType as string) || '',
   joinDateFrom: (sp.joinDateFrom as string) || '',
   joinDateTo: (sp.joinDateTo as string) || '',
@@ -85,8 +85,8 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
     if (appliedFormData.loginId) {
       appliedTags.push({ key: 'loginId', label: appliedFormData.loginId, category: '회원 ID' })
     }
-    if (appliedFormData.mobilePhone) {
-      appliedTags.push({ key: 'mobilePhone', label: appliedFormData.mobilePhone, category: '휴대폰 번호' })
+    if (appliedFormData.mobilePhoneLast4) {
+      appliedTags.push({ key: 'mobilePhoneLast4', label: appliedFormData.mobilePhoneLast4, category: '휴대폰 뒷 4자리' })
     }
     if (appliedFormData.socialAuthType) {
       const opt = socialAuthOptions.find(o => o.value === appliedFormData.socialAuthType)
@@ -104,7 +104,7 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
       case 'isOperate': updated.isOperate = null; break
       case 'name': updated.name = ''; break
       case 'loginId': updated.loginId = ''; break
-      case 'mobilePhone': updated.mobilePhone = ''; break
+      case 'mobilePhoneLast4': updated.mobilePhoneLast4 = ''; break
       case 'socialAuthType': updated.socialAuthType = ''; break
       case 'joinDate': updated.joinDateFrom = ''; updated.joinDateTo = ''; break
     }
@@ -218,17 +218,17 @@ export default function CustomerSearch({ onSearch, onReset, totalCount }: Custom
               </tr>
               {/* 2행: 휴대폰 번호, 간편인증, 가입일 */}
               <tr>
-                <th>휴대폰 번호</th>
+                <th>휴대폰 뒷 4자리</th>
                 <td>
                   <div className="data-filed">
                     <Input
-                      type="cellphone"
-                      placeholder="휴대폰 번호 입력"
-                      value={formData.mobilePhone}
-                      onChange={(e) => handleInputChange('mobilePhone', e.target.value)}
+                      type="number"
+                      placeholder="뒷 4자리 입력 (예: 5678)"
+                      value={formData.mobilePhoneLast4}
+                      onChange={(e) => handleInputChange('mobilePhoneLast4', e.target.value.slice(0, 4))}
                       onKeyDown={handleKeyDown}
                       showClear
-                      onClear={() => handleInputChange('mobilePhone', '')}
+                      onClear={() => handleInputChange('mobilePhoneLast4', '')}
                     />
                   </div>
                 </td>
