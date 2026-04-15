@@ -22,19 +22,32 @@ import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
 import type { Program } from '@/lib/schemas/program'
 
 /**
- * 로그인 시 저장된 권한 데이터를 권한 폼에서 사용하는 형식으로 변환
+ * 권한관리 프로그램 경로 목록
  */
-function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDetailNode[] {
-  return programs.map((program) => ({
-    program_id: program.id,
-    program_name: program.name,
-    can_read: program.canRead ?? undefined,
-    can_create_delete: program.canCreateDelete ?? undefined,
-    can_update: program.canUpdate ?? undefined,
-    children: program.children && program.children.length > 0
-      ? toAuthorityDetailNodes(program.children)
-      : undefined,
-  }))
+const AUTHORITY_MANAGEMENT_PATHS = ['/system/authority', '/settings/authority']
+
+/**
+ * 로그인 유저의 권한 트리에서 권한관리 프로그램의 R/C/D/U를 추출
+ */
+function findAuthorityManagementPermissions(
+  programs: LoginAuthorityProgram[]
+): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } {
+  for (const program of programs) {
+    if (AUTHORITY_MANAGEMENT_PATHS.includes(program.path)) {
+      return {
+        canManageRead: program.canRead ?? false,
+        canManageCreateDelete: program.canCreateDelete ?? false,
+        canManageUpdate: program.canUpdate ?? false,
+      }
+    }
+    if (program.children && program.children.length > 0) {
+      const found = findAuthorityManagementPermissions(program.children)
+      if (found.canManageRead || found.canManageCreateDelete || found.canManageUpdate) {
+        return found
+      }
+    }
+  }
+  return { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
 }
 
 /**
@@ -104,53 +117,24 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
     return []
   })
 
-  // 로그인 유저의 권한 정보 → 폼에서 사용하는 형식으로 변환
+  // 로그인 유저의 권한 정보
   const loginAuthority = useAuthStore((state) => state.authority)
-  const myPermissions = loginAuthority ? toAuthorityDetailNodes(loginAuthority) : null
 
   // Mutations
   const { mutateAsync: createAuthority } = useCreateAuthority()
   const { mutateAsync: updateAuthority } = useUpdateAuthority()
 
   // 슈퍼 관리자 체크 (권한 데이터가 비어있으면 슈퍼 관리자)
-  const isAdmin = !myPermissions || myPermissions.length === 0
+  const isAdmin = !loginAuthority || loginAuthority.length === 0
 
-  // 본인의 프로그램별 권한 찾기
-  const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
-    if (!myPermissions) return undefined
+  // 권한관리 메뉴에 대한 R/C/D/U로 조작 범위 결정
+  const authorityMgmtPermissions = loginAuthority
+    ? findAuthorityManagementPermissions(loginAuthority)
+    : { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
 
-    const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
-      for (const node of nodes) {
-        if (node.program_id === programId) return node
-        if (node.children) {
-          const found = findInTree(node.children)
-          if (found) return found
-        }
-      }
-      return undefined
-    }
-
-    return findInTree(myPermissions)
-  }
-
-  // max_can_* 권한을 파생 값으로 계산
-  const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
-    return nodes.map((node) => {
-      const myPermission = findMyPermission(node.program_id)
-
-      return {
-        ...node,
-        max_can_read: isAdmin ? true : (myPermission?.can_read ?? false),
-        max_can_create_delete: isAdmin ? true : (myPermission?.can_create_delete ?? false),
-        max_can_update: isAdmin ? true : (myPermission?.can_update ?? false),
-        children: node.children ? addMaxPermissions(node.children) : undefined,
-      }
-    })
-  }
-
-  const programTreeWithMaxPermissions = programTree.length > 0
-    ? addMaxPermissions(programTree)
-    : programTree
+  const canManageRead = isAdmin || authorityMgmtPermissions.canManageRead
+  const canManageCreateDelete = isAdmin || authorityMgmtPermissions.canManageCreateDelete
+  const canManageUpdate = isAdmin || authorityMgmtPermissions.canManageUpdate
 
   // 폼 데이터 변경 핸들러
   const handleFormChange = (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => {
@@ -323,7 +307,10 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
   return {
     formData,
     errors,
-    programTree: programTreeWithMaxPermissions,
+    programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,

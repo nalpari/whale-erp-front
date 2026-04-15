@@ -37,6 +37,9 @@ function SettingsAuthorityCreateContent({ programList }: { programList: Program[
     formData,
     errors,
     programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,
@@ -65,6 +68,9 @@ function SettingsAuthorityCreateContent({ programList }: { programList: Program[
             programTree={programTree}
             onChange={handleProgramTreeChange}
             currentOwnerCode={formData.owner_code}
+            canManageRead={canManageRead}
+            canManageCreateDelete={canManageCreateDelete}
+            canManageUpdate={canManageUpdate}
           />
         </AuthorityForm>
       </div>
