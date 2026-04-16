@@ -2,9 +2,13 @@
 import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
-import { useDailyWorkHours } from '@/hooks/queries/use-payroll-queries'
 import { useAlert } from '@/components/common/ui'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import {
+  WORKTIME_EDIT_STORAGE_KEY,
+  loadBonusPreload,
+} from '@/lib/session/parttime-edit-session'
+import type { DailyWorkHoursSummaryResponse } from '@/lib/api/partTimerPayrollStatement'
 
 interface PartTimeWorkTimeEditProps {
   id: string
@@ -15,6 +19,8 @@ interface PartTimeWorkTimeEditProps {
   returnToDetail?: boolean
   headOfficeId?: string
   franchiseId?: string
+  /** 페이지 레벨에서 미리 조회한 초기 데이터 (key prop 리마운트와 함께 사용) */
+  initialPayrollData: DailyWorkHoursSummaryResponse | null
 }
 
 // 편집 가능한 일별 근무 데이터 타입
@@ -32,6 +38,17 @@ export interface EditableDailyRecord {
   contractHourlyWage: number
   contractWorkHours: number
   weekNumber: number
+}
+
+// 편집 가능한 상여금 데이터 타입
+export interface EditableBonusItem {
+  id: number
+  bonusCode?: string
+  bonusName: string
+  bonusAmount: number
+  deductionAmount: number
+  isActive: boolean
+  itemOrder: number
 }
 
 // 주휴수당 데이터 타입
@@ -68,10 +85,9 @@ export interface WorkTimeEditData {
   previousMonthWorkHours?: number
   previousMonthWorkStartDate?: string
   previousMonthWorkEndDate?: string
+  bonusItems?: EditableBonusItem[]
+  bonusTaxRate?: number
 }
-
-// localStorage 키
-const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
 
 // 날짜 범위 내 모든 날짜 생성
 const generateDateRange = (start: string, end: string): string[] => {
@@ -121,6 +137,166 @@ const getISOWeekNumber = (dateStr: string): number => {
   return weekNumber
 }
 
+// ─── 편집기 초기 상태 계산 (순수 함수, 컴포넌트 마운트 시 1회 실행) ──────────────
+// react-hooks/set-state-in-effect 규칙 준수: useEffect 대신 useState lazy initializer 사용
+// 부모(page)에서 initialPayrollData + key prop으로 리마운트를 제어함
+function computeEditorInitialState(
+  employeeInfoId: string,
+  startDate: string,
+  endDate: string,
+  payrollData: DailyWorkHoursSummaryResponse | null,
+): {
+  dailyRecords: EditableDailyRecord[]
+  weeklyHolidayAllowances: EditableWeeklyHolidayAllowance[]
+  contractHourlyWageInfo: { weekDayHourlyWage: number; overtimeHourlyWage: number; holidayHourlyWage: number }
+  employeeName: string
+  previousMonthWorkHours: number
+  previousMonthWorkStartDate: string | null
+  previousMonthWorkEndDate: string | null
+  bonusItems: EditableBonusItem[]
+  bonusTaxRate: number
+} {
+  // localStorage 우선 확인 (편집 중 임시 저장 데이터)
+  const savedData = typeof window !== 'undefined' ? localStorage.getItem(WORKTIME_EDIT_STORAGE_KEY) : null
+
+  if (savedData) {
+    try {
+      const parsed: WorkTimeEditData = JSON.parse(savedData)
+      if (
+        parsed.employeeInfoId === employeeInfoId &&
+        parsed.startDate === startDate &&
+        parsed.endDate === endDate
+      ) {
+        // API contractWorkHours로 localStorage의 0 고정 값 보정
+        const apiContractHoursMap = new Map<string, number>()
+        if (payrollData?.items) {
+          payrollData.items
+            .filter(item => item.type === 'DAILY' && item.dailyRecord)
+            .forEach(item => {
+              apiContractHoursMap.set(item.dailyRecord!.date, item.dailyRecord!.contractWorkHours)
+            })
+        }
+        const records = parsed.editedRecords.map(r => ({
+          ...r,
+          contractWorkHours: apiContractHoursMap.get(r.date) ?? r.contractWorkHours ?? 0,
+        }))
+
+        const contractHourlyWageInfo = payrollData?.contractHourlyWageInfo ?? parsed.contractHourlyWageInfo
+
+        let bonusItems: EditableBonusItem[] = parsed.bonusItems ?? []
+        let bonusTaxRate = parsed.bonusTaxRate ?? 0.033
+        if (!parsed.bonusItems) {
+          const bp = loadBonusPreload(employeeInfoId)
+          if (bp) {
+            bonusItems = bp.bonusItems
+            bonusTaxRate = bp.bonusTaxRate
+          }
+        }
+
+        return {
+          dailyRecords: records,
+          weeklyHolidayAllowances: parsed.weeklyHolidayAllowances,
+          contractHourlyWageInfo,
+          employeeName: payrollData?.memberName ?? '',
+          previousMonthWorkHours: payrollData?.previousMonthWorkHours ?? 0,
+          previousMonthWorkStartDate: payrollData?.previousMonthWorkStartDate ?? null,
+          previousMonthWorkEndDate: payrollData?.previousMonthWorkEndDate ?? null,
+          bonusItems,
+          bonusTaxRate,
+        }
+      }
+    } catch (e) {
+      console.error('localStorage 데이터 파싱 실패:', e)
+    }
+  }
+
+  // localStorage 없음 → API 데이터로 초기화
+  const defaultWage = payrollData?.contractHourlyWageInfo?.weekDayHourlyWage ?? 0
+
+  const apiRecords: EditableDailyRecord[] = (payrollData?.items ?? [])
+    .filter(item => item.type === 'DAILY' && item.dailyRecord)
+    .map(item => {
+      const record = item.dailyRecord!
+      return {
+        date: record.date,
+        dayOfWeek: record.dayOfWeek,
+        dayOfWeekKorean: record.dayOfWeekKorean,
+        originalWorkHours: record.workHours,
+        workHours: record.workHours,
+        originalApplyTimelyAmount: record.applyTimelyAmount,
+        applyTimelyAmount: record.applyTimelyAmount,
+        paymentAmount: record.paymentAmount,
+        deductionAmount: record.deductionAmount,
+        totalAmount: record.totalAmount,
+        contractHourlyWage: defaultWage,
+        contractWorkHours: record.contractWorkHours,
+        weekNumber: getISOWeekNumber(record.date),
+      }
+    })
+
+  // API가 반환하지 않은 날짜를 기간 내 전체 날짜로 채우기
+  const apiDates = new Set(apiRecords.map(r => r.date))
+  const allDates = generateDateRange(startDate, endDate)
+  const filledRecords: EditableDailyRecord[] = allDates
+    .filter(d => !apiDates.has(d))
+    .map(date => {
+      const dayIdx = new Date(date).getDay()
+      return {
+        date,
+        dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
+        dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
+        originalWorkHours: 0,
+        workHours: 0,
+        originalApplyTimelyAmount: defaultWage,
+        applyTimelyAmount: defaultWage,
+        paymentAmount: 0,
+        deductionAmount: 0,
+        totalAmount: 0,
+        contractHourlyWage: defaultWage,
+        contractWorkHours: 0,
+        weekNumber: getISOWeekNumber(date),
+      }
+    })
+
+  const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
+
+  const holidayAllowances: EditableWeeklyHolidayAllowance[] = (payrollData?.items ?? [])
+    .filter(item => item.type === 'WEEKLY_HOLIDAY_ALLOWANCE' && item.weeklyHolidayAllowance)
+    .map(item => {
+      const allowance = item.weeklyHolidayAllowance!
+      return {
+        weekStartDate: allowance.weekStartDate,
+        weekEndDate: allowance.weekEndDate,
+        weekNumber: allowance.weekNumber,
+        totalWorkHours: allowance.totalWorkHours,
+        holidayAllowanceHours: allowance.holidayAllowanceHours,
+        applyTimelyAmount: allowance.applyTimelyAmount,
+        holidayAllowanceAmount: allowance.holidayAllowanceAmount,
+        deductionAmount: allowance.deductionAmount,
+        totalAmount: allowance.totalAmount,
+        isEligible: allowance.isEligible,
+      }
+    })
+
+  const bp = loadBonusPreload(employeeInfoId)
+
+  return {
+    dailyRecords: editableRecords,
+    weeklyHolidayAllowances: holidayAllowances,
+    contractHourlyWageInfo: payrollData?.contractHourlyWageInfo ?? {
+      weekDayHourlyWage: 0,
+      overtimeHourlyWage: 0,
+      holidayHourlyWage: 0,
+    },
+    employeeName: payrollData?.memberName ?? '',
+    previousMonthWorkHours: payrollData?.previousMonthWorkHours ?? 0,
+    previousMonthWorkStartDate: payrollData?.previousMonthWorkStartDate ?? null,
+    previousMonthWorkEndDate: payrollData?.previousMonthWorkEndDate ?? null,
+    bonusItems: bp?.bonusItems ?? [],
+    bonusTaxRate: bp?.bonusTaxRate ?? 0.033,
+  }
+}
+
 export default function PartTimeWorkTimeEdit({
   id,
   startDate = '',
@@ -128,164 +304,31 @@ export default function PartTimeWorkTimeEdit({
   employeeInfoId = '',
   payrollMonth = '',
   returnToDetail = false,
-  headOfficeId = '',
-  franchiseId = '',
+  initialPayrollData,
 }: PartTimeWorkTimeEditProps) {
   const router = useRouter()
   const { alert } = useAlert()
-  const [dailyRecords, setDailyRecords] = useState<EditableDailyRecord[]>([])
-  const [weeklyHolidayAllowances, setWeeklyHolidayAllowances] = useState<EditableWeeklyHolidayAllowance[]>([])
-  const [employeeName, setEmployeeName] = useState('')
-  const [contractHourlyWageInfo, setContractHourlyWageInfo] = useState({
-    weekDayHourlyWage: 0,
-    overtimeHourlyWage: 0,
-    holidayHourlyWage: 0
-  })
-  const [previousMonthWorkHours, setPreviousMonthWorkHours] = useState(0)
-  const [previousMonthWorkStartDate, setPreviousMonthWorkStartDate] = useState<string | null>(null)
-  const [previousMonthWorkEndDate, setPreviousMonthWorkEndDate] = useState<string | null>(null)
-  const [isDataLoaded, setIsDataLoaded] = useState(false)
 
-  // TanStack Query hook
-  const { data: payrollData, isPending: isLoading } = useDailyWorkHours(
-    {
-      employeeInfoId: parseInt(employeeInfoId) || 0,
-      startDate,
-      endDate,
-      headOfficeId: parseInt(headOfficeId) || undefined,
-      franchiseId: parseInt(franchiseId) || undefined,
-    },
-    !!startDate && !!endDate && !!employeeInfoId
+  // 초기 상태를 마운트 시 1회만 계산 (lazy initializer)
+  // react-hooks/set-state-in-effect 준수: useEffect + setState 대신 lazy useState 사용
+  // 부모 페이지에서 key={`${employeeInfoId}-${startDate}-${endDate}`}로 리마운트 제어
+  const [initData] = useState(() =>
+    computeEditorInitialState(employeeInfoId, startDate, endDate, initialPayrollData)
   )
 
-  // API 로드 완료 후 데이터 초기화 (payrollData가 null이어도 기간 내 전체 날짜 생성)
-  if (!isLoading && !isDataLoaded && startDate && endDate && employeeInfoId) {
-    // localStorage 확인
-    const savedData = localStorage.getItem(WORKTIME_EDIT_STORAGE_KEY)
-    let loadedFromStorage = false
+  // 사용자가 편집 가능한 상태 (setXxx 포함)
+  const [dailyRecords, setDailyRecords] = useState(initData.dailyRecords)
+  const [weeklyHolidayAllowances, setWeeklyHolidayAllowances] = useState(initData.weeklyHolidayAllowances)
+  const [bonusItems, setBonusItems] = useState(initData.bonusItems)
+  // bonusTaxRate는 사용자가 직접 수정하지 않으므로 const로 선언
+  const bonusTaxRate = initData.bonusTaxRate
 
-    if (savedData) {
-      try {
-        const parsed: WorkTimeEditData = JSON.parse(savedData)
-        if (parsed.employeeInfoId === employeeInfoId &&
-            parsed.startDate === startDate &&
-            parsed.endDate === endDate) {
-          // API에서 contractWorkHours를 날짜별로 맵핑 (localStorage preload 시 0으로 고정된 값을 보정)
-          const apiContractHoursMap = new Map<string, number>()
-          if (payrollData?.items) {
-            payrollData.items
-              .filter(item => item.type === 'DAILY' && item.dailyRecord)
-              .forEach(item => {
-                apiContractHoursMap.set(item.dailyRecord!.date, item.dailyRecord!.contractWorkHours)
-              })
-          }
-
-          const records = parsed.editedRecords.map(r => ({
-            ...r,
-            // API 값 우선 사용 (기존 명세서 preload 시 0으로 고정된 문제 해결)
-            contractWorkHours: apiContractHoursMap.get(r.date) ?? r.contractWorkHours ?? 0
-          }))
-          setDailyRecords(records)
-          setWeeklyHolidayAllowances(parsed.weeklyHolidayAllowances)
-          // API의 contractHourlyWageInfo 우선 사용 (overtimeHourlyWage, holidayHourlyWage 포함)
-          if (payrollData?.contractHourlyWageInfo) {
-            setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
-          } else {
-            setContractHourlyWageInfo(parsed.contractHourlyWageInfo)
-          }
-          // previousMonthWorkHours도 API에서 가져오기
-          if (payrollData) {
-            setEmployeeName(payrollData.memberName || '')
-            setPreviousMonthWorkHours(payrollData.previousMonthWorkHours || 0)
-            setPreviousMonthWorkStartDate(payrollData.previousMonthWorkStartDate || null)
-            setPreviousMonthWorkEndDate(payrollData.previousMonthWorkEndDate || null)
-          }
-          loadedFromStorage = true
-        }
-      } catch (e) {
-        console.error('localStorage 데이터 파싱 실패:', e)
-      }
-    }
-
-    if (!loadedFromStorage) {
-      // API 데이터 변환 (null이면 빈 배열 사용)
-      const defaultWage = payrollData?.contractHourlyWageInfo?.weekDayHourlyWage ?? 0
-      setEmployeeName(payrollData?.memberName || '')
-      if (payrollData?.contractHourlyWageInfo) setContractHourlyWageInfo(payrollData.contractHourlyWageInfo)
-      setPreviousMonthWorkHours(payrollData?.previousMonthWorkHours || 0)
-      setPreviousMonthWorkStartDate(payrollData?.previousMonthWorkStartDate || null)
-      setPreviousMonthWorkEndDate(payrollData?.previousMonthWorkEndDate || null)
-
-      const apiRecords: EditableDailyRecord[] = (payrollData?.items ?? [])
-        .filter(item => item.type === 'DAILY' && item.dailyRecord)
-        .map(item => {
-          const record = item.dailyRecord!
-          return {
-            date: record.date,
-            dayOfWeek: record.dayOfWeek,
-            dayOfWeekKorean: record.dayOfWeekKorean,
-            originalWorkHours: record.workHours,
-            workHours: record.workHours,
-            originalApplyTimelyAmount: record.applyTimelyAmount,
-            applyTimelyAmount: record.applyTimelyAmount,
-            paymentAmount: record.paymentAmount,
-            deductionAmount: record.deductionAmount,
-            totalAmount: record.totalAmount,
-            contractHourlyWage: defaultWage,
-            contractWorkHours: record.contractWorkHours,
-            weekNumber: getISOWeekNumber(record.date)
-          }
-        })
-
-      // API가 반환하지 않은 날짜를 기간 내 전체 날짜로 채우기
-      const apiDates = new Set(apiRecords.map(r => r.date))
-      const allDates = generateDateRange(startDate, endDate)
-      const missingDates = allDates.filter(d => !apiDates.has(d))
-      const filledRecords: EditableDailyRecord[] = missingDates.map(date => {
-        const dayIdx = new Date(date).getDay()
-        return {
-          date,
-          dayOfWeek: DAY_OF_WEEK_ENGLISH[dayIdx],
-          dayOfWeekKorean: DAY_OF_WEEK_KOREAN[dayIdx],
-          originalWorkHours: 0,
-          workHours: 0,
-          originalApplyTimelyAmount: defaultWage,
-          applyTimelyAmount: defaultWage,
-          paymentAmount: 0,
-          deductionAmount: 0,
-          totalAmount: 0,
-          contractHourlyWage: defaultWage,
-          contractWorkHours: 0,
-          weekNumber: getISOWeekNumber(date)
-        }
-      })
-
-      const editableRecords = [...apiRecords, ...filledRecords].sort((a, b) => a.date.localeCompare(b.date))
-
-      const holidayAllowances: EditableWeeklyHolidayAllowance[] = (payrollData?.items ?? [])
-        .filter(item => item.type === 'WEEKLY_HOLIDAY_ALLOWANCE' && item.weeklyHolidayAllowance)
-        .map(item => {
-          const allowance = item.weeklyHolidayAllowance!
-          return {
-            weekStartDate: allowance.weekStartDate,
-            weekEndDate: allowance.weekEndDate,
-            weekNumber: allowance.weekNumber,
-            totalWorkHours: allowance.totalWorkHours,
-            holidayAllowanceHours: allowance.holidayAllowanceHours,
-            applyTimelyAmount: allowance.applyTimelyAmount,
-            holidayAllowanceAmount: allowance.holidayAllowanceAmount,
-            deductionAmount: allowance.deductionAmount,
-            totalAmount: allowance.totalAmount,
-            isEligible: allowance.isEligible
-          }
-        })
-
-      setDailyRecords(editableRecords)
-      setWeeklyHolidayAllowances(holidayAllowances)
-    }
-
-    setIsDataLoaded(true)
-  }
+  // 읽기 전용 초기값 (API에서 한 번만 설정, 사용자가 직접 수정하지 않음)
+  const employeeName = initData.employeeName
+  const contractHourlyWageInfo = initData.contractHourlyWageInfo
+  const previousMonthWorkHours = initData.previousMonthWorkHours
+  const previousMonthWorkStartDate = initData.previousMonthWorkStartDate
+  const previousMonthWorkEndDate = initData.previousMonthWorkEndDate
 
   const getReturnPath = (withFromParam = false) => {
     const suffix = withFromParam ? '?fromWorkTimeEdit=true' : ''
@@ -427,7 +470,9 @@ export default function PartTimeWorkTimeEdit({
       contractHourlyWageInfo,
       previousMonthWorkHours: previousMonthWorkHours || undefined,
       previousMonthWorkStartDate: previousMonthWorkStartDate || undefined,
-      previousMonthWorkEndDate: previousMonthWorkEndDate || undefined
+      previousMonthWorkEndDate: previousMonthWorkEndDate || undefined,
+      bonusItems: bonusItems.length > 0 ? bonusItems : undefined,
+      bonusTaxRate,
     }
 
     localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(editData))
@@ -450,6 +495,18 @@ export default function PartTimeWorkTimeEdit({
 
       return newRecords
     })
+  }
+
+  const handleToggleBonus = (id: number) => {
+    setBonusItems(prev => prev.map(b => b.id === id ? { ...b, isActive: !b.isActive } : b))
+  }
+
+  const handleBonusAmountChange = (id: number, amount: number) => {
+    setBonusItems(prev => prev.map(b => {
+      if (b.id !== id) return b
+      const deductionAmount = Math.floor(amount * bonusTaxRate)
+      return { ...b, bonusAmount: amount, deductionAmount }
+    }))
   }
 
   const handleApplyTimelyAmountChange = (index: number, amount: number) => {
@@ -527,11 +584,7 @@ export default function PartTimeWorkTimeEdit({
 
       <div className="contents-body">
         <div className="content-wrap">
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-              데이터를 불러오는 중...
-            </div>
-          ) : dailyRecords.length === 0 ? (
+          {dailyRecords.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
               {!startDate || !endDate || !employeeInfoId
                 ? '급여명세서 페이지에서 기간을 설정한 후 이동해주세요.'
@@ -731,6 +784,39 @@ export default function PartTimeWorkTimeEdit({
                         <td className="al-r"><strong>{formatNumber(grandTotalDeductionAmount)}</strong></td>
                         <td className="al-r"><strong>{formatNumber(grandTotalAmount)}</strong></td>
                       </tr>
+                      {bonusItems.map((bonus) => (
+                        <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: bonus.isActive ? '#333' : '#aaa' }}>
+                          <td><strong>{bonus.bonusName}</strong></td>
+                          <td className="al-c">
+                            <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                              <input type="checkbox" checked={bonus.isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
+                              <span style={{ width: '40px', height: '22px', backgroundColor: bonus.isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
+                                <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: bonus.isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
+                              </span>
+                            </label>
+                          </td>
+                          <td className="al-r">-</td>
+                          <td className="al-r">
+                            {bonus.isActive ? (
+                              <div className="filed-flx" style={{ justifyContent: 'flex-end' }}>
+                                <input
+                                  type="text"
+                                  className="input-frame al-r"
+                                  value={formatNumber(bonus.bonusAmount)}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/,/g, '')
+                                    handleBonusAmountChange(bonus.id, parseInt(value) || 0)
+                                  }}
+                                  style={{ width: '100px' }}
+                                />
+                                <span style={{ marginLeft: '4px' }}>원</span>
+                              </div>
+                            ) : '-'}
+                          </td>
+                          <td className="al-r"><strong style={{ color: bonus.isActive ? '#333' : '#aaa' }}>{bonus.isActive ? formatNumber(bonus.deductionAmount) : '-'}</strong></td>
+                          <td className="al-r"><strong style={{ color: bonus.isActive ? '#333' : '#aaa' }}>{bonus.isActive ? formatNumber(bonus.bonusAmount - bonus.deductionAmount) : '-'}</strong></td>
+                        </tr>
+                      ))}
                     </>
                   )
                 })()}

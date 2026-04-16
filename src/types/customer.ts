@@ -3,7 +3,7 @@ export interface CustomerSearchParams {
   isOperate?: number | null  // null=전체, 1=운영, 0=탈퇴
   name?: string
   loginId?: string
-  mobilePhone?: string
+  mobilePhoneLast4?: string
   socialAuthType?: string    // KAKAO | NAVER | GOOGLE
   joinDateFrom?: string      // yyyy-MM-dd
   joinDateTo?: string

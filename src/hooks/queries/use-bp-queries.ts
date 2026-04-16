@@ -1,4 +1,5 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
 import api from '@/lib/api'
 import { bpKeys } from './query-keys'
 import { useAuthStore } from '@/stores/auth-store'
@@ -7,23 +8,52 @@ import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } fro
 
 /**
  * 현재 조직의 BP 정보 조회 훅.
- * - 사이드바 로고/브랜드명 표시용
+ * - 사이드바 로고/브랜드명 표시 + 마이페이지 사업자 정보 화면용
  * - affiliation 헤더로 현재 조직의 BP 자동 필터링
  * - affiliationId를 query key에 포함하여 조직 전환 시 캐시 분리
+ *
+ * 구현 메모:
+ * 목록 API는 민감 필드를 마스킹/null 처리하므로, 목록으로 ID만 획득한 뒤
+ * 상세 API로 평문 BpDetailResponse를 가져온다.
+ *
+ * 반환값 의미:
+ * - `data === null` — 현재 조직에 연결된 BP 자체가 없음 (정상 상태, Empty 화면)
+ * - `isError === true` — 네트워크/서버 장애 또는 상세 응답 본문이 비어 있음
  */
 export const useMyOrganizationBp = () => {
   const affiliationId = useAuthStore((s) => s.affiliationId)
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: bpKeys.myOrganization(affiliationId),
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
+    queryFn: async ({ signal }) => {
+      const listResponse = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
         '/api/v1/master/bp',
-        { params: { page: 0, size: 1 } }
+        { params: { page: 0, size: 1 }, signal }
       )
-      return response.data.data?.content?.[0] ?? null
+      const bpId = listResponse.data.data?.content?.[0]?.id
+      // bpId === 0 도 유효 ID로 취급 (폴스 네거티브 방지)
+      // bpId 자체가 없는 경우 "조직 없음" 상태로 null 반환 (정상 종료)
+      if (bpId == null) return null
+
+      const detail = await getBpDetail(bpId, { signal })
+      // 목록에는 ID가 있었는데 상세 응답이 비어 있으면 백엔드 응답 이상으로 간주.
+      // isError로 올려서 "조직 없음" null 상태와 구분 가능하도록 한다.
+      if (detail == null) {
+        throw new Error('BP 상세 응답이 비어있습니다')
+      }
+      // detail 캐시와 공유: useBpDetail(bpId) 호출 시 재요청 회피
+      queryClient.setQueryData(bpKeys.detail(bpId), detail)
+      return detail
     },
     enabled: !!affiliationId,
     staleTime: 5 * 60 * 1000,
+    // 2-step 호출 구조라 실패 시 목록+상세 양쪽이 재호출되어 트래픽 증폭.
+    // 5xx 에러에 한해 1회만 재시도하여 증폭 범위 축소.
+    retry: (failureCount, error) => {
+      if (failureCount >= 1) return false
+      const status = error instanceof AxiosError ? error.response?.status : undefined
+      return status != null && status >= 500
+    },
   })
 }
 
@@ -58,15 +88,25 @@ export const useBpDetail = (id?: number | null) => {
       return response.data.data
     },
     enabled: !!id,
+    // useMyOrganizationBp와 동일한 캐시 공유/일관성 정책
+    staleTime: 5 * 60 * 1000,
   })
 }
 
 /**
  * BP 상세 조회 함수.
  * - 훅 외부(예: 이벤트 핸들러/비동기 로직)에서 사용한다.
+ * - React Query queryFn 내부에서 호출할 때는 `options.signal` 을 전달하면
+ *   쿼리 취소 시 진행 중인 요청도 함께 abort 된다.
  */
-export const getBpDetail = async (id: number): Promise<BpDetailResponse> => {
-  const response = await api.get<ApiResponse<BpDetailResponse>>(`/api/v1/master/bp/${id}`)
+export const getBpDetail = async (
+  id: number,
+  options?: { signal?: AbortSignal }
+): Promise<BpDetailResponse> => {
+  const response = await api.get<ApiResponse<BpDetailResponse>>(
+    `/api/v1/master/bp/${id}`,
+    { signal: options?.signal }
+  )
   return response.data.data
 }
 

@@ -67,6 +67,7 @@ interface FormErrors {
   headOfficeOrganizationId?: string
   employeeName?: string
   mobilePhone?: string
+  email?: string
   franchiseOrganizationId?: string
   contractStartDate?: string
   contractEndDate?: string
@@ -91,6 +92,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [storeId, setStoreId] = useState<number | null>(null)
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
+  const [email, setEmail] = useState('')
   const [contractClassification, setContractClassification] = useState<ContractClassificationType>('CNTCFWK_001')
   const [hireDate, setHireDate] = useState('')
   const [nationalPensionEnrolled, setNationalPensionEnrolled] = useState(false)
@@ -158,6 +160,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     } else if (mobilePhone.trim().length < 10) {
       errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
     }
+    if (!email.trim()) {
+      errors.email = '이메일을 입력해주세요.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = '올바른 이메일 형식으로 입력해주세요.'
+    }
     if (workplaceType === 'FRANCHISE' && !franchiseOrganizationId) {
       errors.franchiseOrganizationId = '가맹점을 선택해주세요.'
     }
@@ -201,6 +208,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       errors.mobilePhone = '휴대폰 번호를 입력해주세요.'
     } else if (mobilePhone.trim().length < 10) {
       errors.mobilePhone = '휴대폰 번호를 정확히 입력해주세요.'
+    }
+    if (!email.trim()) {
+      errors.email = '이메일을 입력해주세요.'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = '올바른 이메일 형식으로 입력해주세요.'
     }
     if (workplaceType === 'FRANCHISE' && !franchiseOrganizationId) {
       errors.franchiseOrganizationId = '가맹점을 선택해주세요.'
@@ -285,6 +297,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         storeId,
         employeeName: employeeName.trim(),
         mobilePhone: mobilePhone.trim() || null,
+        email: email.trim(),
         hireDate: finalHireDate,
         contractClassification,
         nationalPensionEnrolled,
@@ -318,6 +331,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setStoreId(null)
     setEmployeeName('')
     setMobilePhone('')
+    setEmail('')
     setContractClassification('CNTCFWK_001')
     setHireDate('')
     setNationalPensionEnrolled(false)
@@ -554,6 +568,24 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                         helpText={formErrors.mobilePhone}
                         showClear
                         onClear={() => setMobilePhone('')}
+                        fullWidth
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>
+                      이메일 <span className="red">*</span>
+                    </th>
+                    <td>
+                      <Input
+                        placeholder="이메일 입력"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        maxLength={100}
+                        error={!!formErrors.email}
+                        helpText={formErrors.email}
+                        showClear
+                        onClear={() => setEmail('')}
                         fullWidth
                       />
                     </td>

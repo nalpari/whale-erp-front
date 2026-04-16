@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import AnimateHeight from 'react-animate-height'
 import Image from 'next/image'
 import { useAuthStore } from '@/stores/auth-store'
@@ -9,6 +10,7 @@ export default function MyData() {
   const [myDataOpen, setMyDataOpen] = useState(false)
   const router = useRouter()
   const clearAuth = useAuthStore((state) => state.clearAuth)
+  const queryClient = useQueryClient()
   const name = useAuthStore((state) => state.name)
   const loginId = useAuthStore((state) => state.loginId)
   const avatar = useAuthStore((state) => state.avatar)
@@ -20,6 +22,8 @@ export default function MyData() {
 
   const handleLogout = () => {
     clearAuth()
+    // 이전 사용자의 서버 캐시가 다음 로그인 세션에 누수되지 않도록 전체 클리어.
+    queryClient.clear()
     document.cookie = 'auth-token=; path=/; max-age=0'
     router.push('/')
   }

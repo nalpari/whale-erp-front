@@ -27,13 +27,19 @@ import type {
   UpdatePartTimerPayrollStatementRequest,
   PartTimerDeductionItemRequest,
 } from '@/lib/api/partTimerPayrollStatement'
-import { WorkTimeEditData } from './PartTimeWorkTimeEdit'
+import { WorkTimeEditData, EditableBonusItem } from './PartTimeWorkTimeEdit'
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useContractsByEmployee, useContractList } from '@/hooks/queries/use-contract-queries'
 import { usePayrollStatementSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { calculatePayrollPeriod } from '@/lib/utils/payroll'
+import {
+  WORKTIME_EDIT_STORAGE_KEY,
+  NEWFORM_STATE_STORAGE_KEY,
+  saveBonusPreload,
+  clearBonusPreload,
+} from '@/lib/session/parttime-edit-session'
 
 // 날짜 변환 유틸
 const parseStringToDate = (dateStr: string | null): Date | null => {
@@ -49,10 +55,6 @@ const formatDateToString = (date: Date | null): string => {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
-
-// localStorage 키
-const WORKTIME_EDIT_STORAGE_KEY = 'parttime_worktime_edit_data'
-const NEWFORM_STATE_STORAGE_KEY = 'parttime_newform_state'
 
 interface PartTimePayStubProps {
   id: string
@@ -97,12 +99,6 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [isLoading, setIsLoading] = useState(false)
   const [editedWorkTimeData, setEditedWorkTimeData] = useState<WorkTimeEditData | null>(null)
   const [isSearchDone, setIsSearchDone] = useState(false)
-  // 상여금 ON/OFF (비활성화된 상여금 id Set, lazy 초기화로 remount 시 서버 데이터 반영)
-  const [disabledBonusIds, setDisabledBonusIds] = useState<Set<number>>(() => {
-    if (!existingStatement?.bonusItems?.length) return new Set<number>()
-    return new Set(existingStatement.bonusItems.filter(b => !b.isActive).map(b => b.id))
-  })
-
   // 4대보험 공제 (lazy 초기화)
   const [nationalPension, setNationalPension] = useState(() => {
     const item = existingStatement?.deductionItems?.find(i => i.itemCode === 'NATIONAL_PENSION')
@@ -239,31 +235,12 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     return []
   }, [contractList, contractListByHead, existingStatement?.memberName])
 
-  // 활성화된 상여금 (토글 ON인 것만)
-  const activeBonuses = useMemo(
-    () => contractBonuses.filter(b => !disabledBonusIds.has(b.id)),
-    [contractBonuses, disabledBonusIds]
-  )
-
   // 파트타이머 상여금 세율 (근로소득세율 + 지방소득세율)
   const bonusTaxRate = useMemo(() => {
     const income = payrollSettings?.parttimeIncomeTaxRate ?? 3
     const local = payrollSettings?.parttimeLocalTaxRate ?? 0.3
     return (income + local) / 100
   }, [payrollSettings?.parttimeIncomeTaxRate, payrollSettings?.parttimeLocalTaxRate])
-
-  // 상여금 공제액 계산 헬퍼
-  const calcBonusDeduction = (amount: number) => Math.floor(amount * bonusTaxRate)
-
-  // 상여금 ON/OFF 토글
-  const handleToggleBonus = (bonusId: number) => {
-    setDisabledBonusIds(prev => {
-      const next = new Set(prev)
-      if (next.has(bonusId)) next.delete(bonusId)
-      else next.add(bonusId)
-      return next
-    })
-  }
 
   // Select options
   const headquarterOptions: SelectOption[] = useMemo(() =>
@@ -541,6 +518,44 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           isEligible: w.totalAmount > 0,
         }))
 
+        // 계약서 상여를 기준으로, 기존 저장된 항목은 현재 상태 유지 / 새로 추가된 항목은 OFF
+        const savedBonusItems = existingStatement.bonusItems ?? []
+        const preloadBonusItems: EditableBonusItem[] = contractBonuses.length > 0
+          ? contractBonuses.map((cb, i) => {
+              const saved = savedBonusItems.find(
+                b => (cb.bonusCode && b.bonusCode && cb.bonusCode === b.bonusCode) || cb.bonusType === b.bonusName
+              )
+              if (saved) {
+                return {
+                  id: saved.id,
+                  bonusCode: saved.bonusCode ?? cb.bonusCode,
+                  bonusName: saved.bonusName,
+                  bonusAmount: saved.bonusAmount,
+                  deductionAmount: saved.deductionAmount,
+                  isActive: saved.isActive,
+                  itemOrder: saved.itemOrder,
+                }
+              }
+              return {
+                id: cb.id,
+                bonusCode: cb.bonusCode,
+                bonusName: cb.bonusType,
+                bonusAmount: cb.amount,
+                deductionAmount: Math.floor(cb.amount * bonusTaxRate),
+                isActive: false, // 새로 추가된 항목은 OFF
+                itemOrder: savedBonusItems.length + i + 1,
+              }
+            })
+          : savedBonusItems.map(b => ({
+              id: b.id,
+              bonusCode: b.bonusCode,
+              bonusName: b.bonusName,
+              bonusAmount: b.bonusAmount,
+              deductionAmount: b.deductionAmount,
+              isActive: b.isActive,
+              itemOrder: b.itemOrder,
+            }))
+
         const preload: WorkTimeEditData = {
           employeeInfoId: String(existingStatement.employeeInfoId),
           startDate, endDate,
@@ -551,6 +566,8 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
           grandTotalDeductionAmount: existingStatement.totalDeductionAmount,
           grandTotalAmount: existingStatement.actualPaymentAmount,
           contractHourlyWageInfo: { weekDayHourlyWage: defaultWage, overtimeHourlyWage: 0, holidayHourlyWage: 0 },
+          bonusItems: preloadBonusItems.length > 0 ? preloadBonusItems : undefined,
+          bonusTaxRate,
         }
         localStorage.setItem(WORKTIME_EDIT_STORAGE_KEY, JSON.stringify(preload))
       }
@@ -592,6 +609,24 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       employmentInsurance,
       longTermCareInsurance,
     }))
+    // 보너스 preload 저장 (WorkTimeEdit에서 로드)
+    // employeeInfoId 네임스페이스 적용으로 다른 직원 편집 시 cross-employee leak 방지
+    if (contractBonuses.length > 0) {
+      saveBonusPreload(employeeInfoId, {
+        bonusItems: contractBonuses.map((b, i) => ({
+          id: b.id,
+          bonusCode: b.bonusCode,
+          bonusName: b.bonusType,
+          bonusAmount: b.amount,
+          deductionAmount: Math.floor(b.amount * bonusTaxRate),
+          isActive: true,
+          itemOrder: i + 1,
+        })),
+        bonusTaxRate,
+      })
+    } else {
+      clearBonusPreload(employeeInfoId)
+    }
     const params = new URLSearchParams({
       startDate,
       endDate,
@@ -838,17 +873,34 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       return
     }
 
-    // [의도적 차이] 신규 저장(handleSave)은 계약서 기반 상여금(contractBonuses)만 사용.
-    // 기존 명세서가 없으므로 existingStatement.bonusItems 폴백 로직은 불필요.
-    const bonusItems = contractBonuses.length > 0
-      ? contractBonuses.map((b, i) => ({
+    // editedWorkTimeData.bonusItems 우선 사용 (WorkTimeEdit에서 편집된 데이터)
+    // 없으면 계약서 기반 fallback (모두 활성)
+    const bonusItems = (() => {
+      if (editedWorkTimeData?.bonusItems?.length) {
+        return editedWorkTimeData.bonusItems.map(b => {
+          const contractBonus = contractBonuses.find(cb => cb.bonusType === b.bonusName)
+          return {
+            bonusCode: b.bonusCode ?? contractBonus?.bonusCode,
+            bonusName: b.bonusName,
+            bonusAmount: b.bonusAmount,
+            deductionAmount: b.deductionAmount,
+            isActive: b.isActive,
+            itemOrder: b.itemOrder,
+          }
+        })
+      }
+      if (contractBonuses.length > 0) {
+        return contractBonuses.map((b, i) => ({
+          bonusCode: b.bonusCode,
           bonusName: b.bonusType,
           bonusAmount: b.amount,
-          deductionAmount: disabledBonusIds.has(b.id) ? 0 : calcBonusDeduction(b.amount),
-          isActive: !disabledBonusIds.has(b.id),
+          deductionAmount: Math.floor(b.amount * bonusTaxRate),
+          isActive: true,
           itemOrder: i + 1,
         }))
-      : undefined
+      }
+      return undefined
+    })()
 
     const parseAmount = (val: string) => parseInt(val.replace(/,/g, '')) || 0
     const deductionItems: PartTimerDeductionItemRequest[] = []
@@ -874,7 +926,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       paymentDate,
       remarks: undefined,
       paymentItems,
-      deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
+      deductionItems: deductionItems, // 빈 배열도 명시적으로 전송 → 서버에서 기존 항목 삭제 처리
       bonusItems,
     }
 
@@ -954,27 +1006,46 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       return
     }
 
-    // [의도적 차이] 수정(handleUpdate)은 existingStatement.bonusItems 우선 사용.
-    // 서버에 저장된 상여 데이터(금액, 순서 등)를 보존하고 isActive 상태만 갱신한다.
-    // 저장된 상여가 없는 경우(최초 상여 추가 시)에만 contractBonuses로 폴백한다.
+    // editedWorkTimeData.bonusItems 우선 사용 (WorkTimeEdit에서 편집된 데이터)
+    // 없으면 existingStatement.bonusItems 유지, 그것도 없으면 계약서 기반 fallback
     const bonusItems = (() => {
-      // 저장된 상여가 있으면 그 데이터 기반으로 isActive 반영
-      if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
-        return existingStatement.bonusItems.map(b => ({
-          bonusName: b.bonusName,
-          bonusAmount: b.bonusAmount,
-          deductionAmount: disabledBonusIds.has(b.id) ? 0 : (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)),
-          isActive: !disabledBonusIds.has(b.id),
-          itemOrder: b.itemOrder,
-        }))
+      if (editedWorkTimeData?.bonusItems?.length) {
+        return editedWorkTimeData.bonusItems.map(b => {
+          const contractBonus = contractBonuses.find(cb => cb.bonusType === b.bonusName)
+          return {
+            bonusCode: b.bonusCode ?? contractBonus?.bonusCode,
+            bonusName: b.bonusName,
+            bonusAmount: b.bonusAmount,
+            deductionAmount: b.deductionAmount,
+            isActive: b.isActive,
+            itemOrder: b.itemOrder,
+          }
+        })
       }
-      // 저장된 상여 없으면 계약서 기반
+      if (existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0) {
+        return existingStatement.bonusItems.map(b => {
+          const contractBonus = contractBonuses.find(cb => cb.bonusType === b.bonusName)
+          return {
+            bonusCode: b.bonusCode ?? contractBonus?.bonusCode,
+            bonusName: b.bonusName,
+            bonusAmount: b.bonusAmount,
+            // 서버에 0으로 저장된 레코드 편집 시 원천세 불일치 방지:
+            // deductionAmount가 0이면 bonusAmount × 세율로 재계산 (fallback)
+            deductionAmount: b.deductionAmount > 0
+              ? b.deductionAmount
+              : Math.floor(b.bonusAmount * bonusTaxRate),
+            isActive: b.isActive,
+            itemOrder: b.itemOrder,
+          }
+        })
+      }
       if (contractBonuses.length > 0) {
         return contractBonuses.map((b, i) => ({
+          bonusCode: b.bonusCode,
           bonusName: b.bonusType,
           bonusAmount: b.amount,
-          deductionAmount: disabledBonusIds.has(b.id) ? 0 : calcBonusDeduction(b.amount),
-          isActive: !disabledBonusIds.has(b.id),
+          deductionAmount: Math.floor(b.amount * bonusTaxRate),
+          isActive: true,
           itemOrder: i + 1,
         }))
       }
@@ -987,7 +1058,7 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
       settlementEndDate: endDate,
       paymentDate,
       paymentItems,
-      deductionItems: deductionItems.length > 0 ? deductionItems : undefined,
+      deductionItems: deductionItems, // 빈 배열도 명시적으로 전송 → 서버에서 기존 항목 삭제 처리
       bonusItems,
     }
 
@@ -1006,6 +1077,33 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
     } catch (error) {
       console.error('수정 실패:', error)
       await alert('수정 중 오류가 발생했습니다.')
+    }
+  }
+
+  // ─── 급여명세서 합계 순수 계산 함수 ──────────────────────────────────────────
+  // 4개의 IIFE 합산 블록 공통 로직 추출
+  const computePayStubSummary = (params: {
+    workHours: number
+    paymentAmount: number        // 지급액 합계 (일자별 + 주휴수당)
+    dailyDeduction: number       // 일자별+주휴수당 공제 합계
+    insuranceDeduction: number   // 4대보험 공제 합계
+    activeBonusItems: Array<{ bonusAmount: number; deductionAmount: number }>
+  }) => {
+    const { workHours, paymentAmount, dailyDeduction, insuranceDeduction, activeBonusItems } = params
+    const activeBonusTotal = activeBonusItems.reduce((s, b) => s + b.bonusAmount, 0)
+    const activeBonusDeductionTotal = activeBonusItems.reduce((s, b) => s + b.deductionAmount, 0)
+    const subTotalNet = paymentAmount - dailyDeduction
+    const totalDeduction = dailyDeduction + insuranceDeduction + activeBonusDeductionTotal
+    const finalTotal = paymentAmount + activeBonusTotal - totalDeduction
+    return {
+      workHours,
+      paymentAmount,
+      dailyDeduction,
+      subTotalNet,
+      activeBonusTotal,
+      activeBonusDeductionTotal,
+      totalDeduction,
+      finalTotal,
     }
   }
 
@@ -1502,44 +1600,28 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   }
                   {(() => {
                     const eligible = editedWorkTimeData.weeklyHolidayAllowances.filter(a => a.isEligible)
-                    const gtWorkHours = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.workHours, 0)
-                      + eligible.reduce((s, a) => s + a.holidayAllowanceHours, 0)
-                    const gtPayment = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.paymentAmount, 0)
-                      + eligible.reduce((s, a) => s + a.holidayAllowanceAmount, 0)
-                    const gtDeduction = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.deductionAmount, 0)
-                      + eligible.reduce((s, a) => s + a.deductionAmount, 0)
                     const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
                     const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
-                    // 저장된 bonusItems 우선, 없으면 계약서 기반 fallback
-                    const hasSavedBonuses = existingStatement?.bonusItems != null && existingStatement.bonusItems.length > 0
-                    const displayBonuses = hasSavedBonuses
-                      ? existingStatement!.bonusItems!
-                      : contractBonuses.map((b, i) => ({
-                          id: b.id,
-                          bonusName: b.bonusType,
-                          bonusAmount: b.amount,
-                          deductionAmount: calcBonusDeduction(b.amount),
-                          isActive: true,
-                          itemOrder: i + 1,
-                        }))
-                    const savedActiveBonusTotal = hasSavedBonuses
-                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
-                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const savedActiveBonusDeductionTotal = hasSavedBonuses
-                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
-                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
-                    const subTotal = gtPayment - gtDeduction
-                    const totalDeduction = gtDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
-                    const finalTotal = gtPayment + savedActiveBonusTotal - totalDeduction
+                    const activeBonusItems = editedWorkTimeData.bonusItems?.filter(b => b.isActive) ?? []
+                    const s = computePayStubSummary({
+                      workHours: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.workHours, 0)
+                        + eligible.reduce((acc, a) => acc + a.holidayAllowanceHours, 0),
+                      paymentAmount: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.paymentAmount, 0)
+                        + eligible.reduce((acc, a) => acc + a.holidayAllowanceAmount, 0),
+                      dailyDeduction: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.deductionAmount, 0)
+                        + eligible.reduce((acc, a) => acc + a.deductionAmount, 0),
+                      insuranceDeduction,
+                      activeBonusItems,
+                    })
                     return (
                       <>
                         <tr className="grand-total">
                           <td><strong>급여소계</strong></td>
-                          <td className="al-r"><strong>{gtWorkHours.toFixed(2)}</strong></td>
+                          <td className="al-r"><strong>{s.workHours.toFixed(2)}</strong></td>
                           <td className="al-r"><strong>-</strong></td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(gtDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.paymentAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.subTotalNet)}</strong></td>
                         </tr>
                         {insuranceDeduction > 0 && (
                           <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
@@ -1548,36 +1630,26 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             <td className="al-r">-</td>
                             <td className="al-r">-</td>
                             <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
-                            <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                            <td className="al-r">{insuranceDeduction > 0 ? <strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong> : <strong>{formatNumber(insuranceDeduction)}</strong>}</td>
                           </tr>
                         )}
-                        {displayBonuses.map((bonus) => {
-                          const isActive = !disabledBonusIds.has(bonus.id)
-                          return (
-                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
-                              <td><strong>{bonus.bonusName}</strong></td>
-                              <td className="al-c">
-                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
-                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
-                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
-                                  </span>
-                                </label>
-                              </td>
-                              <td className="al-r">-</td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
-                            </tr>
-                          )
-                        })}
+                        {activeBonusItems.map((bonus, idx) => (
+                          <tr key={idx} className="grand-total" style={{ backgroundColor: '#fffbe6' }}>
+                            <td><strong>{bonus.bonusName}</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.deductionAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount - bonus.deductionAmount)}</strong></td>
+                          </tr>
+                        ))}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment + savedActiveBonusTotal)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.paymentAmount + s.activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.finalTotal)}</strong></td>
                         </tr>
                       </>
                     )
@@ -1588,47 +1660,25 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   {existingStatement.paymentItems.map((item, index) => renderExistingPaymentItemRow(item, index))}
                   {existingStatement.weeklyPaidHolidayAllowances?.map((item, index) => renderWeeklyPaidHolidayAllowanceRow(item, index))}
                   {(() => {
-                    // ─── 공제 분리 ───────────────────────────────────────────
-                    // 일자별 공제 (paymentItems 기준만)
-                    const paymentItemsDeduction = existingStatement.paymentItems.reduce((s, i) => s + i.deductionAmount, 0)
-                    // 주휴수당 공제
-                    const holidayDeduction = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.deductionAmount, 0) ?? 0
-                    // 4대보험 공제
-                    const insuranceDeduction = existingStatement.deductionItems?.reduce((s, i) => s + i.amount, 0) ?? 0
-
-                    // ─── bonusItems ──────────────────────────────────────────
-                    // 저장된 데이터 있으면 사용, 없거나 빈 배열이면 계약서 기반 fallback
-                    const hasSavedBonuses = existingStatement.bonusItems != null && existingStatement.bonusItems.length > 0
-                    const displayBonuses = hasSavedBonuses
-                      ? existingStatement.bonusItems!
-                      : contractBonuses.map((b, i) => ({
-                          id: b.id,
-                          bonusName: b.bonusType,
-                          bonusAmount: b.amount,
-                          deductionAmount: calcBonusDeduction(b.amount),
-                          isActive: true,
-                          itemOrder: i + 1,
-                        }))
-                    const savedActiveBonusTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
-                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const savedActiveBonusDeductionTotal = hasSavedBonuses
-                      ? existingStatement.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
-                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
-
-                    // ─── 급여소계: 일자별 + 주휴수당 ────────────────────────
-                    const dailyPaymentTotal = existingStatement.paymentItems.reduce((s, i) => s + i.totalAmount, 0)
-                    const subTotalWorkHours = existingStatement.paymentItems.reduce((s, i) => s + i.workHour, 0)
-                    const holidayPaymentTotal = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, i) => s + i.totalAmount, 0) ?? 0
-                    const holidayWorkHours = existingStatement.weeklyPaidHolidayAllowances?.reduce((s, w) => s + w.workTime, 0) ?? 0
-                    const subTotalPayment = dailyPaymentTotal + holidayPaymentTotal
-                    const subTotalDeductionAmt = paymentItemsDeduction + holidayDeduction
+                    const paymentItemsDeduction = existingStatement.paymentItems.reduce((acc, i) => acc + i.deductionAmount, 0)
+                    const holidayDeduction = existingStatement.weeklyPaidHolidayAllowances?.reduce((acc, i) => acc + i.deductionAmount, 0) ?? 0
+                    // Block 1·3과 동일하게 상태 변수 사용 → 사용자 입력값을 실시간으로 반영
+                    // (existingStatement.deductionItems는 서버 저장 데이터이므로 입력 변경 즉시 반영 안 됨)
+                    const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
+                    const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
+                    const activeBonusItems = existingStatement.bonusItems?.filter(b => b.isActive) ?? []
+                    const dailyPaymentTotal = existingStatement.paymentItems.reduce((acc, i) => acc + i.totalAmount, 0)
+                    const holidayPaymentTotal = existingStatement.weeklyPaidHolidayAllowances?.reduce((acc, i) => acc + i.totalAmount, 0) ?? 0
+                    const subTotalWorkHours = existingStatement.paymentItems.reduce((acc, i) => acc + i.workHour, 0)
+                    const holidayWorkHours = existingStatement.weeklyPaidHolidayAllowances?.reduce((acc, w) => acc + w.workTime, 0) ?? 0
                     const subTotalWorkHoursAll = subTotalWorkHours + holidayWorkHours
-                    const subTotalNet = subTotalPayment - subTotalDeductionAmt
-
-                    // ─── 급여합계: 전체 (일자별 + 주휴수당 + 상여) ───────────
-                    const totalDeduction = paymentItemsDeduction + holidayDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
-                    const finalTotal = existingStatement.totalAmount + savedActiveBonusTotal - totalDeduction
+                    const s = computePayStubSummary({
+                      workHours: subTotalWorkHoursAll,
+                      paymentAmount: dailyPaymentTotal + holidayPaymentTotal,
+                      dailyDeduction: paymentItemsDeduction + holidayDeduction,
+                      insuranceDeduction,
+                      activeBonusItems,
+                    })
                     return (
                       <>
                         {/* 급여소계: 일자별 + 주휴수당 */}
@@ -1636,9 +1686,9 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           <td><strong>급여소계</strong></td>
                           <td className="al-r"><strong>{formatNumber(subTotalWorkHoursAll)}</strong></td>
                           <td className="al-r"><strong>-</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotalPayment)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotalDeductionAmt)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotalNet)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.paymentAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.subTotalNet)}</strong></td>
                         </tr>
                         {/* 4대보험 공제액: 0원이어도 항상 표시 */}
                         <tr className="grand-total" style={{ backgroundColor: '#f5f5f5', color: '#333' }}>
@@ -1647,37 +1697,27 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
                           <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
-                          <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                          <td className="al-r">{insuranceDeduction > 0 ? <strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong> : <strong>{formatNumber(insuranceDeduction)}</strong>}</td>
                         </tr>
-                        {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
-                        {displayBonuses.map((bonus) => {
-                          const isActive = !disabledBonusIds.has(bonus.id)
-                          return (
-                          <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
+                        {/* 상여금 개별 항목 */}
+                        {activeBonusItems.map((bonus, idx) => (
+                          <tr key={idx} className="grand-total" style={{ backgroundColor: '#fffbe6' }}>
                             <td><strong>{bonus.bonusName}</strong></td>
-                            <td className="al-c">
-                              <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
-                                <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
-                                  <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
-                                </span>
-                              </label>
-                            </td>
                             <td className="al-r">-</td>
-                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
-                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
-                            <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.deductionAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount - bonus.deductionAmount)}</strong></td>
                           </tr>
-                        )})}
-
+                        ))}
                         {/* 급여합계: 일자별 + 주휴수당(totalAmount에 포함) + 상여 전체 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
                           <td className="al-r"><strong>{formatNumber(subTotalWorkHoursAll)}</strong></td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount + savedActiveBonusTotal)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(existingStatement.totalAmount + s.activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.finalTotal)}</strong></td>
                         </tr>
                       </>
                     )
@@ -1691,45 +1731,29 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                   }
                   {(() => {
                     const eligible = editedWorkTimeData.weeklyHolidayAllowances.filter(a => a.isEligible)
-                    const gtWorkHours = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.workHours, 0)
-                      + eligible.reduce((s, a) => s + a.holidayAllowanceHours, 0)
-                    const gtPayment = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.paymentAmount, 0)
-                      + eligible.reduce((s, a) => s + a.holidayAllowanceAmount, 0)
-                    const gtDeduction = editedWorkTimeData.editedRecords.reduce((s, r) => s + r.deductionAmount, 0)
-                      + eligible.reduce((s, a) => s + a.deductionAmount, 0)
                     const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
                     const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
-                    // 저장된 bonusItems 우선, 없으면 계약서 기반 fallback
-                    const hasSavedBonuses = existingStatement?.bonusItems != null && existingStatement.bonusItems.length > 0
-                    const displayBonuses = hasSavedBonuses
-                      ? existingStatement!.bonusItems!
-                      : contractBonuses.map((b, i) => ({
-                          id: b.id,
-                          bonusName: b.bonusType,
-                          bonusAmount: b.amount,
-                          deductionAmount: calcBonusDeduction(b.amount),
-                          isActive: true,
-                          itemOrder: i + 1,
-                        }))
-                    const savedActiveBonusTotal = hasSavedBonuses
-                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + b.bonusAmount, 0)
-                      : activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const savedActiveBonusDeductionTotal = hasSavedBonuses
-                      ? existingStatement!.bonusItems!.filter(b => !disabledBonusIds.has(b.id)).reduce((s, b) => s + (b.deductionAmount > 0 ? b.deductionAmount : calcBonusDeduction(b.bonusAmount)), 0)
-                      : activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
-                    const subTotal = gtPayment - gtDeduction
-                    const totalDeduction = gtDeduction + insuranceDeduction + savedActiveBonusDeductionTotal
-                    const finalTotal = gtPayment + savedActiveBonusTotal - totalDeduction
+                    const activeBonusItems = editedWorkTimeData.bonusItems?.filter(b => b.isActive) ?? []
+                    const s = computePayStubSummary({
+                      workHours: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.workHours, 0)
+                        + eligible.reduce((acc, a) => acc + a.holidayAllowanceHours, 0),
+                      paymentAmount: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.paymentAmount, 0)
+                        + eligible.reduce((acc, a) => acc + a.holidayAllowanceAmount, 0),
+                      dailyDeduction: editedWorkTimeData.editedRecords.reduce((acc, r) => acc + r.deductionAmount, 0)
+                        + eligible.reduce((acc, a) => acc + a.deductionAmount, 0),
+                      insuranceDeduction,
+                      activeBonusItems,
+                    })
                     return (
                       <>
                         {/* 급여소계 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여소계</strong></td>
-                          <td className="al-r"><strong>{gtWorkHours.toFixed(2)}</strong></td>
+                          <td className="al-r"><strong>{s.workHours.toFixed(2)}</strong></td>
                           <td className="al-r"><strong>-</strong></td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(gtDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.paymentAmount)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.subTotalNet)}</strong></td>
                         </tr>
                         {/* 4대보험 공제액 */}
                         {insuranceDeduction > 0 && (
@@ -1739,38 +1763,28 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             <td className="al-r">-</td>
                             <td className="al-r">-</td>
                             <td className="al-r"><strong>{formatNumber(insuranceDeduction)}</strong></td>
-                            <td className="al-r"><strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong></td>
+                            <td className="al-r">{insuranceDeduction > 0 ? <strong style={{ color: '#e74c3c' }}>-{formatNumber(insuranceDeduction)}</strong> : <strong>{formatNumber(insuranceDeduction)}</strong>}</td>
                           </tr>
                         )}
-                        {/* 상여금 행들 — 저장된 bonusItems 있으면 고정 표시, 없으면 토글 가능 */}
-                        {displayBonuses.map((bonus) => {
-                          const isActive = !disabledBonusIds.has(bonus.id)
-                          return (
-                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
-                              <td><strong>{bonus.bonusName}</strong></td>
-                              <td className="al-c">
-                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
-                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
-                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
-                                  </span>
-                                </label>
-                              </td>
-                              <td className="al-r">-</td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount)) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.bonusAmount - (bonus.deductionAmount > 0 ? bonus.deductionAmount : calcBonusDeduction(bonus.bonusAmount))) : '-'}</strong></td>
-                            </tr>
-                          )
-                        })}
+                        {/* 상여금 개별 항목 */}
+                        {activeBonusItems.map((bonus, idx) => (
+                          <tr key={idx} className="grand-total" style={{ backgroundColor: '#fffbe6' }}>
+                            <td><strong>{bonus.bonusName}</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.deductionAmount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.bonusAmount - bonus.deductionAmount)}</strong></td>
+                          </tr>
+                        ))}
                         {/* 급여합계 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(gtPayment + savedActiveBonusTotal)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.paymentAmount + s.activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s.finalTotal)}</strong></td>
                         </tr>
                       </>
                     )
@@ -1789,14 +1803,19 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                 <>
                   {payrollData.items.map((item, index) => renderTableRow(item, index))}
                   {(() => {
-                    const dailyDeduction = payrollData.grandTotalDeductionAmount
-                    const activeBonusTotal = activeBonuses.reduce((s, b) => s + b.amount, 0)
-                    const activeBonusDeductionTotal = activeBonuses.reduce((s, b) => s + calcBonusDeduction(b.amount), 0)
-                    const subTotal = payrollData.grandTotalAmount
                     const parseAmt = (val: string) => parseInt(val.replace(/,/g, '')) || 0
                     const insuranceDeduction = parseAmt(nationalPension) + parseAmt(healthInsurance) + parseAmt(employmentInsurance) + parseAmt(longTermCareInsurance)
-                    const totalDeduction = dailyDeduction + insuranceDeduction + activeBonusDeductionTotal
-                    const finalTotal = payrollData.grandTotalPaymentAmount + activeBonusTotal - totalDeduction
+                    // contractBonuses 기반 상여금 합산 (모두 활성으로 취급, WorkTimeEdit에서 세부 편집 가능)
+                    const s4 = computePayStubSummary({
+                      workHours: payrollData.grandTotalWorkHours,
+                      paymentAmount: payrollData.grandTotalPaymentAmount,
+                      dailyDeduction: payrollData.grandTotalDeductionAmount,
+                      insuranceDeduction,
+                      activeBonusItems: contractBonuses.map((b) => ({
+                        bonusAmount: b.amount,
+                        deductionAmount: Math.floor(b.amount * bonusTaxRate),
+                      })),
+                    })
                     return (
                       <>
                         {/* 급여소계 */}
@@ -1805,38 +1824,28 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
                           <td className="al-r"><strong>{formatNumber(payrollData.grandTotalWorkHours)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(payrollData.applyTimelyAmount)}</strong></td>
                           <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(dailyDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(subTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s4.dailyDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalAmount)}</strong></td>
                         </tr>
-                        {/* 상여금 행들 */}
-                        {contractBonuses.map((bonus) => {
-                          const isActive = !disabledBonusIds.has(bonus.id)
-                          return (
-                            <tr key={bonus.id} className="grand-total" style={{ backgroundColor: '#fffbe6', color: isActive ? '#333' : '#aaa' }}>
-                              <td><strong>{bonus.bonusType}</strong></td>
-                              <td className="al-c">
-                                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                  <input type="checkbox" checked={isActive} onChange={() => handleToggleBonus(bonus.id)} style={{ display: 'none' }} />
-                                  <span style={{ width: '40px', height: '22px', backgroundColor: isActive ? '#4CAF50' : '#ccc', borderRadius: '11px', position: 'relative', display: 'inline-block', transition: 'background-color 0.2s' }}>
-                                    <span style={{ position: 'absolute', width: '18px', height: '18px', backgroundColor: '#fff', borderRadius: '50%', top: '2px', left: isActive ? '20px' : '2px', transition: 'left 0.2s' }} />
-                                  </span>
-                                </label>
-                              </td>
-                              <td className="al-r">-</td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
-                              <td className="al-r"><strong style={{ color: isActive ? '#333' : '#aaa' }}>{isActive ? formatNumber(bonus.amount - calcBonusDeduction(bonus.amount)) : '-'}</strong></td>
-                            </tr>
-                          )
-                        })}
+                        {/* 상여금 개별 항목 */}
+                        {contractBonuses.map((bonus, idx) => (
+                          <tr key={idx} className="grand-total" style={{ backgroundColor: '#fffbe6' }}>
+                            <td><strong>{bonus.bonusType}</strong></td>
+                            <td className="al-r">-</td>
+                            <td className="al-r">-</td>
+                            <td className="al-r"><strong>{formatNumber(bonus.amount)}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(Math.floor(bonus.amount * bonusTaxRate))}</strong></td>
+                            <td className="al-r"><strong>{formatNumber(bonus.amount - Math.floor(bonus.amount * bonusTaxRate))}</strong></td>
+                          </tr>
+                        ))}
                         {/* 급여합계 */}
                         <tr className="grand-total" style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
                           <td><strong>급여합계</strong></td>
                           <td className="al-r">-</td>
                           <td className="al-r">-</td>
-                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount + activeBonusTotal)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(totalDeduction)}</strong></td>
-                          <td className="al-r"><strong>{formatNumber(finalTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(payrollData.grandTotalPaymentAmount + s4.activeBonusTotal)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s4.totalDeduction)}</strong></td>
+                          <td className="al-r"><strong>{formatNumber(s4.finalTotal)}</strong></td>
                         </tr>
                       </>
                     )

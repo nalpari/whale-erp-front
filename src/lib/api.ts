@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useAuthStore } from '@/stores/auth-store';
 import { validateApiResponse } from '@/lib/zod-utils';
 import { env } from '@/lib/schemas/env';
+import { queryClient } from '@/lib/query-client';
 
 /**
  * Axios 에러 타입 (클라이언트 측)
@@ -142,6 +143,8 @@ function processQueue(error: unknown, token: string | null) {
 
 function forceLogout() {
   useAuthStore.getState().clearAuth();
+  // 이전 사용자의 서버 캐시가 다음 로그인 세션에 누수되지 않도록 전체 클리어.
+  queryClient.clear();
   if (typeof window !== 'undefined') {
     document.cookie = 'auth-token=; path=/; max-age=0';
     if (!window.location.pathname.startsWith('/login')) {
