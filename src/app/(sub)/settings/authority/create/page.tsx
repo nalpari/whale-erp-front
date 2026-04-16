@@ -1,8 +1,11 @@
 'use client'
 
 import type { Program } from '@/lib/schemas/program'
+import type { OwnerCode } from '@/lib/schemas/authority'
 import { useProgramList } from '@/hooks/queries/use-program-queries'
 import { useAuthorityForm } from '@/hooks/use-authority-form'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import AuthorityForm from '@/components/system/authority/AuthorityForm'
@@ -33,10 +36,20 @@ export default function SettingsAuthorityCreatePage() {
 }
 
 function SettingsAuthorityCreateContent({ programList }: { programList: Program[] }) {
+  // 로그인 유저의 계정 타입에 따라 defaultOwnerCode 동적 결정
+  // - 가맹점 계정: 가맹점 권한으로 고정 생성
+  // - 본사 계정(또는 기타): 본사 권한 기본값, 가맹점 선택 시 자동 전환
+  const ownerCode = useAuthStore((state) => state.ownerCode)
+  const defaultOwnerCode: OwnerCode =
+    ownerCode === OWNER_CODE.FRANCHISE ? OWNER_CODE.FRANCHISE : OWNER_CODE.HEAD_OFFICE
+
   const {
     formData,
     errors,
     programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,
@@ -45,7 +58,7 @@ function SettingsAuthorityCreateContent({ programList }: { programList: Program[
     mode: 'create',
     programList,
     listPath: '/settings/authority',
-    defaultOwnerCode: 'PRGRP_002_001',
+    defaultOwnerCode,
   })
 
   return (
@@ -65,6 +78,9 @@ function SettingsAuthorityCreateContent({ programList }: { programList: Program[
             programTree={programTree}
             onChange={handleProgramTreeChange}
             currentOwnerCode={formData.owner_code}
+            canManageRead={canManageRead}
+            canManageCreateDelete={canManageCreateDelete}
+            canManageUpdate={canManageUpdate}
           />
         </AuthorityForm>
       </div>

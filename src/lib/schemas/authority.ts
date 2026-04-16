@@ -22,10 +22,6 @@ export interface AuthorityDetailNode {
   can_read?: boolean | null
   can_create_delete?: boolean | null
   can_update?: boolean | null
-  // 생성 모드에서 본인이 가진 최대 권한 (UI 제한용)
-  max_can_read?: boolean
-  max_can_create_delete?: boolean
-  max_can_update?: boolean
   children?: AuthorityDetailNode[]
 }
 

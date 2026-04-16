@@ -25,6 +25,9 @@ interface AuthorityProgramTreeProps {
   onChange: (tree: AuthorityDetailNode[]) => void
   currentOwnerCode?: string
   authorityId?: number
+  canManageRead: boolean
+  canManageCreateDelete: boolean
+  canManageUpdate: boolean
 }
 
 /**
@@ -44,6 +47,9 @@ export default function AuthorityProgramTree({
   onChange,
   // currentOwnerCode - TODO: 2차 개발(권한 복사) 시 활성화
   authorityId,
+  canManageRead,
+  canManageCreateDelete,
+  canManageUpdate,
 }: AuthorityProgramTreeProps) {
   const [openItems, setOpenItems] = useState<Set<number>>(
     () => new Set(collectAllProgramIds(programTree))
@@ -280,7 +286,7 @@ export default function AuthorityProgramTree({
                   id={`read-${node.program_id}`}
                   checked={node.can_read ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_read', e.target.checked)}
-                  disabled={isLoading || node.max_can_read === false}
+                  disabled={isLoading || !canManageRead}
                 />
                 <label htmlFor={`read-${node.program_id}`}>Read{isLoading && ' (저장중...)'}</label>
               </div>
@@ -292,7 +298,7 @@ export default function AuthorityProgramTree({
                   onChange={(e) =>
                     handlePermissionChange(node.program_id, 'can_create_delete', e.target.checked)
                   }
-                  disabled={isLoading || !node.can_read || node.max_can_create_delete === false}
+                  disabled={isLoading || !node.can_read || !canManageCreateDelete}
                 />
                 <label htmlFor={`create-delete-${node.program_id}`}>Create, Delete</label>
               </div>
@@ -302,7 +308,7 @@ export default function AuthorityProgramTree({
                   id={`update-${node.program_id}`}
                   checked={node.can_update ?? false}
                   onChange={(e) => handlePermissionChange(node.program_id, 'can_update', e.target.checked)}
-                  disabled={isLoading || !node.can_read || node.max_can_update === false}
+                  disabled={isLoading || !node.can_read || !canManageUpdate}
                 />
                 <label htmlFor={`update-${node.program_id}`}>Update</label>
               </div>

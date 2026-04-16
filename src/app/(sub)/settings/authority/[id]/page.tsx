@@ -74,19 +74,19 @@ function SettingsAuthorityEditContent({
     formData,
     errors,
     programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,
+    handleList,
   } = useAuthorityForm({
     mode: 'edit',
     authorityId,
     initialAuthority: authority,
     listPath: '/settings/authority',
   })
-
-  const handleList = () => {
-    router.push('/settings/authority')
-  }
 
   // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
   const handleAuthorityManager = () => {
@@ -132,6 +132,9 @@ function SettingsAuthorityEditContent({
             onChange={handleProgramTreeChange}
             currentOwnerCode={authority.owner_code}
             authorityId={authorityId}
+            canManageRead={canManageRead}
+            canManageCreateDelete={canManageCreateDelete}
+            canManageUpdate={canManageUpdate}
           />
         </AuthorityForm>
       </div>
