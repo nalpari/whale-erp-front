@@ -338,7 +338,7 @@ export default function HeadOfficeFranchiseStoreSelect({
                                 }
                                 options={franchiseOptions}
                                 placeholder="전체"
-                                isDisabled={isDisabled || bpLoading || isFranchiseFixed}
+                                isDisabled={isDisabled || bpLoading || isFranchiseFixed || officeId === null}
                                 isSearchable={true}
                                 isClearable={true}
                                 onChange={(option) => {

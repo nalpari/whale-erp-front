@@ -53,8 +53,10 @@ export default function AuthorityForm({
   }
 
   // owner_code에 따라 본사/가맹점 선택 활성화
+  // context="bp" + create 모드: 가맹점 셀렉트를 항상 표시해야 owner_code를 가맹점으로 전환할 수 있음
+  const isBpCreateMode = context === 'bp' && mode === 'create'
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
-  const showFranchise = formData.owner_code === 'PRGRP_002_002'
+  const showFranchise = isBpCreateMode || formData.owner_code === 'PRGRP_002_002'
   const isBpDisabled = mode === 'edit'
   const isPlatform = formData.owner_code === 'PRGRP_001_001'
 
@@ -70,10 +72,17 @@ export default function AuthorityForm({
   }
 
   const handleBpSelectChange = (value: { head_office: number | null; franchise: number | null; store: number | null }) => {
-    onChange({
+    const update: Partial<AuthorityCreateRequest & AuthorityUpdateRequest> = {
       head_office_id: value.head_office ?? undefined,
       franchisee_id: value.franchise ?? undefined,
-    })
+    }
+    // 환경설정 > 권한등록에서는 가맹점 선택 여부로 owner_code 자동 전환
+    // - 가맹점 선택 → PRGRP_002_002 (가맹점 권한)
+    // - 가맹점 미선택 → PRGRP_002_001 (본사 권한)
+    if (isBpCreateMode) {
+      update.owner_code = value.franchise != null ? 'PRGRP_002_002' : 'PRGRP_002_001'
+    }
+    onChange(update)
   }
 
   const handleNameChange = (value: string) => {
@@ -159,13 +168,14 @@ export default function AuthorityForm({
                   <HeadOfficeFranchiseStoreSelect
                     isHeadOfficeRequired={true}
                     showHeadOfficeError={!!errors.head_office_id}
-                    isFranchiseRequired={showFranchise}
+                    isFranchiseRequired={showFranchise && formData.owner_code === 'PRGRP_002_002'}
                     fields={showFranchise ? ['office', 'franchise'] : ['office']}
                     officeId={formData.head_office_id ?? null}
                     franchiseId={formData.franchisee_id ?? null}
                     storeId={null}
                     onChange={handleBpSelectChange}
                     isDisabled={isBpDisabled}
+                    autoSelect={isBpCreateMode}
                   />
                 </tr>
               )}
