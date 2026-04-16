@@ -41,7 +41,7 @@ function SettingsAuthorityCreateContent({ programList }: { programList: Program[
   // - 본사 계정(또는 기타): 본사 권한 기본값, 가맹점 선택 시 자동 전환
   const ownerCode = useAuthStore((state) => state.ownerCode)
   const defaultOwnerCode: OwnerCode =
-    ownerCode === OWNER_CODE.FRANCHISE ? 'PRGRP_002_002' : 'PRGRP_002_001'
+    ownerCode === OWNER_CODE.FRANCHISE ? OWNER_CODE.FRANCHISE : OWNER_CODE.HEAD_OFFICE
 
   const {
     formData,

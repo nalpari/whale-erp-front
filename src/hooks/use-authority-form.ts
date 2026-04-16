@@ -33,7 +33,7 @@ function findAuthorityManagementPermissions(
   programs: LoginAuthorityProgram[]
 ): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } | null {
   for (const program of programs) {
-    if (AUTHORITY_MANAGEMENT_PATHS.includes(program.path)) {
+    if (program.path && AUTHORITY_MANAGEMENT_PATHS.includes(program.path)) {
       return {
         canManageRead: program.canRead ?? false,
         canManageCreateDelete: program.canCreateDelete ?? false,
