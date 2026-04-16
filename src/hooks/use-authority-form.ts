@@ -31,7 +31,7 @@ const AUTHORITY_MANAGEMENT_PATHS = ['/system/authority', '/settings/authority']
  */
 function findAuthorityManagementPermissions(
   programs: LoginAuthorityProgram[]
-): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } {
+): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } | null {
   for (const program of programs) {
     if (AUTHORITY_MANAGEMENT_PATHS.includes(program.path)) {
       return {
@@ -42,12 +42,10 @@ function findAuthorityManagementPermissions(
     }
     if (program.children && program.children.length > 0) {
       const found = findAuthorityManagementPermissions(program.children)
-      if (found.canManageRead || found.canManageCreateDelete || found.canManageUpdate) {
-        return found
-      }
+      if (found) return found
     }
   }
-  return { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
+  return null
 }
 
 /**
@@ -128,9 +126,10 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
   const isAdmin = !loginAuthority || loginAuthority.length === 0
 
   // 권한관리 메뉴에 대한 R/C/D/U로 조작 범위 결정
+  const defaultPermissions = { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
   const authorityMgmtPermissions = loginAuthority
-    ? findAuthorityManagementPermissions(loginAuthority)
-    : { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
+    ? (findAuthorityManagementPermissions(loginAuthority) ?? defaultPermissions)
+    : defaultPermissions
 
   const canManageRead = isAdmin || authorityMgmtPermissions.canManageRead
   const canManageCreateDelete = isAdmin || authorityMgmtPermissions.canManageCreateDelete

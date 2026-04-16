@@ -6,6 +6,7 @@ import { RadioButtonGroup } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
+import { OWNER_CODE } from '@/constants/owner-code'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
 
 interface AuthorityFormProps {
@@ -56,7 +57,7 @@ export default function AuthorityForm({
   // context="bp" + create 모드: 가맹점 셀렉트를 항상 표시해야 owner_code를 가맹점으로 전환할 수 있음
   const isBpCreateMode = context === 'bp' && mode === 'create'
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
-  const showFranchise = isBpCreateMode || formData.owner_code === 'PRGRP_002_002'
+  const showFranchise = isBpCreateMode || formData.owner_code === OWNER_CODE.FRANCHISE
   const isBpDisabled = mode === 'edit'
   const isPlatform = formData.owner_code === 'PRGRP_001_001'
 
@@ -80,7 +81,7 @@ export default function AuthorityForm({
     // - 가맹점 선택 → PRGRP_002_002 (가맹점 권한)
     // - 가맹점 미선택 → PRGRP_002_001 (본사 권한)
     if (isBpCreateMode) {
-      update.owner_code = value.franchise != null ? 'PRGRP_002_002' : 'PRGRP_002_001'
+      update.owner_code = value.franchise != null ? OWNER_CODE.FRANCHISE : OWNER_CODE.HEAD_OFFICE
     }
     onChange(update)
   }
@@ -168,7 +169,7 @@ export default function AuthorityForm({
                   <HeadOfficeFranchiseStoreSelect
                     isHeadOfficeRequired={true}
                     showHeadOfficeError={!!errors.head_office_id}
-                    isFranchiseRequired={showFranchise && formData.owner_code === 'PRGRP_002_002'}
+                    isFranchiseRequired={showFranchise && formData.owner_code === OWNER_CODE.FRANCHISE}
                     fields={showFranchise ? ['office', 'franchise'] : ['office']}
                     officeId={formData.head_office_id ?? null}
                     franchiseId={formData.franchisee_id ?? null}
