@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
+import { useMyAuthority } from '@/hooks/queries/use-auth-authority-query'
 import Lnb from '@/components/ui/common/Lnb'
 import FullDownMenu from '@/components/ui/common/FullDownMenu'
 import Header from '@/components/ui/Header'
@@ -20,6 +21,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
     const pathname = usePathname()
     const accessToken = useAuthStore((state) => state.accessToken)
     const menuType = pathname?.startsWith('/customer/') ? 'support' : 'header'
+
+    // 권한 실시간 조회 활성화 (탭 포커스 / 403 시 자동 refetch → auth-store 동기화)
+    useMyAuthority()
     const lastHeaderPathRef = useRef('/logined-main')
     const lastSupportPathRef = useRef('/customer/rate-plan')
 

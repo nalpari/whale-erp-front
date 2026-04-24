@@ -27,25 +27,36 @@ import type { Program } from '@/lib/schemas/program'
 const AUTHORITY_MANAGEMENT_PATHS = ['/system/authority', '/settings/authority']
 
 /**
- * 로그인 유저의 권한 트리에서 권한관리 프로그램의 R/C/D/U를 추출
+ * 로그인 유저의 권한 트리에서 권한관리 프로그램(/system/authority, /settings/authority)
+ * 매칭 노드들을 모두 모아 R/C/D/U 를 OR 합산한다.
+ *
+ * - 두 path 모두 트리에 존재할 수 있으며, 사용자별로 한쪽만 권한이 있을 수 있다.
+ * - 권한 매핑이 없는 노드는 R/C/D/U 가 null 로 응답되므로, true 인 것만 합산.
+ * - "어느 한쪽이라도 R 권한 있으면 권한관리 페이지 R 가능" 의미.
  */
 function findAuthorityManagementPermissions(
   programs: LoginAuthorityProgram[]
 ): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } | null {
-  for (const program of programs) {
-    if (program.path && AUTHORITY_MANAGEMENT_PATHS.includes(program.path)) {
-      return {
-        canManageRead: program.canRead ?? false,
-        canManageCreateDelete: program.canCreateDelete ?? false,
-        canManageUpdate: program.canUpdate ?? false,
+  const matches: LoginAuthorityProgram[] = []
+  const walk = (nodes: LoginAuthorityProgram[]) => {
+    for (const node of nodes) {
+      if (node.path && AUTHORITY_MANAGEMENT_PATHS.includes(node.path)) {
+        matches.push(node)
+      }
+      if (node.children && node.children.length > 0) {
+        walk(node.children)
       }
     }
-    if (program.children && program.children.length > 0) {
-      const found = findAuthorityManagementPermissions(program.children)
-      if (found) return found
-    }
   }
-  return null
+  walk(programs)
+
+  if (matches.length === 0) return null
+
+  return {
+    canManageRead: matches.some((n) => n.canRead === true),
+    canManageCreateDelete: matches.some((n) => n.canCreateDelete === true),
+    canManageUpdate: matches.some((n) => n.canUpdate === true),
+  }
 }
 
 /**

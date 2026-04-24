@@ -48,6 +48,8 @@ export function useCreateAuthority() {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
+      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
     },
   })
 }
@@ -66,6 +68,8 @@ export function useUpdateAuthority() {
       queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
+      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
     },
   })
 }
@@ -88,6 +92,8 @@ export function useUpdateProgramAuthority() {
     }) => updateProgramAuthority(id, programId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+      // R/C/D/U 변경이 본인 권한에도 영향을 미칠 수 있으므로 my-authority 재조회
+      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
     },
   })
 }
@@ -105,6 +111,8 @@ export function useDeleteAuthority() {
       queryClient.invalidateQueries({ queryKey: authorityKeys.details() })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회
+      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
     },
   })
 }

@@ -87,8 +87,12 @@ api.interceptors.request.use((config) => {
   const url = config.url || '';
 
   // auth 관련 API는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
-  // 단, change-password는 JWT 인증이 필요하므로 제외
-  if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
+  // 단, JWT 인증이 필요한 endpoint 들은 제외 (change-password, my-authority)
+  if (
+    url.startsWith('/api/auth/')
+    && !url.includes('/change-password')
+    && !url.includes('/my-authority')
+  ) {
     if (typeof window !== 'undefined') {
       config.headers['currentPath'] = window.location.pathname;
     }
@@ -153,20 +157,35 @@ function forceLogout() {
   }
 }
 
-// 응답 인터셉터 - 401 시 토큰 자동 갱신
+// 응답 인터셉터 - 401 시 토큰 자동 갱신, 403 시 권한 캐시 무효화
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // 403 (권한 거부) → 관리자가 권한을 변경했을 가능성
+    // my-authority 캐시 무효화 → useMyAuthority 가 자동 refetch → LNB 갱신
+    // 자기 호출(/api/auth/my-authority)은 제외 (무한 루프 방지)
+    if (error.response?.status === 403) {
+      const url = originalRequest.url || '';
+      if (!url.includes('/api/auth/my-authority')) {
+        queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] });
+      }
+      return Promise.reject(error);
+    }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
     // auth 관련 API (refresh, login 등)에서 401이면 바로 로그아웃
-    // 단, change-password는 JWT 인증이 필요하므로 토큰 갱신 시도
+    // 단, JWT 인증이 필요한 endpoint 들은 토큰 갱신 시도 (change-password, my-authority)
     const url = originalRequest.url || '';
-    if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
+    if (
+      url.startsWith('/api/auth/')
+      && !url.includes('/change-password')
+      && !url.includes('/my-authority')
+    ) {
       forceLogout();
       return Promise.reject(error);
     }
