@@ -90,7 +90,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return (
         <AlertProvider>
             <div className={`wrap ${isOpen ? 'sm' : ''}`}>
-                <Lnb key={`${menuType}-${pathname}`} isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
+                <Lnb key={menuType} isOpen={isOpen} setIsOpen={setIsOpen} menuType={menuType} />
                 <div className="container">
                     <div className="frame">
                         <div className="header-wrap">
