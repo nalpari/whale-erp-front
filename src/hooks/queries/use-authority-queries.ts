@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { adminKeys, authorityKeys, type AuthorityListParams } from './query-keys'
+import { adminKeys, authKeys, authorityKeys, type AuthorityListParams } from './query-keys'
 import {
   fetchAuthorities,
   fetchAuthorityDetail,
@@ -49,7 +49,7 @@ export function useCreateAuthority() {
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
-      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
   })
 }
@@ -69,7 +69,7 @@ export function useUpdateAuthority() {
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
-      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
   })
 }
@@ -93,7 +93,7 @@ export function useUpdateProgramAuthority() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
       // R/C/D/U 변경이 본인 권한에도 영향을 미칠 수 있으므로 my-authority 재조회
-      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
   })
 }
@@ -112,7 +112,7 @@ export function useDeleteAuthority() {
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회
-      queryClient.invalidateQueries({ queryKey: ['auth', 'my-authority'] })
+      queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
   })
 }
