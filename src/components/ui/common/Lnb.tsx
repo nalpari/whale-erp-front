@@ -1,12 +1,22 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { HeaderMenu } from '@/data/HeaderMenu'
 import AnimateHeight from 'react-animate-height'
-import { SupportMenu } from '@/data/SupportMenu'
 import { useMyOrganizationBp } from '@/hooks/queries/use-bp-queries'
+import { useProgramList } from '@/hooks/queries/use-program-queries'
+import { toHeaderMenuItems } from '@/util/lnb-adapter'
+import type { HeaderMenuItem } from '@/lib/schemas/menu'
+
+// Home 은 시스템 진입점으로 DB programs 와 무관하게 LNB 에 항상 고정 표시한다.
+// id=0 은 시퀀스 충돌 방지용 sentinel (DB 시퀀스는 1 부터 시작).
+const HOME_ITEM: HeaderMenuItem = {
+  id: 0,
+  name: 'Home',
+  icon: 'https://whale-erp-files.s3.ap-northeast-2.amazonaws.com/assets/program_icons/lnb_menu_icon00.svg',
+  link: '/logined-main',
+}
 
 export default function Lnb({
   isOpen,
@@ -23,8 +33,14 @@ export default function Lnb({
   const logoUrl = myBp?.lnbLogoExpandFile?.publicUrl ?? null
   const brandName = myBp?.brandName ?? null
 
-  // 메뉴 리스트 설정
-  const menuList = menuType === 'support' ? SupportMenu : HeaderMenu
+  // 메뉴 리스트: programs API 에서 menu_kind 별로 조회 후 어댑터로 변환
+  // header 모드는 Home 을 항상 맨 앞에 고정 prepend (DB 외부 관리)
+  const menuKind = menuType === 'support' ? 'MNKND_002' : 'MNKND_001'
+  const { data: programs } = useProgramList(menuKind)
+  const menuList = useMemo(() => {
+    const items = toHeaderMenuItems(programs)
+    return menuType === 'support' ? items : [HOME_ITEM, ...items]
+  }, [programs, menuType])
 
   // pathname 기반 활성 메뉴 파생
   const findActiveFromPathname = (list: typeof menuList) => {
@@ -113,7 +129,7 @@ export default function Lnb({
       <div className="lnb-body">
         <ul className="lnb-list">
           {menuList.map((menu) => (
-            <li className={`lnb-item ${activeMenuId === menu.id ? 'act' : ''}`} key={menu.id}>
+            <li className={`lnb-item ${expandedMenu === menu.id ? 'act' : ''}`} key={menu.id}>
               <Link
                 href={menu.link}
                 className={`menu-depth01 ${menu.children ? '' : 'home'}`}
@@ -121,7 +137,7 @@ export default function Lnb({
                   handleMenuToggle(menu.id, false, menu.link === '#', e)
                 }
               >
-                <Image src={`${menu.icon}`} alt="menu" fill />
+                {menu.icon && <Image src={menu.icon} alt="menu" fill />}
                 <span className="lnb-menu-name">{menu.name}</span>
               </Link>
               {menu.children && (
