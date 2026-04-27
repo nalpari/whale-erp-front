@@ -564,3 +564,19 @@ interface SignupFormData {
 | 38 | SignupRequest에서 `openDate` 필드 제거 (미사용, DB 미저장) | API+Front | ✅ 완료 |
 | 39 | SignupStep02 회사명 helptext 수정 ("사업자명" → "회사명") | Front | ✅ 완료 |
 | 40 | "이미 사용 중인 ID입니다" → "사용할 수 없는 ID입니다" 문구 변경 | Front | ✅ 완료 |
+
+### Phase 8: 비운영 환경 사업자번호 인증 bypass
+
+운영 환경이 아닌 곳(개발/QA/로컬)에서 국세청 API 의존을 제거하기 위해 환경변수 기반 bypass 도입.
+초대 코드 검증(`/api/signup/verify-invitation`)은 bypass 대상이 아님 — 사업자번호 인증만 적용.
+
+| # | 작업 | 범위 | 상태 |
+|---|------|------|------|
+| 41 | `/api/business-verification` route에 `SKIP_BUSINESS_API=true` 분기 추가 — 입력값 형식 검증 통과 시 `isValid: true` 반환 | Front | ✅ 완료 |
+| 42 | `.env.development`에 `SKIP_BUSINESS_API=true` 추가 (개발 환경 bypass 활성화) | Front | ✅ 완료 |
+| 43 | `.env.example`에 `SKIP_BUSINESS_API` 가이드 코멘트 추가 (운영에서는 미설정/false) | Front | ✅ 완료 |
+| 44 | `pnpm lint` + `pnpm build` 검증 | Front | ✅ 완료 |
+
+**판별 기준**: `process.env.SKIP_BUSINESS_API === 'true'` (서버 사이드 env, `NEXT_PUBLIC_` 접두사 미사용 — 클라이언트 노출 차단)
+**적용 위치**: API route 1곳 (`src/app/api/business-verification/route.ts`). 클라이언트 훅(`useBusinessVerification`)은 무수정.
+**bypass 동작**: `BUSINESS_VALIDATE_KEY` 부재 503 분기보다 먼저 평가 → 입력값 형식만 검증 → `{ success: true, data: { isValid: true, rawResult: { bypassed: true } } }` 반환.

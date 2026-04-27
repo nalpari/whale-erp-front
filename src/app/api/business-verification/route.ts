@@ -2,16 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const BUSINESS_VALIDATE_URL = 'https://api.odcloud.kr/api/nts-businessman/v1/validate'
 const BUSINESS_VALIDATE_KEY = process.env.BUSINESS_VALIDATE_KEY ?? ''
+const SKIP_BUSINESS_API = process.env.SKIP_BUSINESS_API === 'true'
 
 export async function POST(request: NextRequest) {
-  if (!BUSINESS_VALIDATE_KEY) {
-    console.error('BUSINESS_VALIDATE_KEY environment variable is not set')
-    return NextResponse.json(
-      { success: false, error: '사업자 인증 서비스가 설정되지 않았습니다.' },
-      { status: 503 }
-    )
-  }
-
   try {
     const body = await request.json()
     const { businessRegistrationNumber, startDate, representativeName } = body
@@ -20,6 +13,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: '필수 파라미터가 누락되었습니다.' },
         { status: 400 }
+      )
+    }
+
+    if (SKIP_BUSINESS_API) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          isValid: true,
+          rawResult: { bypassed: true },
+        },
+      })
+    }
+
+    if (!BUSINESS_VALIDATE_KEY) {
+      console.error('BUSINESS_VALIDATE_KEY environment variable is not set')
+      return NextResponse.json(
+        { success: false, error: '사업자 인증 서비스가 설정되지 않았습니다.' },
+        { status: 503 }
       )
     }
 
