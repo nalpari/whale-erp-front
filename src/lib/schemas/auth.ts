@@ -53,6 +53,14 @@ export const authorityDetailResponseSchema = apiResponseSchema(authorityDetailSc
 
 /**
  * 로그인 시 저장되는 프로그램별 권한 노드 (LoginAuthorityDetailResponse)
+ *
+ * 권한 필드 의미론 (canRead / canCreateDelete / canUpdate):
+ * - `true`: 권한 부여됨
+ * - `false`: 명시적으로 권한 차단됨 (RBAC 매핑 존재 + deny)
+ * - `null`: 권한 매핑 자체가 존재하지 않음 (= 권한 없음으로 취급)
+ *
+ * 클라이언트는 항상 `=== true` 로 비교하여 false / null 모두 "권한 없음" 으로 동일 처리.
+ * (lnb-adapter, use-authority-form, my-authority 폴링 등 모든 사용처가 동일 규칙)
  */
 export interface LoginAuthorityProgram {
   id: number

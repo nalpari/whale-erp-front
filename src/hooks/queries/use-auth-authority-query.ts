@@ -74,13 +74,18 @@ export function useMyAuthority() {
   // deep equal 가드: 응답 트리 내용이 이전과 동일하면 setAuthority 를 호출하지 않는다.
   // 매 refetch 마다 새 배열 참조가 생성되므로 가드 없이 setAuthority 를 호출하면
   // Zustand 구독자(LNB 등) 전체가 매번 리렌더 + persist 의 localStorage 쓰기가 반복된다.
+  //
+  // 조직 전환 race 가드: 이전 조직의 inflight 요청이 늦게 도착해 새 조직 authority 를 덮어쓰는
+  // 상황을 차단. effect 실행 시점의 store 상태가 effect deps 의 affiliationId 와 다르면
+  // 응답이 stale 한 것이므로 무시한다.
   useEffect(() => {
     if (!query.data) return
-    const current = useAuthStore.getState().authority
-    if (!isAuthorityTreeEqual(current, query.data)) {
+    const latest = useAuthStore.getState()
+    if (latest.affiliationId !== affiliationId) return
+    if (!isAuthorityTreeEqual(latest.authority, query.data)) {
       setAuthority(query.data)
     }
-  }, [query.data, setAuthority])
+  }, [query.data, affiliationId, setAuthority])
 
   return query
 }
