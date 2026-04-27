@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { validateApiResponse } from '@/lib/zod-utils';
 import { env } from '@/lib/schemas/env';
 import { queryClient } from '@/lib/query-client';
+import { authKeys } from '@/hooks/queries/query-keys';
 
 /**
  * Axios 에러 타입 (클라이언트 측)
@@ -23,6 +24,39 @@ type AxiosApiError = {
 export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다.'): string {
   const apiError = error as AxiosApiError;
   return apiError.response?.data?.message ?? fallback;
+}
+
+/**
+ * /api/auth/ 하위 경로 중 JWT 인증이 필요한 (= public auth 가 아닌) endpoint 목록.
+ *
+ * - public auth endpoint (login/refresh/find-login-id 등) 는 JWT 를 자동 첨부하지 않고,
+ *   401 시 토큰 refresh 도 시도하지 않는다.
+ * - 아래 경로들은 JWT 가 필요한 auth endpoint 라 public auth 와 동일한 분기에서 제외되어야 한다.
+ *
+ * startsWith 로 정확 매칭 (includes 는 부분 문자열 오판단 위험).
+ */
+const JWT_REQUIRED_AUTH_PATHS = [
+  '/api/auth/change-password',
+  '/api/auth/my-authority',
+] as const;
+
+/**
+ * 주어진 URL 이 "인증 헤더 자동 첨부 / 401 refresh 재시도" 를 건너뛰어야 하는
+ * public auth endpoint 인지 판정.
+ *
+ * /api/auth/ 로 시작하되 JWT_REQUIRED_AUTH_PATHS 에 속하지 않으면 public auth.
+ */
+function isPublicAuthPath(url: string): boolean {
+  if (!url.startsWith('/api/auth/')) return false;
+  return !JWT_REQUIRED_AUTH_PATHS.some((path) => url.startsWith(path));
+}
+
+/**
+ * URL 이 my-authority 자기 호출인지 판정.
+ * 403 invalidate 무한 루프 방지에 사용.
+ */
+function isMyAuthorityCall(url: string): boolean {
+  return url.startsWith('/api/auth/my-authority');
 }
 
 const api = axios.create({
@@ -86,9 +120,9 @@ export async function patchWithSchema<T>(
 api.interceptors.request.use((config) => {
   const url = config.url || '';
 
-  // auth 관련 API는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
-  // 단, change-password는 JWT 인증이 필요하므로 제외
-  if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
+  // public auth API 는 자동 헤더 추가 건너뛰기 (직접 설정한 헤더는 유지)
+  // JWT 필요한 auth endpoint (change-password, my-authority) 는 일반 흐름으로 진행
+  if (isPublicAuthPath(url)) {
     if (typeof window !== 'undefined') {
       config.headers['currentPath'] = window.location.pathname;
     }
@@ -153,20 +187,31 @@ function forceLogout() {
   }
 }
 
-// 응답 인터셉터 - 401 시 토큰 자동 갱신
+// 응답 인터셉터 - 401 시 토큰 자동 갱신, 403 시 권한 캐시 무효화
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // 403 (권한 거부) → 관리자가 권한을 변경했을 가능성
+    // my-authority 캐시 무효화 → useMyAuthority 가 자동 refetch → LNB 갱신
+    // 자기 호출(/api/auth/my-authority)은 제외 (무한 루프 방지)
+    if (error.response?.status === 403) {
+      const url = originalRequest?.url || '';
+      if (!isMyAuthorityCall(url)) {
+        queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() });
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // auth 관련 API (refresh, login 등)에서 401이면 바로 로그아웃
-    // 단, change-password는 JWT 인증이 필요하므로 토큰 갱신 시도
+    // public auth API (refresh, login 등) 에서 401 이면 바로 로그아웃
+    // JWT 필요한 auth endpoint (change-password, my-authority) 는 아래 refresh 흐름으로 이어짐
     const url = originalRequest.url || '';
-    if (url.startsWith('/api/auth/') && !url.includes('/change-password')) {
+    if (isPublicAuthPath(url)) {
       forceLogout();
       return Promise.reject(error);
     }

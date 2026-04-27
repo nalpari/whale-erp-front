@@ -22,19 +22,48 @@ import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
 import type { Program } from '@/lib/schemas/program'
 
 /**
- * 로그인 시 저장된 권한 데이터를 권한 폼에서 사용하는 형식으로 변환
+ * 권한관리 프로그램 경로 목록
  */
-function toAuthorityDetailNodes(programs: LoginAuthorityProgram[]): AuthorityDetailNode[] {
-  return programs.map((program) => ({
-    program_id: program.id,
-    program_name: program.name,
-    can_read: program.canRead ?? undefined,
-    can_create_delete: program.canCreateDelete ?? undefined,
-    can_update: program.canUpdate ?? undefined,
-    children: program.children && program.children.length > 0
-      ? toAuthorityDetailNodes(program.children)
-      : undefined,
-  }))
+const AUTHORITY_MANAGEMENT_PATHS = ['/system/authority', '/settings/authority']
+
+/**
+ * 로그인 유저의 권한 트리에서 권한관리 프로그램(/system/authority, /settings/authority)
+ * 매칭 노드들을 모두 모아 R/C/D/U 를 OR 합산한다.
+ *
+ * 정책 (Boston Code Review H3 — alias 정책 확정):
+ * - 두 path 는 동일 권한관리 화면의 alias 로, 메뉴 트리상의 노출 위치만 다름.
+ *   (system 메뉴 / 환경설정 메뉴 두 곳에서 진입 가능한 같은 페이지)
+ * - 백엔드 권한관리 화면이 path-independent RBAC 으로 동작하므로
+ *   "어느 한쪽이라도 R 권한 있으면 권한관리 페이지 R 가능" 의미가 옳다.
+ * - 사용자별로 한쪽 path 만 권한 부여될 수도 있으므로 두 path 모두 매칭하여 합산.
+ * - 권한 매핑이 없는 노드는 R/C/D/U 가 null 로 응답되므로, true 인 것만 합산.
+ *
+ * 주의: 두 path 가 미래에 서로 다른 화면으로 분리되면 이 OR 합산은 권한 상승 위험을 만듦.
+ *       그 시점에는 path 별 R 가드로 C/U 합산 범위를 제한하는 정책으로 전환할 것.
+ */
+function findAuthorityManagementPermissions(
+  programs: LoginAuthorityProgram[]
+): { canManageRead: boolean; canManageCreateDelete: boolean; canManageUpdate: boolean } | null {
+  const matches: LoginAuthorityProgram[] = []
+  const walk = (nodes: LoginAuthorityProgram[]) => {
+    for (const node of nodes) {
+      if (node.path && AUTHORITY_MANAGEMENT_PATHS.includes(node.path)) {
+        matches.push(node)
+      }
+      if (node.children && node.children.length > 0) {
+        walk(node.children)
+      }
+    }
+  }
+  walk(programs)
+
+  if (matches.length === 0) return null
+
+  return {
+    canManageRead: matches.some((n) => n.canRead === true),
+    canManageCreateDelete: matches.some((n) => n.canCreateDelete === true),
+    canManageUpdate: matches.some((n) => n.canUpdate === true),
+  }
 }
 
 /**
@@ -104,53 +133,25 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
     return []
   })
 
-  // 로그인 유저의 권한 정보 → 폼에서 사용하는 형식으로 변환
+  // 로그인 유저의 권한 정보
   const loginAuthority = useAuthStore((state) => state.authority)
-  const myPermissions = loginAuthority ? toAuthorityDetailNodes(loginAuthority) : null
 
   // Mutations
   const { mutateAsync: createAuthority } = useCreateAuthority()
   const { mutateAsync: updateAuthority } = useUpdateAuthority()
 
   // 슈퍼 관리자 체크 (권한 데이터가 비어있으면 슈퍼 관리자)
-  const isAdmin = !myPermissions || myPermissions.length === 0
+  const isAdmin = !loginAuthority || loginAuthority.length === 0
 
-  // 본인의 프로그램별 권한 찾기
-  const findMyPermission = (programId: number): AuthorityDetailNode | undefined => {
-    if (!myPermissions) return undefined
+  // 권한관리 메뉴에 대한 R/C/D/U로 조작 범위 결정
+  const defaultPermissions = { canManageRead: false, canManageCreateDelete: false, canManageUpdate: false }
+  const authorityMgmtPermissions = loginAuthority
+    ? (findAuthorityManagementPermissions(loginAuthority) ?? defaultPermissions)
+    : defaultPermissions
 
-    const findInTree = (nodes: AuthorityDetailNode[]): AuthorityDetailNode | undefined => {
-      for (const node of nodes) {
-        if (node.program_id === programId) return node
-        if (node.children) {
-          const found = findInTree(node.children)
-          if (found) return found
-        }
-      }
-      return undefined
-    }
-
-    return findInTree(myPermissions)
-  }
-
-  // max_can_* 권한을 파생 값으로 계산
-  const addMaxPermissions = (nodes: AuthorityDetailNode[]): AuthorityDetailNode[] => {
-    return nodes.map((node) => {
-      const myPermission = findMyPermission(node.program_id)
-
-      return {
-        ...node,
-        max_can_read: isAdmin ? true : (myPermission?.can_read ?? false),
-        max_can_create_delete: isAdmin ? true : (myPermission?.can_create_delete ?? false),
-        max_can_update: isAdmin ? true : (myPermission?.can_update ?? false),
-        children: node.children ? addMaxPermissions(node.children) : undefined,
-      }
-    })
-  }
-
-  const programTreeWithMaxPermissions = programTree.length > 0
-    ? addMaxPermissions(programTree)
-    : programTree
+  const canManageRead = isAdmin || authorityMgmtPermissions.canManageRead
+  const canManageCreateDelete = isAdmin || authorityMgmtPermissions.canManageCreateDelete
+  const canManageUpdate = isAdmin || authorityMgmtPermissions.canManageUpdate
 
   // 폼 데이터 변경 핸들러
   const handleFormChange = (data: Partial<AuthorityCreateRequest & AuthorityUpdateRequest>) => {
@@ -323,7 +324,10 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
   return {
     formData,
     errors,
-    programTree: programTreeWithMaxPermissions,
+    programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,

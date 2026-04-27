@@ -79,6 +79,9 @@ function AuthorityEditContent({
     formData,
     errors,
     programTree,
+    canManageRead,
+    canManageCreateDelete,
+    canManageUpdate,
     handleFormChange,
     handleProgramTreeChange,
     handleSave,
@@ -132,6 +135,9 @@ function AuthorityEditContent({
             onChange={handleProgramTreeChange}
             currentOwnerCode={authority.owner_code}
             authorityId={authorityId}
+            canManageRead={canManageRead}
+            canManageCreateDelete={canManageCreateDelete}
+            canManageUpdate={canManageUpdate}
           />
         </AuthorityForm>
       </div>

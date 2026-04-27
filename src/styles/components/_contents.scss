@@ -1280,6 +1280,12 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
+  &:hover {
+    .depth-btn-wrap {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
   &.filter {
     background-color: #e8edf5;
     border: 1px solid #d5e1f3;

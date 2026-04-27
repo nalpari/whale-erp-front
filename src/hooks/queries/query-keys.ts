@@ -276,6 +276,19 @@ export const authorityKeys = {
   detail: (id: number) => [...authorityKeys.details(), id] as const,
 }
 
+/**
+ * 로그인 사용자의 권한 실시간 조회 쿼리 키 팩토리.
+ *
+ * - `myAuthority()`   → invalidate 용 prefix (모든 affiliationId 타겟)
+ * - `myAuthorityById` → useQuery 용 구체 키 (affiliationId 별 캐시 분리)
+ */
+export const authKeys = {
+  all: ['auth'] as const,
+  myAuthority: () => [...authKeys.all, 'my-authority'] as const,
+  myAuthorityById: (affiliationId: string | null) =>
+    [...authKeys.myAuthority(), affiliationId] as const,
+}
+
 export interface MasterMenuListParams {
   bpId?: number | null
   menuName?: string
