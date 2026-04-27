@@ -1,32 +1,24 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import api from '@/lib/api'
+import { getWithSchema } from '@/lib/api'
 import { authKeys } from '@/hooks/queries/query-keys'
 import { useAuthStore } from '@/stores/auth-store'
-import type { LoginAuthorityProgram } from '@/lib/schemas/auth'
+import {
+  myAuthorityResponseSchema,
+  type LoginAuthorityProgram,
+} from '@/lib/schemas/auth'
 
 /**
- * 백엔드 GET /api/auth/my-authority 응답 타입
- * SelectAuthorityResponse 와 동일 구조 (재사용)
+ * GET /api/auth/my-authority 호출.
+ *
+ * affiliationId 는 api.ts 요청 인터셉터가 헤더로 자동 첨부하므로 query param 으로 중복 전송하지 않는다.
+ * (헤더/파라미터 불일치로 인한 조직 전환 race 차단)
+ *
+ * 응답은 myAuthorityResponseSchema 로 런타임 검증되어 ad-hoc interface 의 shape 불일치를 방지.
  */
-interface MyAuthorityResponseData {
-  authority: {
-    authorityId: number
-    programs: LoginAuthorityProgram[]
-  }
-}
-
-interface MyAuthorityApiResponse {
-  code: number
-  message: string
-  data: MyAuthorityResponseData
-}
-
-async function fetchMyAuthority(affiliationId: string): Promise<LoginAuthorityProgram[]> {
-  const response = await api.get<MyAuthorityApiResponse>('/api/auth/my-authority', {
-    params: { affiliationId },
-  })
-  return response.data.data.authority.programs
+async function fetchMyAuthority(): Promise<LoginAuthorityProgram[]> {
+  const response = await getWithSchema('/api/auth/my-authority', myAuthorityResponseSchema)
+  return response.data.authority.programs
 }
 
 /**
@@ -67,7 +59,7 @@ export function useMyAuthority() {
 
   const query = useQuery({
     queryKey: authKeys.myAuthorityById(affiliationId),
-    queryFn: () => fetchMyAuthority(affiliationId!),
+    queryFn: fetchMyAuthority,
     enabled: !!affiliationId,
     refetchOnWindowFocus: true,
     // 백그라운드 폴링 (보험 채널) — 대부분의 권한 변경은 탭 포커스 / 403 invalidate / mutation invalidate

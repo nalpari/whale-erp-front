@@ -66,6 +66,38 @@ export interface LoginAuthorityProgram {
 }
 
 /**
+ * LoginAuthorityProgram 재귀 스키마.
+ *
+ * 인터페이스를 1차 진실로 두고 Zod 는 z.lazy 로 동일 shape 을 표현.
+ * 인터페이스/스키마 두 정의를 동기 유지해야 하지만 재귀 타입의 한계로 불가피.
+ */
+export const loginAuthorityProgramSchema: z.ZodType<LoginAuthorityProgram> = z.lazy(() =>
+  z.object({
+    id: z.number(),
+    name: z.string(),
+    path: z.string(),
+    level: z.number(),
+    canRead: z.boolean().nullable(),
+    canCreateDelete: z.boolean().nullable(),
+    canUpdate: z.boolean().nullable(),
+    children: z.array(loginAuthorityProgramSchema).nullable(),
+  })
+);
+
+/**
+ * GET /api/auth/my-authority 응답 스키마.
+ * 백엔드 SelectAuthorityResponse 와 동일 구조 (authority + programs).
+ */
+export const myAuthorityResponseSchema = apiResponseSchema(
+  z.object({
+    authority: z.object({
+      authorityId: z.number(),
+      programs: z.array(loginAuthorityProgramSchema),
+    }),
+  })
+);
+
+/**
  * Auth Store 상태 스키마
  */
 export const authStateSchema = z.object({
