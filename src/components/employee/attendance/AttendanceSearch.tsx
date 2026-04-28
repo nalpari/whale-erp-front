@@ -220,7 +220,10 @@ export default function AttendanceSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
-                  onAutoSelect={onAutoSelect}
+                  onAutoSelect={(value) => {
+                    onAutoSelect?.(value)
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               <tr>

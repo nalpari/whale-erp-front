@@ -332,6 +332,18 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
                       storeId: next.store
                     }))
                   }
+                  onAutoSelect={(next) => {
+                    // 본사 자동 선택 시 appliedFormData 동기화 + 검색 자동 트리거
+                    const applied: FormData = {
+                      ...formData,
+                      headOfficeOrganizationId: next.head_office,
+                      franchiseOrganizationId: next.franchise,
+                      storeId: next.store,
+                    }
+                    setAppliedFormData(applied)
+                    onSearch(buildSearchParams(applied, isEmployeeClassificationEnabled))
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 2행: 근무여부, 직원명, 직원 분류 */}

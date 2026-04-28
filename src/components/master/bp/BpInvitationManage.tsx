@@ -9,6 +9,7 @@ import DatePicker from '@/components/ui/common/DatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useOperatingHeadOffices, useInviteFranchise } from '@/hooks/queries'
 import { useBusinessVerification } from '@/hooks/queries/use-business-verification'
+import { useAuthStore } from '@/stores/auth-store'
 import type { BpInvitationFormData } from '@/types/bp'
 
 const initialForm: BpInvitationFormData = {
@@ -32,7 +33,15 @@ const BpInvitationManage = () => {
   const router = useRouter()
   const { alert } = useAlert()
 
-  const [form, setForm] = useState<BpInvitationFormData>(initialForm)
+  // affiliation 매핑 본사가 있으면 진입 시 본사 자동 채움 + 잠금 (헤더 정합성)
+  // 슈퍼 어드민(매핑 없음)은 자유 선택
+  // - useState 초기값으로 1회 적용 (set-state-in-effect 규칙 회피)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
+
+  const [form, setForm] = useState<BpInvitationFormData>(() => ({
+    ...initialForm,
+    headOfficeId: defaultHeadOfficeId ?? null,
+  }))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isVerified, setIsVerified] = useState(false)
   const [startDateValue, setStartDateValue] = useState<Date | null>(null)
@@ -40,6 +49,9 @@ const BpInvitationManage = () => {
   const businessVerification = useBusinessVerification()
 
   const { data: headOffices = [] } = useOperatingHeadOffices()
+
+  const isHeadOfficeLocked = defaultHeadOfficeId != null
+    && headOffices.some((o) => o.id === defaultHeadOfficeId)
   const { mutateAsync: inviteFranchise } = useInviteFranchise()
 
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
@@ -184,7 +196,8 @@ const BpInvitationManage = () => {
                 value={selectedOfficeOption}
                 onChange={(opt) => handleChange('headOfficeId', opt ? Number(opt.value) : null)}
                 placeholder="본사 선택"
-                isClearable
+                isClearable={!isHeadOfficeLocked}
+                isDisabled={isHeadOfficeLocked}
                 error={!!errors.headOfficeId}
               />
             </div>

@@ -333,6 +333,19 @@ export default function OvertimePayrollSearch({ onSearch, onReset, totalCount }:
                       storeId: next.store
                     }))
                   }
+                  onAutoSelect={(next) => {
+                    const applied: FormData = {
+                      ...formData,
+                      headOfficeId: next.head_office,
+                      franchiseId: next.franchise,
+                      storeId: next.store,
+                    }
+                    setAppliedFormData(applied)
+                    setAppliedWorkDays([...selectedWorkDays])
+                    setAppliedDateRange(dateRange)
+                    onSearch(buildSearchParams(applied, selectedWorkDays, dateRange))
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 2행: 근무여부, 직원명, 근무요일 */}

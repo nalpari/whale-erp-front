@@ -134,6 +134,13 @@ const BpMasterManage = () => {
     setFilters(next)
   }, [setFilters])
 
+  // 본사 자동 선택 — filters + appliedFilters 동시 동기화 후 검색 트리거
+  // (자동 선택은 사용자가 검색 버튼을 누르기 전에 발생하므로 직접 applyFilters 호출 필요)
+  const handleAutoSelectOffice = useCallback((officeId: number | null, franchiseId: number | null) => {
+    setFilters({ officeId, franchiseId })
+    applyFilters()
+  }, [setFilters, applyFilters])
+
   // 필터 태그 제거
   const handleRemoveFilter = useCallback((key: string) => {
     removeFilter(key)
@@ -186,6 +193,7 @@ const BpMasterManage = () => {
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
         onInviteFranchise={handleInviteFranchise}
+        onAutoSelectOffice={handleAutoSelectOffice}
       />
       <BpMasterList
         rows={rows}

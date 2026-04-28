@@ -78,6 +78,8 @@ interface PriceMasterSearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: string) => void
+  /** 본사 자동 선택 발생 시 호출 — 부모는 appliedFilters 동기화 후 검색 트리거 */
+  onAutoSelectOffice?: (officeId: number | null, franchiseId: number | null) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -116,6 +118,7 @@ const PriceMasterSearch = ({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelectOffice,
 }: PriceMasterSearchProps) => {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -311,6 +314,10 @@ const PriceMasterSearch = ({
                     onChange({
                       officeId: next.head_office,
                     })
+                  }}
+                  onAutoSelect={(next) => {
+                    onAutoSelectOffice?.(next.head_office, next.franchise)
+                    setSearchOpen(false)
                   }}
                 />
                 <th>가맹점</th>

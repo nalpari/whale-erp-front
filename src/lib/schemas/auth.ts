@@ -22,6 +22,7 @@ export const authoritySchema = z.object({
   id: z.string(),
   name: z.string(),
   ownerCode: z.string().optional(),
+  headOfficeId: z.number().nullable().optional(),
 });
 
 /**

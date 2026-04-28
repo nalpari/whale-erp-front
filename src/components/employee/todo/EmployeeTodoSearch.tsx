@@ -220,7 +220,10 @@ export default function EmployeeTodoSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
-                  onAutoSelect={onAutoSelect}
+                  onAutoSelect={(value) => {
+                    onAutoSelect?.(value)
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 행2: 직원명, 완료 여부 */}

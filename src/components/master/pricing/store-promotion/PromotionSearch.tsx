@@ -184,7 +184,10 @@ export default function PromotionSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
-                  onAutoSelect={onAutoSelect}
+                  onAutoSelect={(value) => {
+                    onAutoSelect?.(value)
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 2행: 프로모션 상태, 메뉴명, 프로모션 기간 */}

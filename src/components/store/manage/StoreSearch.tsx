@@ -184,7 +184,11 @@ export default function StoreSearch({
                     })
                   }}
                   onMultiOffice={handleMultiOffice}
-                  onAutoSelect={onAutoSelect}
+                  onAutoSelect={(value) => {
+                    onAutoSelect?.(value)
+                    // 자동 선택으로 검색이 트리거된 경우 검색 패널 닫기
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               <tr>

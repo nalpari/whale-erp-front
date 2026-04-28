@@ -9,12 +9,14 @@ interface LoginResponse {
     authorityId: number
     programs: LoginAuthorityProgram[]
     ownerCode?: string
+    headOfficeId?: number | null
   }
   companies?: Array<{
     authorityId: number
     companyName: string | null
     brandName: string | null
     ownerCode?: string
+    headOfficeId?: number | null
   }>
   loginId?: string
   name?: string

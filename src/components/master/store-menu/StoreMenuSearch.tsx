@@ -275,7 +275,10 @@ export default function StoreMenuSearch({
                     onChange(updates)
                   }}
                   onMultiOffice={handleMultiOffice}
-                  onAutoSelect={onAutoSelect}
+                  onAutoSelect={(value) => {
+                    onAutoSelect?.(value)
+                    setSearchOpen(false)
+                  }}
                 />
                 <th>메뉴명</th>
                 <td>
