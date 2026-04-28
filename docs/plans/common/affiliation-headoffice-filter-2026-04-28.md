@@ -72,14 +72,20 @@
 
 > ★ = 본 변경의 직접 적용 대상  /  ◇ = 가드로 자동 보호되어 동작 변경 없음
 
-#### A. 검색 필터 (19개) — **★ 검색 자동 적용**
+#### A. 검색 필터 (13개) — **★ 검색 자동 적용 + 자동 검색 트리거 + 패널 닫기**
 | 도메인 | 파일 |
 |--------|------|
 | master | `BpMasterSearch.tsx`, `StoreMenuSearch.tsx`, `PriceMasterSearch.tsx`, `PriceHistorySearch.tsx`, `PromotionSearch.tsx` |
 | category | `CategorySearch.tsx` |
 | store | `StoreSearch.tsx` |
-| employee (목록계) | `EmployeeSearch.tsx`(employeeinfo), `EmployeeSearch.tsx`(popup), `EmployContractSearch.tsx`, `AttendanceSearch.tsx`, `WorkScheduleSearch.tsx`, `EmployeeTodoSearch.tsx`, `FullTimePayrollSearch.tsx`, `PartTimePayrollSearch.tsx`, `OvertimePayrollSearch.tsx` |
-| system (정책 예외) | `HolidaySearch.tsx`, `CommonCodeSearch.tsx`, `AuthoritySearch.tsx` (모두 `autoSelect={false}` → ◇) |
+| employee (목록계) | `EmployeeSearch.tsx`(employeeinfo), `EmployContractSearch.tsx`, `AttendanceSearch.tsx`, `EmployeeTodoSearch.tsx`, `FullTimePayrollSearch.tsx`, `PartTimePayrollSearch.tsx`, `OvertimePayrollSearch.tsx` |
+
+#### A'. 검색 필터 정책 예외 (5개) — **◇ 변경 없음**
+| 파일 | 예외 사유 |
+|------|----------|
+| `HolidaySearch.tsx`, `CommonCodeSearch.tsx`, `AuthoritySearch.tsx` | 시스템 관리 페이지 — 이미 `autoSelect={false}` (전 본사 횡단 조회 의도) |
+| `WorkScheduleSearch.tsx` | `isStoreRequired={true}` — 점포까지 필수 입력해야 검색 가능. 본사 자동 선택만으로 검색 트리거 부적절 |
+| `EmployeeSearch.tsx` (popup) | 팝업 UX — 사용자가 검색 조건 입력 후 명시적 검색 버튼 클릭이 자연스러움 |
 
 #### B. 폼/상세 직접 사용처 (4개) — **★ 모드별 자동 적용**
 | 파일 | 패턴 | 적용 정책 |
@@ -112,12 +118,13 @@
 ### 2.3 영향 매트릭스 요약
 | 카테고리 | 개수 | 동작 |
 |---------|------|------|
-| 검색 직접 적용 | 16 | ★ 진입 시 자동 적용+잠금 |
-| 시스템 관리(검색) | 3 | ◇ `autoSelect={false}`로 우회 |
+| 검색 직접 적용 | 13 | ★ 진입 시 자동 적용+잠금 + 자동 검색 트리거 + 패널 닫기 |
+| 검색 정책 예외(시스템 관리·점포 필수·팝업) | 6 | ◇ `autoSelect={false}` / `isStoreRequired={true}` / 팝업 UX |
 | 폼/상세 직접 적용 | 2 (MenuForm, AuthorityForm) | ★ 등록 시만 자동 적용 |
+| 초대 페이지 | 1 (BpInvitationManage) | ★ defaultHeadOfficeId 직접 활용 (공통 컴포넌트 미사용) |
 | Settings | 3 | ◇ `autoSelect={false}` |
 | 타입 only / 별도 로직 | 12 | ◇ 무관 |
-| **총** | **36** | — |
+| **총** | **37** | — |
 
 ---
 
@@ -260,7 +267,7 @@ isOfficeFixed = shouldAutoSelectOffice  // 자동선택 = 잠금
 
 - [x] **Phase 1**: 백엔드 검증 — `findHeadOfficeTree`가 affiliationId 기반 자동 필터링 적용 확인 (별도 매핑 필드 불필요)
 - [ ] **Phase 2**: 공통 컴포넌트 수정 (3가지 가드 추가)
-- [ ] **Phase 3-A**: 검색 16개 — 본사 권한 / 가맹점 권한 / 다중 본사 권한 / **플랫폼 관리자** 시나리오 (4종)
+- [ ] **Phase 3-A**: 검색 13개 — 본사 권한 / 가맹점 권한 / 다중 본사 권한 / **플랫폼 관리자(BP Master)** 시나리오 (4종)
 - [ ] **Phase 3-A-PLATFORM**: 플랫폼 관리자 진입 시 본사 빈 값 + 잠금 없음 + 자유 선택 가능
 - [ ] **Phase 3-B**: 시스템 관리 3개 — `autoSelect={false}` 동작 보존
 - [ ] **Phase 3-C-1**: `MenuForm` 등록/수정 분기 동작
@@ -293,4 +300,5 @@ isOfficeFixed = shouldAutoSelectOffice  // 자동선택 = 잠금
 | v3 | 2026-04-28 | 플랫폼 관리자(`PRGRP_001_001`) 예외 정책 추가 — 자동 적용/잠금 모두 차단 |
 | v4 | 2026-04-28 | 백엔드 검증 — `findHeadOfficeTree`가 affiliationId 기반 자동 필터링 → 매핑 필드 불필요. 작업 포인트 3가지로 축소. PR 타겟 `develop` 확정. |
 | v5 | 2026-04-28 | 모든 정책 확정 — 자동잠금(PLATFORM은 자동선택만, 잠금 차단) / MenuForm 가드 / 추가 예외 없음. Phase 2 진입. |
-| **v6** | **2026-04-28** | **백엔드 BP Master fallback 적용 후 PLATFORM 예외 제거 — 자동선택 = 잠금으로 통합. 슈퍼 어드민(매핑X+다본사)만 자유 선택.** |
+| v6 | 2026-04-28 | 백엔드 BP Master fallback 적용 후 PLATFORM 예외 제거 — 자동선택 = 잠금으로 통합. 슈퍼 어드민(매핑X+다본사)만 자유 선택. |
+| **v7** | **2026-04-28** | **Boston Code Review 후속 — §2.2-A 검색 자동 적용 13개로 정정 (정책 예외 6개 분리: 시스템 관리 3 + WorkScheduleSearch + EmployeeSearch popup + ...). §2.3 매트릭스에 BpInvitationManage 항목 추가. HIGH #1/#3/#4 보강 작업.** |

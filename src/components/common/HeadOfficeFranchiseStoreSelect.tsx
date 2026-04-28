@@ -108,6 +108,12 @@
  * - PLATFORM도 매핑 본사가 명확하면 잠금 (BP Master 케이스)
  * - 슈퍼 어드민(매핑 없음 + 본사 다수)만 자동선택 자체가 미발동 → 자유 선택
  *
+ * ### ⚠️ 보안 경계 — 잠금은 UX 가드, 보안 경계는 백엔드 (Boston Code Review HIGH #4)
+ * `isDisabled` 잠금은 DevTools 에서 우회 가능. 사용자가 화면 본사를 변경하고 폼 제출 시
+ * 헤더 affiliationId 와 어긋난 headOfficeId 가 백엔드로 전송될 수 있다.
+ * 모든 mutation API 에서 백엔드가 `affiliationId ↔ headOfficeId` 정합성을 재검증해야
+ * 안전하다. 본 컴포넌트의 잠금은 UX 일관성/오작동 방지용이며 보안 경계가 아니다.
+ *
  * `autoSelect={false}` 설정 시 계정 유형과 무관하게 자동 선택/고정이 비활성화된다.
  * 시스템 관리 페이지(휴일, 공통코드, 권한)에서 사용.
  *
