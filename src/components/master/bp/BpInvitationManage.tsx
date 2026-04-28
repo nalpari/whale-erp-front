@@ -172,6 +172,10 @@ const BpInvitationManageContent = () => {
     const newErrors: Record<string, string> = {}
     if (!form.headOfficeId) {
       newErrors.headOfficeId = '본사를 선택해주세요'
+    } else if (!headOffices.some((o) => o.id === form.headOfficeId)) {
+      // HIGH #4 — defaultHeadOfficeId 가 옵션에 없는 매핑 미스 케이스 차단.
+      // (잠금 풀린 상태로 form 에 옵션 외 ID 가 잔존하면 백엔드 거부될 형태로 제출됨)
+      newErrors.headOfficeId = '선택 가능한 본사가 아닙니다. 본사를 다시 선택해주세요.'
     }
     if (!form.businessRegistrationNumber || !/^\d{10}$/.test(form.businessRegistrationNumber)) {
       newErrors.businessRegistrationNumber = '사업자등록번호는 10자리 숫자입니다'
@@ -193,7 +197,7 @@ const BpInvitationManageContent = () => {
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [form, isVerified])
+  }, [form, isVerified, headOffices])
 
   const handleSubmit = useCallback(async () => {
     if (!validate()) return

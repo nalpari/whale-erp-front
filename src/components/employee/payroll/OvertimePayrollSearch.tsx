@@ -334,12 +334,14 @@ export default function OvertimePayrollSearch({ onSearch, onReset, totalCount }:
                     }))
                   }
                   onAutoSelect={(next) => {
+                    // HIGH #2 — formData 미동기화 fix
                     const applied: FormData = {
                       ...formData,
                       headOfficeId: next.head_office,
                       franchiseId: next.franchise,
                       storeId: next.store,
                     }
+                    setFormData(applied)
                     setAppliedFormData(applied)
                     setAppliedWorkDays([...selectedWorkDays])
                     setAppliedDateRange(dateRange)

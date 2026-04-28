@@ -333,15 +333,17 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
                     }))
                   }
                   onAutoSelect={(next) => {
-                    // 본사 자동 선택 시 appliedFormData 동기화 + 검색 자동 트리거
+                    // 본사 자동 선택 시 formData + appliedFormData 동기화 + 검색 자동 트리거
+                    // (HIGH #2 — formData 미동기화 fix / HIGH #3 — applied 기반으로 enabled flag 재계산)
                     const applied: FormData = {
                       ...formData,
                       headOfficeOrganizationId: next.head_office,
                       franchiseOrganizationId: next.franchise,
                       storeId: next.store,
                     }
+                    setFormData(applied)
                     setAppliedFormData(applied)
-                    onSearch(buildSearchParams(applied, isEmployeeClassificationEnabled))
+                    onSearch(buildSearchParams(applied, !!applied.headOfficeOrganizationId))
                     setSearchOpen(false)
                   }}
                 />

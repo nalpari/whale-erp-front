@@ -332,10 +332,13 @@ export default function HeadOfficeFranchiseStoreSelect({
                     <td>
                         <div className="data-filed">
                             <SearchSelect
+                                // CRITICAL fix (Boston Code Review): 표시값을 항상 officeId 기준으로 통일.
+                                // 자동선택 useEffect 가 onChange 로 매핑 본사 ID 를 부모 officeId 로 동기화하므로
+                                // bpTree[0] 하드코딩은 PLATFORM/BP Master 다본사 환경에서 실제값과 어긋남.
                                 value={
-                                    isOfficeFixed
-                                        ? officeOptions.find((opt) => opt.value === String(bpTree[0]?.id)) || null
-                                        : officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null
+                                    officeId !== null
+                                        ? officeOptions.find((opt) => opt.value === String(officeId)) || null
+                                        : null
                                 }
                                 options={officeOptions}
                                 placeholder="전체"
@@ -373,10 +376,13 @@ export default function HeadOfficeFranchiseStoreSelect({
                     <td>
                         <div className="data-filed">
                             <SearchSelect
+                                // CRITICAL fix (Boston Code Review): 표시값을 franchiseId 기준으로 통일.
+                                // 자동선택 useEffect 가 가맹점 ID 를 부모 franchiseId 로 동기화하므로
+                                // bpTree[0]?.franchises[0]?.id 하드코딩은 다본사 환경에서 실제값과 어긋남.
                                 value={
-                                    isFranchiseFixed
-                                        ? franchiseOptions.find((opt) => opt.value === String(bpTree[0]?.franchises[0]?.id)) || null
-                                        : franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null
+                                    franchiseId !== null
+                                        ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null
+                                        : null
                                 }
                                 options={franchiseOptions}
                                 placeholder="전체"
