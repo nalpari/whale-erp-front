@@ -11,13 +11,18 @@ import {
 /**
  * GET /api/auth/my-authority 호출.
  *
- * affiliationId 는 api.ts 요청 인터셉터가 헤더로 자동 첨부하므로 query param 으로 중복 전송하지 않는다.
- * (헤더/파라미터 불일치로 인한 조직 전환 race 차단)
+ * 백엔드 getMyAuthority 는 affiliationId 를 @RequestParam(Long) 으로 받는다.
+ * my-authority 는 AuthorityCheckFilter 의 JWT-only 경로에 등록되어 있어 헤더의 affiliationId 를
+ * Request Attribute 로 변환하는 단계가 생략된다. 따라서 query param 으로 명시 전송이 필수다.
  *
  * 응답은 myAuthorityResponseSchema 로 런타임 검증되어 ad-hoc interface 의 shape 불일치를 방지.
  */
-async function fetchMyAuthority(): Promise<LoginAuthorityProgram[]> {
-  const response = await getWithSchema('/api/auth/my-authority', myAuthorityResponseSchema)
+async function fetchMyAuthority(affiliationId: string): Promise<LoginAuthorityProgram[]> {
+  const response = await getWithSchema(
+    '/api/auth/my-authority',
+    myAuthorityResponseSchema,
+    { params: { affiliationId } },
+  )
   return response.data.authority.programs
 }
 
@@ -59,7 +64,7 @@ export function useMyAuthority() {
 
   const query = useQuery({
     queryKey: authKeys.myAuthorityById(affiliationId),
-    queryFn: fetchMyAuthority,
+    queryFn: () => fetchMyAuthority(affiliationId as string),
     enabled: !!affiliationId,
     refetchOnWindowFocus: true,
     // 백그라운드 폴링 (보험 채널) — 대부분의 권한 변경은 탭 포커스 / 403 invalidate / mutation invalidate
