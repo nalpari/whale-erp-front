@@ -42,6 +42,7 @@ function LoginContent() {
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
   const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
+  const setDefaultHeadOfficeId = useAuthStore((state) => state.setDefaultHeadOfficeId);
 
   const loginMutation = useLoginMutation();
   const authoritySelectMutation = useAuthoritySelectMutation();
@@ -108,9 +109,10 @@ function LoginContent() {
 
         setAuthority(authority.programs);
         setAffiliationId(String(authority.authorityId));
-        // ownerCode는 companies[] 배열에 포함됨
+        // ownerCode / headOfficeId 는 companies[] 배열에 포함됨
         const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
+        setDefaultHeadOfficeId(matchedCompany?.headOfficeId ?? authority.headOfficeId ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
         setSubscriptionPlan(subscriptionPlanId ?? 0);
@@ -144,10 +146,11 @@ function LoginContent() {
           router.push(redirectTarget);
         }
       } else if (companies && companies.length > 0) {
-        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string }) => ({
+        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string; headOfficeId?: number | null }) => ({
           id: String(c.authorityId),
           name: c.companyName || c.brandName || `회사 ${c.authorityId}`,
           ownerCode: c.ownerCode,
+          headOfficeId: c.headOfficeId ?? null,
         })));
         setPendingTokens({ accessToken, refreshToken });
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
@@ -187,6 +190,13 @@ function LoginContent() {
 
       setAffiliationId(authority.id);
       setOwnerCode(data.authority?.ownerCode ?? authority.ownerCode ?? null);
+      // ⚠️ 클라이언트 신뢰 제한 사항 (Boston Code Review HIGH #3):
+      // authority.headOfficeId 는 login 응답의 companies[] 에서 모달로 전달된 값.
+      // 메모리 변조 시 임의 headOfficeId 가 store 에 들어갈 수 있음.
+      // 그러나 백엔드는 모든 mutation 에서 헤더 affiliationId 로 권한을 재검증하므로
+      // 잘못된 headOfficeId 는 폼 prefill UX 문제만 발생 (실제 데이터 노출 X).
+      // 근본 해결은 백엔드 SelectAuthorityResponse 에 headOfficeId 추가 (후속 티켓).
+      setDefaultHeadOfficeId(authority.headOfficeId ?? null);
       setTokens(pendingTokens.accessToken, pendingTokens.refreshToken);
 
       if (rememberMe) {

@@ -361,6 +361,22 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
                       employeeClassification: ''
                     }))
                   }
+                  onAutoSelect={(next) => {
+                    // 본사 자동 선택 시 formData + appliedFormData 동기화 + 검색 자동 트리거
+                    // (HIGH #2 — formData 미동기화 시 검색 패널 재오픈 시 stale 입력 표시)
+                    const applied: FormData = {
+                      ...formData,
+                      headOfficeOrganizationId: next.head_office,
+                      franchiseOrganizationId: next.franchise,
+                      storeId: next.store,
+                      employeeClassification: '',
+                      workDays: [...formData.workDays],
+                    }
+                    setFormData(applied)
+                    setAppliedFormData(applied)
+                    if (onSearch) onSearch(buildApiParams(applied))
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 2행: 근무여부, 직원명, 근무요일 */}

@@ -85,15 +85,34 @@
  *
  * ## 계정 유형별 자동 선택 (`autoSelect={true}` 기본값일 때)
  *
- * ownerCode(Zustand auth-store)를 우선 사용하여 계정 유형을 판단한다.
- * ownerCode가 없으면 bpTree 구조로 추론한다 (하위 호환).
+ * ownerCode(Zustand auth-store)와 bpTree 길이로 계정 유형을 판단한다.
  *
- * | ownerCode       | 계정 유형 | 본사                | 가맹점             | 점포        |
- * | --------------- | --------- | ------------------- | ------------------ | ----------- |
- * | PRGRP_001_001   | 플랫폼    | 사용자 선택         | 사용자 선택        | 사용자 선택 |
- * | PRGRP_002_001   | 본사      | 자동 고정(readOnly) | 사용자 선택        | 사용자 선택 |
- * | PRGRP_002_002   | 가맹점    | 자동 고정(readOnly) | 자동 고정(readOnly)| 사용자 선택 |
- * | (없음)          | 추론      | bpTree.length===1 시 고정 | 단일 가맹점 시 고정 | 사용자 선택 |
+ * 백엔드 `findHeadOfficeTree`가 이미 affiliationId 기반으로 bpTree를 필터링해주므로,
+ * `bpTree.length === 1`이면 그 본사가 곧 현재 affiliation 매핑 본사다.
+ *
+ * | ownerCode       | 계정 유형         | 본사 자동선택                                   | 본사 잠금                | 가맹점               | 점포        |
+ * | --------------- | ----------------- | ----------------------------------------------- | ------------------------ | -------------------- | ----------- |
+ * | PRGRP_001_001   | 플랫폼/BP Master  | defaultHeadOfficeId 매핑 또는 단일 본사 시 발동 | ✅ 자동선택 시 잠금 동반 | 사용자 선택          | 사용자 선택 |
+ * | PRGRP_001_001   | 슈퍼 어드민(매핑X)| 미발동 (본사 다수 환경)                         | ❌ 잠금 없음             | 사용자 선택          | 사용자 선택 |
+ * | PRGRP_002_001   | 본사              | 자동 발동                                       | ✅ 잠금                  | 사용자 선택          | 사용자 선택 |
+ * | PRGRP_002_002   | 가맹점            | 자동 발동                                       | ✅ 잠금                  | 자동 발동 + 잠금     | 사용자 선택 |
+ * | (없음)          | 다중 본사 권한    | bpTree.length===1 시 발동                       | ✅ 잠금                  | 단일 가맹점 시 고정  | 사용자 선택 |
+ *
+ * ### 자동 적용 가드 (모두 만족 시 발동)
+ * - `autoSelect === true`
+ * - `!isDisabled`
+ * - `officeId == null` (수정 폼 데이터 보존 — 기존 값이 있으면 덮어쓰지 않음)
+ *
+ * ### 잠금 정책 — 자동선택 = 잠금 통합
+ * - 자동선택 발동 시 잠금 동반 (헤더 affiliationId ↔ 화면 본사 정합성 보장)
+ * - PLATFORM도 매핑 본사가 명확하면 잠금 (BP Master 케이스)
+ * - 슈퍼 어드민(매핑 없음 + 본사 다수)만 자동선택 자체가 미발동 → 자유 선택
+ *
+ * ### ⚠️ 보안 경계 — 잠금은 UX 가드, 보안 경계는 백엔드 (Boston Code Review HIGH #4)
+ * `isDisabled` 잠금은 DevTools 에서 우회 가능. 사용자가 화면 본사를 변경하고 폼 제출 시
+ * 헤더 affiliationId 와 어긋난 headOfficeId 가 백엔드로 전송될 수 있다.
+ * 모든 mutation API 에서 백엔드가 `affiliationId ↔ headOfficeId` 정합성을 재검증해야
+ * 안전하다. 본 컴포넌트의 잠금은 UX 일관성/오작동 방지용이며 보안 경계가 아니다.
  *
  * `autoSelect={false}` 설정 시 계정 유형과 무관하게 자동 선택/고정이 비활성화된다.
  * 시스템 관리 페이지(휴일, 공통코드, 권한)에서 사용.
@@ -203,7 +222,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     onMultiOffice,
     onAutoSelect,
 }: HeadOfficeFranchiseStoreSelectProps) {
-    const { accessToken, affiliationId, ownerCode } = useAuthStore()
+    const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
@@ -217,15 +236,31 @@ export default function HeadOfficeFranchiseStoreSelect({
     const onAutoSelectRef = useRef(onAutoSelect)
     useEffect(() => { onAutoSelectRef.current = onAutoSelect }, [onAutoSelect])
 
-    // --- 고정(readOnly) vs 자동 선택(값만 채움) 분리 ---
-    // 고정: ownerCode가 명확한 경우에만. 드롭다운 비활성화 + 초기화해도 복원.
-    // 자동 선택: 고정 대상 + ownerCode 없이 bpTree가 1개인 경우. 값만 채우고 변경 가능.
-    const isOfficeFixed = autoSelect
-        && (ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE)
-    const isFranchiseFixed = autoSelect && ownerCode === OWNER_CODE.FRANCHISE
+    // --- 자동 선택 + 잠금 통합 정책 ---
+    //
+    // 자동 선택과 잠금은 동일 조건에서 동시에 발동된다 (헤더 affiliationId ↔ 화면 본사 정합성).
+    //
+    // 발동 조건:
+    //   (1) ownerCode 매칭 (HEAD_OFFICE / FRANCHISEE)
+    //   (2) bpTree 단일 본사 — 백엔드 `findHeadOfficeTree`가 affiliationId 기반으로 필터링
+    //   (3) PLATFORM + defaultHeadOfficeId 매핑 — 로그인 응답 CompanyInfo.headOfficeId
+    //       (BP Master는 본인이 등록한 본사가 MemberDetail.organization → headOfficeId로 fallback)
+    //
+    // PLATFORM이라도 매핑 본사가 명확하면 잠금 — 헤더 정합성을 위해 다른 본사로 변경 차단.
+    // 슈퍼 어드민(매핑 없음 + 본사 다수)만 자동 선택 미발동 + 잠금 없음 (횡단 운영).
+    const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
 
-    // 자동 선택 대상: 고정 대상 포함 + ownerCode 없을 때 bpTree 단일 본사
-    const shouldAutoSelectOffice = isOfficeFixed || (autoSelect && !ownerCode && bpTree.length === 1)
+    const platformHasDefault = isPlatformAdmin && defaultHeadOfficeId != null
+        && bpTree.some((office) => office.id === defaultHeadOfficeId)
+
+    const shouldAutoSelectOffice = autoSelect
+        && (ownerCode === OWNER_CODE.HEAD_OFFICE
+            || ownerCode === OWNER_CODE.FRANCHISE
+            || bpTree.length === 1
+            || platformHasDefault)
+
+    const isOfficeFixed = shouldAutoSelectOffice
+    const isFranchiseFixed = autoSelect && ownerCode === OWNER_CODE.FRANCHISE
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
@@ -237,36 +272,43 @@ export default function HeadOfficeFranchiseStoreSelect({
     }, [bpLoading, bpCount])
 
     // 본사/가맹점 자동 선택 (값 채우기)
-    // - 본사(PRGRP_002_001): 본사 값 설정 + 고정(readOnly)
-    // - 가맹점(PRGRP_002_002): 본사+가맹점 값 설정 + 고정(readOnly)
-    // - ownerCode 없음 + 본사 1개: 본사 값만 설정 (고정 안 함, 변경 가능)
+    //
+    // 가드 (모두 만족 시 발동):
+    // - autoSelect=true (시스템 관리/세팅 페이지 우회)
+    // - !isDisabled (수정 폼/상세 잠금 우회)
+    // - bpTree 로드 완료
+    // - shouldAutoSelectOffice (ownerCode 매칭 또는 단일 본사)
+    // - officeId == null (기존 값 보존 — 수정 폼 데이터 무결성)
+    //
+    // 동작:
+    // - 본사(PRGRP_002_001): 본사 값 설정 + 잠금(readOnly)
+    // - 가맹점(PRGRP_002_002): 본사+가맹점 값 설정 + 잠금
+    // - 플랫폼(PRGRP_001_001) + 단일 본사: 본사 값 설정만 (잠금 안 함, 변경 가능)
+    // - 다중 본사 권한 + 단일 본사 응답: 본사 값 설정 + 잠금 (헤더 정합성)
     useEffect(() => {
+        if (isDisabled) return
         if (!autoSelect || bpLoading || bpTree.length === 0) return
+        if (!shouldAutoSelectOffice) return
+        // 기존 값이 있으면 덮어쓰지 않음 — 수정 폼 데이터 보존
+        if (officeId != null) return
 
-        if (shouldAutoSelectOffice) {
-            const office = bpTree[0]
+        // PLATFORM은 defaultHeadOfficeId 매핑 본사를, 그 외는 bpTree[0]을 사용.
+        const targetOffice = platformHasDefault
+            ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
+            : bpTree[0]
+        // 가맹점 고정(가맹점 계정)일 때만 자동 선택/복원
+        const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
+            ? targetOffice.franchises[0].id
+            : null
 
-            // officeId가 null/undefined이면 항상 업데이트 (초기 진입 시 자동 조회 보장)
-            const officeNeedsUpdate = officeId == null || officeId !== office.id
-            // 가맹점 고정(가맹점 계정)일 때만 자동 선택/복원
-            const autoFranchiseId = isFranchiseFixed && office.franchises.length === 1
-                ? office.franchises[0].id
-                : null
-            const franchiseNeedsUpdate = isFranchiseFixed
-                && autoFranchiseId !== null
-                && franchiseId !== autoFranchiseId
-
-            if (officeNeedsUpdate || franchiseNeedsUpdate) {
-                const value: OfficeFranchiseStoreValue = {
-                    head_office: office.id,
-                    franchise: autoFranchiseId ?? franchiseId ?? null,
-                    store: null,
-                }
-                onChangeRef.current(value)
-                onAutoSelectRef.current?.(value)
-            }
+        const value: OfficeFranchiseStoreValue = {
+            head_office: targetOffice.id,
+            franchise: autoFranchiseId ?? franchiseId ?? null,
+            store: null,
         }
-    }, [autoSelect, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed])
+        onChangeRef.current(value)
+        onAutoSelectRef.current?.(value)
+    }, [autoSelect, isDisabled, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed, platformHasDefault, defaultHeadOfficeId, isPlatformAdmin, ownerCode])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
@@ -290,10 +332,13 @@ export default function HeadOfficeFranchiseStoreSelect({
                     <td>
                         <div className="data-filed">
                             <SearchSelect
+                                // CRITICAL fix (Boston Code Review): 표시값을 항상 officeId 기준으로 통일.
+                                // 자동선택 useEffect 가 onChange 로 매핑 본사 ID 를 부모 officeId 로 동기화하므로
+                                // bpTree[0] 하드코딩은 PLATFORM/BP Master 다본사 환경에서 실제값과 어긋남.
                                 value={
-                                    isOfficeFixed
-                                        ? officeOptions.find((opt) => opt.value === String(bpTree[0]?.id)) || null
-                                        : officeId !== null ? officeOptions.find((opt) => opt.value === String(officeId)) || null : null
+                                    officeId !== null
+                                        ? officeOptions.find((opt) => opt.value === String(officeId)) || null
+                                        : null
                                 }
                                 options={officeOptions}
                                 placeholder="전체"
@@ -331,10 +376,13 @@ export default function HeadOfficeFranchiseStoreSelect({
                     <td>
                         <div className="data-filed">
                             <SearchSelect
+                                // CRITICAL fix (Boston Code Review): 표시값을 franchiseId 기준으로 통일.
+                                // 자동선택 useEffect 가 가맹점 ID 를 부모 franchiseId 로 동기화하므로
+                                // bpTree[0]?.franchises[0]?.id 하드코딩은 다본사 환경에서 실제값과 어긋남.
                                 value={
-                                    isFranchiseFixed
-                                        ? franchiseOptions.find((opt) => opt.value === String(bpTree[0]?.franchises[0]?.id)) || null
-                                        : franchiseId !== null ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null : null
+                                    franchiseId !== null
+                                        ? franchiseOptions.find((opt) => opt.value === String(franchiseId)) || null
+                                        : null
                                 }
                                 options={franchiseOptions}
                                 placeholder="전체"

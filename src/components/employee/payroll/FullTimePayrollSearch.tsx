@@ -304,6 +304,20 @@ export default function FullTimePayrollSearch({ onSearch, onReset, totalCount }:
                       storeId: next.store
                     }))
                   }
+                  onAutoSelect={(next) => {
+                    // HIGH #2 — formData 미동기화 fix
+                    const applied: FormData = {
+                      ...formData,
+                      headOfficeId: next.head_office,
+                      franchiseId: next.franchise,
+                      storeId: next.store,
+                    }
+                    setFormData(applied)
+                    setAppliedFormData(applied)
+                    setAppliedDateRange(dateRange)
+                    onSearch(buildSearchParams(applied, dateRange))
+                    setSearchOpen(false)
+                  }}
                 />
               </tr>
               {/* 2행: 근무여부, 직원명, 직원 분류 */}

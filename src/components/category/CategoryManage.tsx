@@ -49,6 +49,19 @@ export default function CategoryManage() {
     setSearched(false)
   }
 
+  // 본사 자동 선택 — filters 갱신 + 검색 자동 트리거
+  const handleAutoSelectOffice = (officeId: number | null) => {
+    setFilters((prev) => ({ ...prev, officeId }))
+    if (officeId == null) return
+    setSearchParams({
+      bpId: officeId,
+      categoryName: filters.categoryName || undefined,
+      depth: filters.level === 2 ? 2 : 1,
+      isActive: filters.isActive === 'all' ? undefined : filters.isActive === 'true',
+    })
+    setSearched(true)
+  }
+
   const handleCreateCategory = async (
     parentId: number | null,
     data: CategoryFormData,
@@ -150,6 +163,7 @@ export default function CategoryManage() {
           onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
           onSearch={handleSearch}
           onReset={handleReset}
+          onAutoSelectOffice={handleAutoSelectOffice}
         />
         {searched ? (
           isPending ? (

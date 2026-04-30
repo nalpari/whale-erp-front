@@ -20,6 +20,8 @@ interface CategorySearchProps {
   onChange: (next: Partial<CategorySearchFilters>) => void
   onSearch: () => void
   onReset: () => void
+  /** 본사 자동 선택 발생 시 호출 — 부모는 검색 자동 트리거 */
+  onAutoSelectOffice?: (officeId: number | null) => void
 }
 
 export default function CategorySearch({
@@ -28,6 +30,7 @@ export default function CategorySearch({
   onChange,
   onSearch,
   onReset,
+  onAutoSelectOffice,
 }: CategorySearchProps) {
   const [searchOpen, setSearchOpen] = useState(true)
   const [showOfficeError, setShowOfficeError] = useState(false)
@@ -80,6 +83,10 @@ export default function CategorySearch({
                     onChange({
                       officeId: next.head_office,
                     })
+                  }}
+                  onAutoSelect={(next) => {
+                    onAutoSelectOffice?.(next.head_office)
+                    setSearchOpen(false)
                   }}
                 />
                 <th>카테고리명</th>
