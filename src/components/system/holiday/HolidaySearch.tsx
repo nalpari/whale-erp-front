@@ -22,6 +22,7 @@ interface HolidaySearchProps {
   onSearch: () => void
   onReset: () => void
   onRemoveFilter: (key: string) => void
+  onAutoSelect?: (value: { head_office: number | null; franchise: number | null; store: number | null }) => void
 }
 
 const currentYear = new Date().getFullYear()
@@ -35,6 +36,7 @@ export default function HolidaySearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: HolidaySearchProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [showYearError, setShowYearError] = useState(false)
@@ -46,10 +48,13 @@ export default function HolidaySearch({
     appliedFilters.officeId != null
   )
 
-  // 적용된 검색 조건 태그
+  // 검색 조건 태그
+  // - year(필수값): filters 기준 — x 클릭 시 즉시 사라지고, 검색 버튼에서 필수 체크
+  // - office/franchise/store: appliedFilters 기준 — 검색 적용 후의 조건만 표시
+  // (변수명 appliedTags지만 year만 미적용 상태 반영. 향후 displayedTags로 리팩토링 검토)
   const appliedTags: { key: string; value: string; category: string }[] = []
-  if (appliedFilters.year != null) {
-    appliedTags.push({ key: 'year', value: `${appliedFilters.year}년`, category: '연도' })
+  if (filters.year != null) {
+    appliedTags.push({ key: 'year', value: `${filters.year}년`, category: '연도' })
   }
   if (appliedFilters.officeId != null) {
     const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
@@ -127,7 +132,6 @@ export default function HolidaySearch({
               <tr>
                 <HeadOfficeFranchiseStoreSelect
                   isHeadOfficeRequired={false}
-                  autoSelect={false}
                   officeId={filters.officeId ?? null}
                   franchiseId={filters.franchiseId ?? null}
                   storeId={filters.storeId ?? null}
@@ -140,6 +144,7 @@ export default function HolidaySearch({
                       storeId: isOrgChanged ? (next.store ?? filters.storeId) : next.store,
                     })
                   }}
+                  onAutoSelect={onAutoSelect}
                 />
               </tr>
               <tr>

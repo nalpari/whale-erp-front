@@ -59,6 +59,7 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
 
   // 계정 유형 판단
   const ownerCode = useAuthStore((s) => s.ownerCode)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
   const isHeadOfficeAccount = ownerCode === OWNER_CODE.HEAD_OFFICE
   const isFranchiseAccount = ownerCode === OWNER_CODE.FRANCHISE
 
@@ -66,12 +67,28 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
 
-  // 폼 초기값 계산 (파생 값 — setState 없이)
-  // - 수정 모드: detail 기반 (key={todoId} 리마운트로 보장)
-  // - 등록 모드: 계정 유형별 본사/가맹점 자동 세팅
-  const initialForm = useMemo<FormState>(() => {
+  // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / 단일 본사 / PLATFORM + 매핑 본사
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((o) => o.id === defaultHeadOfficeId)
+  const shouldAutoSelectOffice =
+    isHeadOfficeAccount
+    || isFranchiseAccount
+    || bpTree.length === 1
+    || platformHasDefault
+
+  // 렌더 중 setState 패턴 — useEffect 안에서 setState 회피 (react-hooks/set-state-in-effect 규칙 준수)
+  const [form, setForm] = useState<FormState>(DEFAULT_FORM)
+  const [bpAutoApplied, setBpAutoApplied] = useState(false)
+  const [appliedDetailId, setAppliedDetailId] = useState<number | null | undefined>(undefined)
+
+  // detail 변경 감지 → form 동기화 (수정 모드)
+  const currentDetailId = detail?.id ?? null
+  if (detail !== undefined && currentDetailId !== appliedDetailId) {
+    setAppliedDetailId(currentDetailId)
     if (detail) {
-      return {
+      setForm({
         officeId: detail.headOfficeId,
         franchiseId: detail.franchiseId,
         storeId: detail.storeId,
@@ -80,18 +97,27 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
         hasPeriod: detail.hasPeriod,
         startDate: detail.startDate ? new Date(detail.startDate) : null,
         endDate: detail.endDate ? new Date(detail.endDate) : null,
-      }
+      })
     }
-    // bpTree가 단일 본사일 때만 자동 세팅, 그 외에는 DEFAULT_FORM 참조를 그대로 반환하여 안정성 확보
-    if (bpTree.length !== 1) return DEFAULT_FORM
-    const officeId = bpTree[0].id
-    const franchiseId = isFranchiseAccount && bpTree[0].franchises.length >= 1
-      ? bpTree[0].franchises[0].id
-      : null
-    return { ...DEFAULT_FORM, officeId, franchiseId }
-  }, [detail, isFranchiseAccount, bpTree])
+  }
 
-  const [form, setForm] = useState<FormState>(initialForm)
+  // 자동선택 1회 (등록 모드 + bpTree 로드 후)
+  if (
+    !bpAutoApplied
+    && !detail
+    && bpTree.length > 0
+    && shouldAutoSelectOffice
+  ) {
+    setBpAutoApplied(true)
+    const targetOffice = platformHasDefault
+      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
+      : bpTree[0]
+    const franchiseId = isFranchiseAccount && targetOffice.franchises.length >= 1
+      ? targetOffice.franchises[0].id
+      : null
+    setForm({ ...DEFAULT_FORM, officeId: targetOffice.id, franchiseId })
+  }
+
   const [slideboxOpen, setSlideboxOpen] = useState(true)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const officeOptions: SelectOption[] = useMemo(
