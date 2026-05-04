@@ -70,12 +70,12 @@ export default function HolidayInfo() {
     || bpTree.length === 1
     || platformHasDefault
 
-  // 휴일 관리는 본사 필수가 아니지만, 자동선택 사용자는 자동선택 적용 전에 1차 fetch가 발생하지 않도록 가드
-  // 자동선택 미발동(슈퍼 어드민 등)은 bpLoading 가드 없이 즉시 fetch
-  const canFetchList = !!appliedFilters.year && (
-    !willAutoSelect
-      ? true                                              // 자동선택 미발동: 즉시 fetch
-      : !bpLoading && appliedFilters.officeId != null     // 자동선택 발동: 로드 완료 + officeId 세팅 후
+  // 휴일 관리 fetch 가드:
+  // bpTree 로드 전에는 willAutoSelect 평가가 부정확 (bpTree.length === 1 / platformHasDefault가 false로 평가됨)
+  // PLATFORM+매핑 사용자/단일 본사 fallback 사용자가 무필터 1차 fetch로 화면 오염되는 회귀를
+  // 방지하기 위해 bpLoading 가드를 외부로 끌어올려 모든 케이스에서 willAutoSelect가 정확히 평가된 후 fetch
+  const canFetchList = !!appliedFilters.year && !bpLoading && (
+    !willAutoSelect || appliedFilters.officeId != null
   )
   const { data: response, isPending: loading, error: queryError } = useHolidayList(params, canFetchList)
   const errorMessage = useQueryError(queryError)

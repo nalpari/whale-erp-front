@@ -265,6 +265,29 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     const newErrors: Record<string, string> = {}
     if (!form.bpoprType) newErrors.bpoprType = '운영여부를 선택해 주세요.'
     if (!form.pfType) newErrors.pfType = '대표 Partner Function을 선택해 주세요.'
+
+    // 권한 매트릭스 second-line 가드 (등록 모드에서만 — DOM 변조 우회 보조 차단)
+    // 서버(API #ERR3061/ERR3062)가 1차 가드, 클라이언트는 빠른 피드백 + 정상 사용자 보호
+    if (!isEditMode) {
+      if (form.bpoprType === BPOPR_TERMINATED) {
+        newErrors.bpoprType = '등록 시 운영여부 종료는 선택할 수 없습니다.'
+      }
+      if (isHeadOfficeUser && form.pfType && form.pfType !== 'PF_001') {
+        newErrors.pfType = '본사 권한으로는 본사(PF_001)만 등록할 수 있습니다.'
+      }
+      if (isFranchiseUser && form.pfType && form.pfType !== 'PF_002') {
+        newErrors.pfType = '가맹점 권한으로는 가맹점(PF_002)만 등록할 수 있습니다.'
+      }
+      if (
+        !isPlatform
+        && form.pfType === 'PF_002'
+        && defaultHeadOfficeId != null
+        && form.pfSaveRequest[0]?.partnerBusinessPartnerId !== defaultHeadOfficeId
+      ) {
+        newErrors.partnerBp = '권한이 없는 본사로는 등록할 수 없습니다.'
+      }
+    }
+
     if (!isEditMode) {
       if (!form.masterId || !form.masterId.trim()) {
         newErrors.masterId = 'Master ID를 입력해 주세요.'

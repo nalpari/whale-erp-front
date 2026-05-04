@@ -174,9 +174,17 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const isNewMode = isEditMode && id === 'new'
   const statementId = isNewMode ? undefined : parseInt(id)
 
+  // 기존 명세서 데이터를 먼저 로드하여 lazy 초기화에서 활용
+  // (수정 모드 + 자동선택 사용자가 셀렉트 빈 값 + disabled로 잠기는 회귀 방지)
+  const { data: existingPayrollData, isPending: isDetailLoading } = useFullTimePayrollDetail(statementId)
+
   // 조직 선택 상태
-  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number | null>(null)
-  const [selectedFranchiseStoreId, setSelectedFranchiseStoreId] = useState<number | null>(null)
+  const [selectedHeadOfficeId, setSelectedHeadOfficeId] = useState<number | null>(
+    () => existingPayrollData?.headOfficeId ?? null
+  )
+  const [selectedFranchiseStoreId, setSelectedFranchiseStoreId] = useState<number | null>(
+    () => existingPayrollData?.franchiseId ?? null
+  )
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null)
 
   // BP 트리 데이터
@@ -218,8 +226,7 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   // 점포 옵션 조회
   const { data: storeOptionList = [] } = useStoreOptions(selectedHeadOfficeId, selectedFranchiseStoreId)
 
-  // TanStack Query hooks
-  const { data: existingPayrollData, isPending: isDetailLoading } = useFullTimePayrollDetail(statementId)
+  // TanStack Query hooks (existingPayrollData는 useState lazy 초기화 위해 위쪽에서 호출)
   const settingsHeadOfficeId = selectedHeadOfficeId ?? existingPayrollData?.headOfficeId ?? null
   const settingsFranchiseId = selectedFranchiseStoreId ?? existingPayrollData?.franchiseId ?? undefined
   const { data: payrollSettings } = usePayrollStatementSettings(

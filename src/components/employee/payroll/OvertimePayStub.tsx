@@ -99,6 +99,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const [isSearchDone, setIsSearchDone] = useState(false)
 
   // Organization selection state
+  // NOTE: lazy 초기화는 OvertimeAllowanceStatementDetailResponse에 headOfficeId/franchiseId 필드가 추가된 후 가능.
+  // 현재 응답에는 *Name만 있고 ID가 없어 PartTimePayStub와 같은 패턴 적용 불가.
+  // 후속 작업: 백엔드 응답에 ID 필드 추가 후 PartTime 패턴 적용 (HIGH #1 잔여)
   const [selectedHeadquarter, setSelectedHeadquarter] = useState<string>('')
   const [selectedFranchise, setSelectedFranchise] = useState<string>('')
   const [selectedStore, setSelectedStore] = useState<string>('')
