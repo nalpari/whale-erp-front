@@ -3,6 +3,8 @@ import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRe
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCodeCache } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
   A001: '필수 입력 항목입니다.',
@@ -438,42 +440,59 @@ export const useStoreDetailForm = ({
   }, [bpTree, formState.officeId])
 
   // 로그인 사용자 권한에 따른 본사/가맹점 자동 선택 (렌더링 시점 동기화)
-  // bpTree가 1개면 해당 본사 자동 선택, 가맹점이 1개면 가맹점도 자동 선택
+  // HeadOfficeFranchiseStoreSelect와 동일한 표준 정책 적용:
+  //   (1) ownerCode 매칭 (HEAD_OFFICE / FRANCHISE)
+  //   (2) bpTree 단일 본사 폴백
+  //   (3) PLATFORM + defaultHeadOfficeId 매핑
   // NOTE: useEffect 내 setState는 react-hooks/set-state-in-effect 린트 에러가 발생하므로
   //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
   //       호출해야 하므로 useRef+useEffect 패턴을 사용)
-  // TODO: auth-store에 소속 조직 타입이 저장되면 bpTree 추론 대신 조직 타입 기반으로 변경
-  //       - FRANCHISE: storeOwner를 FRANCHISE로 고정 + officeId/franchiseId 자동 선택
-  const [bpAutoApplied, setBpAutoApplied] = useState(false)
-  if (!bpAutoApplied && bpTree.length === 1 && !(isEditMode && detail)) {
-    setBpAutoApplied(true)
-    const office = bpTree[0]
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
 
-    if (office.franchises.length === 0) {
-      // 가맹점이 없으면 본사 소유 고정
-      setFormState((prev) => ({
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const shouldAutoSelectOffice =
+    ownerCode === OWNER_CODE.HEAD_OFFICE
+    || ownerCode === OWNER_CODE.FRANCHISE
+    || bpTree.length === 1
+    || platformHasDefault
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+
+  const [bpAutoApplied, setBpAutoApplied] = useState(false)
+  if (!bpAutoApplied && bpTree.length > 0 && !(isEditMode && detail) && shouldAutoSelectOffice) {
+    setBpAutoApplied(true)
+    const targetOffice = platformHasDefault
+      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
+      : bpTree[0]
+
+    // FRANCHISE 사용자 + 해당 본사의 가맹점이 1개면 자동선택
+    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
+      ? targetOffice.franchises[0].id
+      : null
+
+    // HEAD_OFFICE 사용자 + 가맹점 0개 본사 자동선택 시 storeOwner 강제 지정 (미선택 회귀 방지)
+    const isHeadOfficeOwnerForced = !isFranchiseFixed && targetOffice.franchises.length === 0
+
+    setFormState((prev) => {
+      const nextStoreOwner = isFranchiseFixed
+        ? 'FRANCHISE'
+        : isHeadOfficeOwnerForced ? 'HEAD_OFFICE'
+        : prev.storeOwner
+      const nextOrganizationId =
+        isHeadOfficeOwnerForced ? targetOffice.id
+        : isFranchiseFixed ? (autoFranchiseId ?? prev.organizationId)
+        : (nextStoreOwner === 'HEAD_OFFICE' ? targetOffice.id : prev.organizationId)
+      return {
         ...prev,
-        officeId: office.id,
-        storeOwner: 'HEAD_OFFICE',
-        organizationId: office.id,
-      }))
-    } else if (office.franchises.length === 1) {
-      // 가맹점이 1개면 본사 + 가맹점 자동 선택 (storeOwner는 사용자가 선택)
-      const franchise = office.franchises[0]
-      setFormState((prev) => ({
-        ...prev,
-        officeId: office.id,
-        franchiseId: franchise.id,
-        organizationId: office.id,
-      }))
-    } else {
-      // 가맹점이 여러 개면 본사만 자동 선택
-      setFormState((prev) => ({
-        ...prev,
-        officeId: office.id,
-        organizationId: office.id,
-      }))
-    }
+        officeId: targetOffice.id,
+        franchiseId: autoFranchiseId ?? prev.franchiseId,
+        storeOwner: nextStoreOwner,
+        organizationId: nextOrganizationId,
+      }
+    })
   }
 
   // 본사 선택 시 가맹점/조직Id 동기화

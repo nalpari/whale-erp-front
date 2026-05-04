@@ -31,6 +31,7 @@ import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { calculatePayrollPeriod } from '@/lib/utils/payroll'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 // 연장근무 수당 배율 (통상임금의 1.5배 — 근로기준법 제56조)
 const OVERTIME_RATE_MULTIPLIER = 1.5
@@ -120,9 +121,46 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }, [isEditMode, existingStatement])
 
   // BP 트리 데이터
-  const { accessToken, affiliationId } = useAuthStore()
+  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+
+  // 권한 기반 표준 정책 변수
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const shouldAutoSelectOffice =
+    ownerCode === OWNER_CODE.HEAD_OFFICE
+    || ownerCode === OWNER_CODE.FRANCHISE
+    || bpTree.length === 1
+    || platformHasDefault
+  const isOfficeFixed = shouldAutoSelectOffice
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+
+  // 자동선택 로직 (렌더 중 setState 패턴 — PartTimePayStub와 동일)
+  const [bpAutoApplied, setBpAutoApplied] = useState(false)
+  if (
+    !bpAutoApplied
+    && isNewMode
+    && !fromWorkTimeEdit
+    && bpTree.length > 0
+    && shouldAutoSelectOffice
+  ) {
+    setBpAutoApplied(true)
+    const targetOffice = platformHasDefault
+      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
+      : bpTree[0]
+
+    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
+      ? targetOffice.franchises[0].id
+      : null
+
+    setSelectedHeadquarter(String(targetOffice.id))
+    if (autoFranchiseId !== null) {
+      setSelectedFranchise(String(autoFranchiseId))
+    }
+  }
 
   // 점포 옵션 조회
   const headOfficeIdNum = selectedHeadquarter ? parseInt(selectedHeadquarter) : null
@@ -1036,6 +1074,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setPaymentDate('')
                           }}
                           placeholder="본사 선택"
+                          isDisabled={isOfficeFixed}
+                          isSearchable={!isOfficeFixed}
+                          isClearable={!isOfficeFixed}
                         />
                       ) : (
                         <input type="text" className="input-frame" value={existingStatement?.headOfficeName || ''} readOnly />
@@ -1056,6 +1097,9 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
                             setPaymentDate('')
                           }}
                           placeholder="가맹점 선택"
+                          isDisabled={isFranchiseFixed && selectedFranchise !== ''}
+                          isSearchable={!isFranchiseFixed}
+                          isClearable={!isFranchiseFixed}
                         />
                       ) : (
                         <input type="text" className="input-frame" value={existingStatement?.franchiseName || ''} readOnly />
