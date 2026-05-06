@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import { Input, useAlert } from '@/components/common/ui'
@@ -9,6 +9,7 @@ import DatePicker from '@/components/ui/common/DatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useOperatingHeadOffices, useInviteFranchise } from '@/hooks/queries'
 import { useBusinessVerification } from '@/hooks/queries/use-business-verification'
+import { useAuthStore } from '@/stores/auth-store'
 import type { BpInvitationFormData } from '@/types/bp'
 
 const initialForm: BpInvitationFormData = {
@@ -28,18 +29,59 @@ const formatDateToYYYYMMDD = (date: Date | null): string => {
   return `${y}${m}${d}`
 }
 
+/**
+ * Wrapper — Zustand persist hydration 가드.
+ *
+ * useState 초기값은 컴포넌트 첫 렌더에서 1회만 평가되므로, hydration 미완료 시점에
+ * 진입하면 defaultHeadOfficeId 가 null 로 고정될 수 있다. wrapper 에서 hydration 을
+ * 추적하고 완료 후에 본 컴포넌트를 마운트하여 초기값 race 를 차단한다.
+ */
 const BpInvitationManage = () => {
+  const hydrated = useSyncExternalStore(
+    (cb) => useAuthStore.persist.onFinishHydration(cb),
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  )
+
+  if (!hydrated) {
+    return (
+      <div className="data-wrap">
+        <Location title="가맹점 초대" list={['Home', '파트너 정보 관리', '가맹점 초대']} />
+      </div>
+    )
+  }
+
+  return <BpInvitationManageContent />
+}
+
+const BpInvitationManageContent = () => {
   const router = useRouter()
   const { alert } = useAlert()
 
-  const [form, setForm] = useState<BpInvitationFormData>(initialForm)
+  // affiliation 매핑 본사가 있으면 진입 시 본사 자동 채움 + 잠금 (헤더 정합성)
+  // 슈퍼 어드민(매핑 없음)은 자유 선택
+  // - useState 초기값으로 1회 적용 (set-state-in-effect 규칙 회피, hydration 은 wrapper 에서 보장)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
+
+  const [form, setForm] = useState<BpInvitationFormData>(() => ({
+    ...initialForm,
+    headOfficeId: defaultHeadOfficeId ?? null,
+  }))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isVerified, setIsVerified] = useState(false)
   const [startDateValue, setStartDateValue] = useState<Date | null>(null)
 
   const businessVerification = useBusinessVerification()
 
-  const { data: headOffices = [] } = useOperatingHeadOffices()
+  const { data: headOffices = [], isPending: isHeadOfficesPending } = useOperatingHeadOffices()
+
+  // 본사 잠금 조건:
+  // 1) 매핑 본사가 옵션에 존재하면 잠금 (정상 케이스)
+  // 2) 옵션 로딩 중이면서 매핑 본사가 있으면 잠금 (race window 동안 변경 차단)
+  const hasMatchedHeadOffice = defaultHeadOfficeId != null
+    && headOffices.some((o) => o.id === defaultHeadOfficeId)
+  const isHeadOfficeLocked = hasMatchedHeadOffice
+    || (defaultHeadOfficeId != null && isHeadOfficesPending)
   const { mutateAsync: inviteFranchise } = useInviteFranchise()
 
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
@@ -130,6 +172,10 @@ const BpInvitationManage = () => {
     const newErrors: Record<string, string> = {}
     if (!form.headOfficeId) {
       newErrors.headOfficeId = '본사를 선택해주세요'
+    } else if (!headOffices.some((o) => o.id === form.headOfficeId)) {
+      // HIGH #4 — defaultHeadOfficeId 가 옵션에 없는 매핑 미스 케이스 차단.
+      // (잠금 풀린 상태로 form 에 옵션 외 ID 가 잔존하면 백엔드 거부될 형태로 제출됨)
+      newErrors.headOfficeId = '선택 가능한 본사가 아닙니다. 본사를 다시 선택해주세요.'
     }
     if (!form.businessRegistrationNumber || !/^\d{10}$/.test(form.businessRegistrationNumber)) {
       newErrors.businessRegistrationNumber = '사업자등록번호는 10자리 숫자입니다'
@@ -151,7 +197,7 @@ const BpInvitationManage = () => {
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [form, isVerified])
+  }, [form, isVerified, headOffices])
 
   const handleSubmit = useCallback(async () => {
     if (!validate()) return
@@ -184,7 +230,8 @@ const BpInvitationManage = () => {
                 value={selectedOfficeOption}
                 onChange={(opt) => handleChange('headOfficeId', opt ? Number(opt.value) : null)}
                 placeholder="본사 선택"
-                isClearable
+                isClearable={!isHeadOfficeLocked}
+                isDisabled={isHeadOfficeLocked}
                 error={!!errors.headOfficeId}
               />
             </div>

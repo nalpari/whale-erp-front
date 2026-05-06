@@ -151,17 +151,26 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
-  // ownerCode 기반 계정 유형 판단, 없으면 bpTree 구조 추론 (하위 호환)
-  // 본사(PRGRP_002_001): 본사만 고정
-  // 가맹점(PRGRP_002_002): 본사+가맹점 고정
-  // 플랫폼(PRGRP_001_001) / 관리자: 고정 없음
+  // HeadOfficeFranchiseStoreSelect와 동일한 표준 잠금 정책:
+  //   HEAD_OFFICE / FRANCHISE: 본사 고정
+  //   bpTree 단일 본사 폴백: 본사 고정
+  //   PLATFORM + defaultHeadOfficeId 매핑: 본사 고정
+  //   PLATFORM + 매핑 없음 + 다중 본사(슈퍼 어드민): 고정 없음
   const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode
-    ? ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-    : bpTree.length === 1
-  const isFranchiseFixed = ownerCode
-    ? ownerCode === OWNER_CODE.FRANCHISE
-    : bpTree.length === 1 && bpTree[0]?.franchises.length === 1
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
+
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((o) => o.id === defaultHeadOfficeId)
+  const isOfficeFixed =
+    ownerCode === OWNER_CODE.HEAD_OFFICE
+    || ownerCode === OWNER_CODE.FRANCHISE
+    || bpTree.length === 1
+    || platformHasDefault
+  // FRANCHISE 사용자 + 본사의 가맹점이 1개일 때만 가맹점 잠금 (다중 가맹점 사용자 변경 가능)
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+    && bpTree[0]?.franchises.length === 1
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)

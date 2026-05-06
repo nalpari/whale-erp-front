@@ -11,12 +11,16 @@ import SearchSelect from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries'
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
 import api, { getErrorMessage } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpDetailResponse, BpFormData } from '@/types/bp'
 
 interface BpFormProps {
   id?: number
   bp?: BpDetailResponse
 }
+
+const BPOPR_TERMINATED = 'BPOPR_003'
 
 const INITIAL_FORM: BpFormData = {
   bpoprType: 'BPOPR_001',
@@ -64,10 +68,24 @@ const BpForm = ({ id, bp }: BpFormProps) => {
   const { alert, confirm } = useAlert()
   const isEditMode = !!id
 
+  // 권한 분기
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
+  const isPlatform = ownerCode === OWNER_CODE.PLATFORM
+  const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
+  const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
+
+  const initialPfType = isHeadOfficeUser ? 'PF_001'
+    : isFranchiseUser ? 'PF_002'
+    : ''
+
   const initialLogoImages = bp ? mapBpToLogoImages(bp) : []
 
   const [slideboxOpen, setSlideboxOpen] = useState(true)
-  const [form, setForm] = useState<BpFormData>(() => bp ? mapBpToForm(bp) : INITIAL_FORM)
+  const [form, setForm] = useState<BpFormData>(() => {
+    if (bp) return mapBpToForm(bp)
+    return { ...INITIAL_FORM, pfType: initialPfType }
+  })
   const [expandLogoImages, setExpandLogoImages] = useState<ImageItem[]>(initialLogoImages)
   const [expandLogoFile, setExpandLogoFile] = useState<File | undefined>()
   const [deleteExpandFileId, setDeleteExpandFileId] = useState<number | undefined>()
@@ -83,8 +101,38 @@ const BpForm = ({ id, bp }: BpFormProps) => {
   const { data: pfCodes = [] } = useCommonCodeHierarchy('PF')
   const { data: bpTypeCodes = [] } = useCommonCodeHierarchy('BPTYP')
 
+  // 등록 모드에서 종료(BPOPR_003) 제외
+  const visibleBpoprCodes = isEditMode
+    ? bpoprCodes
+    : bpoprCodes.filter((c) => c.code !== BPOPR_TERMINATED)
+
+  // 권한별 PF 옵션 필터링
+  const visiblePfCodes = isPlatform
+    ? pfCodes
+    : pfCodes.filter((c) =>
+        isHeadOfficeUser ? c.code === 'PF_001'
+        : isFranchiseUser ? c.code === 'PF_002'
+        : true
+      )
+
   // 본사 목록 (Partner Function용)
   const { data: headOffices = [] } = useOperatingHeadOffices()
+
+  // 가맹점 등록 + 비-운영자 → 본사 자동 적용 (headOffices 로드 후 1회, 존재 검증 포함, 0 falsy 방지)
+  const [headOfficeAutoApplied, setHeadOfficeAutoApplied] = useState(false)
+  const shouldApplyDefaultHeadOffice = !bp
+    && !isPlatform
+    && initialPfType === 'PF_002'
+    && defaultHeadOfficeId != null
+    && headOffices.length > 0
+    && headOffices.some((ho) => ho.id === defaultHeadOfficeId)
+  if (!headOfficeAutoApplied && shouldApplyDefaultHeadOffice) {
+    setHeadOfficeAutoApplied(true)
+    setForm((prev) => ({
+      ...prev,
+      pfSaveRequest: [{ partnerBusinessPartnerId: defaultHeadOfficeId! }],
+    }))
+  }
 
   const isFranchise = form.pfType === 'PF_002'
   const isHeadOffice = form.pfType === 'PF_001'
@@ -217,6 +265,29 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     const newErrors: Record<string, string> = {}
     if (!form.bpoprType) newErrors.bpoprType = '운영여부를 선택해 주세요.'
     if (!form.pfType) newErrors.pfType = '대표 Partner Function을 선택해 주세요.'
+
+    // 권한 매트릭스 second-line 가드 (등록 모드에서만 — DOM 변조 우회 보조 차단)
+    // 서버(API #ERR3061/ERR3062)가 1차 가드, 클라이언트는 빠른 피드백 + 정상 사용자 보호
+    if (!isEditMode) {
+      if (form.bpoprType === BPOPR_TERMINATED) {
+        newErrors.bpoprType = '등록 시 운영여부 종료는 선택할 수 없습니다.'
+      }
+      if (isHeadOfficeUser && form.pfType && form.pfType !== 'PF_001') {
+        newErrors.pfType = '본사 권한으로는 본사(PF_001)만 등록할 수 있습니다.'
+      }
+      if (isFranchiseUser && form.pfType && form.pfType !== 'PF_002') {
+        newErrors.pfType = '가맹점 권한으로는 가맹점(PF_002)만 등록할 수 있습니다.'
+      }
+      if (
+        !isPlatform
+        && form.pfType === 'PF_002'
+        && defaultHeadOfficeId != null
+        && form.pfSaveRequest[0]?.partnerBusinessPartnerId !== defaultHeadOfficeId
+      ) {
+        newErrors.partnerBp = '권한이 없는 본사로는 등록할 수 없습니다.'
+      }
+    }
+
     if (!isEditMode) {
       if (!form.masterId || !form.masterId.trim()) {
         newErrors.masterId = 'Master ID를 입력해 주세요.'
@@ -311,7 +382,7 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                     <th>운영여부 <span className="red">*</span></th>
                     <td>
                       <div className="radio-wrap">
-                        {bpoprCodes.map((code) => (
+                        {visibleBpoprCodes.map((code) => (
                           <button
                             key={code.code}
                             type="button"
@@ -333,9 +404,10 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                           className="select-form"
                           value={form.pfType}
                           onChange={(e) => handlePfTypeChange(e.target.value)}
+                          disabled={!isPlatform && !isEditMode}
                         >
                           <option value="">선택</option>
-                          {pfCodes.map((code) => (
+                          {visiblePfCodes.map((code) => (
                             <option key={code.code} value={code.code}>{code.name}</option>
                           ))}
                         </select>
@@ -532,8 +604,9 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                               value={selectedHeadOffice}
                               onChange={(opt) => handlePartnerBpChange(opt?.value ?? '')}
                               placeholder="본사 선택"
-                              isClearable
-                              isSearchable
+                              isClearable={isPlatform}
+                              isSearchable={isPlatform}
+                              isDisabled={!isPlatform}
                               error={!!errors.partnerBp}
                             />
                           </div>

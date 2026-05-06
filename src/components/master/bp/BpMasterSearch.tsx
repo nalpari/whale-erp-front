@@ -24,6 +24,8 @@ interface BpMasterSearchProps {
   onReset: () => void
   onRemoveFilter: (key: string) => void
   onInviteFranchise: () => void
+  /** 본사 자동 선택 발생 시 호출 — 부모는 appliedFilters 동기화 후 검색 트리거 */
+  onAutoSelectOffice?: (officeId: number | null, franchiseId: number | null) => void
 }
 
 const formatDateLabel = (date: Date | null): string => {
@@ -49,6 +51,7 @@ const BpMasterSearch = ({
   onReset,
   onRemoveFilter,
   onInviteFranchise,
+  onAutoSelectOffice,
 }: BpMasterSearchProps) => {
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -148,6 +151,10 @@ const BpMasterSearch = ({
                       officeId: next.head_office,
                       franchiseId: null,
                     })
+                  }}
+                  onAutoSelect={(next) => {
+                    onAutoSelectOffice?.(next.head_office, next.franchise)
+                    setSearchOpen(false)
                   }}
                 />
                 <th>가맹점</th>

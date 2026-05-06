@@ -113,6 +113,13 @@ const PriceMasterManage = () => {
     setPage(0)
   }
 
+  // 본사 자동 선택 — filters + appliedFilters 동시 동기화 후 검색 트리거
+  const handleAutoSelectOffice = (officeId: number | null, franchiseId: number | null) => {
+    setFilters((prev) => ({ ...prev, officeId, franchiseId }))
+    setAppliedFilters((prev) => ({ ...prev, officeId, franchiseId }))
+    setPage(0)
+  }
+
   const handleReset = () => {
     setFilters(DEFAULT_FILTERS)
     setAppliedFilters(DEFAULT_FILTERS)
@@ -242,6 +249,7 @@ const PriceMasterManage = () => {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelectOffice={handleAutoSelectOffice}
       />
       <PriceMasterList
         rows={listData}

@@ -18,6 +18,7 @@ import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHea
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 import { formatDateYmd } from '@/util/date-util'
 
 interface EmployContractEditProps {
@@ -44,9 +45,24 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const [selectedEmployeeInfoId, setSelectedEmployeeInfoId] = useState<number | null>(null)
 
   // BP 트리 데이터
-  const { accessToken, affiliationId } = useAuthStore()
+  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
+
+  // 표준 권한 정책 변수
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const shouldAutoSelectOffice =
+    ownerCode === OWNER_CODE.HEAD_OFFICE
+    || ownerCode === OWNER_CODE.FRANCHISE
+    || bpTree.length === 1
+    || platformHasDefault
+  const isOfficeFixed = shouldAutoSelectOffice
+  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isAffiliationFixed =
+    ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
 
   // 파일 input refs
   const laborContractFileRef = useRef<HTMLInputElement>(null)
@@ -85,6 +101,30 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
     contractDate: null as Date | null,
     jobDescription: ''
   })
+
+  // 자동선택 가드 (등록 모드 + 1회만 발동, 렌더 중 setState 패턴)
+  const [bpAutoApplied, setBpAutoApplied] = useState(false)
+  if (!bpAutoApplied && isCreateMode && bpTree.length > 0 && shouldAutoSelectOffice) {
+    setBpAutoApplied(true)
+    const targetOffice = platformHasDefault
+      ? (bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0])
+      : bpTree[0]
+
+    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
+      ? targetOffice.franchises[0].id
+      : null
+
+    setFormData((prev) => ({
+      ...prev,
+      headOfficeId: String(targetOffice.id),
+      franchiseId: autoFranchiseId !== null ? String(autoFranchiseId) : prev.franchiseId,
+      employeeAffiliation: ownerCode === OWNER_CODE.FRANCHISE
+        ? 'FRANCHISE'
+        : ownerCode === OWNER_CODE.HEAD_OFFICE
+          ? 'HEAD_OFFICE'
+          : prev.employeeAffiliation,
+    }))
+  }
 
   // 점포 옵션 조회
   const headOfficeIdNum = formData.headOfficeId ? parseInt(formData.headOfficeId) : null
@@ -552,7 +592,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           type="button"
                           className={`btn-form ${formData.employeeAffiliation === 'HEAD_OFFICE' ? 'basic' : 'outline'}`}
                           onClick={() => handleInputChange('employeeAffiliation', 'HEAD_OFFICE')}
-                          disabled={!isCreateMode}
+                          disabled={!isCreateMode || isAffiliationFixed}
                         >
                           본사
                         </button>
@@ -560,7 +600,7 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           type="button"
                           className={`btn-form ${formData.employeeAffiliation === 'FRANCHISE' ? 'basic' : 'outline'}`}
                           onClick={() => handleInputChange('employeeAffiliation', 'FRANCHISE')}
-                          disabled={!isCreateMode}
+                          disabled={!isCreateMode || isAffiliationFixed}
                         >
                           가맹점
                         </button>
@@ -577,14 +617,14 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
                           value={headOfficeOptions.find(opt => opt.value === formData.headOfficeId) || null}
                           onChange={(option) => handleInputChange('headOfficeId', option?.value || '')}
                           className={isHeadOfficeRequired ? 'border-red-500' : ''}
-                          isDisabled={!isCreateMode}
+                          isDisabled={!isCreateMode || isOfficeFixed}
                         />
                         {formData.employeeAffiliation === 'FRANCHISE' && (
                           <SearchSelect
                             options={franchiseOptions}
                             value={franchiseOptions.find(opt => opt.value === formData.franchiseId) || null}
                             onChange={(option) => handleInputChange('franchiseId', option?.value || '')}
-                            isDisabled={!isCreateMode}
+                            isDisabled={!isCreateMode || (isFranchiseFixed && formData.franchiseId !== '')}
                           />
                         )}
                         {isHeadOfficeRequired && (

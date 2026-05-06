@@ -6,10 +6,12 @@ import HolidayList from '@/components/system/holiday/HolidayList'
 import HolidaySearch, { type HolidaySearchFilters } from '@/components/system/holiday/HolidaySearch'
 import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
-import { useHolidayList } from '@/hooks/queries'
+import { useBpHeadOfficeTree, useHolidayList } from '@/hooks/queries'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 import { useQueryError } from '@/hooks/useQueryError'
 import { useHolidaySearchStore } from '@/stores/search-stores'
+import { useAuthStore } from '@/stores/auth-store'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -51,13 +53,49 @@ export default function HolidayInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  // 휴일 관리는 본사 필수가 아니므로 연도만 있으면 목록 조회 가능
-  const canFetchList = !!appliedFilters.year
+  // 자동선택 발동 가능성 판단 — 자동선택 사용자라면 bpTree 로드 + officeId 세팅 후 첫 fetch
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
+  const isReady = Boolean(accessToken && affiliationId)
+  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
+  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const platformHasDefault = isPlatformAdmin
+    && defaultHeadOfficeId != null
+    && bpTree.some((o) => o.id === defaultHeadOfficeId)
+  const willAutoSelect =
+    ownerCode === OWNER_CODE.HEAD_OFFICE
+    || ownerCode === OWNER_CODE.FRANCHISE
+    || bpTree.length === 1
+    || platformHasDefault
+
+  // 휴일 관리 fetch 가드:
+  // bpTree 로드 전에는 willAutoSelect 평가가 부정확 (bpTree.length === 1 / platformHasDefault가 false로 평가됨)
+  // PLATFORM+매핑 사용자/단일 본사 fallback 사용자가 무필터 1차 fetch로 화면 오염되는 회귀를
+  // 방지하기 위해 bpLoading 가드를 외부로 끌어올려 모든 케이스에서 willAutoSelect가 정확히 평가된 후 fetch
+  const canFetchList = !!appliedFilters.year && !bpLoading && (
+    !willAutoSelect || appliedFilters.officeId != null
+  )
   const { data: response, isPending: loading, error: queryError } = useHolidayList(params, canFetchList)
   const errorMessage = useQueryError(queryError)
 
   const handleSearch = () => {
     setAppliedFilters(filters)
+    setPage(0)
+  }
+
+  // HeadOfficeFranchiseStoreSelect의 자동선택 결과를 즉시 appliedFilters에 반영
+  // (자동선택 사용자가 첫 페이지 로드 시 정확한 조건으로 1번만 fetch되도록)
+  const handleAutoSelect = (value: { head_office: number | null; franchise: number | null; store: number | null }) => {
+    const next: HolidaySearchFilters = {
+      ...filters,
+      officeId: value.head_office,
+      franchiseId: value.franchise,
+      storeId: value.store ?? filters.storeId,
+    }
+    setFilters(next)
+    setAppliedFilters(next)
     setPage(0)
   }
 
@@ -132,6 +170,7 @@ export default function HolidayInfo() {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelect={handleAutoSelect}
       />
       <HolidayList
         rows={listData}
