@@ -49,7 +49,7 @@ function AuthorityCreateContent({ programList }: { programList: Program[] }) {
     handleProgramTreeChange,
     handleSave,
     handleList,
-  } = useAuthorityForm({ mode: 'create', programList })
+  } = useAuthorityForm({ mode: 'create', programList, context: 'platform' })
 
   return (
     <div className="data-wrap">
