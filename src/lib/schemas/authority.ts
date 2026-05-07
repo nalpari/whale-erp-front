@@ -163,6 +163,7 @@ export const authorityListItemSchema = z.object({
   name: z.string(),
   is_bp_master: z.boolean().nullable(),
   plan_type_code: z.string().nullable(),
+  // BE 미배포 대비 — 응답에서 키 자체가 누락될 수 있어 optional 처리
   kind_code: z.string().nullable().optional(),
   is_basic: z.boolean().nullable().optional(),
   is_used: z.boolean(),
