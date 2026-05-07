@@ -37,12 +37,15 @@ export default function Lnb({
   // 메뉴 리스트: programs API 에서 menu_kind 별로 조회 후 어댑터로 변환
   // 권한 화이트리스트: auth-store 의 authority (canRead 트리) 로 필터링 (B-3+)
   // header 모드는 Home 을 항상 맨 앞에 고정 prepend (DB 외부 관리)
+  // 고객지원(MNKND_002)은 권한 무관 공용 메뉴 — 어댑터에서 권한 화이트리스트 우회
+  // (백엔드 AuthorityDetailRepositoryImpl 가 MNKND_001 만 권한 응답에 포함하기 때문)
   const menuKind = menuType === 'support' ? 'MNKND_002' : 'MNKND_001'
   const { data: programs } = useProgramList(menuKind)
   const authorityPrograms = useAuthStore((s) => s.authority)
   const menuList = useMemo(() => {
-    const items = toHeaderMenuItems(programs, authorityPrograms)
-    return menuType === 'support' ? items : [HOME_ITEM, ...items]
+    const isSupport = menuType === 'support'
+    const items = toHeaderMenuItems(programs, authorityPrograms, { bypassAuthority: isSupport })
+    return isSupport ? items : [HOME_ITEM, ...items]
   }, [programs, authorityPrograms, menuType])
 
   // pathname 기반 활성 메뉴 파생 (longest prefix wins)
