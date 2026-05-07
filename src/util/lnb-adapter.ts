@@ -33,13 +33,21 @@ function collectReadableIds(
  * - icon_url === null 은 undefined 로 변환 (Image 안전)
  * - children 빈 배열은 undefined (Lnb 가 children 유무로 분기)
  *
- * 관련 결정: docs/plans/menus/lnb-program-sync.md 7.3
+ * options.bypassAuthority (2026-05-07 추가):
+ * - MNKND_002(고객지원) 같은 권한 무관 공용 메뉴를 위한 우회 옵션
+ * - true 면 leaf 노드 권한 화이트리스트 검사를 건너뛰고 is_active 만으로 통과
+ * - 백엔드 AuthorityDetailRepositoryImpl 가 권한 응답에 MNKND_001 만 포함하므로
+ *   MNKND_002 메뉴는 권한 트리 부재 → 화이트리스트 차단되는 문제 우회
+ *
+ * 관련 결정: docs/plans/menus/lnb-program-sync.md 7.3, 14
  */
 export function toHeaderMenuItems(
   programs: Program[] | null | undefined,
   authorityPrograms: LoginAuthorityProgram[] | null | undefined,
+  options?: { bypassAuthority?: boolean },
 ): HeaderMenuItem[] {
   if (!programs) return []
+  const bypass = options?.bypassAuthority === true
   const readable = collectReadableIds(authorityPrograms)
 
   const map = (nodes: Program[]): HeaderMenuItem[] =>
@@ -49,6 +57,8 @@ export function toHeaderMenuItems(
         if (!p.is_active) return false
         // 그룹 노드: 자식 중 통과된 게 있으면 표시
         if (p.path === null && children.length > 0) return true
+        // bypass 모드: 권한 무관 (MNKND_002 고객지원 등 공용 메뉴)
+        if (bypass) return p.id !== null
         // leaf 노드: 권한 화이트리스트 통과 필요
         return p.id !== null && readable.has(p.id)
       })
