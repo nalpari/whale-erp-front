@@ -67,6 +67,8 @@ export const authorityCreateSchema = z.object({
   plan_type_code: z.string().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
+  kind_code: z.string().optional(),
+  is_basic: z.boolean().optional().default(false),
   details: z.array(z.object({
     program_id: z.number(),
     can_read: z.boolean(),
@@ -74,24 +76,6 @@ export const authorityCreateSchema = z.object({
     can_update: z.boolean(),
   })).optional(),
 }).superRefine((data, ctx) => {
-  // BP Master 관련 검증
-  if (data.owner_code !== 'PRGRP_001_001') {
-    if (data.is_bp_master) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['is_bp_master'],
-        message: 'BP Master 권한은 플랫폼 권한에서만 설정할 수 있습니다',
-      })
-    }
-    if (data.plan_type_code) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['plan_type_code'],
-        message: '요금제는 플랫폼 권한에서만 설정할 수 있습니다',
-      })
-    }
-  }
-
   if (data.is_bp_master && !data.plan_type_code) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -132,11 +116,15 @@ export const authorityCreateSchema = z.object({
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
-// 권한 수정 스키마 (기본정보만, BP Master 권한/요금제는 등록 시 결정되며 수정 불가)
+// 권한 수정 스키마 (등록·수정 모두 편집 가능 정책에 따라 신규 필드 포함)
 export const authorityUpdateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_used: z.boolean(),
   description: z.string().optional(),
+  kind_code: z.string().optional(),
+  is_basic: z.boolean().optional().default(false),
+  is_bp_master: z.boolean().optional().default(false),
+  plan_type_code: z.string().optional(),
 })
 
 export type AuthorityUpdateRequest = z.infer<typeof authorityUpdateSchema>
@@ -175,6 +163,8 @@ export const authorityListItemSchema = z.object({
   name: z.string(),
   is_bp_master: z.boolean().nullable(),
   plan_type_code: z.string().nullable(),
+  kind_code: z.string().nullable().optional(),
+  is_basic: z.boolean().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().nullable(),
   created_at: z.string(),
