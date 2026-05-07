@@ -176,7 +176,7 @@ export function useAuthorityForm({
   }
 
   // 폼 검증
-  const validateForm = (): boolean => {
+  const validateForm = (kindRowVisible: boolean): boolean => {
     const newErrors: Record<string, string> = {}
 
     // 생성 모드에서만 owner_code 검증
@@ -202,7 +202,6 @@ export function useAuthorityForm({
     }
 
     // 권한 종류 필수 (가시 조건 만족 시)
-    const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
     if (kindRowVisible && !formData.kind_code) {
       newErrors.kind_code = '권한 종류를 선택해주세요'
     }
@@ -261,8 +260,10 @@ export function useAuthorityForm({
 
   // 저장 핸들러
   const handleSave = async () => {
+    const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
+
     // 폼 검증
-    if (!validateForm()) {
+    if (!validateForm(kindRowVisible)) {
       return
     }
 
@@ -273,15 +274,16 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
-
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
           head_office_id: formData.head_office_id,
           franchisee_id: formData.franchisee_id,
           name: formData.name,
-          is_bp_master: formData.is_bp_master ?? false,
-          plan_type_code: formData.is_bp_master && formData.plan_type_code ? formData.plan_type_code : undefined,
+          is_bp_master: kindRowVisible && context !== 'bp' ? (formData.is_bp_master ?? false) : false,
+          plan_type_code:
+            kindRowVisible && context !== 'bp' && formData.is_bp_master && formData.plan_type_code
+              ? formData.plan_type_code
+              : undefined,
           kind_code: kindRowVisible ? formData.kind_code : undefined,
           is_basic: kindRowVisible && context === 'bp' ? (formData.is_basic ?? false) : false,
           is_used: formData.is_used,
@@ -309,9 +311,7 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // 마스터 정보 수정 - 등록·수정 모두 편집 가능 정책에 따라 신규 필드 포함
-        const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
-
+        // 정책 변경 — 기존 수정 불가였던 BP Master·요금제·권한 종류·기초 권한도 수정 허용
         const updateRequest: AuthorityUpdateRequest = {
           name: formData.name,
           is_used: formData.is_used,
