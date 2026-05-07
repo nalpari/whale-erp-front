@@ -89,12 +89,21 @@ interface UseAuthorityFormOptions {
   programList?: Program[]
   listPath?: string
   defaultOwnerCode?: OwnerCode
+  context?: 'platform' | 'bp'
 }
 
 /**
  * 권한 생성/수정 폼 공통 로직 훅
  */
-export function useAuthorityForm({ mode, authorityId, initialAuthority, programList, listPath = '/system/authority', defaultOwnerCode = 'PRGRP_001_001' }: UseAuthorityFormOptions) {
+export function useAuthorityForm({
+  mode,
+  authorityId,
+  initialAuthority,
+  programList,
+  listPath = '/system/authority',
+  defaultOwnerCode = 'PRGRP_001_001',
+  context = 'platform',
+}: UseAuthorityFormOptions) {
   const router = useRouter()
   const { alert } = useAlert()
 
@@ -108,6 +117,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
         name: initialAuthority.name,
         is_bp_master: initialAuthority.is_bp_master ?? false,
         plan_type_code: initialAuthority.plan_type_code ?? undefined,
+        kind_code: initialAuthority.kind_code ?? undefined,
+        is_basic: initialAuthority.is_basic ?? false,
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
       }
@@ -115,6 +126,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
     return {
       owner_code: defaultOwnerCode,
       is_bp_master: false,
+      is_basic: false,
       is_used: true,
     }
   })
@@ -179,14 +191,20 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
       newErrors.name = '권한명은 2자 이상이어야 합니다'
     }
 
-    // BP Master 권한이 ON인 경우 요금제 필수 (생성 모드에서만 검증, 수정 시 BP Master 필드는 불변)
-    if (mode === 'create' && formData.is_bp_master && !formData.plan_type_code) {
+    // BP Master 권한이 ON인 경우 요금제 필수
+    if (formData.is_bp_master && !formData.plan_type_code) {
       newErrors.plan_type_code = '요금제를 선택해주세요'
     }
 
     // 운영여부 검증
     if (formData.is_used === undefined) {
       newErrors.is_used = '운영여부를 선택해주세요'
+    }
+
+    // 권한 종류 필수 (가시 조건 만족 시)
+    const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
+    if (kindRowVisible && !formData.kind_code) {
+      newErrors.kind_code = '권한 종류를 선택해주세요'
     }
 
     // 본사 권한인 경우 본사 ID 필수
@@ -255,6 +273,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
           throw new Error('필수 필드가 누락되었습니다')
         }
 
+        const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
+
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
           head_office_id: formData.head_office_id,
@@ -262,6 +282,8 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
           name: formData.name,
           is_bp_master: formData.is_bp_master ?? false,
           plan_type_code: formData.is_bp_master && formData.plan_type_code ? formData.plan_type_code : undefined,
+          kind_code: kindRowVisible ? formData.kind_code : undefined,
+          is_basic: kindRowVisible && context === 'bp' ? (formData.is_basic ?? false) : false,
           is_used: formData.is_used,
           description: formData.description,
           details: flattenTree(programTree),
@@ -287,11 +309,20 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // BP Master 권한 여부, 요금제는 등록 시 결정되며 수정 불가
+        // 마스터 정보 수정 - 등록·수정 모두 편집 가능 정책에 따라 신규 필드 포함
+        const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
+
         const updateRequest: AuthorityUpdateRequest = {
           name: formData.name,
           is_used: formData.is_used,
           description: formData.description,
+          kind_code: kindRowVisible ? formData.kind_code : undefined,
+          is_basic: kindRowVisible && context === 'bp' ? (formData.is_basic ?? false) : false,
+          is_bp_master: kindRowVisible && context !== 'bp' ? (formData.is_bp_master ?? false) : false,
+          plan_type_code:
+            kindRowVisible && context !== 'bp' && formData.is_bp_master && formData.plan_type_code
+              ? formData.plan_type_code
+              : undefined,
         }
 
         // Zod 스키마 검증
