@@ -42,10 +42,8 @@ export default function AuthorityForm({
   }))
 
   // 권한 종류 공통코드 조회 (settings는 PRKND_001 제외)
-  // NOTE: kindOptions, isKindCodesError, showKindRow, showBasicRow, handleKindCodeChange, handleIsBasicChange는
-  // Task 4 마크업에서 사용됨 (현재 선언만, unused lint 경고는 Task 4 완료 후 해소)
-  const { data: kindCodes, isError: _isKindCodesError } = useCommonCodeHierarchy('PRKND')
-  const _kindOptions = (kindCodes ?? [])
+  const { data: kindCodes, isError: isKindCodesError } = useCommonCodeHierarchy('PRKND')
+  const kindOptions: SelectOption[] = (kindCodes ?? [])
     .filter((c) => (context === 'bp' ? c.code !== 'PRKND_001' : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
@@ -71,8 +69,8 @@ export default function AuthorityForm({
   const isBpDisabled = mode === 'edit'
   const isPlatform = formData.owner_code === 'PRGRP_001_001'
   const showKindAndSubscription = context !== 'bp' && isPlatform
-  const _showKindRow = context === 'bp' || showKindAndSubscription
-  const _showBasicRow = context === 'bp'
+  const showKindRow = context === 'bp' || showKindAndSubscription
+  const showBasicRow = context === 'bp'
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
@@ -126,11 +124,11 @@ export default function AuthorityForm({
     onChange({ description: value })
   }
 
-  const _handleKindCodeChange = (value: string) => {
+  const handleKindCodeChange = (value: string) => {
     onChange({ kind_code: value })
   }
 
-  const _handleIsBasicChange = (checked: boolean) => {
+  const handleIsBasicChange = (checked: boolean) => {
     onChange({ is_basic: checked })
   }
 
@@ -221,9 +219,9 @@ export default function AuthorityForm({
                   </div>
                 </td>
               </tr>
-              {isPlatform && (
+              {showKindAndSubscription && (
                 <tr>
-                  <th>BP Master 권한</th>
+                  <th>구독 권한 여부</th>
                   <td colSpan={showFranchise ? 3 : undefined}>
                     <div className="filed-flx" style={{ gap: '12px', alignItems: 'center' }}>
                       <div className="toggle-btn">
@@ -232,7 +230,6 @@ export default function AuthorityForm({
                           id="toggle-bp-master"
                           checked={formData.is_bp_master}
                           onChange={(e) => handleBpMasterChange(e.target.checked)}
-                          disabled={mode === 'edit'}
                         />
                         <label className="slider" htmlFor="toggle-bp-master" />
                       </div>
@@ -245,7 +242,6 @@ export default function AuthorityForm({
                             placeholder="선택"
                             isClearable
                             isSearchable={false}
-                            isDisabled={mode === 'edit'}
                             error={!!errors.plan_type_code}
                           />
                           {!formData.plan_type_code && errors.plan_type_code && (
@@ -256,6 +252,46 @@ export default function AuthorityForm({
                           )}
                         </>
                       )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {showKindRow && (
+                <tr>
+                  <th>
+                    권한 종류 <span className="red">*</span>
+                  </th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <RadioButtonGroup
+                      options={kindOptions}
+                      value={formData.kind_code ?? ''}
+                      onChange={handleKindCodeChange}
+                      name="authority-kind"
+                    />
+                    {errors.kind_code && (
+                      <div className="warning-txt mt5" role="alert">* {errors.kind_code}</div>
+                    )}
+                    {isKindCodesError && (
+                      <div className="warning-txt mt5" role="alert">* 권한 종류 목록을 불러오지 못했습니다</div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              {showBasicRow && (
+                <tr>
+                  <th>기초 권한</th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <div className="filed-flx" style={{ gap: '12px', alignItems: 'center' }}>
+                      <div className="toggle-btn">
+                        <input
+                          type="checkbox"
+                          id="toggle-is-basic"
+                          checked={formData.is_basic}
+                          onChange={(e) => handleIsBasicChange(e.target.checked)}
+                        />
+                        <label className="slider" htmlFor="toggle-is-basic" />
+                      </div>
+                      <div className="explain">※ 기초 권한으로 설정 시, 해당 권한 종류의 기본 권한으로 사용됩니다.</div>
                     </div>
                   </td>
                 </tr>
