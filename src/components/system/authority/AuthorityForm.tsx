@@ -233,24 +233,21 @@ export default function AuthorityForm({
                         />
                         <label className="slider" htmlFor="toggle-bp-master" />
                       </div>
-                      {formData.is_bp_master && (
-                        <>
-                          <SearchSelect
-                            options={planTypeOptions}
-                            value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
-                            onChange={(opt) => handlePlanTypeChange(opt?.value)}
-                            placeholder="선택"
-                            isClearable
-                            isSearchable={false}
-                            error={!!errors.plan_type_code}
-                          />
-                          {!formData.plan_type_code && errors.plan_type_code && (
-                            <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
-                          )}
-                          {isPlanTypesError && (
-                            <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
-                          )}
-                        </>
+                      <SearchSelect
+                        options={planTypeOptions}
+                        value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
+                        onChange={(opt) => handlePlanTypeChange(opt?.value)}
+                        placeholder="선택"
+                        isClearable
+                        isSearchable={false}
+                        isDisabled={!formData.is_bp_master}
+                        error={!!errors.plan_type_code}
+                      />
+                      {formData.is_bp_master && !formData.plan_type_code && errors.plan_type_code && (
+                        <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
+                      )}
+                      {formData.is_bp_master && isPlanTypesError && (
+                        <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
                       )}
                     </div>
                   </td>
