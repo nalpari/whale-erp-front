@@ -41,6 +41,14 @@ export default function AuthorityForm({
     label: plan.name,
   }))
 
+  // 권한 종류 공통코드 조회 (settings는 PRKND_001 제외)
+  // NOTE: kindOptions, isKindCodesError, showKindRow, showBasicRow, handleKindCodeChange, handleIsBasicChange는
+  // Task 4 마크업에서 사용됨 (현재 선언만, unused lint 경고는 Task 4 완료 후 해소)
+  const { data: kindCodes, isError: _isKindCodesError } = useCommonCodeHierarchy('PRKND')
+  const _kindOptions = (kindCodes ?? [])
+    .filter((c) => (context === 'bp' ? c.code !== 'PRKND_001' : true))
+    .map((c) => ({ value: c.code, label: c.name }))
+
   // 현재 폼 데이터
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
@@ -49,6 +57,8 @@ export default function AuthorityForm({
     name: initialData.name || '',
     is_bp_master: initialData.is_bp_master ?? false,
     plan_type_code: initialData.plan_type_code,
+    kind_code: initialData.kind_code,
+    is_basic: initialData.is_basic ?? false,
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
   }
@@ -60,14 +70,21 @@ export default function AuthorityForm({
   const showFranchise = isBpCreateMode || formData.owner_code === OWNER_CODE.FRANCHISE
   const isBpDisabled = mode === 'edit'
   const isPlatform = formData.owner_code === 'PRGRP_001_001'
+  const showKindAndSubscription = context !== 'bp' && isPlatform
+  const _showKindRow = context === 'bp' || showKindAndSubscription
+  const _showBasicRow = context === 'bp'
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 BP Master 초기화
-      ...(value !== 'PRGRP_001_001' && { is_bp_master: false, plan_type_code: undefined }),
+      // 플랫폼이 아니면 BP Master/요금제/권한 종류 초기화
+      ...(value !== 'PRGRP_001_001' && {
+        is_bp_master: false,
+        plan_type_code: undefined,
+        kind_code: undefined,
+      }),
     }
     onChange(newData)
   }
@@ -107,6 +124,14 @@ export default function AuthorityForm({
 
   const handleDescriptionChange = (value: string) => {
     onChange({ description: value })
+  }
+
+  const _handleKindCodeChange = (value: string) => {
+    onChange({ kind_code: value })
+  }
+
+  const _handleIsBasicChange = (checked: boolean) => {
+    onChange({ is_basic: checked })
   }
 
   return (
