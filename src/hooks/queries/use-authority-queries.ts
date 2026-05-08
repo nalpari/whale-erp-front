@@ -59,6 +59,10 @@ export function useCreateAuthority() {
     mutationFn: (data: AuthorityCreateRequest) => createAuthority(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
+      // is_default=true 로 신규 등록 시 같은 (organization, authority_kind) 의 다른 권한 is_default 가 백엔드에서 자동 false 처리됨.
+      // 자기 detail 만 invalidate 하면 다른 권한 detail 은 stale cache 그대로라 옛 is_default 값이 보임.
+      // useAuthorityForm 의 useState lazy 초기값 패턴 때문에 cache hit 시 background refetch 가 form 에 반영 안 됨 → removeQueries 로 cache 삭제.
+      queryClient.removeQueries({ queryKey: authorityKeys.details() })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
@@ -76,9 +80,12 @@ export function useUpdateAuthority() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: AuthorityUpdateRequest }) =>
       updateAuthority(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+      // is_default=true 로 변경 시 같은 (organization, authority_kind) 의 다른 권한 is_default 가 백엔드에서 자동 false 처리됨.
+      // 자기 detail 만 invalidate 하면 다른 권한 detail 은 stale cache 그대로라 옛 is_default 값이 보임.
+      // useAuthorityForm 의 useState lazy 초기값 패턴 때문에 cache hit 시 background refetch 가 form 에 반영 안 됨 → removeQueries 로 cache 삭제.
+      queryClient.removeQueries({ queryKey: authorityKeys.details() })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
@@ -132,7 +139,8 @@ export function useDeleteAuthority() {
     mutationFn: (id: number) => deleteAuthority(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.details() })
+      // 삭제 후 다른 권한 detail 도 영향받을 수 있고, useAuthorityForm useState lazy 초기값 패턴으로 cache hit 시 옛 데이터 노출 → removeQueries 로 cache 삭제.
+      queryClient.removeQueries({ queryKey: authorityKeys.details() })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회
