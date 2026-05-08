@@ -47,16 +47,16 @@ export default function AuthorityForm({
     .filter((c) => (context === 'bp' ? c.code !== 'PRKND_001' : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
-  // 현재 폼 데이터
+  // 현재 폼 데이터 — PR #141 필드 rename 반영
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
     head_office_id: initialData.head_office_id,
     franchisee_id: initialData.franchisee_id,
     name: initialData.name || '',
-    is_bp_master: initialData.is_bp_master ?? false,
+    is_subscription: initialData.is_subscription ?? false,
     plan_type_code: initialData.plan_type_code,
-    kind_code: initialData.kind_code,
-    is_basic: initialData.is_basic ?? false,
+    authority_kind: initialData.authority_kind,
+    is_default: initialData.is_default ?? false,
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
   }
@@ -77,11 +77,11 @@ export default function AuthorityForm({
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 BP Master/요금제/권한 종류 초기화
+      // 플랫폼이 아니면 구독 권한/요금제/권한 종류 초기화
       ...(value !== 'PRGRP_001_001' && {
-        is_bp_master: false,
+        is_subscription: false,
         plan_type_code: undefined,
-        kind_code: undefined,
+        authority_kind: undefined,
       }),
     }
     onChange(newData)
@@ -109,9 +109,9 @@ export default function AuthorityForm({
     onChange({ is_used: value })
   }
 
-  const handleBpMasterChange = (checked: boolean) => {
+  const handleSubscriptionChange = (checked: boolean) => {
     onChange({
-      is_bp_master: checked,
+      is_subscription: checked,
       plan_type_code: checked ? formData.plan_type_code : undefined,
     })
   }
@@ -124,12 +124,12 @@ export default function AuthorityForm({
     onChange({ description: value })
   }
 
-  const handleKindCodeChange = (value: string) => {
-    onChange({ kind_code: value })
+  const handleAuthorityKindChange = (value: string) => {
+    onChange({ authority_kind: value })
   }
 
-  const handleIsBasicChange = (checked: boolean) => {
-    onChange({ is_basic: checked })
+  const handleIsDefaultChange = (checked: boolean) => {
+    onChange({ is_default: checked })
   }
 
   return (
@@ -227,11 +227,12 @@ export default function AuthorityForm({
                       <div className="toggle-btn">
                         <input
                           type="checkbox"
-                          id="toggle-bp-master"
-                          checked={formData.is_bp_master}
-                          onChange={(e) => handleBpMasterChange(e.target.checked)}
+                          id="toggle-is-subscription"
+                          checked={formData.is_subscription}
+                          onChange={(e) => handleSubscriptionChange(e.target.checked)}
+                          disabled={mode === 'edit'}
                         />
-                        <label className="slider" htmlFor="toggle-bp-master" />
+                        <label className="slider" htmlFor="toggle-is-subscription" />
                       </div>
                       <SearchSelect
                         options={planTypeOptions}
@@ -240,13 +241,13 @@ export default function AuthorityForm({
                         placeholder="선택"
                         isClearable
                         isSearchable={false}
-                        isDisabled={!formData.is_bp_master}
+                        isDisabled={!formData.is_subscription || mode === 'edit'}
                         error={!!errors.plan_type_code}
                       />
-                      {formData.is_bp_master && !formData.plan_type_code && errors.plan_type_code && (
+                      {formData.is_subscription && !formData.plan_type_code && errors.plan_type_code && (
                         <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
                       )}
-                      {formData.is_bp_master && isPlanTypesError && (
+                      {formData.is_subscription && isPlanTypesError && (
                         <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
                       )}
                     </div>
@@ -261,12 +262,12 @@ export default function AuthorityForm({
                   <td colSpan={showFranchise ? 3 : undefined}>
                     <RadioButtonGroup
                       options={kindOptions}
-                      value={formData.kind_code ?? ''}
-                      onChange={handleKindCodeChange}
+                      value={formData.authority_kind ?? ''}
+                      onChange={handleAuthorityKindChange}
                       name="authority-kind"
                     />
-                    {errors.kind_code && (
-                      <div className="warning-txt mt5" role="alert">* {errors.kind_code}</div>
+                    {errors.authority_kind && (
+                      <div className="warning-txt mt5" role="alert">* {errors.authority_kind}</div>
                     )}
                     {isKindCodesError && (
                       <div className="warning-txt mt5" role="alert">* 권한 종류 목록을 불러오지 못했습니다</div>
@@ -282,11 +283,11 @@ export default function AuthorityForm({
                       <div className="toggle-btn">
                         <input
                           type="checkbox"
-                          id="toggle-is-basic"
-                          checked={formData.is_basic}
-                          onChange={(e) => handleIsBasicChange(e.target.checked)}
+                          id="toggle-is-default"
+                          checked={formData.is_default}
+                          onChange={(e) => handleIsDefaultChange(e.target.checked)}
                         />
-                        <label className="slider" htmlFor="toggle-is-basic" />
+                        <label className="slider" htmlFor="toggle-is-default" />
                       </div>
                       <div className="explain">※ 기초 권한으로 설정 시, 해당 권한 종류의 기본 권한으로 사용됩니다.</div>
                     </div>

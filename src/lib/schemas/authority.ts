@@ -56,6 +56,8 @@ export type OwnerCode = typeof OWNER_CODES[number]
 // ============================================
 
 // 권한 생성 스키마
+// PR #141 — is_bp_master → is_subscription, kind_code → authority_kind, is_basic → is_default
+// authority_kind 는 PRKND_001~004 필수, is_subscription 은 PLATFORM 전용, is_default 는 BP 전용
 export const authorityCreateSchema = z.object({
   owner_code: z.enum(OWNER_CODES, {
     message: '권한 소유를 선택해주세요',
@@ -63,12 +65,12 @@ export const authorityCreateSchema = z.object({
   head_office_id: z.number().optional(),
   franchisee_id: z.number().optional(),
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
-  is_bp_master: z.boolean().optional().default(false),
+  is_subscription: z.boolean().nullable().optional(),
   plan_type_code: z.string().optional(),
+  authority_kind: z.string().min(1, '권한 종류를 선택해주세요'),
+  is_default: z.boolean().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
-  kind_code: z.string().optional(),
-  is_basic: z.boolean().optional().default(false),
   details: z.array(z.object({
     program_id: z.number(),
     can_read: z.boolean(),
@@ -76,7 +78,7 @@ export const authorityCreateSchema = z.object({
     can_update: z.boolean(),
   })).optional(),
 }).superRefine((data, ctx) => {
-  if (data.is_bp_master && !data.plan_type_code) {
+  if (data.is_subscription && !data.plan_type_code) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['plan_type_code'],
@@ -84,12 +86,12 @@ export const authorityCreateSchema = z.object({
     })
   }
 
-  // BP Master가 아닌데 plan_type_code가 있으면 차단
-  if (!data.is_bp_master && data.plan_type_code) {
+  // 구독 권한이 아닌데 plan_type_code가 있으면 차단
+  if (!data.is_subscription && data.plan_type_code) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['plan_type_code'],
-      message: 'BP Master가 아닌 경우 요금제 설정 불가',
+      message: '구독 권한이 아닌 경우 요금제 설정 불가',
     })
   }
 
@@ -116,15 +118,15 @@ export const authorityCreateSchema = z.object({
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
-// 권한 수정 스키마 (등록·수정 모두 편집 가능 정책에 따라 신규 필드 포함)
+// 권한 수정 스키마
+// PR #141 — is_bp_master, plan_type_code 는 수정 불가로 제거
+// authority_kind / is_default 는 수정 허용 (선택)
 export const authorityUpdateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_used: z.boolean(),
   description: z.string().optional(),
-  kind_code: z.string().optional(),
-  is_basic: z.boolean().optional().default(false),
-  is_bp_master: z.boolean().optional().default(false),
-  plan_type_code: z.string().optional(),
+  authority_kind: z.string().optional(),
+  is_default: z.boolean().nullable().optional(),
 })
 
 export type AuthorityUpdateRequest = z.infer<typeof authorityUpdateSchema>
@@ -161,11 +163,12 @@ export const authorityListItemSchema = z.object({
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
-  is_bp_master: z.boolean().nullable(),
+  // PR #141 — is_bp_master → is_subscription (nullable, PLATFORM 전용)
+  is_subscription: z.boolean().nullable(),
   plan_type_code: z.string().nullable(),
-  // BE 미배포 대비 — 응답에서 키 자체가 누락될 수 있어 optional 처리
-  kind_code: z.string().nullable().optional(),
-  is_basic: z.boolean().nullable().optional(),
+  // PR #141 — kind_code → authority_kind, is_basic → is_default
+  authority_kind: z.string().nullable().optional(),
+  is_default: z.boolean().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().nullable(),
   created_at: z.string(),

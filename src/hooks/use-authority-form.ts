@@ -115,19 +115,20 @@ export function useAuthorityForm({
         head_office_id: initialAuthority.head_office_id ?? undefined,
         franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
-        is_bp_master: initialAuthority.is_bp_master ?? false,
+        is_subscription: initialAuthority.is_subscription ?? false,
         plan_type_code: initialAuthority.plan_type_code ?? undefined,
-        kind_code: initialAuthority.kind_code ?? undefined,
-        is_basic: initialAuthority.is_basic ?? false,
+        authority_kind: initialAuthority.authority_kind ?? undefined,
+        is_default: initialAuthority.is_default ?? false,
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
       }
     }
     return {
       owner_code: defaultOwnerCode,
-      is_bp_master: false,
-      is_basic: false,
+      is_subscription: false,
+      is_default: false,
       is_used: true,
+      authority_kind: '',
     }
   })
 
@@ -191,8 +192,8 @@ export function useAuthorityForm({
       newErrors.name = '권한명은 2자 이상이어야 합니다'
     }
 
-    // BP Master 권한이 ON인 경우 요금제 필수
-    if (formData.is_bp_master && !formData.plan_type_code) {
+    // 구독 권한이 ON인 경우 요금제 필수
+    if (formData.is_subscription && !formData.plan_type_code) {
       newErrors.plan_type_code = '요금제를 선택해주세요'
     }
 
@@ -202,8 +203,8 @@ export function useAuthorityForm({
     }
 
     // 권한 종류 필수 (가시 조건 만족 시)
-    if (kindRowVisible && !formData.kind_code) {
-      newErrors.kind_code = '권한 종류를 선택해주세요'
+    if (kindRowVisible && !formData.authority_kind) {
+      newErrors.authority_kind = '권한 종류를 선택해주세요'
     }
 
     // 본사 권한인 경우 본사 ID 필수
@@ -274,18 +275,23 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
+        // PR #141 — PLATFORM 분기는 is_subscription, BP 분기는 is_default
+        const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
           head_office_id: formData.head_office_id,
           franchisee_id: formData.franchisee_id,
           name: formData.name,
-          is_bp_master: kindRowVisible && context !== 'bp' ? (formData.is_bp_master ?? false) : false,
+          // is_subscription 은 PLATFORM 전용 — BP 는 null 로 전달
+          is_subscription: isPlatformOwner ? (formData.is_subscription ?? false) : null,
           plan_type_code:
-            kindRowVisible && context !== 'bp' && formData.is_bp_master && formData.plan_type_code
+            isPlatformOwner && formData.is_subscription && formData.plan_type_code
               ? formData.plan_type_code
               : undefined,
-          kind_code: kindRowVisible ? formData.kind_code : undefined,
-          is_basic: kindRowVisible && context === 'bp' ? (formData.is_basic ?? false) : false,
+          // authority_kind 는 PLATFORM/BP 모두 필수
+          authority_kind: kindRowVisible ? (formData.authority_kind ?? '') : '',
+          // is_default 는 BP 전용 — PLATFORM 은 null
+          is_default: !isPlatformOwner ? (formData.is_default ?? false) : null,
           is_used: formData.is_used,
           description: formData.description,
           details: flattenTree(programTree),
@@ -311,18 +317,16 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // 정책 변경 — 기존 수정 불가였던 BP Master·요금제·권한 종류·기초 권한도 수정 허용
+        // PR #141 — PUT 에서 is_subscription, plan_type_code 는 수정 불가로 제거
+        // authority_kind / is_default 만 신규 수정 허용
+        const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const updateRequest: AuthorityUpdateRequest = {
           name: formData.name,
           is_used: formData.is_used,
           description: formData.description,
-          kind_code: kindRowVisible ? formData.kind_code : undefined,
-          is_basic: kindRowVisible && context === 'bp' ? (formData.is_basic ?? false) : false,
-          is_bp_master: kindRowVisible && context !== 'bp' ? (formData.is_bp_master ?? false) : false,
-          plan_type_code:
-            kindRowVisible && context !== 'bp' && formData.is_bp_master && formData.plan_type_code
-              ? formData.plan_type_code
-              : undefined,
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
+          // is_default 는 BP 권한일 때만 의미 — PLATFORM 은 전달하지 않음
+          is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
         }
 
         // Zod 스키마 검증
