@@ -90,7 +90,9 @@ function AuthorityEditContent({
     mode: 'edit',
     authorityId,
     initialAuthority: authority,
-    context: 'platform',
+    // system 라우트는 모든 owner_code 권한을 노출하므로 PLATFORM 권한과 BP 권한 모두 정상 편집 가능하도록
+    // authority.owner_code 에 따라 동적으로 context 결정. PLATFORM 권한 -> 'platform', 본사/가맹점 -> 'bp'.
+    context: authority.owner_code === 'PRGRP_001_001' ? 'platform' : 'bp',
   })
 
   // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동

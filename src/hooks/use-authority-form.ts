@@ -192,8 +192,10 @@ export function useAuthorityForm({
       newErrors.name = '권한명은 2자 이상이어야 합니다'
     }
 
-    // 구독 권한이 ON인 경우 요금제 필수
-    if (formData.is_subscription && !formData.plan_type_code) {
+    // 구독 권한이 ON인 경우 요금제 필수 (생성 모드에서만 검증)
+    // 수정 모드에서는 is_subscription/plan_type_code 모두 disabled 이고 update payload 에서도 제외되므로
+    // 레거시 데이터의 plan_type_code=null 이 저장을 막지 않도록 guard.
+    if (mode === 'create' && formData.is_subscription && !formData.plan_type_code) {
       newErrors.plan_type_code = '요금제를 선택해주세요'
     }
 
@@ -288,8 +290,8 @@ export function useAuthorityForm({
             isPlatformOwner && formData.is_subscription && formData.plan_type_code
               ? formData.plan_type_code
               : undefined,
-          // authority_kind 는 PLATFORM/BP 모두 필수
-          authority_kind: kindRowVisible ? (formData.authority_kind ?? '') : '',
+          // authority_kind 는 row 가 보일 때만 필수. 숨겨졌을 때는 undefined 로 보내야 schema 통과.
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
           // is_default 는 BP 전용 — PLATFORM 은 null
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : null,
           is_used: formData.is_used,

@@ -70,7 +70,8 @@ export default function AuthorityForm({
   const isPlatform = formData.owner_code === 'PRGRP_001_001'
   const showKindAndSubscription = context !== 'bp' && isPlatform
   const showKindRow = context === 'bp' || showKindAndSubscription
-  const showBasicRow = context === 'bp'
+  // 기초 권한 토글은 BP context + 비-PLATFORM owner 일 때만 의미. payload 도 platform owner 에서는 null/undefined 처리되므로 UI 도 동일하게 숨김.
+  const showBasicRow = context === 'bp' && !isPlatform
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {

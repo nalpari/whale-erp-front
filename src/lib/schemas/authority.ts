@@ -67,7 +67,9 @@ export const authorityCreateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_subscription: z.boolean().nullable().optional(),
   plan_type_code: z.string().optional(),
-  authority_kind: z.string().min(1, '권한 종류를 선택해주세요'),
+  // PLATFORM 페이지에서 본사·가맹점 owner_code 선택 시 권한 종류 row 가 숨겨지므로 optional 허용.
+  // 값이 있으면 PRKND_001~004 형식이라 min(1) 유지. validateForm 에서 가시 조건 시 사용자 입력 강제.
+  authority_kind: z.string().min(1, '권한 종류를 선택해주세요').optional(),
   is_default: z.boolean().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
