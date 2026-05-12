@@ -281,7 +281,7 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // PR #141 — PLATFORM 분기는 is_subscription, BP 분기는 is_default
+        // BE PR #141 — PLATFORM 분기는 is_subscription, BP 분기는 is_default
         // PR #97 코드리뷰 #3 — create/update 모두 PLATFORM/BP 전용 필드는 키 누락(undefined) 으로 통일.
         // BE 가 키 부재 = "해당 필드 적용 안 됨" 으로 해석하는 PATCH/optional 시맨틱 가정.
         const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
@@ -325,7 +325,7 @@ export function useAuthorityForm({
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // PR #141 — PUT 에서 is_subscription, plan_type_code 는 수정 불가로 제거
+        // BE PR #141 — PUT 에서 is_subscription, plan_type_code 는 수정 불가로 제거
         // authority_kind / is_default 만 신규 수정 허용
         const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const updateRequest: AuthorityUpdateRequest = {

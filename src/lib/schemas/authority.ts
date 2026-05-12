@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 
 /**
@@ -56,7 +57,7 @@ export type OwnerCode = typeof OWNER_CODES[number]
 // ============================================
 
 // 권한 생성 스키마
-// PR #141 — is_bp_master → is_subscription, kind_code → authority_kind, is_basic → is_default
+// BE PR #141 — is_bp_master → is_subscription, kind_code → authority_kind, is_basic → is_default
 // authority_kind 는 PRKND_001~004 필수, is_subscription 은 PLATFORM 전용, is_default 는 BP 전용
 export const authorityCreateSchema = z.object({
   owner_code: z.enum(OWNER_CODES, {
@@ -137,11 +138,11 @@ export const authorityCreateSchema = z.object({
         message: '요금제는 플랫폼 전용입니다',
       })
     }
-    if (data.authority_kind === 'PRKND_001') {
+    if (data.authority_kind === AUTHORITY_KIND.PLATFORM) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['authority_kind'],
-        message: 'PRKND_001 권한 종류는 플랫폼 전용입니다',
+        message: '해당 권한 종류는 플랫폼 전용입니다',
       })
     }
   } else {
@@ -159,7 +160,7 @@ export const authorityCreateSchema = z.object({
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
 
 // 권한 수정 스키마
-// PR #141 — is_bp_master, plan_type_code 는 수정 불가로 제거
+// BE PR #141 — is_bp_master, plan_type_code 는 수정 불가로 제거
 // authority_kind / is_default 는 수정 허용 (선택)
 export const authorityUpdateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
@@ -203,10 +204,10 @@ export const authorityListItemSchema = z.object({
   franchisee_code: z.string().nullable(),
   franchisee_name: z.string().nullable(),
   name: z.string(),
-  // PR #141 — is_bp_master → is_subscription (nullable, PLATFORM 전용)
+  // BE PR #141 — is_bp_master → is_subscription (nullable, PLATFORM 전용)
   is_subscription: z.boolean().nullable(),
   plan_type_code: z.string().nullable(),
-  // PR #141 — kind_code → authority_kind, is_basic → is_default
+  // BE PR #141 — kind_code → authority_kind, is_basic → is_default
   authority_kind: z.string().nullable().optional(),
   is_default: z.boolean().nullable().optional(),
   is_used: z.boolean(),

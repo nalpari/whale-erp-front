@@ -6,6 +6,7 @@ import { RadioButtonGroup } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
 import {
@@ -47,13 +48,14 @@ export default function AuthorityForm({
     label: plan.name,
   }))
 
-  // 권한 종류 공통코드 조회 (BP context 는 PRKND_001 제외 — PRKND_001 은 PLATFORM 전용)
-  const { data: kindCodes, isError: isKindCodesError } = useCommonCodeHierarchy('PRKND')
+  // 권한 종류 공통코드 조회 (BP context 는 PLATFORM 전용 종류 제외)
+  const { data: kindCodes, isPending: isKindCodesPending, isError: isKindCodesError } =
+    useCommonCodeHierarchy('PRKND')
   const kindOptions: SelectOption[] = (kindCodes ?? [])
-    .filter((c) => (context === 'bp' ? c.code !== 'PRKND_001' : true))
+    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.PLATFORM : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
-  // 현재 폼 데이터 — PR #141 필드 rename 반영
+  // 현재 폼 데이터 — BE PR #141 필드 rename 반영
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
     head_office_id: initialData.head_office_id,
@@ -257,6 +259,9 @@ export default function AuthorityForm({
                         <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
                       )}
                     </div>
+                    {mode === 'edit' && (
+                      <div className="explain">※ 구독 권한과 요금제는 등록 시에만 설정 가능하며 수정할 수 없습니다.</div>
+                    )}
                   </td>
                 </tr>
               )}
@@ -271,7 +276,11 @@ export default function AuthorityForm({
                       value={formData.authority_kind ?? ''}
                       onChange={handleAuthorityKindChange}
                       name="authority-kind"
+                      disabled={isKindCodesPending || isKindCodesError}
                     />
+                    {isKindCodesPending && (
+                      <div className="explain mt5">권한 종류 목록을 불러오는 중...</div>
+                    )}
                     {errors.authority_kind && (
                       <div className="warning-txt mt5" role="alert">* {errors.authority_kind}</div>
                     )}
