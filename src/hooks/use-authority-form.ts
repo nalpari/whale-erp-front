@@ -129,7 +129,9 @@ export function useAuthorityForm({
       is_subscription: false,
       is_default: false,
       is_used: true,
-      authority_kind: '',
+      // PR #97 코드리뷰 #7 — edit 초기값과 정합. schema authority_kind 는 z.string().min(1).optional()
+      // 이라 undefined 만 통과. RadioButtonGroup value 는 ?? '' 패턴으로 빈 문자열 fallback.
+      authority_kind: undefined,
     }
   })
 
