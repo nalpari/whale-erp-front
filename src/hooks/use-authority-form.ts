@@ -280,22 +280,24 @@ export function useAuthorityForm({
         }
 
         // PR #141 — PLATFORM 분기는 is_subscription, BP 분기는 is_default
+        // PR #97 코드리뷰 #3 — create/update 모두 PLATFORM/BP 전용 필드는 키 누락(undefined) 으로 통일.
+        // BE 가 키 부재 = "해당 필드 적용 안 됨" 으로 해석하는 PATCH/optional 시맨틱 가정.
         const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
           head_office_id: formData.head_office_id,
           franchisee_id: formData.franchisee_id,
           name: formData.name,
-          // is_subscription 은 PLATFORM 전용 — BP 는 null 로 전달
-          is_subscription: isPlatformOwner ? (formData.is_subscription ?? false) : null,
+          // is_subscription / plan_type_code 는 PLATFORM 전용 — BP 에서는 키 누락
+          is_subscription: isPlatformOwner ? (formData.is_subscription ?? false) : undefined,
           plan_type_code:
             isPlatformOwner && formData.is_subscription && formData.plan_type_code
               ? formData.plan_type_code
               : undefined,
           // authority_kind 는 row 가 보일 때만 필수. 숨겨졌을 때는 undefined 로 보내야 schema 통과.
           authority_kind: kindRowVisible ? formData.authority_kind : undefined,
-          // is_default 는 BP 전용 — PLATFORM 은 null
-          is_default: !isPlatformOwner ? (formData.is_default ?? false) : null,
+          // is_default 는 BP 전용 — PLATFORM 에서는 키 누락
+          is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
           is_used: formData.is_used,
           description: formData.description,
           details: flattenTree(programTree),
