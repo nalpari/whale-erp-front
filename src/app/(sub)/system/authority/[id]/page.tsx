@@ -75,6 +75,11 @@ function AuthorityEditContent({
 
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
 
+  // system 라우트는 모든 owner_code 권한을 노출하므로 PLATFORM 권한과 BP 권한 모두 정상 편집 가능하도록
+  // authority.owner_code 에 따라 동적으로 context 결정. PLATFORM 권한 -> 'platform', 본사/가맹점 -> 'bp'.
+  // AuthorityForm 의 렌더 가시 조건과 useAuthorityForm 의 검증/페이로드 가시 조건이 동일하게 평가되도록 양쪽에 동일 값 전달.
+  const formContext = authority.owner_code === 'PRGRP_001_001' ? 'platform' : 'bp'
+
   const {
     formData,
     errors,
@@ -90,9 +95,7 @@ function AuthorityEditContent({
     mode: 'edit',
     authorityId,
     initialAuthority: authority,
-    // system 라우트는 모든 owner_code 권한을 노출하므로 PLATFORM 권한과 BP 권한 모두 정상 편집 가능하도록
-    // authority.owner_code 에 따라 동적으로 context 결정. PLATFORM 권한 -> 'platform', 본사/가맹점 -> 'bp'.
-    context: authority.owner_code === 'PRGRP_001_001' ? 'platform' : 'bp',
+    context: formContext,
   })
 
   // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
@@ -132,6 +135,7 @@ function AuthorityEditContent({
           onDelete={handleDelete}
           onSave={handleSave}
           errors={errors}
+          context={formContext}
         >
           <AuthorityProgramTree
             programTree={programTree}

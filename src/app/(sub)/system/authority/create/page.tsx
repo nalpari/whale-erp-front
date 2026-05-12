@@ -62,6 +62,7 @@ function AuthorityCreateContent({ programList }: { programList: Program[] }) {
           onList={handleList}
           onSave={handleSave}
           errors={errors}
+          context="platform"
         >
           <AuthorityProgramTree
             programTree={programTree}

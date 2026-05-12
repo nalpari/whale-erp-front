@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { getErrorMessage } from '@/lib/api'
 import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
+import { type AuthorityFormContext, isKindRowVisible } from '@/lib/authority-visibility'
 import { formatZodError } from '@/lib/zod-utils'
 import {
   useCreateAuthority,
@@ -89,7 +90,7 @@ interface UseAuthorityFormOptions {
   programList?: Program[]
   listPath?: string
   defaultOwnerCode?: OwnerCode
-  context?: 'platform' | 'bp'
+  context?: AuthorityFormContext
 }
 
 /**
@@ -263,7 +264,8 @@ export function useAuthorityForm({
 
   // 저장 핸들러
   const handleSave = async () => {
-    const kindRowVisible = context === 'bp' || formData.owner_code === 'PRGRP_001_001'
+    // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — AuthorityForm 의 렌더 가시 조건과 동일하게 평가
+    const kindRowVisible = isKindRowVisible(context, formData.owner_code)
 
     // 폼 검증
     if (!validateForm(kindRowVisible)) {

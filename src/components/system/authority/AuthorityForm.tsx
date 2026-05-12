@@ -8,6 +8,12 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
+import {
+  type AuthorityFormContext,
+  isBasicRowVisible,
+  isKindRowVisible,
+  isSubscriptionRowVisible,
+} from '@/lib/authority-visibility'
 
 interface AuthorityFormProps {
   mode: 'create' | 'edit'
@@ -19,7 +25,7 @@ interface AuthorityFormProps {
   onAuthorityManager?: () => void
   children?: ReactNode
   errors?: Record<string, string>
-  context?: 'platform' | 'bp'
+  context: AuthorityFormContext
 }
 
 export default function AuthorityForm({
@@ -41,7 +47,7 @@ export default function AuthorityForm({
     label: plan.name,
   }))
 
-  // 권한 종류 공통코드 조회 (settings는 PRKND_001 제외)
+  // 권한 종류 공통코드 조회 (BP context 는 PRKND_001 제외 — PRKND_001 은 PLATFORM 전용)
   const { data: kindCodes, isError: isKindCodesError } = useCommonCodeHierarchy('PRKND')
   const kindOptions: SelectOption[] = (kindCodes ?? [])
     .filter((c) => (context === 'bp' ? c.code !== 'PRKND_001' : true))
@@ -67,11 +73,10 @@ export default function AuthorityForm({
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
   const showFranchise = isBpCreateMode || formData.owner_code === OWNER_CODE.FRANCHISE
   const isBpDisabled = mode === 'edit'
-  const isPlatform = formData.owner_code === 'PRGRP_001_001'
-  const showKindAndSubscription = context !== 'bp' && isPlatform
-  const showKindRow = context === 'bp' || showKindAndSubscription
-  // 기초 권한 토글은 BP context + 비-PLATFORM owner 일 때만 의미. payload 도 platform owner 에서는 null/undefined 처리되므로 UI 도 동일하게 숨김.
-  const showBasicRow = context === 'bp' && !isPlatform
+  // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — useAuthorityForm 의 검증/페이로드와 동일하게 평가되어야 함
+  const showSubscriptionRow = isSubscriptionRowVisible(context, formData.owner_code)
+  const showKindRow = isKindRowVisible(context, formData.owner_code)
+  const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
@@ -220,7 +225,7 @@ export default function AuthorityForm({
                   </div>
                 </td>
               </tr>
-              {showKindAndSubscription && (
+              {showSubscriptionRow && (
                 <tr>
                   <th>구독 권한 여부</th>
                   <td colSpan={showFranchise ? 3 : undefined}>
