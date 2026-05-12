@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { getErrorMessage } from '@/lib/api'
 import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
+import { type AuthorityFormContext, isKindRowVisible } from '@/lib/authority-visibility'
 import { formatZodError } from '@/lib/zod-utils'
 import {
   useCreateAuthority,
@@ -89,12 +90,21 @@ interface UseAuthorityFormOptions {
   programList?: Program[]
   listPath?: string
   defaultOwnerCode?: OwnerCode
+  context?: AuthorityFormContext
 }
 
 /**
  * 권한 생성/수정 폼 공통 로직 훅
  */
-export function useAuthorityForm({ mode, authorityId, initialAuthority, programList, listPath = '/system/authority', defaultOwnerCode = 'PRGRP_001_001' }: UseAuthorityFormOptions) {
+export function useAuthorityForm({
+  mode,
+  authorityId,
+  initialAuthority,
+  programList,
+  listPath = '/system/authority',
+  defaultOwnerCode = 'PRGRP_001_001',
+  context = 'platform',
+}: UseAuthorityFormOptions) {
   const router = useRouter()
   const { alert } = useAlert()
 
@@ -106,16 +116,22 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
         head_office_id: initialAuthority.head_office_id ?? undefined,
         franchisee_id: initialAuthority.franchisee_id ?? undefined,
         name: initialAuthority.name,
-        is_bp_master: initialAuthority.is_bp_master ?? false,
+        is_subscription: initialAuthority.is_subscription ?? false,
         plan_type_code: initialAuthority.plan_type_code ?? undefined,
+        authority_kind: initialAuthority.authority_kind ?? undefined,
+        is_default: initialAuthority.is_default ?? false,
         is_used: initialAuthority.is_used,
         description: initialAuthority.description || undefined,
       }
     }
     return {
       owner_code: defaultOwnerCode,
-      is_bp_master: false,
+      is_subscription: false,
+      is_default: false,
       is_used: true,
+      // PR #97 코드리뷰 #7 — edit 초기값과 정합. schema authority_kind 는 z.string().min(1).optional()
+      // 이라 undefined 만 통과. RadioButtonGroup value 는 ?? '' 패턴으로 빈 문자열 fallback.
+      authority_kind: undefined,
     }
   })
 
@@ -164,7 +180,7 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
   }
 
   // 폼 검증
-  const validateForm = (): boolean => {
+  const validateForm = (kindRowVisible: boolean): boolean => {
     const newErrors: Record<string, string> = {}
 
     // 생성 모드에서만 owner_code 검증
@@ -179,14 +195,21 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
       newErrors.name = '권한명은 2자 이상이어야 합니다'
     }
 
-    // BP Master 권한이 ON인 경우 요금제 필수 (생성 모드에서만 검증, 수정 시 BP Master 필드는 불변)
-    if (mode === 'create' && formData.is_bp_master && !formData.plan_type_code) {
+    // 구독 권한이 ON인 경우 요금제 필수 (생성 모드에서만 검증)
+    // 수정 모드에서는 is_subscription/plan_type_code 모두 disabled 이고 update payload 에서도 제외되므로
+    // 레거시 데이터의 plan_type_code=null 이 저장을 막지 않도록 guard.
+    if (mode === 'create' && formData.is_subscription && !formData.plan_type_code) {
       newErrors.plan_type_code = '요금제를 선택해주세요'
     }
 
     // 운영여부 검증
     if (formData.is_used === undefined) {
       newErrors.is_used = '운영여부를 선택해주세요'
+    }
+
+    // 권한 종류 필수 (가시 조건 만족 시)
+    if (kindRowVisible && !formData.authority_kind) {
+      newErrors.authority_kind = '권한 종류를 선택해주세요'
     }
 
     // 본사 권한인 경우 본사 ID 필수
@@ -243,8 +266,11 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
 
   // 저장 핸들러
   const handleSave = async () => {
+    // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — AuthorityForm 의 렌더 가시 조건과 동일하게 평가
+    const kindRowVisible = isKindRowVisible(context, formData.owner_code)
+
     // 폼 검증
-    if (!validateForm()) {
+    if (!validateForm(kindRowVisible)) {
       return
     }
 
@@ -255,13 +281,25 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
           throw new Error('필수 필드가 누락되었습니다')
         }
 
+        // BE PR #141 — PLATFORM 분기는 is_subscription, BP 분기는 is_default
+        // PR #97 코드리뷰 #3 — create/update 모두 PLATFORM/BP 전용 필드는 키 누락(undefined) 으로 통일.
+        // BE 가 키 부재 = "해당 필드 적용 안 됨" 으로 해석하는 PATCH/optional 시맨틱 가정.
+        const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const createRequest: AuthorityCreateRequest = {
           owner_code: formData.owner_code,
           head_office_id: formData.head_office_id,
           franchisee_id: formData.franchisee_id,
           name: formData.name,
-          is_bp_master: formData.is_bp_master ?? false,
-          plan_type_code: formData.is_bp_master && formData.plan_type_code ? formData.plan_type_code : undefined,
+          // is_subscription / plan_type_code 는 PLATFORM 전용 — BP 에서는 키 누락
+          is_subscription: isPlatformOwner ? (formData.is_subscription ?? false) : undefined,
+          plan_type_code:
+            isPlatformOwner && formData.is_subscription && formData.plan_type_code
+              ? formData.plan_type_code
+              : undefined,
+          // authority_kind 는 row 가 보일 때만 필수. 숨겨졌을 때는 undefined 로 보내야 schema 통과.
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
+          // is_default 는 BP 전용 — PLATFORM 에서는 키 누락
+          is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
           is_used: formData.is_used,
           description: formData.description,
           details: flattenTree(programTree),
@@ -287,11 +325,16 @@ export function useAuthorityForm({ mode, authorityId, initialAuthority, programL
           throw new Error('필수 필드가 누락되었습니다')
         }
 
-        // BP Master 권한 여부, 요금제는 등록 시 결정되며 수정 불가
+        // BE PR #141 — PUT 에서 is_subscription, plan_type_code 는 수정 불가로 제거
+        // authority_kind / is_default 만 신규 수정 허용
+        const isPlatformOwner = formData.owner_code === 'PRGRP_001_001'
         const updateRequest: AuthorityUpdateRequest = {
           name: formData.name,
           is_used: formData.is_used,
           description: formData.description,
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
+          // is_default 는 BP 권한일 때만 의미 — PLATFORM 은 전달하지 않음
+          is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
         }
 
         // Zod 스키마 검증

@@ -6,8 +6,15 @@ import { RadioButtonGroup } from '@/components/common/ui'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy } from '@/hooks/queries/use-common-code-queries'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { AuthorityCreateRequest, AuthorityUpdateRequest, OwnerCode } from '@/lib/schemas/authority'
+import {
+  type AuthorityFormContext,
+  isBasicRowVisible,
+  isKindRowVisible,
+  isSubscriptionRowVisible,
+} from '@/lib/authority-visibility'
 
 interface AuthorityFormProps {
   mode: 'create' | 'edit'
@@ -19,7 +26,7 @@ interface AuthorityFormProps {
   onAuthorityManager?: () => void
   children?: ReactNode
   errors?: Record<string, string>
-  context?: 'platform' | 'bp'
+  context: AuthorityFormContext
 }
 
 export default function AuthorityForm({
@@ -41,14 +48,23 @@ export default function AuthorityForm({
     label: plan.name,
   }))
 
-  // 현재 폼 데이터
+  // 권한 종류 공통코드 조회 (BP context 는 PLATFORM 전용 종류 제외)
+  const { data: kindCodes, isPending: isKindCodesPending, isError: isKindCodesError } =
+    useCommonCodeHierarchy('PRKND')
+  const kindOptions: SelectOption[] = (kindCodes ?? [])
+    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.PLATFORM : true))
+    .map((c) => ({ value: c.code, label: c.name }))
+
+  // 현재 폼 데이터 — BE PR #141 필드 rename 반영
   const formData = {
     owner_code: initialData.owner_code || 'PRGRP_001_001',
     head_office_id: initialData.head_office_id,
     franchisee_id: initialData.franchisee_id,
     name: initialData.name || '',
-    is_bp_master: initialData.is_bp_master ?? false,
+    is_subscription: initialData.is_subscription ?? false,
     plan_type_code: initialData.plan_type_code,
+    authority_kind: initialData.authority_kind,
+    is_default: initialData.is_default ?? false,
     is_used: initialData.is_used ?? true,
     description: initialData.description || '',
   }
@@ -59,15 +75,22 @@ export default function AuthorityForm({
   const showHeadOffice = formData.owner_code !== 'PRGRP_001_001'
   const showFranchise = isBpCreateMode || formData.owner_code === OWNER_CODE.FRANCHISE
   const isBpDisabled = mode === 'edit'
-  const isPlatform = formData.owner_code === 'PRGRP_001_001'
+  // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — useAuthorityForm 의 검증/페이로드와 동일하게 평가되어야 함
+  const showSubscriptionRow = isSubscriptionRowVisible(context, formData.owner_code)
+  const showKindRow = isKindRowVisible(context, formData.owner_code)
+  const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 BP Master 초기화
-      ...(value !== 'PRGRP_001_001' && { is_bp_master: false, plan_type_code: undefined }),
+      // 플랫폼이 아니면 구독 권한/요금제/권한 종류 초기화
+      ...(value !== 'PRGRP_001_001' && {
+        is_subscription: false,
+        plan_type_code: undefined,
+        authority_kind: undefined,
+      }),
     }
     onChange(newData)
   }
@@ -94,9 +117,9 @@ export default function AuthorityForm({
     onChange({ is_used: value })
   }
 
-  const handleBpMasterChange = (checked: boolean) => {
+  const handleSubscriptionChange = (checked: boolean) => {
     onChange({
-      is_bp_master: checked,
+      is_subscription: checked,
       plan_type_code: checked ? formData.plan_type_code : undefined,
     })
   }
@@ -107,6 +130,14 @@ export default function AuthorityForm({
 
   const handleDescriptionChange = (value: string) => {
     onChange({ description: value })
+  }
+
+  const handleAuthorityKindChange = (value: string) => {
+    onChange({ authority_kind: value })
+  }
+
+  const handleIsDefaultChange = (checked: boolean) => {
+    onChange({ is_default: checked })
   }
 
   return (
@@ -196,41 +227,84 @@ export default function AuthorityForm({
                   </div>
                 </td>
               </tr>
-              {isPlatform && (
+              {showSubscriptionRow && (
                 <tr>
-                  <th>BP Master 권한</th>
+                  <th>구독 권한 여부</th>
                   <td colSpan={showFranchise ? 3 : undefined}>
                     <div className="filed-flx" style={{ gap: '12px', alignItems: 'center' }}>
                       <div className="toggle-btn">
                         <input
                           type="checkbox"
-                          id="toggle-bp-master"
-                          checked={formData.is_bp_master}
-                          onChange={(e) => handleBpMasterChange(e.target.checked)}
+                          id="toggle-is-subscription"
+                          checked={formData.is_subscription}
+                          onChange={(e) => handleSubscriptionChange(e.target.checked)}
                           disabled={mode === 'edit'}
                         />
-                        <label className="slider" htmlFor="toggle-bp-master" />
+                        <label className="slider" htmlFor="toggle-is-subscription" />
                       </div>
-                      {formData.is_bp_master && (
-                        <>
-                          <SearchSelect
-                            options={planTypeOptions}
-                            value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
-                            onChange={(opt) => handlePlanTypeChange(opt?.value)}
-                            placeholder="선택"
-                            isClearable
-                            isSearchable={false}
-                            isDisabled={mode === 'edit'}
-                            error={!!errors.plan_type_code}
-                          />
-                          {!formData.plan_type_code && errors.plan_type_code && (
-                            <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
-                          )}
-                          {isPlanTypesError && (
-                            <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
-                          )}
-                        </>
+                      <SearchSelect
+                        options={planTypeOptions}
+                        value={planTypeOptions.find((opt) => opt.value === formData.plan_type_code) ?? null}
+                        onChange={(opt) => handlePlanTypeChange(opt?.value)}
+                        placeholder="선택"
+                        isClearable
+                        isSearchable={false}
+                        isDisabled={!formData.is_subscription || mode === 'edit'}
+                        error={!!errors.plan_type_code}
+                      />
+                      {formData.is_subscription && !formData.plan_type_code && errors.plan_type_code && (
+                        <div className="warning-txt" role="alert">* {errors.plan_type_code}</div>
                       )}
+                      {formData.is_subscription && isPlanTypesError && (
+                        <div className="warning-txt" role="alert">* 요금제 목록을 불러오지 못했습니다</div>
+                      )}
+                    </div>
+                    {mode === 'edit' && (
+                      <div className="explain">※ 구독 권한과 요금제는 등록 시에만 설정 가능하며 수정할 수 없습니다.</div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              {showKindRow && (
+                <tr>
+                  <th>
+                    권한 종류 <span className="red">*</span>
+                  </th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <RadioButtonGroup
+                      options={kindOptions}
+                      value={formData.authority_kind ?? ''}
+                      onChange={handleAuthorityKindChange}
+                      name="authority-kind"
+                      disabled={isKindCodesPending || isKindCodesError}
+                    />
+                    {isKindCodesPending && (
+                      <div className="explain mt5">권한 종류 목록을 불러오는 중...</div>
+                    )}
+                    {errors.authority_kind && (
+                      <div className="warning-txt mt5" role="alert">* {errors.authority_kind}</div>
+                    )}
+                    {isKindCodesError && (
+                      <div className="warning-txt mt5" role="alert">* 권한 종류 목록을 불러오지 못했습니다</div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              {showBasicRow && (
+                <tr>
+                  <th>기초 권한</th>
+                  <td colSpan={showFranchise ? 3 : undefined}>
+                    <div className="filed-flx" style={{ gap: '12px', alignItems: 'center' }}>
+                      <div className="toggle-btn">
+                        <input
+                          type="checkbox"
+                          id="toggle-is-default"
+                          checked={formData.is_default}
+                          onChange={(e) => handleIsDefaultChange(e.target.checked)}
+                        />
+                        <label className="slider" htmlFor="toggle-is-default" />
+                      </div>
+                      <div className="explain">※ 기초 권한으로 설정 시, 해당 권한 종류의 기본 권한으로 사용됩니다.</div>
                     </div>
                   </td>
                 </tr>
