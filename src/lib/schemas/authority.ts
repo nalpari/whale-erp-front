@@ -116,6 +116,44 @@ export const authorityCreateSchema = z.object({
       })
     }
   }
+
+  // PR #97 코드리뷰 #2/#5 — PLATFORM/BP 교차검증
+  // 클라이언트 가드(useAuthorityForm.handleSave) 와 별개로 schema 단에서도 검증하여 변조/회귀 차단.
+  // 진짜 방어선은 BE 가드이며 이 superRefine 은 회귀 방지/UX 차원.
+  const isPlatformOwner = data.owner_code === 'PRGRP_001_001'
+  if (!isPlatformOwner) {
+    // 본사·가맹점 권한 — is_subscription / plan_type_code / PRKND_001 은 PLATFORM 전용
+    if (data.is_subscription === true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['is_subscription'],
+        message: '구독 권한은 플랫폼 전용입니다',
+      })
+    }
+    if (data.plan_type_code) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['plan_type_code'],
+        message: '요금제는 플랫폼 전용입니다',
+      })
+    }
+    if (data.authority_kind === 'PRKND_001') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['authority_kind'],
+        message: 'PRKND_001 권한 종류는 플랫폼 전용입니다',
+      })
+    }
+  } else {
+    // PLATFORM 권한 — is_default 는 본사·가맹점 전용
+    if (data.is_default === true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['is_default'],
+        message: '기초 권한은 본사·가맹점 전용입니다',
+      })
+    }
+  }
 })
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
