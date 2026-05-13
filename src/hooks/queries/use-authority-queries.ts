@@ -1,6 +1,12 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { adminKeys, authKeys, authorityKeys, type AuthorityListParams, type AuthorityOptionsParams } from './query-keys'
+import {
+  adminKeys,
+  authKeys,
+  authorityKeys,
+  type AuthorityListParams,
+  type AuthorityEmployeeInvitationParams,
+} from './query-keys'
 import {
   fetchAuthorities,
   fetchAuthorityDetail,
@@ -9,7 +15,10 @@ import {
   updateProgramAuthority,
   deleteAuthority,
 } from '@/lib/api/authority'
-import { getAuthoritiesByOrganization } from '@/lib/api/employee'
+import {
+  getAuthoritiesForEmployeeInvitation,
+  getAuthoritiesForBpEdit,
+} from '@/lib/api/employee'
 import type {
   AuthorityCreateRequest,
   AuthorityResponse,
@@ -80,23 +89,35 @@ function debounce<F extends (...args: never[]) => void>(fn: F, ms: number): F {
 }
 
 /**
- * 권한 selectbox 옵션 조회.
+ * 직원 초대 selectbox 권한 후보 조회.
  *
- * - 본사 단위(PRGRP_002)로만 조회. headOfficeId 없으면 disabled.
- * - authorityKinds: 직원 초대(EMPLOYEE_INVITE_KINDS), BP 수정(undefined=전체).
- * - isUsed: 기본 true. 운영 중인 권한만 노출.
+ * - BE endpoint: GET /api/v1/system/authorities/employee-invitation
+ * - store_id 또는 head_office_organization_id 중 최소 하나 필수
+ * - storeId 우선 (있으면 storeId, 없으면 headOfficeOrganizationId)
  */
-export function useAuthorityOptions(params: AuthorityOptionsParams) {
-  const { headOfficeId, authorityKinds, isUsed = true } = params
+export function useAuthorityOptionsForEmployeeInvitation(params: AuthorityEmployeeInvitationParams) {
+  const { storeId, headOfficeOrganizationId } = params
+  const enabled = storeId != null || headOfficeOrganizationId != null
   return useQuery({
-    queryKey: authorityKeys.options({ headOfficeId, authorityKinds, isUsed }),
+    queryKey: authorityKeys.employeeInvitation({ storeId, headOfficeOrganizationId }),
     queryFn: ({ signal }) =>
-      getAuthoritiesByOrganization('PRGRP_002', headOfficeId ?? undefined, undefined, {
-        authority_kind: authorityKinds,
-        is_used: isUsed,
-        signal,
-      }),
-    enabled: headOfficeId != null,
+      getAuthoritiesForEmployeeInvitation({ storeId, headOfficeOrganizationId }, signal),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/**
+ * BP 수정 selectbox 권한 후보 조회.
+ *
+ * - BE endpoint: GET /api/v1/system/authorities/bp-edit
+ * - bpId 필수. null 이면 disabled.
+ */
+export function useAuthorityOptionsForBpEdit(bpId: number | null) {
+  return useQuery({
+    queryKey: authorityKeys.bpEdit(bpId),
+    queryFn: ({ signal }) => getAuthoritiesForBpEdit(bpId!, signal),
+    enabled: bpId != null,
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -143,7 +164,7 @@ export function useCreateAuthority() {
       })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.candidatesAll() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
@@ -192,7 +213,7 @@ export function useUpdateAuthority() {
       }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.candidatesAll() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
@@ -264,7 +285,7 @@ export function useDeleteAuthority() {
       }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.candidatesAll() })
       // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
