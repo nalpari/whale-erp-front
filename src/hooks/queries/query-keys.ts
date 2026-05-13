@@ -268,10 +268,9 @@ export const adminKeys = {
   authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
 }
 
-export interface AuthorityOptionsParams {
-  headOfficeId: number | null
-  authorityKinds?: readonly string[]
-  isUsed?: boolean
+export interface AuthorityEmployeeInvitationParams {
+  storeId?: number
+  headOfficeOrganizationId?: number
 }
 
 export const authorityKeys = {
@@ -280,13 +279,15 @@ export const authorityKeys = {
   list: (params: AuthorityListParams) => [...authorityKeys.lists(), params] as const,
   details: () => [...authorityKeys.all, 'detail'] as const,
   detail: (id: number) => [...authorityKeys.details(), id] as const,
-  optionsAll: () => [...authorityKeys.all, 'options'] as const,
-  options: (params: AuthorityOptionsParams) =>
-    [...authorityKeys.optionsAll(), {
-      headOfficeId: params.headOfficeId,
-      authorityKinds: params.authorityKinds ? [...params.authorityKinds] : undefined,
-      isUsed: params.isUsed,
+  // 권한 후보 (selectbox 옵션) — Approach C 전용 endpoint × 2
+  candidatesAll: () => [...authorityKeys.all, 'candidates'] as const,
+  employeeInvitation: (params: AuthorityEmployeeInvitationParams) =>
+    [...authorityKeys.candidatesAll(), 'employee-invitation', {
+      storeId: params.storeId,
+      headOfficeOrganizationId: params.headOfficeOrganizationId,
     }] as const,
+  bpEdit: (bpId: number | null) =>
+    [...authorityKeys.candidatesAll(), 'bp-edit', bpId] as const,
 }
 
 /**
