@@ -239,12 +239,10 @@ export type EmployeeBpAuthority = z.infer<typeof employeeBpAuthoritySchema>
 export const employeeBpAuthorityListResponseSchema = apiResponseSchema(z.array(employeeBpAuthoritySchema))
 
 // 권한 목록 조회 (조직별) 응답용 아이템 스키마
-// BE PR — authority_kind 응답에 포함됨. selectbox 라벨/그룹핑에 사용.
 export const authorityItemSchema = z.object({
   id: z.number(),
   name: z.string(),
   owner_code: z.string(),
-  authority_kind: z.string().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
   head_office_id: z.number().nullable().optional(),
