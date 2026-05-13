@@ -349,20 +349,38 @@ export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<
   return response.data
 }
 
-// 권한 목록 조회 (조직별)
+/**
+ * 권한 목록 조회 (조직별).
+ *
+ * - ownerGroup: PRGRP_001(플랫폼) / PRGRP_002(BP)
+ * - headOfficeId / franchiseeId: 조직 필터
+ * - options.authority_kind: PRKND_xxx 다중 필터. BE 는 반복 파라미터로 받음 (예: ?authority_kind=PRKND_003&authority_kind=PRKND_004)
+ * - options.is_used: 운영 중인 권한만 (기본 미지정)
+ */
 export async function getAuthoritiesByOrganization(
   ownerGroup: string,
   headOfficeId?: number,
-  franchiseeId?: number
+  franchiseeId?: number,
+  options?: {
+    authority_kind?: readonly string[]
+    is_used?: boolean
+    signal?: AbortSignal
+  }
 ): Promise<AuthorityItem[]> {
-  const params: Record<string, string | number> = { owner_group: ownerGroup }
+  const params: Record<string, string | number | readonly string[]> = { owner_group: ownerGroup }
   if (headOfficeId) params.head_office_id = headOfficeId
   if (franchiseeId) params.franchisee_id = franchiseeId
+  if (options?.authority_kind && options.authority_kind.length > 0) {
+    params.authority_kind = options.authority_kind
+  }
+  if (options?.is_used !== undefined) {
+    params.is_used = String(options.is_used)
+  }
 
   const response = await getWithSchema(
     '/api/v1/system/authorities',
     authorityItemListResponseSchema,
-    { params }
+    { params, signal: options?.signal }
   )
   return response.data.content
 }
