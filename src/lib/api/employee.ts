@@ -15,8 +15,10 @@ import type {
 import {
   employeeBpAuthorityListResponseSchema,
   authorityItemListResponseSchema,
+  authorityCandidateListResponseSchema,
   type EmployeeBpAuthority,
   type AuthorityItem,
+  type AuthorityCandidate,
 } from '@/lib/schemas/authority'
 
 // 직원 등록
@@ -365,6 +367,39 @@ export async function getAuthoritiesByOrganization(
     { params }
   )
   return response.data.content
+}
+
+// 직원 초대용 권한 후보 조회 (신규 endpoint).
+// store_id 와 head_office_organization_id 중 최소 하나 필수 — store_id 우선.
+export async function getAuthoritiesForEmployeeInvitation(
+  params: { storeId?: number; headOfficeOrganizationId?: number },
+  signal?: AbortSignal
+): Promise<AuthorityCandidate[]> {
+  const query: Record<string, number> = {}
+  if (params.storeId) {
+    query.store_id = params.storeId
+  } else if (params.headOfficeOrganizationId) {
+    query.head_office_organization_id = params.headOfficeOrganizationId
+  }
+  const response = await getWithSchema(
+    '/api/v1/system/authorities/employee-invitation',
+    authorityCandidateListResponseSchema,
+    { params: query, signal }
+  )
+  return response.data
+}
+
+// BP 수정용 권한 후보 조회 (신규 endpoint).
+export async function getAuthoritiesForBpEdit(
+  bpId: number,
+  signal?: AbortSignal
+): Promise<AuthorityCandidate[]> {
+  const response = await getWithSchema(
+    '/api/v1/system/authorities/bp-edit',
+    authorityCandidateListResponseSchema,
+    { params: { bp_id: bpId }, signal }
+  )
+  return response.data
 }
 
 // 직원 로그인 정보 업데이트 요청 타입

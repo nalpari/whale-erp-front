@@ -254,3 +254,22 @@ export type AuthorityItem = z.infer<typeof authorityItemSchema>
 export const authorityItemListResponseSchema = apiResponseSchema(
   z.object({ content: z.array(authorityItemSchema) })
 )
+
+// 권한 후보 응답 스키마 (직원 초대 / BP 수정 selectbox 옵션 용도).
+// BE 가 신규 endpoint /system/authorities/employee-invitation, /system/authorities/bp-edit 에서 반환.
+// 응답 케이스: camelCase (기존 authorityItemSchema 의 snake_case 와 다름).
+export const authorityCandidateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  authorityKind: z.string(),
+  authorityKindName: z.string(),
+  ownerCode: z.string(),
+  planTypeCode: z.string().nullable(),
+  isDefault: z.boolean().nullable(),
+  isSubscription: z.boolean().nullable(),
+  isUsed: z.boolean(),
+})
+
+export type AuthorityCandidate = z.infer<typeof authorityCandidateSchema>
+
+export const authorityCandidateListResponseSchema = apiResponseSchema(z.array(authorityCandidateSchema))
