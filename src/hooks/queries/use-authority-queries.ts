@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { adminKeys, authKeys, authorityKeys, type AuthorityListParams } from './query-keys'
 import {
   fetchAuthorities,
@@ -11,9 +11,60 @@ import {
 } from '@/lib/api/authority'
 import type {
   AuthorityCreateRequest,
+  AuthorityResponse,
   AuthorityUpdateRequest,
   AuthorityDetailUpdateRequest,
 } from '@/lib/schemas/authority'
+
+/**
+ * 권한 그룹 키 — 같은 (organization, authority_kind) 그룹 식별용.
+ *
+ * BE 는 같은 그룹 내에서 is_default=true 가 1개만 유지되도록 자동으로 다른 권한의 is_default 를 false 처리.
+ * 따라서 mutation 후 같은 그룹의 detail cache 만 무효화하면 충분 — 다른 그룹은 stale 되지 않음.
+ */
+interface AuthorityGroupKey {
+  owner_code: string
+  head_office_id: number | null | undefined
+  franchisee_id: number | null | undefined
+  authority_kind: string | null | undefined
+}
+
+/**
+ * 같은 (organization, authority_kind) 그룹의 detail cache 만 제거.
+ *
+ * PR #97 코드리뷰 #6 — 기존 removeQueries({ queryKey: authorityKeys.details() }) 는 전체 detail 을
+ * 무차별 제거하여 다른 그룹 권한 detail 페이지에도 cache miss → 깜빡임/재fetch 폭주 유발.
+ * predicate 로 같은 그룹만 좁혀 사이드이펙트 최소화.
+ *
+ * useAuthorityForm 의 useState lazy 초기값 패턴 때문에 cache hit 시 background refetch 가 form 에
+ * 반영 안 되는 근본 원인이 있어 removeQueries 자체는 유지 (invalidateQueries 로는 lazy 초기값 우회 불가).
+ */
+function removeSameGroupAuthorityDetails(
+  queryClient: QueryClient,
+  target: AuthorityGroupKey,
+): void {
+  queryClient.removeQueries({
+    predicate: (query) => {
+      const key = query.queryKey
+      if (
+        key.length !== 3 ||
+        key[0] !== 'authorities' ||
+        key[1] !== 'detail' ||
+        typeof key[2] !== 'number'
+      ) {
+        return false
+      }
+      const cached = queryClient.getQueryData<AuthorityResponse>(key)
+      if (!cached) return false
+      return (
+        cached.owner_code === target.owner_code &&
+        (cached.head_office_id ?? null) === (target.head_office_id ?? null) &&
+        (cached.franchisee_id ?? null) === (target.franchisee_id ?? null) &&
+        (cached.authority_kind ?? null) === (target.authority_kind ?? null)
+      )
+    },
+  })
+}
 
 /**
  * trailing-edge debounce.
@@ -57,8 +108,16 @@ export function useCreateAuthority() {
 
   return useMutation({
     mutationFn: (data: AuthorityCreateRequest) => createAuthority(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
+      // PR #97 코드리뷰 #6 — 신규 등록이 같은 (organization, authority_kind) 그룹의 다른 권한 is_default 에만
+      // 영향을 미치므로 해당 그룹 detail cache 만 좁혀서 제거. 다른 그룹은 stale 되지 않음.
+      removeSameGroupAuthorityDetails(queryClient, {
+        owner_code: variables.owner_code,
+        head_office_id: variables.head_office_id,
+        franchisee_id: variables.franchisee_id,
+        authority_kind: variables.authority_kind,
+      })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
@@ -76,9 +135,37 @@ export function useUpdateAuthority() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: AuthorityUpdateRequest }) =>
       updateAuthority(id, data),
-    onSuccess: (_, variables) => {
+    // owner_code / head_office_id / franchisee_id 는 update payload 에 없으므로 cache 에서 미리 읽어 둠.
+    // mutation 후 cache 가 변경/제거되어도 안전하게 그룹 식별이 가능하도록 onMutate 단계에서 snapshot 보관.
+    onMutate: ({ id }) => {
+      const previousDetail = queryClient.getQueryData<AuthorityResponse>(authorityKeys.detail(id))
+      return previousDetail ? { previousDetail } : undefined
+    },
+    onSuccess: (_, variables, context) => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+      // PR #97 코드리뷰 #6 — 같은 그룹 detail cache 만 좁혀서 제거.
+      if (context?.previousDetail) {
+        const prev = context.previousDetail
+        removeSameGroupAuthorityDetails(queryClient, {
+          owner_code: prev.owner_code,
+          head_office_id: prev.head_office_id,
+          franchisee_id: prev.franchisee_id,
+          authority_kind: prev.authority_kind,
+        })
+        // authority_kind 가 변경된 경우 새 그룹의 default 도 영향받을 수 있으므로 추가 무효화.
+        const newKind = variables.data.authority_kind
+        if (newKind && newKind !== prev.authority_kind) {
+          removeSameGroupAuthorityDetails(queryClient, {
+            owner_code: prev.owner_code,
+            head_office_id: prev.head_office_id,
+            franchisee_id: prev.franchisee_id,
+            authority_kind: newKind,
+          })
+        }
+      } else {
+        // snapshot 이 없는 예외 케이스 — 자기 detail 만 안전하게 무효화 (stale lazy 초기값 위험은 감수)
+        queryClient.invalidateQueries({ queryKey: authorityKeys.detail(variables.id) })
+      }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
@@ -130,9 +217,26 @@ export function useDeleteAuthority() {
 
   return useMutation({
     mutationFn: (id: number) => deleteAuthority(id),
-    onSuccess: () => {
+    // 삭제 후에는 detail cache 가 사라지므로 onMutate 에서 snapshot 보관.
+    onMutate: (id) => {
+      const previousDetail = queryClient.getQueryData<AuthorityResponse>(authorityKeys.detail(id))
+      return previousDetail ? { previousDetail } : undefined
+    },
+    onSuccess: (_, id, context) => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: authorityKeys.details() })
+      // PR #97 코드리뷰 #6 — 같은 그룹 detail cache 만 좁혀서 제거.
+      if (context?.previousDetail) {
+        const prev = context.previousDetail
+        removeSameGroupAuthorityDetails(queryClient, {
+          owner_code: prev.owner_code,
+          head_office_id: prev.head_office_id,
+          franchisee_id: prev.franchisee_id,
+          authority_kind: prev.authority_kind,
+        })
+      } else {
+        // snapshot 이 없는 예외 케이스 — 삭제된 id 자기 detail 만 제거
+        queryClient.removeQueries({ queryKey: authorityKeys.detail(id) })
+      }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
       // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회

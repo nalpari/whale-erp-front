@@ -86,6 +86,7 @@ function SettingsAuthorityEditContent({
     authorityId,
     initialAuthority: authority,
     listPath: '/settings/authority',
+    context: 'bp',
   })
 
   // 권한 관리자: 해당 권한을 가진 관리자 목록으로 이동
