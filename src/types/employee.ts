@@ -66,8 +66,9 @@ export interface PostEmployeeInfoRequest {
   // 근무 시간 정보
   workHours: EmploymentContractWorkHourDto[]
 
-  // Partner Office 권한 (whaleerp 접근 권한). null = 권한 없음.
-  partnerOfficeAuthorityId?: number | null
+  // 직원이 초대 후 가입 완료 시 자동으로 매핑될 권한 ID.
+  // null 또는 생략 시 권한 없음 (whaleerp 접근 불가).
+  invitedAuthorityId?: number | null
 }
 
 // 직원 상세 조회 응답 DTO (GET /api/employee/info/{id})
