@@ -10,7 +10,7 @@ import AddressSearch, { type AddressData } from '@/components/common/ui/AddressS
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries'
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
-import { useAuthorityOptions } from '@/hooks/queries/use-authority-queries'
+import { useAuthorityOptionsForBpEdit } from '@/hooks/queries/use-authority-queries'
 import api, { getErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
@@ -57,7 +57,7 @@ const mapBpToForm = (bp: BpDetailResponse): BpFormData => ({
     organizationId: pf.bpId,
     partnerBusinessPartnerId: pf.partnerBpId,
   })) ?? [],
-  partnerOfficeAuthorityId: bp.partnerOfficeAuthorityId ?? null,
+  authorityId: bp.authorityId ?? null,
 })
 
 const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
@@ -148,23 +148,12 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     (opt) => opt.value === String(form.pfSaveRequest[0]?.partnerBusinessPartnerId ?? '')
   ) ?? null
 
-  // 권한 row 의 본사 ID:
-  // - 본사 BP (PF_001): 자기 자신의 BP id 가 head_office_id
-  // - 가맹 BP (PF_002): 부모 본사 ID
-  const headOfficeIdForAuthority = isEditMode
-    ? (form.pfType === 'PF_001' ? (bp?.id ?? null)
-      : form.pfType === 'PF_002' ? (bp?.parentOrganizationId ?? null)
-      : null)
-    : null
-
+  // 권한 후보 조회: BE 의 /authorities/bp-edit?bp_id=X 가 본사/가맹점 자동 판단
   const {
     data: bpAuthorityOptionList = [],
     isPending: bpAuthorityLoading,
     isError: bpAuthorityError,
-  } = useAuthorityOptions({
-    headOfficeId: headOfficeIdForAuthority,
-    isUsed: true,
-  })
+  } = useAuthorityOptionsForBpEdit(isEditMode ? (bp?.id ?? null) : null)
 
   const bpAuthorityOptions = bpAuthorityOptionList.map((a) => ({
     value: String(a.id),
@@ -341,6 +330,9 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     if (!form.bpType) newErrors.bpType = 'BP 타입을 선택해 주세요.'
     if (isFranchise && form.pfSaveRequest.length === 0) {
       newErrors.partnerBp = '본사를 선택해 주세요.'
+    }
+    if (isEditMode && form.authorityId == null) {
+      newErrors.authorityId = '권한을 선택해 주세요.'
     }
 
     setErrors(newErrors)
@@ -596,35 +588,44 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                     </tr>
                     {isEditMode && (
                       <tr>
-                        <th>Partner Office 권한</th>
+                        <th>권한 <span className="red">*</span></th>
                         <td>
                           <div className="filed-flx">
                             <div className="mx-500">
                               <SearchSelect
                                 options={bpAuthorityOptions}
-                                value={form.partnerOfficeAuthorityId != null
-                                  ? bpAuthorityOptions.find((opt) => opt.value === String(form.partnerOfficeAuthorityId)) ?? null
+                                value={form.authorityId != null
+                                  ? bpAuthorityOptions.find((opt) => opt.value === String(form.authorityId)) ?? null
                                   : null}
-                                onChange={(opt) => setForm((prev) => ({
-                                  ...prev,
-                                  partnerOfficeAuthorityId: opt?.value ? Number(opt.value) : null,
-                                }))}
+                                onChange={(opt) => {
+                                  const nextId = opt?.value ? Number(opt.value) : null
+                                  setForm((prev) => ({ ...prev, authorityId: nextId }))
+                                  if (errors.authorityId) {
+                                    setErrors((prev) => {
+                                      const next = { ...prev }
+                                      delete next.authorityId
+                                      return next
+                                    })
+                                  }
+                                }}
                                 placeholder={
-                                  headOfficeIdForAuthority == null
-                                    ? '상위 본사 정보가 없어 권한을 설정할 수 없습니다'
-                                    : bpAuthorityOptions.length === 0
-                                      ? '선택 가능한 권한이 없습니다'
-                                      : '권한 선택'
+                                  bpAuthorityOptions.length === 0
+                                    ? '선택 가능한 권한이 없습니다'
+                                    : '권한 선택'
                                 }
-                                isDisabled={headOfficeIdForAuthority == null || bpAuthorityLoading}
+                                isDisabled={bpAuthorityLoading}
                                 isSearchable={true}
-                                isClearable={true}
+                                isClearable={false}
+                                error={!!errors.authorityId}
                               />
                             </div>
                             <span style={{ color: '#666', fontSize: '13px' }}>
-                              ※ 권한 미선택 시 권한 없음으로 저장됩니다.
+                              ※ BP 수정 시 권한 선택은 필수입니다.
                             </span>
                           </div>
+                          {errors.authorityId && (
+                            <div className="warning-txt mt5" role="alert">* {errors.authorityId}</div>
+                          )}
                           {bpAuthorityError && (
                             <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
                           )}
