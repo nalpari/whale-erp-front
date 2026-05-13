@@ -354,9 +354,8 @@ export async function getEmployeeBpAuthorities(employeeInfoId: number): Promise<
  *
  * - ownerGroup: PRGRP_001(플랫폼) / PRGRP_002(BP)
  * - headOfficeId / franchiseeId: 조직 필터
- * - options.authority_kind: PRKND_xxx 다중 필터. paramsSerializer indexes:null 로 반복 파라미터 형식 보장
- *   (?authority_kind=PRKND_003&authority_kind=PRKND_004)
- * - options.is_used: 지정 시 운영 중(true)/미운영(false) 필터링, 미지정 시 전체
+ * - options.authority_kind: PRKND_xxx 다중 필터. BE 는 반복 파라미터로 받음 (예: ?authority_kind=PRKND_003&authority_kind=PRKND_004)
+ * - options.is_used: 운영 중인 권한만 (기본 미지정)
  */
 export async function getAuthoritiesByOrganization(
   ownerGroup: string,
@@ -368,24 +367,20 @@ export async function getAuthoritiesByOrganization(
     signal?: AbortSignal
   }
 ): Promise<AuthorityItem[]> {
-  const params: Record<string, string | number | boolean | readonly string[]> = { owner_group: ownerGroup }
+  const params: Record<string, string | number | readonly string[]> = { owner_group: ownerGroup }
   if (headOfficeId) params.head_office_id = headOfficeId
   if (franchiseeId) params.franchisee_id = franchiseeId
   if (options?.authority_kind && options.authority_kind.length > 0) {
     params.authority_kind = options.authority_kind
   }
   if (options?.is_used !== undefined) {
-    params.is_used = options.is_used
+    params.is_used = String(options.is_used)
   }
 
   const response = await getWithSchema(
     '/api/v1/system/authorities',
     authorityItemListResponseSchema,
-    {
-      params,
-      paramsSerializer: { indexes: null },
-      signal: options?.signal,
-    }
+    { params, signal: options?.signal }
   )
   return response.data.content
 }
