@@ -268,12 +268,25 @@ export const adminKeys = {
   authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
 }
 
+export interface AuthorityOptionsParams {
+  headOfficeId: number | null
+  authorityKinds?: readonly string[]
+  isUsed?: boolean
+}
+
 export const authorityKeys = {
   all: ['authorities'] as const,
   lists: () => [...authorityKeys.all, 'list'] as const,
   list: (params: AuthorityListParams) => [...authorityKeys.lists(), params] as const,
   details: () => [...authorityKeys.all, 'detail'] as const,
   detail: (id: number) => [...authorityKeys.details(), id] as const,
+  optionsAll: () => [...authorityKeys.all, 'options'] as const,
+  options: (params: AuthorityOptionsParams) =>
+    [...authorityKeys.optionsAll(), {
+      headOfficeId: params.headOfficeId,
+      authorityKinds: params.authorityKinds ? [...params.authorityKinds] : undefined,
+      isUsed: params.isUsed,
+    }] as const,
 }
 
 /**
