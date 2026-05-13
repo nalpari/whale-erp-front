@@ -10,6 +10,7 @@ import AddressSearch, { type AddressData } from '@/components/common/ui/AddressS
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries'
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
+import { useAuthorityOptions } from '@/hooks/queries/use-authority-queries'
 import api, { getErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
@@ -56,6 +57,7 @@ const mapBpToForm = (bp: BpDetailResponse): BpFormData => ({
     organizationId: pf.bpId,
     partnerBusinessPartnerId: pf.partnerBpId,
   })) ?? [],
+  partnerOfficeAuthorityId: bp.partnerOfficeAuthorityId ?? null,
 })
 
 const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
@@ -145,6 +147,29 @@ const BpForm = ({ id, bp }: BpFormProps) => {
   const selectedHeadOffice = headOfficeOptions.find(
     (opt) => opt.value === String(form.pfSaveRequest[0]?.partnerBusinessPartnerId ?? '')
   ) ?? null
+
+  // 권한 row 의 본사 ID:
+  // - 본사 BP (PF_001): 자기 자신의 BP id 가 head_office_id
+  // - 가맹 BP (PF_002): 부모 본사 ID
+  const headOfficeIdForAuthority = isEditMode
+    ? (form.pfType === 'PF_001' ? (bp?.id ?? null)
+      : form.pfType === 'PF_002' ? (bp?.parentOrganizationId ?? null)
+      : null)
+    : null
+
+  const {
+    data: bpAuthorityOptionList = [],
+    isPending: bpAuthorityLoading,
+    isError: bpAuthorityError,
+  } = useAuthorityOptions({
+    headOfficeId: headOfficeIdForAuthority,
+    isUsed: true,
+  })
+
+  const bpAuthorityOptions = bpAuthorityOptionList.map((a) => ({
+    value: String(a.id),
+    label: a.name,
+  }))
 
   const locationTitle = isEditMode ? '파트너 정보 수정' : '파트너 정보 등록'
   const breadcrumbs = ['Home', '파트너 정보 관리', locationTitle]
@@ -569,6 +594,43 @@ const BpForm = ({ id, bp }: BpFormProps) => {
                         {errors.bpType && <div className="warning-txt mt5">* {errors.bpType}</div>}
                       </td>
                     </tr>
+                    {isEditMode && (
+                      <tr>
+                        <th>Partner Office 권한</th>
+                        <td>
+                          <div className="filed-flx">
+                            <div className="mx-500">
+                              <SearchSelect
+                                options={bpAuthorityOptions}
+                                value={form.partnerOfficeAuthorityId != null
+                                  ? bpAuthorityOptions.find((opt) => opt.value === String(form.partnerOfficeAuthorityId)) ?? null
+                                  : null}
+                                onChange={(opt) => setForm((prev) => ({
+                                  ...prev,
+                                  partnerOfficeAuthorityId: opt?.value ? Number(opt.value) : null,
+                                }))}
+                                placeholder={
+                                  headOfficeIdForAuthority == null
+                                    ? '상위 본사 정보가 없어 권한을 설정할 수 없습니다'
+                                    : bpAuthorityOptions.length === 0
+                                      ? '선택 가능한 권한이 없습니다'
+                                      : '권한 선택'
+                                }
+                                isDisabled={headOfficeIdForAuthority == null || bpAuthorityLoading}
+                                isSearchable={true}
+                                isClearable={true}
+                              />
+                            </div>
+                            <span style={{ color: '#666', fontSize: '13px' }}>
+                              ※ 권한 미선택 시 권한 없음으로 저장됩니다.
+                            </span>
+                          </div>
+                          {bpAuthorityError && (
+                            <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
                     <tr>
                       <th>LNB 로고</th>
                       <td>
