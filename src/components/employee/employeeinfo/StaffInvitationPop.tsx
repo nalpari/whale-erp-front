@@ -8,6 +8,8 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
+import { useAuthorityOptions } from '@/hooks/queries/use-authority-queries'
+import { EMPLOYEE_INVITE_KINDS } from '@/constants/authority-kind'
 import type {
   PostEmployeeInfoRequest,
   WorkplaceType,
@@ -91,6 +93,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [headOfficeOrganizationId, setHeadOfficeOrganizationId] = useState<number | null>(null)
   const [franchiseOrganizationId, setFranchiseOrganizationId] = useState<number | null>(null)
   const [storeId, setStoreId] = useState<number | null>(null)
+  const [partnerOfficeAuthorityId, setPartnerOfficeAuthorityId] = useState<number | null>(null)
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
   const [email, setEmail] = useState('')
@@ -312,6 +315,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         contractEndDate: noEndDate ? '2999-12-31' : contractEndDate,
         jobDescription: jobDescription.trim() || null,
         workHours: updatedWorkHours,
+        partnerOfficeAuthorityId,
       }
 
       await createEmployeeMutation.mutateAsync(requestData)
@@ -347,6 +351,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setNoEndDate(false)
     setJobDescription('')
     setWorkHours(createInitialWorkHours())
+    setPartnerOfficeAuthorityId(null)
     setSaturdayWorkType('none')
     setSundayWorkType('none')
     setSaturdayBiweeklyStartDate('')
@@ -400,6 +405,18 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const storeOptions: SelectOption[] = useMemo(() =>
     storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
     [storeOptionList]
+  )
+
+  const { data: authorityOptionList = [], isPending: authorityLoading, isError: authorityError } =
+    useAuthorityOptions({
+      headOfficeId: headOfficeOrganizationId,
+      authorityKinds: EMPLOYEE_INVITE_KINDS,
+      isUsed: true,
+    })
+
+  const authorityOptions: SelectOption[] = useMemo(
+    () => authorityOptionList.map((a) => ({ value: String(a.id), label: a.name })),
+    [authorityOptionList]
   )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
@@ -537,6 +554,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                                   setFranchiseOrganizationId(null)
                                 }
                                 setStoreId(null)
+                                setPartnerOfficeAuthorityId(null)
                               }
                             }}
                             placeholder="본사 선택"
@@ -585,6 +603,38 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           isClearable={true}
                         />
                       </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Partner Office 권한</th>
+                    <td>
+                      <div className="filed-flx">
+                        <div className="block">
+                          <SearchSelect
+                            options={authorityOptions}
+                            value={partnerOfficeAuthorityId != null
+                              ? authorityOptions.find((opt) => opt.value === String(partnerOfficeAuthorityId)) ?? null
+                              : null}
+                            onChange={(opt) => setPartnerOfficeAuthorityId(opt?.value ? Number(opt.value) : null)}
+                            placeholder={
+                              headOfficeOrganizationId == null
+                                ? '본사 선택 후 권한 선택'
+                                : authorityOptions.length === 0
+                                  ? '선택 가능한 권한이 없습니다'
+                                  : '권한 선택'
+                            }
+                            isDisabled={headOfficeOrganizationId == null || authorityLoading}
+                            isSearchable={true}
+                            isClearable={true}
+                          />
+                        </div>
+                        <span style={{ color: '#666', fontSize: '13px' }}>
+                          ※ 권한 미선택 시 whaleerp 접근 권한이 없습니다.
+                        </span>
+                      </div>
+                      {authorityError && (
+                        <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
+                      )}
                     </td>
                   </tr>
                   <tr>
