@@ -8,8 +8,7 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
-import { useAuthorityOptions } from '@/hooks/queries/use-authority-queries'
-import { EMPLOYEE_INVITE_KINDS } from '@/constants/authority-kind'
+import { useAuthorityOptionsForEmployeeInvitation } from '@/hooks/queries/use-authority-queries'
 import type {
   PostEmployeeInfoRequest,
   WorkplaceType,
@@ -93,7 +92,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [headOfficeOrganizationId, setHeadOfficeOrganizationId] = useState<number | null>(null)
   const [franchiseOrganizationId, setFranchiseOrganizationId] = useState<number | null>(null)
   const [storeId, setStoreId] = useState<number | null>(null)
-  const [partnerOfficeAuthorityId, setPartnerOfficeAuthorityId] = useState<number | null>(null)
+  const [invitedAuthorityId, setInvitedAuthorityId] = useState<number | null>(null)
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
   const [email, setEmail] = useState('')
@@ -315,7 +314,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         contractEndDate: noEndDate ? '2999-12-31' : contractEndDate,
         jobDescription: jobDescription.trim() || null,
         workHours: updatedWorkHours,
-        partnerOfficeAuthorityId,
+        invitedAuthorityId,
       }
 
       await createEmployeeMutation.mutateAsync(requestData)
@@ -351,7 +350,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setNoEndDate(false)
     setJobDescription('')
     setWorkHours(createInitialWorkHours())
-    setPartnerOfficeAuthorityId(null)
+    setInvitedAuthorityId(null)
     setSaturdayWorkType('none')
     setSundayWorkType('none')
     setSaturdayBiweeklyStartDate('')
@@ -407,11 +406,12 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     [storeOptionList]
   )
 
+  // storeId 가 있으면 우선 (BE 가 점포 → 조직 거슬러 본사 결정).
+  // 없으면 headOfficeOrganizationId 로 직접 조회.
   const { data: authorityOptionList = [], isPending: authorityLoading, isError: authorityError } =
-    useAuthorityOptions({
-      headOfficeId: headOfficeOrganizationId,
-      authorityKinds: EMPLOYEE_INVITE_KINDS,
-      isUsed: true,
+    useAuthorityOptionsForEmployeeInvitation({
+      storeId: storeId ?? undefined,
+      headOfficeOrganizationId: headOfficeOrganizationId ?? undefined,
     })
 
   const authorityOptions: SelectOption[] = useMemo(
@@ -554,7 +554,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                                   setFranchiseOrganizationId(null)
                                 }
                                 setStoreId(null)
-                                setPartnerOfficeAuthorityId(null)
+                                setInvitedAuthorityId(null)
                               }
                             }}
                             placeholder="본사 선택"
@@ -573,8 +573,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               value={franchiseOrganizationId ? franchiseOptions.find(opt => opt.value === String(franchiseOrganizationId)) || null : null}
                               onChange={(opt) => {
                                 setFranchiseOrganizationId(opt?.value ? Number(opt.value) : null)
-                                // 가맹점 변경 시 점포 자동 초기화
+                                // 가맹점 변경 시 점포 자동 초기화 + 권한 후보 무효화
                                 setStoreId(null)
+                                setInvitedAuthorityId(null)
                               }}
                               placeholder="가맹점 선택"
                               isDisabled={bpLoading || (isFranchiseFixed && franchiseOrganizationId !== null)}
@@ -596,7 +597,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                         <SearchSelect
                           options={storeOptions}
                           value={storeId ? storeOptions.find(opt => opt.value === String(storeId)) || null : null}
-                          onChange={(opt) => setStoreId(opt?.value ? Number(opt.value) : null)}
+                          onChange={(opt) => {
+                            setStoreId(opt?.value ? Number(opt.value) : null)
+                            // 점포 변경 시 권한 후보 본사가 바뀔 수 있으므로 reset
+                            setInvitedAuthorityId(null)
+                          }}
                           placeholder="점포 선택"
                           isDisabled={storeLoading}
                           isSearchable={true}
@@ -612,10 +617,10 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                         <div className="block">
                           <SearchSelect
                             options={authorityOptions}
-                            value={partnerOfficeAuthorityId != null
-                              ? authorityOptions.find((opt) => opt.value === String(partnerOfficeAuthorityId)) ?? null
+                            value={invitedAuthorityId != null
+                              ? authorityOptions.find((opt) => opt.value === String(invitedAuthorityId)) ?? null
                               : null}
-                            onChange={(opt) => setPartnerOfficeAuthorityId(opt?.value ? Number(opt.value) : null)}
+                            onChange={(opt) => setInvitedAuthorityId(opt?.value ? Number(opt.value) : null)}
                             placeholder={
                               headOfficeOrganizationId == null
                                 ? '본사 선택 후 권한 선택'
