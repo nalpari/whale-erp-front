@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { adminKeys, authKeys, authorityKeys, type AuthorityListParams } from './query-keys'
+import { adminKeys, authKeys, authorityKeys, type AuthorityListParams, type AuthorityOptionsParams } from './query-keys'
 import {
   fetchAuthorities,
   fetchAuthorityDetail,
@@ -9,6 +9,7 @@ import {
   updateProgramAuthority,
   deleteAuthority,
 } from '@/lib/api/authority'
+import { getAuthoritiesByOrganization } from '@/lib/api/employee'
 import type {
   AuthorityCreateRequest,
   AuthorityResponse,
@@ -79,6 +80,28 @@ function debounce<F extends (...args: never[]) => void>(fn: F, ms: number): F {
 }
 
 /**
+ * 권한 selectbox 옵션 조회.
+ *
+ * - 본사 단위(PRGRP_002)로만 조회. headOfficeId 없으면 disabled.
+ * - authorityKinds: 직원 초대(EMPLOYEE_INVITE_KINDS), BP 수정(undefined=전체).
+ * - isUsed: 기본 true. 운영 중인 권한만 노출.
+ */
+export function useAuthorityOptions(params: AuthorityOptionsParams) {
+  const { headOfficeId, authorityKinds, isUsed = true } = params
+  return useQuery({
+    queryKey: authorityKeys.options({ headOfficeId, authorityKinds, isUsed }),
+    queryFn: ({ signal }) =>
+      getAuthoritiesByOrganization('PRGRP_002', headOfficeId ?? undefined, undefined, {
+        authority_kind: authorityKinds,
+        is_used: isUsed,
+        signal,
+      }),
+    enabled: headOfficeId != null,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/**
  * 권한 목록 조회
  */
 export function useAuthorityList(params: AuthorityListParams) {
@@ -120,6 +143,7 @@ export function useCreateAuthority() {
       })
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
@@ -168,6 +192,7 @@ export function useUpdateAuthority() {
       }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
       // 본인 권한이 영향받았을 수도 있으므로 my-authority 도 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
@@ -239,6 +264,7 @@ export function useDeleteAuthority() {
       }
       // 관리자 권한 SelectBox 캐시 무효화
       queryClient.invalidateQueries({ queryKey: adminKeys.authorityOptions() })
+      queryClient.invalidateQueries({ queryKey: authorityKeys.optionsAll() })
       // 본인 권한이 삭제되었을 수도 있으므로 my-authority 재조회
       queryClient.invalidateQueries({ queryKey: authKeys.myAuthority() })
     },
