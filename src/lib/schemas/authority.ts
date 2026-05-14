@@ -123,7 +123,8 @@ export const authorityCreateSchema = z.object({
   const isPlatformOwner = data.owner_code === 'PRGRP_001_001'
   if (!isPlatformOwner) {
     // 본사·가맹점 권한 — is_subscription / plan_type_code 는 PLATFORM 전용
-    // (authority_kind PRKND_001 은 BE 명세상 "본사 BP" 종류이므로 본사 owner 에서 정상 사용됨)
+    // authority_kind PRKND_001(본사 BP) 은 PLATFORM owner 직접 선택 전용이므로 본사/가맹점 owner 에서 차단.
+    // (form 자동 매핑은 PRKND_002 로 통일되지만 schema 단에서도 회귀/변조 방지)
     if (data.is_subscription === true) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -136,6 +137,13 @@ export const authorityCreateSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ['plan_type_code'],
         message: '요금제는 플랫폼 전용입니다',
+      })
+    }
+    if (data.authority_kind === 'PRKND_001') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['authority_kind'],
+        message: '본사 BP(PRKND_001) 종류는 플랫폼 전용입니다',
       })
     }
   } else {

@@ -91,15 +91,18 @@ export default function AuthorityForm({
         ? AUTHORITY_KIND.FRANCHISE_BP
         : undefined
 
+    // authority_kind 는 conditional spread 밖에서 항상 갱신 — PLATFORM 전환 시 이전 owner 의 stale
+    // 자동 매핑 값(PRKND_002) 잔존 차단. 부모 onChange 가 setFormData((prev) => ({ ...prev, ...data }))
+    // 로 부분 업데이트이기 때문에 키 누락 시 이전 값이 그대로 남는다.
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 구독 권한/요금제 초기화, 권한 종류는 owner_code 기반 자동 매핑
+      authority_kind: autoKind,
+      // 플랫폼이 아니면 구독 권한/요금제 초기화 (PLATFORM 일 때는 기존 값 유지)
       ...(value !== 'PRGRP_001_001' && {
         is_subscription: false,
         plan_type_code: undefined,
-        authority_kind: autoKind,
       }),
     }
     onChange(newData)
