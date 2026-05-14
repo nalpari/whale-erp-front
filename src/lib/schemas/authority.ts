@@ -156,6 +156,16 @@ export const authorityCreateSchema = z.object({
       })
     }
   }
+
+  // BE DEFAULT_REQUIRES_USED (ERR9112) 사전 차단 — 운영여부 사용 안 함 + 기초 권한 동시 설정 불가.
+  // (BE 검증과 별개로 schema 단에서도 사전 차단해 사용자 저장 후 400 왕복 제거)
+  if (data.is_used === false && data.is_default === true) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['is_default'],
+      message: '운영여부가 사용 안 함인 권한은 기초 권한으로 설정할 수 없습니다',
+    })
+  }
 })
 
 export type AuthorityCreateRequest = z.infer<typeof authorityCreateSchema>
@@ -169,6 +179,15 @@ export const authorityUpdateSchema = z.object({
   description: z.string().optional(),
   authority_kind: z.string().optional(),
   is_default: z.boolean().nullable().optional(),
+}).superRefine((data, ctx) => {
+  // BE DEFAULT_REQUIRES_USED (ERR9112) 사전 차단 — create 와 동일.
+  if (data.is_used === false && data.is_default === true) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['is_default'],
+      message: '운영여부가 사용 안 함인 권한은 기초 권한으로 설정할 수 없습니다',
+    })
+  }
 })
 
 export type AuthorityUpdateRequest = z.infer<typeof authorityUpdateSchema>
