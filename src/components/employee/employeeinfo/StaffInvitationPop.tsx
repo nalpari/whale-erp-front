@@ -630,35 +630,29 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     <th>Partner Office 권한</th>
                     <td>
                       <div className="filed-flx">
-                        {headOfficeOrganizationId == null ? (
-                          <span style={{ color: '#666', fontSize: '13px' }}>
-                            ※ 본사 선택 후 권한 부여 여부를 결정할 수 있습니다.
-                          </span>
-                        ) : authorityLoading ? (
-                          <span style={{ color: '#666', fontSize: '13px' }}>권한 정보를 불러오는 중...</span>
-                        ) : targetAuthority ? (
-                          <>
-                            <div className="toggle-wrap">
-                              <span className="toggle-txt">{targetAuthority.name}</span>
-                              <div className="toggle-btn">
-                                <input
-                                  type="checkbox"
-                                  id="toggle-invited-authority"
-                                  checked={invitedAuthorityId === targetAuthority.id}
-                                  onChange={(e) => setInvitedAuthorityId(e.target.checked ? targetAuthority.id : null)}
-                                />
-                                <label className="slider" htmlFor="toggle-invited-authority"></label>
-                              </div>
-                            </div>
-                            <span style={{ color: '#666', fontSize: '13px' }}>
-                              ※ 권한 부여 시 whaleerp 접근 권한이 주어집니다.
-                            </span>
-                          </>
-                        ) : (
-                          <span style={{ color: '#666', fontSize: '13px' }}>
-                            ※ 기초 권한으로 지정된 권한이 없습니다.
-                          </span>
-                        )}
+                        <div className="toggle-wrap">
+                          <div className="toggle-btn">
+                            <input
+                              type="checkbox"
+                              id="toggle-invited-authority"
+                              checked={targetAuthority != null && invitedAuthorityId === targetAuthority.id}
+                              onChange={(e) =>
+                                setInvitedAuthorityId(e.target.checked ? (targetAuthority?.id ?? null) : null)
+                              }
+                              disabled={headOfficeOrganizationId == null || authorityLoading || targetAuthority == null}
+                            />
+                            <label className="slider" htmlFor="toggle-invited-authority"></label>
+                          </div>
+                        </div>
+                        <span style={{ color: '#666', fontSize: '13px' }}>
+                          {headOfficeOrganizationId == null
+                            ? '※ 본사 선택 후 권한 부여 여부를 결정할 수 있습니다.'
+                            : authorityLoading
+                              ? '※ 권한 정보를 불러오는 중...'
+                              : targetAuthority
+                                ? '※ 권한 부여 시 whaleerp 접근 권한이 주어집니다.'
+                                : '※ 기초 권한으로 지정된 권한이 없습니다.'}
+                        </span>
                       </div>
                       {authorityError && (
                         <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
