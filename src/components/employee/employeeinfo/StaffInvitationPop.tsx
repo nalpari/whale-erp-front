@@ -243,6 +243,14 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       return
     }
 
+    // 권한 ID 화이트리스트 가드 — 옵션 풀에 없는 임의 권한 ID 가 payload 로 전송되어 권한 상승되는 mass-assignment 방지.
+    // (진짜 방어선은 BE 의 호출자 affiliation 검증이며 FE 가드는 회귀/변조 차단 및 UX 강건성용)
+    if (invitedAuthorityId != null && !authorityOptions.some((opt) => opt.value === String(invitedAuthorityId))) {
+      await alert('선택한 권한이 유효하지 않습니다. 다시 선택해주세요.')
+      setInvitedAuthorityId(null)
+      return
+    }
+
     try {
 
       // 평일/토요일/일요일 근무 정보 반영
@@ -414,10 +422,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       headOfficeOrganizationId: headOfficeOrganizationId ?? undefined,
     })
 
-  const authorityOptions: SelectOption[] = useMemo(
-    () => authorityOptionList.map((a) => ({ value: String(a.id), label: a.name })),
-    [authorityOptionList]
-  )
+  // is_used=true 권한만 옵션으로 노출 (BE 동일 필터 가정. FE 방어적 중복으로 폐기된 강한 권한 노출/선택 차단).
+  // React Compiler 자동 메모이제이션과 충돌하여 useMemo 제거 (preserve-manual-memoization 회피).
+  const authorityOptions: SelectOption[] = authorityOptionList
+    .filter((a) => a.is_used)
+    .map((a) => ({ value: String(a.id), label: a.name }))
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
     { value: 'SLRCC_001', label: '시급' },

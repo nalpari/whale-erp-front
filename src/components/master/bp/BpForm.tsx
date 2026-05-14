@@ -155,10 +155,13 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     isError: bpAuthorityError,
   } = useAuthorityOptionsForBpEdit(isEditMode ? (bp?.id ?? null) : null)
 
-  const bpAuthorityOptions = bpAuthorityOptionList.map((a) => ({
-    value: String(a.id),
-    label: a.name,
-  }))
+  // is_used=true 권한만 옵션으로 노출 (BE 동일 필터 가정. FE 방어적 중복으로 폐기된 강한 권한 노출/선택 차단).
+  const bpAuthorityOptions = bpAuthorityOptionList
+    .filter((a) => a.is_used)
+    .map((a) => ({
+      value: String(a.id),
+      label: a.name,
+    }))
 
   const locationTitle = isEditMode ? '파트너 정보 수정' : '파트너 정보 등록'
   const breadcrumbs = ['Home', '파트너 정보 관리', locationTitle]
@@ -333,6 +336,12 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     }
     if (isEditMode && form.authorityId == null) {
       newErrors.authorityId = '권한을 선택해 주세요.'
+    }
+    // 권한 ID 화이트리스트 가드 — 옵션 풀에 없는 임의 권한 ID 가 payload 로 전송되는 mass-assignment 방지.
+    // (진짜 방어선은 BE 가드, FE 는 회귀/변조 차단 및 UX 강건성용)
+    if (isEditMode && form.authorityId != null
+      && !bpAuthorityOptions.some((opt) => opt.value === String(form.authorityId))) {
+      newErrors.authorityId = '선택한 권한이 유효하지 않습니다. 다시 선택해 주세요.'
     }
 
     setErrors(newErrors)
