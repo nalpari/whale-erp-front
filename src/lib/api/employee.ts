@@ -370,16 +370,17 @@ export async function getAuthoritiesByOrganization(
 }
 
 // 직원 초대용 권한 후보 조회 (신규 endpoint).
-// store_id 와 head_office_organization_id 중 최소 하나 필수 — store_id 우선.
+// storeId 와 headOfficeOrganizationId 중 최소 하나 필수 — storeId 우선.
+// BE PR #143 리뷰 반영 — query param 이 camelCase 통일. snake_case 로 보내면 ERR3070 발생.
 export async function getAuthoritiesForEmployeeInvitation(
   params: { storeId?: number; headOfficeOrganizationId?: number },
   signal?: AbortSignal
 ): Promise<AuthorityCandidate[]> {
   const query: Record<string, number> = {}
   if (params.storeId) {
-    query.store_id = params.storeId
+    query.storeId = params.storeId
   } else if (params.headOfficeOrganizationId) {
-    query.head_office_organization_id = params.headOfficeOrganizationId
+    query.headOfficeOrganizationId = params.headOfficeOrganizationId
   }
   const response = await getWithSchema(
     '/api/v1/system/authorities/employee-invitation',
@@ -390,6 +391,7 @@ export async function getAuthoritiesForEmployeeInvitation(
 }
 
 // BP 수정용 권한 후보 조회 (신규 endpoint).
+// BE PR #143 리뷰 반영 — query param 이 bp_id → bpId 로 camelCase 통일.
 export async function getAuthoritiesForBpEdit(
   bpId: number,
   signal?: AbortSignal
@@ -397,7 +399,7 @@ export async function getAuthoritiesForBpEdit(
   const response = await getWithSchema(
     '/api/v1/system/authorities/bp-edit',
     authorityCandidateListResponseSchema,
-    { params: { bp_id: bpId }, signal }
+    { params: { bpId }, signal }
   )
   return response.data
 }
