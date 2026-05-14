@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 
 /**
@@ -123,7 +122,8 @@ export const authorityCreateSchema = z.object({
   // 진짜 방어선은 BE 가드이며 이 superRefine 은 회귀 방지/UX 차원.
   const isPlatformOwner = data.owner_code === 'PRGRP_001_001'
   if (!isPlatformOwner) {
-    // 본사·가맹점 권한 — is_subscription / plan_type_code / PRKND_001 은 PLATFORM 전용
+    // 본사·가맹점 권한 — is_subscription / plan_type_code 는 PLATFORM 전용
+    // (authority_kind PRKND_001 은 BE 명세상 "본사 BP" 종류이므로 본사 owner 에서 정상 사용됨)
     if (data.is_subscription === true) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -136,13 +136,6 @@ export const authorityCreateSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ['plan_type_code'],
         message: '요금제는 플랫폼 전용입니다',
-      })
-    }
-    if (data.authority_kind === AUTHORITY_KIND.PLATFORM) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['authority_kind'],
-        message: '해당 권한 종류는 플랫폼 전용입니다',
       })
     }
   } else {

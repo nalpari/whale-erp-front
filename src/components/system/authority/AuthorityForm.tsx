@@ -52,7 +52,9 @@ export default function AuthorityForm({
   const { data: kindCodes, isPending: isKindCodesPending, isError: isKindCodesError } =
     useCommonCodeHierarchy('PRKND')
   const kindOptions: SelectOption[] = (kindCodes ?? [])
-    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.PLATFORM : true))
+    // BP context (환경설정/권한 관리) 에서는 본사 BP(PRKND_001) 종류 등록 흐름이 없으므로 옵션에서 제외
+    // (기존 동작 유지 — PRKND_002 등 다른 종류 제외 여부는 별도 결정 필요시 추가)
+    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.HEAD_OFFICE_BP : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
   // 현재 폼 데이터 — BE PR #141 필드 rename 반영
@@ -81,15 +83,23 @@ export default function AuthorityForm({
   const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
+    // 본사/가맹점 owner 선택 시 권한 종류 row 가 숨겨지므로 자동 매핑:
+    // - 본사(PRGRP_002_001) → PRKND_001 (본사 BP)
+    // - 가맹점(PRGRP_002_002) → PRKND_002 (가맹 BP)
+    const autoKind =
+      value === OWNER_CODE.HEAD_OFFICE ? AUTHORITY_KIND.HEAD_OFFICE_BP
+      : value === OWNER_CODE.FRANCHISE ? AUTHORITY_KIND.FRANCHISE_BP
+      : undefined
+
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 구독 권한/요금제/권한 종류 초기화
+      // 플랫폼이 아니면 구독 권한/요금제 초기화, 권한 종류는 owner_code 기반 자동 매핑
       ...(value !== 'PRGRP_001_001' && {
         is_subscription: false,
         plan_type_code: undefined,
-        authority_kind: undefined,
+        authority_kind: autoKind,
       }),
     }
     onChange(newData)

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getErrorMessage } from '@/lib/api'
 import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
 import { type AuthorityFormContext, isKindRowVisible } from '@/lib/authority-visibility'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { formatZodError } from '@/lib/zod-utils'
 import {
   useCreateAuthority,
@@ -296,8 +297,15 @@ export function useAuthorityForm({
             isPlatformOwner && formData.is_subscription && formData.plan_type_code
               ? formData.plan_type_code
               : undefined,
-          // authority_kind 는 row 가 보일 때만 필수. 숨겨졌을 때는 undefined 로 보내야 schema 통과.
-          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
+          // authority_kind:
+          // - kind row 가 보이는 케이스(platform owner / bp context): 사용자가 선택한 formData.authority_kind 사용
+          // - kind row 가 숨겨진 케이스(platform context + 본사/가맹점 owner): owner_code 기반 강제 매핑
+          //   본사(PRGRP_002_001) → PRKND_001, 가맹점(PRGRP_002_002) → PRKND_002
+          authority_kind: kindRowVisible
+            ? formData.authority_kind
+            : formData.owner_code === 'PRGRP_002_001' ? AUTHORITY_KIND.HEAD_OFFICE_BP
+              : formData.owner_code === 'PRGRP_002_002' ? AUTHORITY_KIND.FRANCHISE_BP
+              : undefined,
           // is_default 는 BP 전용 — PLATFORM 에서는 키 누락
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
           is_used: formData.is_used,
