@@ -46,6 +46,8 @@ export interface BpDetailResponse {
     createdByName: string | null
     updatedBy: number
     createdAt: Date
+    authorityId?: number | null
+    authorityName?: string | null
     updatedAt: Date
 }
 
@@ -88,6 +90,7 @@ export interface BpFormData {
     representativeEmail: string
     bpType: string
     pfSaveRequest: BpPfSaveRequest[]
+    authorityId?: number | null
 }
 
 export interface BpListParams {

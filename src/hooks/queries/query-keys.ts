@@ -268,12 +268,26 @@ export const adminKeys = {
   authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
 }
 
+export interface AuthorityEmployeeInvitationParams {
+  storeId?: number
+  headOfficeOrganizationId?: number
+}
+
 export const authorityKeys = {
   all: ['authorities'] as const,
   lists: () => [...authorityKeys.all, 'list'] as const,
   list: (params: AuthorityListParams) => [...authorityKeys.lists(), params] as const,
   details: () => [...authorityKeys.all, 'detail'] as const,
   detail: (id: number) => [...authorityKeys.details(), id] as const,
+  // 권한 후보 (selectbox 옵션) — Approach C 전용 endpoint × 2
+  candidatesAll: () => [...authorityKeys.all, 'candidates'] as const,
+  employeeInvitation: (params: AuthorityEmployeeInvitationParams) =>
+    [...authorityKeys.candidatesAll(), 'employee-invitation', {
+      storeId: params.storeId,
+      headOfficeOrganizationId: params.headOfficeOrganizationId,
+    }] as const,
+  bpEdit: (bpId: number | null) =>
+    [...authorityKeys.candidatesAll(), 'bp-edit', bpId] as const,
 }
 
 /**

@@ -52,7 +52,9 @@ export default function AuthorityForm({
   const { data: kindCodes, isPending: isKindCodesPending, isError: isKindCodesError } =
     useCommonCodeHierarchy('PRKND')
   const kindOptions: SelectOption[] = (kindCodes ?? [])
-    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.PLATFORM : true))
+    // BP context (환경설정/권한 관리) 에서는 본사 BP(PRKND_001) 종류 등록 흐름이 없으므로 옵션에서 제외
+    // (기존 동작 유지 — PRKND_002 등 다른 종류 제외 여부는 별도 결정 필요시 추가)
+    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.HEAD_OFFICE_BP : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
   // 현재 폼 데이터 — BE PR #141 필드 rename 반영
@@ -81,15 +83,26 @@ export default function AuthorityForm({
   const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
+    // 본사/가맹점 owner 선택 시 권한 종류 row 가 숨겨지므로 자동 매핑:
+    // 운영 정책상 본사/가맹점 owner 권한은 둘 다 PRKND_002(가맹 BP) 로 통일 저장.
+    // (PRKND_001 은 옵션·필터에서 제외되어 신규 데이터 생성 경로 없음)
+    const autoKind =
+      value === OWNER_CODE.HEAD_OFFICE || value === OWNER_CODE.FRANCHISE
+        ? AUTHORITY_KIND.FRANCHISE_BP
+        : undefined
+
+    // authority_kind 는 conditional spread 밖에서 항상 갱신 — PLATFORM 전환 시 이전 owner 의 stale
+    // 자동 매핑 값(PRKND_002) 잔존 차단. 부모 onChange 가 setFormData((prev) => ({ ...prev, ...data }))
+    // 로 부분 업데이트이기 때문에 키 누락 시 이전 값이 그대로 남는다.
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 구독 권한/요금제/권한 종류 초기화
+      authority_kind: autoKind,
+      // 플랫폼이 아니면 구독 권한/요금제 초기화 (PLATFORM 일 때는 기존 값 유지)
       ...(value !== 'PRGRP_001_001' && {
         is_subscription: false,
         plan_type_code: undefined,
-        authority_kind: undefined,
       }),
     }
     onChange(newData)
