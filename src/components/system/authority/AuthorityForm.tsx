@@ -84,12 +84,12 @@ export default function AuthorityForm({
 
   const handleOwnerCodeChange = (value: string) => {
     // 본사/가맹점 owner 선택 시 권한 종류 row 가 숨겨지므로 자동 매핑:
-    // - 본사(PRGRP_002_001) → PRKND_001 (본사 BP)
-    // - 가맹점(PRGRP_002_002) → PRKND_002 (가맹 BP)
+    // 운영 정책상 본사/가맹점 owner 권한은 둘 다 PRKND_002(가맹 BP) 로 통일 저장.
+    // (PRKND_001 은 옵션·필터에서 제외되어 신규 데이터 생성 경로 없음)
     const autoKind =
-      value === OWNER_CODE.HEAD_OFFICE ? AUTHORITY_KIND.HEAD_OFFICE_BP
-      : value === OWNER_CODE.FRANCHISE ? AUTHORITY_KIND.FRANCHISE_BP
-      : undefined
+      value === OWNER_CODE.HEAD_OFFICE || value === OWNER_CODE.FRANCHISE
+        ? AUTHORITY_KIND.FRANCHISE_BP
+        : undefined
 
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
