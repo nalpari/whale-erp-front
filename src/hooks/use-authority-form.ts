@@ -340,7 +340,15 @@ export function useAuthorityForm({
           name: formData.name,
           is_used: formData.is_used,
           description: formData.description,
-          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
+          // authority_kind:
+          // - kind row 가 보이는 케이스: 사용자가 선택한 formData.authority_kind 사용
+          // - kind row 가 숨겨진 케이스(platform context + 본사/가맹점 owner): create 와 동일하게 PRKND_002 강제 매핑
+          //   (create 와 정책 일관 + BE 가 PUT 전체 교체 시맨틱이어도 null 덮어쓰기 방지)
+          authority_kind: kindRowVisible
+            ? formData.authority_kind
+            : (formData.owner_code === 'PRGRP_002_001' || formData.owner_code === 'PRGRP_002_002')
+              ? AUTHORITY_KIND.FRANCHISE_BP
+              : undefined,
           // is_default 는 BP 권한일 때만 의미 — PLATFORM 은 전달하지 않음
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
         }
