@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { OWNER_CODE } from '@/constants/owner-code'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
@@ -243,10 +244,10 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       return
     }
 
-    // 권한 ID 화이트리스트 가드 — 옵션 풀에 없는 임의 권한 ID 가 payload 로 전송되어 권한 상승되는 mass-assignment 방지.
+    // 권한 ID 화이트리스트 가드 — 토글이 매핑하는 targetAuthority.id 외의 임의 값 차단 (mass-assignment 방지).
     // (진짜 방어선은 BE 의 호출자 affiliation 검증이며 FE 가드는 회귀/변조 차단 및 UX 강건성용)
-    if (invitedAuthorityId != null && !authorityOptions.some((opt) => opt.value === String(invitedAuthorityId))) {
-      await alert('선택한 권한이 유효하지 않습니다. 다시 선택해주세요.')
+    if (invitedAuthorityId != null && invitedAuthorityId !== targetAuthority?.id) {
+      await alert('선택한 권한이 유효하지 않습니다. 다시 시도해주세요.')
       setInvitedAuthorityId(null)
       return
     }
@@ -422,11 +423,15 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       headOfficeOrganizationId: headOfficeOrganizationId ?? undefined,
     })
 
-  // is_used=true 권한만 옵션으로 노출 (BE 동일 필터 가정. FE 방어적 중복으로 폐기된 강한 권한 노출/선택 차단).
-  // React Compiler 자동 메모이제이션과 충돌하여 useMemo 제거 (preserve-manual-memoization 회피).
-  const authorityOptions: SelectOption[] = authorityOptionList
-    .filter((a) => a.is_used)
-    .map((a) => ({ value: String(a.id), label: a.name }))
+  // 직원 초대 권한 후보는 BE 가 is_deleted=false + is_used=true + is_default=true 인 권한만 내림.
+  // 점포 선택 여부에 따라 매핑할 권한 종류가 정해짐:
+  //   - 점포 선택 O → PRKND_004 (점포관리자)
+  //   - 점포 선택 X → PRKND_003 (본사직원)
+  // 각 종류에 기초 권한은 최대 1건만 존재. 토글 UI 로 권한 부여 여부만 결정.
+  const targetAuthorityKind = storeId != null ? AUTHORITY_KIND.STORE_MANAGER : AUTHORITY_KIND.HEAD_OFFICE_EMPLOYEE
+  const targetAuthority = authorityOptionList.find(
+    (a) => a.authority_kind === targetAuthorityKind && a.is_used && a.is_default === true
+  )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
     { value: 'SLRCC_001', label: '시급' },
@@ -520,6 +525,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               setWorkplaceType('HEAD_OFFICE')
                               setFranchiseOrganizationId(null)
                               setStoreId(null)
+                              // 점포 X 로 전환 시 targetAuthorityKind 가 PRKND_004 → PRKND_003 로 변경되므로 reset
+                              setInvitedAuthorityId(null)
                             }}
                             disabled={isWorkplaceTypeFixed}
                           />
@@ -623,28 +630,35 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                     <th>Partner Office 권한</th>
                     <td>
                       <div className="filed-flx">
-                        <div className="block">
-                          <SearchSelect
-                            options={authorityOptions}
-                            value={invitedAuthorityId != null
-                              ? authorityOptions.find((opt) => opt.value === String(invitedAuthorityId)) ?? null
-                              : null}
-                            onChange={(opt) => setInvitedAuthorityId(opt?.value ? Number(opt.value) : null)}
-                            placeholder={
-                              headOfficeOrganizationId == null
-                                ? '본사 선택 후 권한 선택'
-                                : authorityOptions.length === 0
-                                  ? '선택 가능한 권한이 없습니다'
-                                  : '권한 선택'
-                            }
-                            isDisabled={headOfficeOrganizationId == null || authorityLoading}
-                            isSearchable={true}
-                            isClearable={true}
-                          />
-                        </div>
-                        <span style={{ color: '#666', fontSize: '13px' }}>
-                          ※ 권한 미선택 시 whaleerp 접근 권한이 없습니다.
-                        </span>
+                        {headOfficeOrganizationId == null ? (
+                          <span style={{ color: '#666', fontSize: '13px' }}>
+                            ※ 본사 선택 후 권한 부여 여부를 결정할 수 있습니다.
+                          </span>
+                        ) : authorityLoading ? (
+                          <span style={{ color: '#666', fontSize: '13px' }}>권한 정보를 불러오는 중...</span>
+                        ) : targetAuthority ? (
+                          <>
+                            <div className="toggle-wrap">
+                              <span className="toggle-txt">{targetAuthority.name}</span>
+                              <div className="toggle-btn">
+                                <input
+                                  type="checkbox"
+                                  id="toggle-invited-authority"
+                                  checked={invitedAuthorityId === targetAuthority.id}
+                                  onChange={(e) => setInvitedAuthorityId(e.target.checked ? targetAuthority.id : null)}
+                                />
+                                <label className="slider" htmlFor="toggle-invited-authority"></label>
+                              </div>
+                            </div>
+                            <span style={{ color: '#666', fontSize: '13px' }}>
+                              ※ 권한 부여 시 whaleerp 접근 권한이 주어집니다.
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ color: '#666', fontSize: '13px' }}>
+                            ※ 기초 권한으로 지정된 권한이 없습니다.
+                          </span>
+                        )}
                       </div>
                       {authorityError && (
                         <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
