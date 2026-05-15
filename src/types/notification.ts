@@ -18,7 +18,7 @@ export type SendCategoryCode =
   | 'SNDCTG_008'
   | 'SNDCTG_009'
 
-export interface AlimTalkTemplateSearchParams {
+export interface MessageTemplateSearchParams {
   sendType?: SendType
   categoryCode?: string
   templateCode?: string
@@ -29,7 +29,7 @@ export interface AlimTalkTemplateSearchParams {
   sort?: string
 }
 
-export interface AlimTalkTemplateListItem {
+export interface MessageTemplateListItem {
   id: number
   categoryName: string | null
   templateCode: string
@@ -37,7 +37,7 @@ export interface AlimTalkTemplateListItem {
   createdAt: string
 }
 
-export interface AlimTalkTemplateDetail {
+export interface MessageTemplateDetail {
   id: number
   categoryCodeId: number | null
   categoryName: string | null
@@ -51,7 +51,7 @@ export interface AlimTalkTemplateDetail {
   updatedAt: string | null
 }
 
-export interface AlimTalkTemplateCreateRequest {
+export interface MessageTemplateCreateRequest {
   categoryCodeId: number
   templateCode: string
   title: string
@@ -59,7 +59,7 @@ export interface AlimTalkTemplateCreateRequest {
   body: string
 }
 
-export interface AlimTalkTemplateUpdateRequest {
+export interface MessageTemplateUpdateRequest {
   categoryCodeId: number
   title: string
   sendTimingCodeId?: number | null

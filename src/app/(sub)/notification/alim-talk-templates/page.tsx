@@ -1,5 +1,5 @@
-import AlimTalkTemplates from '@/components/alim-talk-templates/AlimTalkTemplates'
+import MessageTemplates from '@/components/message-templates/MessageTemplates'
 
-export default function AlimTalkTemplatesPage() {
-  return <AlimTalkTemplates />
+export default function MessageTemplatesPage() {
+  return <MessageTemplates />
 }

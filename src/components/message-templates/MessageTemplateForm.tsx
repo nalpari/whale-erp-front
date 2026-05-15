@@ -7,19 +7,19 @@ import { Input } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
 import { useCommonCodeHierarchy } from '@/hooks/queries'
 import {
-  useCreateAlimTalkTemplate,
-  useDeleteAlimTalkTemplate,
-  useUpdateAlimTalkTemplate,
-} from '@/hooks/queries/use-alim-talk-template-queries'
+  useCreateMessageTemplate,
+  useDeleteMessageTemplate,
+  useUpdateMessageTemplate,
+} from '@/hooks/queries/use-message-template-queries'
 import type {
-  AlimTalkTemplateCreateRequest,
-  AlimTalkTemplateDetail,
-  AlimTalkTemplateUpdateRequest,
+  MessageTemplateCreateRequest,
+  MessageTemplateDetail,
+  MessageTemplateUpdateRequest,
 } from '@/types/notification'
 
-interface AlimTalkTemplateFormProps {
+interface MessageTemplateFormProps {
   mode: 'create' | 'edit'
-  initial?: AlimTalkTemplateDetail
+  initial?: MessageTemplateDetail
 }
 
 const BREADCRUMBS = ['시스템 관리', '발송 템플릿 관리']
@@ -40,7 +40,7 @@ const EMPTY_FORM: FormState = {
   body: '',
 }
 
-export default function AlimTalkTemplateForm({ mode, initial }: AlimTalkTemplateFormProps) {
+export default function MessageTemplateForm({ mode, initial }: MessageTemplateFormProps) {
   const router = useRouter()
 
   const [form, setForm] = useState<FormState>(() =>
@@ -63,9 +63,9 @@ export default function AlimTalkTemplateForm({ mode, initial }: AlimTalkTemplate
     [categoryCodes],
   )
 
-  const createMutation = useCreateAlimTalkTemplate()
-  const updateMutation = useUpdateAlimTalkTemplate(initial?.id ?? 0)
-  const deleteMutation = useDeleteAlimTalkTemplate()
+  const createMutation = useCreateMessageTemplate()
+  const updateMutation = useUpdateMessageTemplate(initial?.id ?? 0)
+  const deleteMutation = useDeleteMessageTemplate()
 
   const canSubmit =
     form.categoryCodeId !== null &&
@@ -82,7 +82,7 @@ export default function AlimTalkTemplateForm({ mode, initial }: AlimTalkTemplate
     setErrorMsg(null)
     try {
       if (mode === 'create') {
-        const request: AlimTalkTemplateCreateRequest = {
+        const request: MessageTemplateCreateRequest = {
           categoryCodeId: form.categoryCodeId,
           templateCode: form.templateCode.trim(),
           title: form.title.trim(),
@@ -91,7 +91,7 @@ export default function AlimTalkTemplateForm({ mode, initial }: AlimTalkTemplate
         }
         await createMutation.mutateAsync(request)
       } else if (initial) {
-        const request: AlimTalkTemplateUpdateRequest = {
+        const request: MessageTemplateUpdateRequest = {
           categoryCodeId: form.categoryCodeId,
           title: form.title.trim(),
           sendTimingCodeId: form.sendTimingCodeId ?? null,

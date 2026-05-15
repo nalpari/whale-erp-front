@@ -6,7 +6,7 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { formatDateTimeYmdHm } from '@/util/date-util'
-import type { AlimTalkTemplateListItem, SendType } from '@/types/notification'
+import type { MessageTemplateListItem, SendType } from '@/types/notification'
 
 /**
  * 발송 구분 → 등록 페이지 라우트 매핑.
@@ -26,7 +26,7 @@ const SEND_TYPE_LABEL: Record<SendType, string> = {
   SMS: '문자',
 }
 
-const COLUMN_DEFS: ColDef<AlimTalkTemplateListItem>[] = [
+const COLUMN_DEFS: ColDef<MessageTemplateListItem>[] = [
   { headerName: '#', valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1, width: 80 },
   { field: 'categoryName', headerName: '템플릿 분류', flex: 1 },
   { field: 'templateCode', headerName: '템플릿 코드', flex: 1 },
@@ -39,8 +39,8 @@ const COLUMN_DEFS: ColDef<AlimTalkTemplateListItem>[] = [
   },
 ]
 
-interface AlimTalkTemplateListProps {
-  rows: AlimTalkTemplateListItem[]
+interface MessageTemplateListProps {
+  rows: MessageTemplateListItem[]
   error?: string | null
   loading: boolean
   page: number
@@ -53,7 +53,7 @@ interface AlimTalkTemplateListProps {
 
 const PAGE_SIZE_OPTIONS = [50, 100, 200]
 
-export default function AlimTalkTemplateList({
+export default function MessageTemplateList({
   rows,
   error,
   loading,
@@ -63,10 +63,10 @@ export default function AlimTalkTemplateList({
   sendType,
   onPageChange,
   onPageSizeChange,
-}: AlimTalkTemplateListProps) {
+}: MessageTemplateListProps) {
   const router = useRouter()
 
-  const handleRowClick = (event: RowClickedEvent<AlimTalkTemplateListItem>) => {
+  const handleRowClick = (event: RowClickedEvent<MessageTemplateListItem>) => {
     if (event.data) {
       router.push(`/notification/alim-talk-templates/${event.data.id}`)
     }

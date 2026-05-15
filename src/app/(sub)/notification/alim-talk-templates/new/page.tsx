@@ -1,5 +1,5 @@
-import AlimTalkTemplateForm from '@/components/alim-talk-templates/AlimTalkTemplateForm'
+import MessageTemplateForm from '@/components/message-templates/MessageTemplateForm'
 
-export default function AlimTalkTemplateNewPage() {
-  return <AlimTalkTemplateForm mode="create" />
+export default function MessageTemplateNewPage() {
+  return <MessageTemplateForm mode="create" />
 }

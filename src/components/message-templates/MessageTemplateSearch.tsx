@@ -5,10 +5,10 @@ import AnimateHeight from 'react-animate-height'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { Input } from '@/components/common/ui'
 import { useCommonCodeHierarchy } from '@/hooks/queries'
-import { useAlimTalkTemplateSearchStore } from '@/stores/alim-talk-template-search-store'
+import { useMessageTemplateSearchStore } from '@/stores/message-template-search-store'
 import type { SendType } from '@/types/notification'
 
-interface AlimTalkTemplateSearchProps {
+interface MessageTemplateSearchProps {
   resultCount: number
 }
 
@@ -31,15 +31,15 @@ const ENUM_TO_SNDTYP: Record<SendType, string> = {
   SMS: 'SNDTYP_003',
 }
 
-export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplateSearchProps) {
-  const filters = useAlimTalkTemplateSearchStore((s) => s.filters)
-  const appliedFilters = useAlimTalkTemplateSearchStore((s) => s.appliedFilters)
-  const searchOpen = useAlimTalkTemplateSearchStore((s) => s.searchOpen)
-  const setFilters = useAlimTalkTemplateSearchStore((s) => s.setFilters)
-  const applyFilters = useAlimTalkTemplateSearchStore((s) => s.applyFilters)
-  const setSearchOpen = useAlimTalkTemplateSearchStore((s) => s.setSearchOpen)
-  const removeFilter = useAlimTalkTemplateSearchStore((s) => s.removeFilter)
-  const reset = useAlimTalkTemplateSearchStore((s) => s.reset)
+export default function MessageTemplateSearch({ resultCount }: MessageTemplateSearchProps) {
+  const filters = useMessageTemplateSearchStore((s) => s.filters)
+  const appliedFilters = useMessageTemplateSearchStore((s) => s.appliedFilters)
+  const searchOpen = useMessageTemplateSearchStore((s) => s.searchOpen)
+  const setFilters = useMessageTemplateSearchStore((s) => s.setFilters)
+  const applyFilters = useMessageTemplateSearchStore((s) => s.applyFilters)
+  const setSearchOpen = useMessageTemplateSearchStore((s) => s.setSearchOpen)
+  const removeFilter = useMessageTemplateSearchStore((s) => s.removeFilter)
+  const reset = useMessageTemplateSearchStore((s) => s.reset)
 
   const { data: categoryCodes = [], isPending: categoryLoading, error: categoryError } =
     useCommonCodeHierarchy('SNDCTG')

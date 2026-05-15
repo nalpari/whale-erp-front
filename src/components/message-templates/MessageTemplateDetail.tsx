@@ -1,15 +1,15 @@
 'use client'
 
-import { useAlimTalkTemplateDetail } from '@/hooks/queries/use-alim-talk-template-queries'
-import AlimTalkTemplateForm from '@/components/alim-talk-templates/AlimTalkTemplateForm'
+import { useMessageTemplateDetail } from '@/hooks/queries/use-message-template-queries'
+import MessageTemplateForm from '@/components/message-templates/MessageTemplateForm'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 
-interface AlimTalkTemplateDetailProps {
+interface MessageTemplateDetailProps {
   id: number
 }
 
-export default function AlimTalkTemplateDetail({ id }: AlimTalkTemplateDetailProps) {
-  const { data: template, isPending, error } = useAlimTalkTemplateDetail(id)
+export default function MessageTemplateDetail({ id }: MessageTemplateDetailProps) {
+  const { data: template, isPending, error } = useMessageTemplateDetail(id)
 
   if (isPending) {
     return (
@@ -32,5 +32,5 @@ export default function AlimTalkTemplateDetail({ id }: AlimTalkTemplateDetailPro
     )
   }
 
-  return <AlimTalkTemplateForm mode="edit" initial={template} key={template.id} />
+  return <MessageTemplateForm mode="edit" initial={template} key={template.id} />
 }

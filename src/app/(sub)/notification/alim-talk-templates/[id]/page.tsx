@@ -1,10 +1,10 @@
-import AlimTalkTemplateDetail from '@/components/alim-talk-templates/AlimTalkTemplateDetail'
+import MessageTemplateDetail from '@/components/message-templates/MessageTemplateDetail'
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
-export default async function AlimTalkTemplateDetailPage({ params }: PageProps) {
+export default async function MessageTemplateDetailPage({ params }: PageProps) {
   const { id } = await params
-  return <AlimTalkTemplateDetail id={Number(id)} />
+  return <MessageTemplateDetail id={Number(id)} />
 }

@@ -2,23 +2,23 @@
 
 import { useMemo } from 'react'
 import Location from '@/components/ui/Location'
-import AlimTalkTemplateSearch from '@/components/alim-talk-templates/AlimTalkTemplateSearch'
-import AlimTalkTemplateList from '@/components/alim-talk-templates/AlimTalkTemplateList'
-import { useAlimTalkTemplateList } from '@/hooks/queries/use-alim-talk-template-queries'
-import { useAlimTalkTemplateSearchStore } from '@/stores/alim-talk-template-search-store'
-import type { AlimTalkTemplateSearchParams } from '@/types/notification'
+import MessageTemplateSearch from '@/components/message-templates/MessageTemplateSearch'
+import MessageTemplateList from '@/components/message-templates/MessageTemplateList'
+import { useMessageTemplateList } from '@/hooks/queries/use-message-template-queries'
+import { useMessageTemplateSearchStore } from '@/stores/message-template-search-store'
+import type { MessageTemplateSearchParams } from '@/types/notification'
 
 const BREADCRUMBS = ['시스템 관리', '발송 템플릿 관리']
 
-export default function AlimTalkTemplates() {
-  const appliedFilters = useAlimTalkTemplateSearchStore((s) => s.appliedFilters)
-  const page = useAlimTalkTemplateSearchStore((s) => s.page)
-  const pageSize = useAlimTalkTemplateSearchStore((s) => s.pageSize)
-  const hasSearched = useAlimTalkTemplateSearchStore((s) => s.hasSearched)
-  const setPage = useAlimTalkTemplateSearchStore((s) => s.setPage)
-  const setPageSize = useAlimTalkTemplateSearchStore((s) => s.setPageSize)
+export default function MessageTemplates() {
+  const appliedFilters = useMessageTemplateSearchStore((s) => s.appliedFilters)
+  const page = useMessageTemplateSearchStore((s) => s.page)
+  const pageSize = useMessageTemplateSearchStore((s) => s.pageSize)
+  const hasSearched = useMessageTemplateSearchStore((s) => s.hasSearched)
+  const setPage = useMessageTemplateSearchStore((s) => s.setPage)
+  const setPageSize = useMessageTemplateSearchStore((s) => s.setPageSize)
 
-  const listParams: AlimTalkTemplateSearchParams = useMemo(
+  const listParams: MessageTemplateSearchParams = useMemo(
     () => ({
       sendType: appliedFilters.sendType,
       categoryCode: appliedFilters.categoryCode || undefined,
@@ -33,7 +33,7 @@ export default function AlimTalkTemplates() {
 
   const isAlimTalk = appliedFilters.sendType === 'ALIM_TALK'
   const enabled = hasSearched && isAlimTalk
-  const { data: response, isPending, error } = useAlimTalkTemplateList(listParams, enabled)
+  const { data: response, isPending, error } = useMessageTemplateList(listParams, enabled)
 
   const loading = isPending && enabled
   const resultCount = enabled ? response?.totalElements ?? 0 : 0
@@ -42,13 +42,13 @@ export default function AlimTalkTemplates() {
   return (
     <div className="data-wrap">
       <Location title="발송 템플릿 관리" list={BREADCRUMBS} />
-      <AlimTalkTemplateSearch resultCount={resultCount} />
+      <MessageTemplateSearch resultCount={resultCount} />
       {!isAlimTalk && (
         <p className="warning-txt" style={{ margin: '8px 0' }}>
           ※ 이메일/문자 템플릿은 후속 작업에서 지원됩니다.
         </p>
       )}
-      <AlimTalkTemplateList
+      <MessageTemplateList
         rows={rows}
         loading={loading}
         error={error?.message}
