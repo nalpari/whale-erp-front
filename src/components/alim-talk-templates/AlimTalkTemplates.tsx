@@ -55,6 +55,7 @@ export default function AlimTalkTemplates() {
         page={page}
         pageSize={pageSize}
         totalPages={response?.totalPages ?? 0}
+        sendType={appliedFilters.sendType}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

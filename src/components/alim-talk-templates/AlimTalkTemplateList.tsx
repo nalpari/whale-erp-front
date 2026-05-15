@@ -6,7 +6,25 @@ import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { formatDateTimeYmdHm } from '@/util/date-util'
-import type { AlimTalkTemplateListItem } from '@/types/notification'
+import type { AlimTalkTemplateListItem, SendType } from '@/types/notification'
+
+/**
+ * 발송 구분 → 등록 페이지 라우트 매핑.
+ *
+ * 향후 이메일/문자 채널 추가 시 본 테이블에 path만 추가하면 등록 분기가 자동으로 동작.
+ * 현재는 알림톡만 활성. 알림톡 외 선택 시 `handleCreate`에서 안내 후 차단.
+ */
+const REGISTER_PATH_BY_SEND_TYPE: Partial<Record<SendType, string>> = {
+  ALIM_TALK: '/notification/alim-talk-templates/new',
+  // EMAIL: '/notification/email-templates/new',  // 후속 PR
+  // SMS: '/notification/sms-templates/new',       // 후속 PR
+}
+
+const SEND_TYPE_LABEL: Record<SendType, string> = {
+  ALIM_TALK: '알림톡',
+  EMAIL: '이메일',
+  SMS: '문자',
+}
 
 const COLUMN_DEFS: ColDef<AlimTalkTemplateListItem>[] = [
   { headerName: '#', valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1, width: 80 },
@@ -28,6 +46,7 @@ interface AlimTalkTemplateListProps {
   page: number
   pageSize: number
   totalPages: number
+  sendType: SendType
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
 }
@@ -41,6 +60,7 @@ export default function AlimTalkTemplateList({
   page,
   pageSize,
   totalPages,
+  sendType,
   onPageChange,
   onPageSizeChange,
 }: AlimTalkTemplateListProps) {
@@ -53,7 +73,14 @@ export default function AlimTalkTemplateList({
   }
 
   const handleCreate = () => {
-    router.push('/notification/alim-talk-templates/new')
+    const path = REGISTER_PATH_BY_SEND_TYPE[sendType]
+    if (!path) {
+      window.alert(
+        `${SEND_TYPE_LABEL[sendType]} 템플릿 등록은 후속 작업에서 지원됩니다.`,
+      )
+      return
+    }
+    router.push(path)
   }
 
   return (
