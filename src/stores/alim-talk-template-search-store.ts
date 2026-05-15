@@ -21,6 +21,7 @@ interface AlimTalkTemplateSearchState {
   page: number
   pageSize: number
   searchOpen: boolean
+  hasSearched: boolean
 
   setFilters: (updates: Partial<AlimTalkTemplateSearchFilters>) => void
   applyFilters: () => void
@@ -38,13 +39,14 @@ export const useAlimTalkTemplateSearchStore = create<AlimTalkTemplateSearchState
     page: 0,
     pageSize: 50,
     searchOpen: true,
+    hasSearched: false,
 
     setFilters: (updates) =>
       set((state) => ({ filters: { ...state.filters, ...updates } })),
 
     applyFilters: () => {
       const { filters } = get()
-      set({ appliedFilters: { ...filters }, page: 0 })
+      set({ appliedFilters: { ...filters }, page: 0, hasSearched: true })
     },
 
     setPage: (page) => set({ page }),
@@ -68,6 +70,7 @@ export const useAlimTalkTemplateSearchStore = create<AlimTalkTemplateSearchState
         appliedFilters: { ...INITIAL_FILTERS },
         page: 0,
         searchOpen: true,
+        hasSearched: false,
       }),
   }),
 )

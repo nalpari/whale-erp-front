@@ -14,6 +14,7 @@ export default function AlimTalkTemplates() {
   const appliedFilters = useAlimTalkTemplateSearchStore((s) => s.appliedFilters)
   const page = useAlimTalkTemplateSearchStore((s) => s.page)
   const pageSize = useAlimTalkTemplateSearchStore((s) => s.pageSize)
+  const hasSearched = useAlimTalkTemplateSearchStore((s) => s.hasSearched)
   const setPage = useAlimTalkTemplateSearchStore((s) => s.setPage)
   const setPageSize = useAlimTalkTemplateSearchStore((s) => s.setPageSize)
 
@@ -31,10 +32,12 @@ export default function AlimTalkTemplates() {
   )
 
   const isAlimTalk = appliedFilters.sendType === 'ALIM_TALK'
-  const { data: response, isPending: loading, error } = useAlimTalkTemplateList(listParams, isAlimTalk)
+  const enabled = hasSearched && isAlimTalk
+  const { data: response, isPending, error } = useAlimTalkTemplateList(listParams, enabled)
 
-  const resultCount = isAlimTalk ? response?.totalElements ?? 0 : 0
-  const rows = isAlimTalk ? response?.content ?? [] : []
+  const loading = isPending && enabled
+  const resultCount = enabled ? response?.totalElements ?? 0 : 0
+  const rows = enabled ? response?.content ?? [] : []
 
   return (
     <div className="data-wrap">
