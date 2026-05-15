@@ -9,15 +9,15 @@ import { formatDateTimeYmdHm } from '@/util/date-util'
 import type { MessageTemplateListItem, SendType } from '@/types/notification'
 
 /**
- * 발송 구분 → 등록 페이지 라우트 매핑.
+ * 발송 구분별 지원 여부.
  *
- * 향후 이메일/문자 채널 추가 시 본 테이블에 path만 추가하면 등록 분기가 자동으로 동작.
- * 현재는 알림톡만 활성. 알림톡 외 선택 시 `handleCreate`에서 안내 후 차단.
+ * 라우트는 `/notification/message-templates/new?sendType=...`로 일반화되어 있어
+ * 본 PR에서는 ALIM_TALK만 활성. 후속 PR에서 EMAIL/SMS를 true로 전환하면 즉시 등록 가능.
  */
-const REGISTER_PATH_BY_SEND_TYPE: Partial<Record<SendType, string>> = {
-  ALIM_TALK: '/notification/alim-talk-templates/new',
-  // EMAIL: '/notification/email-templates/new',  // 후속 PR
-  // SMS: '/notification/sms-templates/new',       // 후속 PR
+const REGISTER_SUPPORTED_SEND_TYPES: Record<SendType, boolean> = {
+  ALIM_TALK: true,
+  EMAIL: false,
+  SMS: false,
 }
 
 const SEND_TYPE_LABEL: Record<SendType, string> = {
@@ -25,6 +25,12 @@ const SEND_TYPE_LABEL: Record<SendType, string> = {
   EMAIL: '이메일',
   SMS: '문자',
 }
+
+const buildRegisterPath = (sendType: SendType): string =>
+  `/notification/message-templates/new?sendType=${sendType}`
+
+const buildDetailPath = (id: number, sendType: SendType): string =>
+  `/notification/message-templates/${id}?sendType=${sendType}`
 
 const COLUMN_DEFS: ColDef<MessageTemplateListItem>[] = [
   { headerName: '#', valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1, width: 80 },
@@ -68,19 +74,18 @@ export default function MessageTemplateList({
 
   const handleRowClick = (event: RowClickedEvent<MessageTemplateListItem>) => {
     if (event.data) {
-      router.push(`/notification/alim-talk-templates/${event.data.id}`)
+      router.push(buildDetailPath(event.data.id, sendType))
     }
   }
 
   const handleCreate = () => {
-    const path = REGISTER_PATH_BY_SEND_TYPE[sendType]
-    if (!path) {
+    if (!REGISTER_SUPPORTED_SEND_TYPES[sendType]) {
       window.alert(
         `${SEND_TYPE_LABEL[sendType]} 템플릿 등록은 후속 작업에서 지원됩니다.`,
       )
       return
     }
-    router.push(path)
+    router.push(buildRegisterPath(sendType))
   }
 
   return (

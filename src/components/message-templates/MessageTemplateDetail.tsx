@@ -3,12 +3,14 @@
 import { useMessageTemplateDetail } from '@/hooks/queries/use-message-template-queries'
 import MessageTemplateForm from '@/components/message-templates/MessageTemplateForm'
 import CubeLoader from '@/components/common/ui/CubeLoader'
+import type { SendType } from '@/types/notification'
 
 interface MessageTemplateDetailProps {
   id: number
+  sendType: SendType
 }
 
-export default function MessageTemplateDetail({ id }: MessageTemplateDetailProps) {
+export default function MessageTemplateDetail({ id, sendType }: MessageTemplateDetailProps) {
   const { data: template, isPending, error } = useMessageTemplateDetail(id)
 
   if (isPending) {
@@ -32,5 +34,12 @@ export default function MessageTemplateDetail({ id }: MessageTemplateDetailProps
     )
   }
 
-  return <MessageTemplateForm mode="edit" initial={template} key={template.id} />
+  return (
+    <MessageTemplateForm
+      mode="edit"
+      sendType={sendType}
+      initial={template}
+      key={template.id}
+    />
+  )
 }

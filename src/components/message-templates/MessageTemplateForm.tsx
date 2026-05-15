@@ -15,14 +15,22 @@ import type {
   MessageTemplateCreateRequest,
   MessageTemplateDetail,
   MessageTemplateUpdateRequest,
+  SendType,
 } from '@/types/notification'
 
 interface MessageTemplateFormProps {
   mode: 'create' | 'edit'
+  sendType: SendType
   initial?: MessageTemplateDetail
 }
 
 const BREADCRUMBS = ['시스템 관리', '발송 템플릿 관리']
+
+const SEND_TYPE_LABEL: Record<SendType, string> = {
+  ALIM_TALK: '알림톡',
+  EMAIL: '이메일',
+  SMS: '문자',
+}
 
 interface FormState {
   categoryCodeId: number | null
@@ -40,7 +48,7 @@ const EMPTY_FORM: FormState = {
   body: '',
 }
 
-export default function MessageTemplateForm({ mode, initial }: MessageTemplateFormProps) {
+export default function MessageTemplateForm({ mode, sendType, initial }: MessageTemplateFormProps) {
   const router = useRouter()
 
   const [form, setForm] = useState<FormState>(() =>
@@ -75,7 +83,7 @@ export default function MessageTemplateForm({ mode, initial }: MessageTemplateFo
 
   const update = (patch: Partial<FormState>) => setForm((prev) => ({ ...prev, ...patch }))
 
-  const goList = () => router.push('/notification/alim-talk-templates')
+  const goList = () => router.push('/notification/message-templates')
 
   const handleSubmit = async () => {
     if (!canSubmit || form.categoryCodeId === null) return
@@ -83,6 +91,7 @@ export default function MessageTemplateForm({ mode, initial }: MessageTemplateFo
     try {
       if (mode === 'create') {
         const request: MessageTemplateCreateRequest = {
+          sendType,
           categoryCodeId: form.categoryCodeId,
           templateCode: form.templateCode.trim(),
           title: form.title.trim(),
@@ -92,6 +101,7 @@ export default function MessageTemplateForm({ mode, initial }: MessageTemplateFo
         await createMutation.mutateAsync(request)
       } else if (initial) {
         const request: MessageTemplateUpdateRequest = {
+          sendType,
           categoryCodeId: form.categoryCodeId,
           title: form.title.trim(),
           sendTimingCodeId: form.sendTimingCodeId ?? null,
@@ -122,7 +132,10 @@ export default function MessageTemplateForm({ mode, initial }: MessageTemplateFo
     }
   }
 
-  const pageTitle = mode === 'create' ? '발송 템플릿 등록' : '발송 템플릿 수정'
+  const pageTitle =
+    mode === 'create'
+      ? `${SEND_TYPE_LABEL[sendType]} 템플릿 등록`
+      : `${SEND_TYPE_LABEL[sendType]} 템플릿 수정`
 
   return (
     <div className="data-wrap">

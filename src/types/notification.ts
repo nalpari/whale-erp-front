@@ -52,6 +52,7 @@ export interface MessageTemplateDetail {
 }
 
 export interface MessageTemplateCreateRequest {
+  sendType: SendType
   categoryCodeId: number
   templateCode: string
   title: string
@@ -60,6 +61,7 @@ export interface MessageTemplateCreateRequest {
 }
 
 export interface MessageTemplateUpdateRequest {
+  sendType: SendType
   categoryCodeId: number
   title: string
   sendTimingCodeId?: number | null
