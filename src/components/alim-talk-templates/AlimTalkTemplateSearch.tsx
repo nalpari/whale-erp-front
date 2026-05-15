@@ -12,16 +12,23 @@ interface AlimTalkTemplateSearchProps {
   resultCount: number
 }
 
-const SEND_TYPE_OPTIONS: SelectOption[] = [
-  { label: '알림톡', value: 'ALIM_TALK' },
-  { label: '이메일', value: 'EMAIL' },
-  { label: '문자', value: 'SMS' },
-]
-
-const SEND_TYPE_LABEL: Record<SendType, string> = {
-  ALIM_TALK: '알림톡',
-  EMAIL: '이메일',
-  SMS: '문자',
+/**
+ * 공통코드(SNDTYP) → 프론트 enum 매핑.
+ * - SNDTYP_001 → ALIM_TALK
+ * - SNDTYP_002 → EMAIL
+ * - SNDTYP_003 → SMS
+ *
+ * 백엔드 API가 받는 sendType은 enum string이므로 공통코드 값에서 변환 필요.
+ */
+const SNDTYP_TO_ENUM: Record<string, SendType> = {
+  SNDTYP_001: 'ALIM_TALK',
+  SNDTYP_002: 'EMAIL',
+  SNDTYP_003: 'SMS',
+}
+const ENUM_TO_SNDTYP: Record<SendType, string> = {
+  ALIM_TALK: 'SNDTYP_001',
+  EMAIL: 'SNDTYP_002',
+  SMS: 'SNDTYP_003',
 }
 
 export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplateSearchProps) {
@@ -37,10 +44,24 @@ export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplate
   const { data: categoryCodes = [], isPending: categoryLoading, error: categoryError } =
     useCommonCodeHierarchy('SNDCTG')
 
+  const { data: sendTypeCodes = [], isPending: sendTypeLoading, error: sendTypeError } =
+    useCommonCodeHierarchy('SNDTYP')
+
   const categoryOptions = useMemo<SelectOption[]>(
     () => categoryCodes.map((c) => ({ label: c.name, value: c.code })),
     [categoryCodes],
   )
+
+  const sendTypeOptions = useMemo<SelectOption[]>(
+    () => sendTypeCodes.map((c) => ({ label: c.name, value: c.code })),
+    [sendTypeCodes],
+  )
+
+  const sendTypeNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    sendTypeCodes.forEach((c) => map.set(c.code, c.name))
+    return map
+  }, [sendTypeCodes])
 
   const categoryNameMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -50,11 +71,8 @@ export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplate
 
   const appliedTags: { key: string; value: string; category: string }[] = []
   if (appliedFilters.sendType !== 'ALIM_TALK') {
-    appliedTags.push({
-      key: 'sendType',
-      value: SEND_TYPE_LABEL[appliedFilters.sendType],
-      category: '발송 구분',
-    })
+    const name = sendTypeNameMap.get(ENUM_TO_SNDTYP[appliedFilters.sendType])
+    if (name) appliedTags.push({ key: 'sendType', value: name, category: '발송 구분' })
   }
   if (appliedFilters.categoryCode) {
     const name = categoryNameMap.get(appliedFilters.categoryCode)
@@ -129,13 +147,25 @@ export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplate
                 <td>
                   <div className="data-filed">
                     <SearchSelect
-                      options={SEND_TYPE_OPTIONS}
-                      value={SEND_TYPE_OPTIONS.find((opt) => opt.value === filters.sendType) ?? null}
-                      onChange={(opt) =>
-                        setFilters({ sendType: (opt?.value as SendType) ?? 'ALIM_TALK' })
+                      options={sendTypeOptions}
+                      value={
+                        sendTypeOptions.find(
+                          (opt) => opt.value === ENUM_TO_SNDTYP[filters.sendType],
+                        ) ?? null
                       }
+                      onChange={(opt) => {
+                        const nextEnum: SendType = opt?.value
+                          ? SNDTYP_TO_ENUM[opt.value] ?? 'ALIM_TALK'
+                          : 'ALIM_TALK'
+                        setFilters({ sendType: nextEnum })
+                      }}
                       placeholder="알림톡"
+                      isLoading={sendTypeLoading}
+                      error={!!sendTypeError}
                     />
+                    {sendTypeError && (
+                      <span className="warning-txt">※ 발송 구분 목록을 불러올 수 없습니다.</span>
+                    )}
                   </div>
                 </td>
                 <th>템플릿 분류</th>
@@ -161,7 +191,6 @@ export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplate
                 <td>
                   <div className="data-filed">
                     <Input
-                      placeholder="템플릿 코드 입력"
                       value={filters.templateCode}
                       onChange={(e) => setFilters({ templateCode: e.target.value })}
                       onKeyDown={handleKeyDown}
@@ -174,7 +203,6 @@ export default function AlimTalkTemplateSearch({ resultCount }: AlimTalkTemplate
                 <td>
                   <div className="data-filed">
                     <Input
-                      placeholder="제목 입력"
                       value={filters.title}
                       onChange={(e) => setFilters({ title: e.target.value })}
                       onKeyDown={handleKeyDown}
