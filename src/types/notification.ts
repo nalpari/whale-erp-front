@@ -23,7 +23,6 @@ export interface MessageTemplateSearchParams {
   categoryCode?: string
   templateCode?: string
   title?: string
-  useYn?: 'Y' | 'N'
   page?: number
   size?: number
   sort?: string
@@ -45,7 +44,6 @@ export interface MessageTemplateDetail {
   sendTiming: string | null
   title: string | null
   body: string
-  useYn: 'Y' | 'N'
   createdAt: string | null
   updatedAt: string | null
 }

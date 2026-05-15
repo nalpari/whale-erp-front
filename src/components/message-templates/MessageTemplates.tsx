@@ -24,7 +24,6 @@ export default function MessageTemplates() {
       categoryCode: appliedFilters.categoryCode || undefined,
       templateCode: appliedFilters.templateCode || undefined,
       title: appliedFilters.title || undefined,
-      useYn: 'Y',
       page,
       size: pageSize,
     }),
