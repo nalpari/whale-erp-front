@@ -59,12 +59,11 @@ export default function AlimTalkTemplateList({
   return (
     <div className="data-list-wrap">
       <div className="data-list-header">
-        <div className="data-header-left">
+        <div className="data-header-left" />
+        <div className="data-header-right">
           <button className="btn-form basic" type="button" onClick={handleCreate}>
             등록
           </button>
-        </div>
-        <div className="data-header-right">
           <div className="data-count-select">
             <select
               className="select-form"
