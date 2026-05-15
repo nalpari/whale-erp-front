@@ -34,6 +34,7 @@ export interface MessageTemplateListItem {
   categoryName: string | null
   templateCode: string
   title: string | null
+  useYn: 'Y' | 'N'
   createdAt: string
 }
 

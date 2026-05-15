@@ -38,6 +38,12 @@ const COLUMN_DEFS: ColDef<MessageTemplateListItem>[] = [
   { field: 'templateCode', headerName: '템플릿 코드', flex: 1 },
   { field: 'title', headerName: '템플릿 명', flex: 2 },
   {
+    field: 'useYn',
+    headerName: '사용 여부',
+    width: 100,
+    valueFormatter: (params) => (params.value === 'Y' ? '사용' : '미사용'),
+  },
+  {
     field: 'createdAt',
     headerName: '등록일',
     flex: 1,
