@@ -32,7 +32,7 @@ interface AlimTalkTemplateListProps {
   onPageSizeChange: (size: number) => void
 }
 
-const PAGE_SIZE_OPTIONS = [20, 50, 100]
+const PAGE_SIZE_OPTIONS = [50, 100, 200]
 
 export default function AlimTalkTemplateList({
   rows,
@@ -59,23 +59,26 @@ export default function AlimTalkTemplateList({
   return (
     <div className="data-list-wrap">
       <div className="data-list-header">
-        <div className="data-header-left" />
-        <div className="data-header-right">
+        <div className="data-header-left">
           <button className="btn-form basic" type="button" onClick={handleCreate}>
             등록
           </button>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="page-size-select"
-            aria-label="페이지 사이즈"
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+        </div>
+        <div className="data-header-right">
+          <div className="data-count-select">
+            <select
+              className="select-form"
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              aria-label="페이지 사이즈"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       <div className="data-list-bx">
