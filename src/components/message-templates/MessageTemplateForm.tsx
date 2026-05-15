@@ -141,7 +141,31 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
   return (
     <div className="data-wrap">
       <Location title={pageTitle} list={BREADCRUMBS} />
-      <div className="data-list-wrap">
+      <div className="contents-wrap">
+        <div className="contents-btn">
+          <button className="btn-form gray" type="button" onClick={goList}>
+            목록
+          </button>
+          {mode === 'edit' && (
+            <button
+              className="btn-form red"
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              삭제
+            </button>
+          )}
+          <button
+            className="btn-form basic"
+            type="button"
+            disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
+            onClick={handleSubmit}
+          >
+            저장
+          </button>
+        </div>
+        <div className="contents-body">
         {errorMsg && <div className="form-helper error">{errorMsg}</div>}
         <table className="default-table">
           <colgroup>
@@ -215,28 +239,6 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
             </tr>
           </tbody>
         </table>
-        <div className="btn-filed">
-          <button className="btn-form gray" type="button" onClick={goList}>
-            목록
-          </button>
-          {mode === 'edit' && (
-            <button
-              className="btn-form red"
-              type="button"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              삭제
-            </button>
-          )}
-          <button
-            className="btn-form basic"
-            type="button"
-            disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
-            onClick={handleSubmit}
-          >
-            저장
-          </button>
         </div>
       </div>
     </div>
