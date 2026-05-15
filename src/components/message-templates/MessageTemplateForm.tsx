@@ -103,6 +103,7 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
         const request: MessageTemplateUpdateRequest = {
           sendType,
           categoryCodeId: form.categoryCodeId,
+          templateCode: form.templateCode.trim(),
           title: form.title.trim(),
           sendTimingCodeId: form.sendTimingCodeId ?? null,
           body: form.body,
@@ -171,7 +172,6 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
               <th>템플릿 명 *</th>
               <td>
                 <Input
-                  placeholder="템플릿 명 입력"
                   value={form.title}
                   onChange={(e) => update({ title: e.target.value })}
                   maxLength={200}
@@ -182,22 +182,16 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
               <th>템플릿 코드 *</th>
               <td>
                 <Input
-                  placeholder="WHALEERP0001"
                   value={form.templateCode}
                   onChange={(e) => update({ templateCode: e.target.value })}
                   maxLength={50}
-                  disabled={mode === 'edit'}
                 />
-                {mode === 'edit' && (
-                  <span className="warning-txt">※ 템플릿 코드는 수정할 수 없습니다.</span>
-                )}
               </td>
             </tr>
             <tr>
               <th>발송시점</th>
               <td>
                 <Input
-                  placeholder="발송 시점 코드 (선택)"
                   value={form.sendTimingCodeId ? String(form.sendTimingCodeId) : ''}
                   onChange={(e) =>
                     update({
@@ -212,7 +206,6 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
               <td>
                 <textarea
                   className="default-textarea"
-                  placeholder="#{변수명} 형식으로 변수를 사용할 수 있습니다."
                   value={form.body}
                   onChange={(e) => update({ body: e.target.value })}
                   rows={14}

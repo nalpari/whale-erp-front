@@ -63,6 +63,7 @@ export interface MessageTemplateCreateRequest {
 export interface MessageTemplateUpdateRequest {
   sendType: SendType
   categoryCodeId: number
+  templateCode: string
   title: string
   sendTimingCodeId?: number | null
   body: string
