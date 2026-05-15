@@ -42,8 +42,7 @@ export interface MessageTemplateDetail {
   categoryCodeId: number | null
   categoryName: string | null
   templateCode: string
-  sendTimingCodeId: number | null
-  sendTimingName: string | null
+  sendTiming: string | null
   title: string | null
   body: string
   useYn: 'Y' | 'N'
@@ -56,7 +55,7 @@ export interface MessageTemplateCreateRequest {
   categoryCodeId: number
   templateCode: string
   title: string
-  sendTimingCodeId?: number | null
+  sendTiming?: string | null
   body: string
 }
 
@@ -65,6 +64,6 @@ export interface MessageTemplateUpdateRequest {
   categoryCodeId: number
   templateCode: string
   title: string
-  sendTimingCodeId?: number | null
+  sendTiming?: string | null
   body: string
 }

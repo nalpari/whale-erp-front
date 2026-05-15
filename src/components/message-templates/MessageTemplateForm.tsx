@@ -37,7 +37,7 @@ interface FormState {
   categoryCodeId: number | null
   templateCode: string
   title: string
-  sendTimingCodeId: number | null
+  sendTiming: string
   body: string
 }
 
@@ -45,7 +45,7 @@ const EMPTY_FORM: FormState = {
   categoryCodeId: null,
   templateCode: '',
   title: '',
-  sendTimingCodeId: null,
+  sendTiming: '',
   body: '',
 }
 
@@ -59,7 +59,7 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
           categoryCodeId: initial.categoryCodeId,
           templateCode: initial.templateCode,
           title: initial.title ?? '',
-          sendTimingCodeId: initial.sendTimingCodeId,
+          sendTiming: initial.sendTiming ?? '',
           body: initial.body,
         }
       : EMPTY_FORM,
@@ -91,13 +91,14 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
     if (!canSubmit || form.categoryCodeId === null) return
     setErrorMsg(null)
     try {
+      const trimmedSendTiming = form.sendTiming.trim()
       if (mode === 'create') {
         const request: MessageTemplateCreateRequest = {
           sendType,
           categoryCodeId: form.categoryCodeId,
           templateCode: form.templateCode.trim(),
           title: form.title.trim(),
-          sendTimingCodeId: form.sendTimingCodeId ?? null,
+          sendTiming: trimmedSendTiming || null,
           body: form.body,
         }
         await createMutation.mutateAsync(request)
@@ -107,7 +108,7 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
           categoryCodeId: form.categoryCodeId,
           templateCode: form.templateCode.trim(),
           title: form.title.trim(),
-          sendTimingCodeId: form.sendTimingCodeId ?? null,
+          sendTiming: trimmedSendTiming || null,
           body: form.body,
         }
         await updateMutation.mutateAsync(request)
@@ -230,12 +231,9 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
               <th>발송시점</th>
               <td>
                 <Input
-                  value={form.sendTimingCodeId ? String(form.sendTimingCodeId) : ''}
-                  onChange={(e) =>
-                    update({
-                      sendTimingCodeId: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
+                  value={form.sendTiming}
+                  onChange={(e) => update({ sendTiming: e.target.value })}
+                  maxLength={200}
                 />
               </td>
             </tr>
