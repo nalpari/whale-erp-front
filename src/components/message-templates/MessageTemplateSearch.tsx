@@ -86,7 +86,7 @@ export default function MessageTemplateSearch({ resultCount }: MessageTemplateSe
     })
   }
   if (appliedFilters.title) {
-    appliedTags.push({ key: 'title', value: appliedFilters.title, category: '제목' })
+    appliedTags.push({ key: 'title', value: appliedFilters.title, category: '템플릿 명' })
   }
 
   const handleSearch = () => {
@@ -199,7 +199,7 @@ export default function MessageTemplateSearch({ resultCount }: MessageTemplateSe
                     />
                   </div>
                 </td>
-                <th>제목</th>
+                <th>템플릿 명</th>
                 <td>
                   <div className="data-filed">
                     <Input
