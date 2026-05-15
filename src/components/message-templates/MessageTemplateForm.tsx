@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import AnimateHeight from 'react-animate-height'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { Input } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
@@ -50,6 +51,7 @@ const EMPTY_FORM: FormState = {
 
 export default function MessageTemplateForm({ mode, sendType, initial }: MessageTemplateFormProps) {
   const router = useRouter()
+  const [slideboxOpen, setSlideboxOpen] = useState(true)
 
   const [form, setForm] = useState<FormState>(() =>
     initial
@@ -141,31 +143,43 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
   return (
     <div className="data-wrap">
       <Location title={pageTitle} list={BREADCRUMBS} />
-      <div className="contents-wrap">
-        <div className="contents-btn">
-          <button className="btn-form gray" type="button" onClick={goList}>
-            목록
-          </button>
-          {mode === 'edit' && (
-            <button
-              className="btn-form red"
-              type="button"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              삭제
-            </button>
-          )}
-          <button
-            className="btn-form basic"
-            type="button"
-            disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
-            onClick={handleSubmit}
-          >
-            저장
-          </button>
-        </div>
-        <div className="contents-body">
+      <div className="master-detail-data">
+        <div className={`slidebox-wrap ${slideboxOpen ? '' : 'close'}`}>
+          <div className="slidebox-header">
+            <h2>{pageTitle}</h2>
+            <div className="slidebox-btn-wrap">
+              <button
+                type="button"
+                className="slidebox-btn"
+                disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
+                onClick={handleSubmit}
+              >
+                {mode === 'create' ? '등록' : '수정'}
+              </button>
+              {mode === 'edit' && (
+                <button
+                  type="button"
+                  className="slidebox-btn"
+                  disabled={deleteMutation.isPending}
+                  onClick={handleDelete}
+                >
+                  삭제
+                </button>
+              )}
+              <button type="button" className="slidebox-btn" onClick={goList}>
+                목록
+              </button>
+              <button
+                type="button"
+                className="slidebox-btn arr"
+                onClick={() => setSlideboxOpen(!slideboxOpen)}
+              >
+                <i className="arr-icon"></i>
+              </button>
+            </div>
+          </div>
+          <AnimateHeight duration={300} height={slideboxOpen ? 'auto' : 0}>
+            <div className="slidebox-body">
         {errorMsg && <div className="form-helper error">{errorMsg}</div>}
         <table className="default-table">
           <colgroup>
@@ -239,6 +253,8 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
             </tr>
           </tbody>
         </table>
+            </div>
+          </AnimateHeight>
         </div>
       </div>
     </div>
