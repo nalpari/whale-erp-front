@@ -49,9 +49,6 @@ next-env.d.ts
 # TestSprite
 /testsprite_tests
 
-# Dev Docs
-/docs
-
 # Auto Claude data directory
 .auto-claude/
 
