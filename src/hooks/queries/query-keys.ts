@@ -402,3 +402,18 @@ export const customerKeys = {
   details: () => [...customerKeys.all, 'detail'] as const,
   detail: (id: number) => [...customerKeys.details(), id] as const,
 }
+
+// ============================================================
+// 알림톡 템플릿 관리 (notification 도메인, 2026-05-14)
+// ============================================================
+
+import type { MessageTemplateSearchParams } from '@/types/notification'
+
+export const messageTemplateKeys = {
+  all: ['alim-talk-templates'] as const,
+  lists: () => [...messageTemplateKeys.all, 'list'] as const,
+  list: (params: MessageTemplateSearchParams) =>
+    [...messageTemplateKeys.lists(), params] as const,
+  details: () => [...messageTemplateKeys.all, 'detail'] as const,
+  detail: (id: number) => [...messageTemplateKeys.details(), id] as const,
+}
