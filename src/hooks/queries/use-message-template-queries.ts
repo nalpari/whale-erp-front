@@ -69,8 +69,9 @@ export const useDeleteMessageTemplate = () => {
       await api.delete(`${BASE}/${id}`)
       return id
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: messageTemplateKeys.lists() })
+      queryClient.removeQueries({ queryKey: messageTemplateKeys.detail(id) })
     },
   })
 }

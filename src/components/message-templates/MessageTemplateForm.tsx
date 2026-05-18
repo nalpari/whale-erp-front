@@ -83,6 +83,12 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
     form.title.trim() !== '' &&
     form.body.trim() !== ''
 
+  // mode 별 mutation pending 상태만 disabled 에 반영 — create 모드에서 updateMutation(id=0) 의
+  // pending 이 잘못 묶이는 회귀 차단 (Boston Code Review HIGH #5)
+  const isMutating =
+    (mode === 'create' && createMutation.isPending) ||
+    (mode === 'edit' && updateMutation.isPending)
+
   const update = (patch: Partial<FormState>) => setForm((prev) => ({ ...prev, ...patch }))
 
   const goList = () => router.push('/notification/message-templates')
@@ -152,7 +158,7 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
               <button
                 type="button"
                 className="slidebox-btn"
-                disabled={!canSubmit || createMutation.isPending || updateMutation.isPending}
+                disabled={!canSubmit || isMutating}
                 onClick={handleSubmit}
               >
                 {mode === 'create' ? '등록' : '수정'}
