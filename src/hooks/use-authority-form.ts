@@ -5,7 +5,6 @@ import { z } from 'zod'
 import { getErrorMessage } from '@/lib/api'
 import { authorityCreateSchema, authorityUpdateSchema } from '@/lib/schemas/authority'
 import { type AuthorityFormContext, isKindRowVisible } from '@/lib/authority-visibility'
-import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { formatZodError } from '@/lib/zod-utils'
 import {
   useCreateAuthority,
@@ -181,6 +180,9 @@ export function useAuthorityForm({
   }
 
   // 폼 검증
+  // authority_kind 필수 정책:
+  // - platform context: 구독 권한 ON 일 때만 kind row 노출 + 필수 (BE 검증과 정합)
+  // - bp context: kind row 항상 노출 + 선택사항 (BE 가 본사/가맹점 권한은 필수값 검증 제외)
   const validateForm = (kindRowVisible: boolean): boolean => {
     const newErrors: Record<string, string> = {}
 
@@ -208,8 +210,8 @@ export function useAuthorityForm({
       newErrors.is_used = '운영여부를 선택해주세요'
     }
 
-    // 권한 종류 필수 (가시 조건 만족 시)
-    if (kindRowVisible && !formData.authority_kind) {
+    // 권한 종류 필수 — platform context 에서 kind row 가시(=구독 권한 ON) 일 때만 강제
+    if (context === 'platform' && kindRowVisible && !formData.authority_kind) {
       newErrors.authority_kind = '권한 종류를 선택해주세요'
     }
 
@@ -268,7 +270,7 @@ export function useAuthorityForm({
   // 저장 핸들러
   const handleSave = async () => {
     // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — AuthorityForm 의 렌더 가시 조건과 동일하게 평가
-    const kindRowVisible = isKindRowVisible(context, formData.owner_code)
+    const kindRowVisible = isKindRowVisible(context, formData.owner_code, formData.is_subscription)
 
     // 폼 검증
     if (!validateForm(kindRowVisible)) {
@@ -298,14 +300,9 @@ export function useAuthorityForm({
               ? formData.plan_type_code
               : undefined,
           // authority_kind:
-          // - kind row 가 보이는 케이스(platform owner / bp context): 사용자가 선택한 formData.authority_kind 사용
-          // - kind row 가 숨겨진 케이스(platform context + 본사/가맹점 owner): 모두 PRKND_002(가맹 BP) 로 통일 저장.
-          //   (운영 정책상 PRKND_001 은 신규 생성 경로 없음 — 본사 owner 권한도 PRKND_002 로 일관)
-          authority_kind: kindRowVisible
-            ? formData.authority_kind
-            : (formData.owner_code === 'PRGRP_002_001' || formData.owner_code === 'PRGRP_002_002')
-              ? AUTHORITY_KIND.FRANCHISE_BP
-              : undefined,
+          // - kind row 가 보이는 케이스(platform PLATFORM owner + 구독 ON, bp context): 사용자가 선택한 값(또는 undefined)
+          // - kind row 가 숨겨진 케이스: undefined 로 전송 (BE 가 필수값 검증 제외하여 자동 매핑 불요)
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
           // is_default 는 BP 전용 — PLATFORM 에서는 키 누락
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
           is_used: formData.is_used,
@@ -341,14 +338,9 @@ export function useAuthorityForm({
           is_used: formData.is_used,
           description: formData.description,
           // authority_kind:
-          // - kind row 가 보이는 케이스: 사용자가 선택한 formData.authority_kind 사용
-          // - kind row 가 숨겨진 케이스(platform context + 본사/가맹점 owner): create 와 동일하게 PRKND_002 강제 매핑
-          //   (create 와 정책 일관 + BE 가 PUT 전체 교체 시맨틱이어도 null 덮어쓰기 방지)
-          authority_kind: kindRowVisible
-            ? formData.authority_kind
-            : (formData.owner_code === 'PRGRP_002_001' || formData.owner_code === 'PRGRP_002_002')
-              ? AUTHORITY_KIND.FRANCHISE_BP
-              : undefined,
+          // - kind row 가 보이는 케이스: 사용자가 선택한 값(또는 undefined)
+          // - kind row 가 숨겨진 케이스: undefined (BE 필수값 검증 제외로 강제 매핑 불요)
+          authority_kind: kindRowVisible ? formData.authority_kind : undefined,
           // is_default 는 BP 권한일 때만 의미 — PLATFORM 은 전달하지 않음
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
         }
