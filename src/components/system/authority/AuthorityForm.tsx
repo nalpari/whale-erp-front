@@ -52,7 +52,9 @@ export default function AuthorityForm({
   const { data: kindCodes, isPending: isKindCodesPending, isError: isKindCodesError } =
     useCommonCodeHierarchy('PRKND')
   const kindOptions: SelectOption[] = (kindCodes ?? [])
-    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.PLATFORM : true))
+    // BP context (환경설정/권한 관리) 에서는 본사 BP(PRKND_001) 종류 등록 흐름이 없으므로 옵션에서 제외
+    // (기존 동작 유지 — PRKND_002 등 다른 종류 제외 여부는 별도 결정 필요시 추가)
+    .filter((c) => (context === 'bp' ? c.code !== AUTHORITY_KIND.HEAD_OFFICE_BP : true))
     .map((c) => ({ value: c.code, label: c.name }))
 
   // 현재 폼 데이터 — BE PR #141 필드 rename 반영
@@ -77,19 +79,22 @@ export default function AuthorityForm({
   const isBpDisabled = mode === 'edit'
   // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — useAuthorityForm 의 검증/페이로드와 동일하게 평가되어야 함
   const showSubscriptionRow = isSubscriptionRowVisible(context, formData.owner_code)
-  const showKindRow = isKindRowVisible(context, formData.owner_code)
+  const showKindRow = isKindRowVisible(context, formData.owner_code, formData.is_subscription)
   const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
+    // BE 가 authority_kind 필수값 검증을 제외하므로 본사/가맹점 owner 자동 매핑(FRANCHISE_BP) 제거.
+    // owner 전환 시 이전 값이 남지 않도록 단순 undefined 리셋.
+    // 부모 onChange 가 부분 업데이트라 키 누락 시 stale 값 잔존 → 명시적 undefined 필요.
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      // 플랫폼이 아니면 구독 권한/요금제/권한 종류 초기화
+      authority_kind: undefined,
+      // 플랫폼이 아니면 구독 권한/요금제 초기화 (PLATFORM 일 때는 기존 값 유지)
       ...(value !== 'PRGRP_001_001' && {
         is_subscription: false,
         plan_type_code: undefined,
-        authority_kind: undefined,
       }),
     }
     onChange(newData)
@@ -118,9 +123,11 @@ export default function AuthorityForm({
   }
 
   const handleSubscriptionChange = (checked: boolean) => {
+    // 구독 토글 off 시 권한 종류 row 가 숨겨지므로 stale 값 잔존 방지 위해 함께 리셋
     onChange({
       is_subscription: checked,
       plan_type_code: checked ? formData.plan_type_code : undefined,
+      authority_kind: checked ? formData.authority_kind : undefined,
     })
   }
 
@@ -268,7 +275,8 @@ export default function AuthorityForm({
               {showKindRow && (
                 <tr>
                   <th>
-                    권한 종류 <span className="red">*</span>
+                    권한 종류
+                    {context === 'platform' && <> <span className="red">*</span></>}
                   </th>
                   <td colSpan={showFranchise ? 3 : undefined}>
                     <RadioButtonGroup

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { OWNER_CODE } from '@/constants/owner-code'
+import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
@@ -8,6 +9,7 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
+import { useAuthorityOptionsForEmployeeInvitation } from '@/hooks/queries/use-authority-queries'
 import type {
   PostEmployeeInfoRequest,
   WorkplaceType,
@@ -91,6 +93,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const [headOfficeOrganizationId, setHeadOfficeOrganizationId] = useState<number | null>(null)
   const [franchiseOrganizationId, setFranchiseOrganizationId] = useState<number | null>(null)
   const [storeId, setStoreId] = useState<number | null>(null)
+  const [invitedAuthorityId, setInvitedAuthorityId] = useState<number | null>(null)
   const [employeeName, setEmployeeName] = useState('')
   const [mobilePhone, setMobilePhone] = useState('')
   const [email, setEmail] = useState('')
@@ -241,6 +244,14 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       return
     }
 
+    // 권한 ID 화이트리스트 가드 — 토글이 매핑하는 targetAuthority.id 외의 임의 값 차단 (mass-assignment 방지).
+    // (진짜 방어선은 BE 의 호출자 affiliation 검증이며 FE 가드는 회귀/변조 차단 및 UX 강건성용)
+    if (invitedAuthorityId != null && invitedAuthorityId !== targetAuthority?.id) {
+      await alert('선택한 권한이 유효하지 않습니다. 다시 시도해주세요.')
+      setInvitedAuthorityId(null)
+      return
+    }
+
     try {
 
       // 평일/토요일/일요일 근무 정보 반영
@@ -312,6 +323,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
         contractEndDate: noEndDate ? '2999-12-31' : contractEndDate,
         jobDescription: jobDescription.trim() || null,
         workHours: updatedWorkHours,
+        invitedAuthorityId,
       }
 
       await createEmployeeMutation.mutateAsync(requestData)
@@ -347,6 +359,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     setNoEndDate(false)
     setJobDescription('')
     setWorkHours(createInitialWorkHours())
+    setInvitedAuthorityId(null)
     setSaturdayWorkType('none')
     setSundayWorkType('none')
     setSaturdayBiweeklyStartDate('')
@@ -400,6 +413,24 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   const storeOptions: SelectOption[] = useMemo(() =>
     storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
     [storeOptionList]
+  )
+
+  // storeId 가 있으면 우선 (BE 가 점포 → 조직 거슬러 본사 결정).
+  // 없으면 headOfficeOrganizationId 로 직접 조회.
+  const { data: authorityOptionList = [], isPending: authorityLoading, isError: authorityError } =
+    useAuthorityOptionsForEmployeeInvitation({
+      storeId: storeId ?? undefined,
+      headOfficeOrganizationId: headOfficeOrganizationId ?? undefined,
+    })
+
+  // 직원 초대 권한 후보는 BE 가 is_deleted=false + is_used=true + is_default=true 인 권한만 내림.
+  // 점포 선택 여부에 따라 매핑할 권한 종류가 정해짐:
+  //   - 점포 선택 O → PRKND_004 (점포관리자)
+  //   - 점포 선택 X → PRKND_003 (본사직원)
+  // 각 종류에 기초 권한은 최대 1건만 존재. 토글 UI 로 권한 부여 여부만 결정.
+  const targetAuthorityKind = storeId != null ? AUTHORITY_KIND.STORE_MANAGER : AUTHORITY_KIND.HEAD_OFFICE_EMPLOYEE
+  const targetAuthority = authorityOptionList.find(
+    (a) => a.authority_kind === targetAuthorityKind && a.is_used && a.is_default === true
   )
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
@@ -494,6 +525,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               setWorkplaceType('HEAD_OFFICE')
                               setFranchiseOrganizationId(null)
                               setStoreId(null)
+                              // 점포 X 로 전환 시 targetAuthorityKind 가 PRKND_004 → PRKND_003 로 변경되므로 reset
+                              setInvitedAuthorityId(null)
                             }}
                             disabled={isWorkplaceTypeFixed}
                           />
@@ -537,6 +570,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                                   setFranchiseOrganizationId(null)
                                 }
                                 setStoreId(null)
+                                setInvitedAuthorityId(null)
                               }
                             }}
                             placeholder="본사 선택"
@@ -555,8 +589,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                               value={franchiseOrganizationId ? franchiseOptions.find(opt => opt.value === String(franchiseOrganizationId)) || null : null}
                               onChange={(opt) => {
                                 setFranchiseOrganizationId(opt?.value ? Number(opt.value) : null)
-                                // 가맹점 변경 시 점포 자동 초기화
+                                // 가맹점 변경 시 점포 자동 초기화 + 권한 후보 무효화
                                 setStoreId(null)
+                                setInvitedAuthorityId(null)
                               }}
                               placeholder="가맹점 선택"
                               isDisabled={bpLoading || (isFranchiseFixed && franchiseOrganizationId !== null)}
@@ -578,13 +613,50 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                         <SearchSelect
                           options={storeOptions}
                           value={storeId ? storeOptions.find(opt => opt.value === String(storeId)) || null : null}
-                          onChange={(opt) => setStoreId(opt?.value ? Number(opt.value) : null)}
+                          onChange={(opt) => {
+                            setStoreId(opt?.value ? Number(opt.value) : null)
+                            // 점포 변경 시 권한 후보 본사가 바뀔 수 있으므로 reset
+                            setInvitedAuthorityId(null)
+                          }}
                           placeholder="점포 선택"
                           isDisabled={storeLoading}
                           isSearchable={true}
                           isClearable={true}
                         />
                       </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Partner Office 권한</th>
+                    <td>
+                      <div className="filed-flx">
+                        <div className="toggle-wrap">
+                          <div className="toggle-btn">
+                            <input
+                              type="checkbox"
+                              id="toggle-invited-authority"
+                              checked={targetAuthority != null && invitedAuthorityId === targetAuthority.id}
+                              onChange={(e) =>
+                                setInvitedAuthorityId(e.target.checked ? (targetAuthority?.id ?? null) : null)
+                              }
+                              disabled={headOfficeOrganizationId == null || authorityLoading || targetAuthority == null}
+                            />
+                            <label className="slider" htmlFor="toggle-invited-authority"></label>
+                          </div>
+                        </div>
+                        <span style={{ color: '#666', fontSize: '13px' }}>
+                          {headOfficeOrganizationId == null
+                            ? '※ 본사 선택 후 권한 부여 여부를 결정할 수 있습니다.'
+                            : authorityLoading
+                              ? '※ 권한 정보를 불러오는 중...'
+                              : targetAuthority
+                                ? '※ 권한 부여 시 whaleerp 접근 권한이 주어집니다.'
+                                : '※ 기초 권한으로 지정된 권한이 없습니다.'}
+                        </span>
+                      </div>
+                      {authorityError && (
+                        <div className="warning-txt mt5" role="alert">* 권한 목록을 불러오지 못했습니다.</div>
+                      )}
                     </td>
                   </tr>
                   <tr>

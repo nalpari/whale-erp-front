@@ -180,6 +180,9 @@ export function useAuthorityForm({
   }
 
   // 폼 검증
+  // authority_kind 필수 정책:
+  // - platform context: 구독 권한 ON 일 때만 kind row 노출 + 필수 (BE 검증과 정합)
+  // - bp context: kind row 항상 노출 + 선택사항 (BE 가 본사/가맹점 권한은 필수값 검증 제외)
   const validateForm = (kindRowVisible: boolean): boolean => {
     const newErrors: Record<string, string> = {}
 
@@ -207,8 +210,8 @@ export function useAuthorityForm({
       newErrors.is_used = '운영여부를 선택해주세요'
     }
 
-    // 권한 종류 필수 (가시 조건 만족 시)
-    if (kindRowVisible && !formData.authority_kind) {
+    // 권한 종류 필수 — platform context 에서 kind row 가시(=구독 권한 ON) 일 때만 강제
+    if (context === 'platform' && kindRowVisible && !formData.authority_kind) {
       newErrors.authority_kind = '권한 종류를 선택해주세요'
     }
 
@@ -267,7 +270,7 @@ export function useAuthorityForm({
   // 저장 핸들러
   const handleSave = async () => {
     // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — AuthorityForm 의 렌더 가시 조건과 동일하게 평가
-    const kindRowVisible = isKindRowVisible(context, formData.owner_code)
+    const kindRowVisible = isKindRowVisible(context, formData.owner_code, formData.is_subscription)
 
     // 폼 검증
     if (!validateForm(kindRowVisible)) {
@@ -296,7 +299,9 @@ export function useAuthorityForm({
             isPlatformOwner && formData.is_subscription && formData.plan_type_code
               ? formData.plan_type_code
               : undefined,
-          // authority_kind 는 row 가 보일 때만 필수. 숨겨졌을 때는 undefined 로 보내야 schema 통과.
+          // authority_kind:
+          // - kind row 가 보이는 케이스(platform PLATFORM owner + 구독 ON, bp context): 사용자가 선택한 값(또는 undefined)
+          // - kind row 가 숨겨진 케이스: undefined 로 전송 (BE 가 필수값 검증 제외하여 자동 매핑 불요)
           authority_kind: kindRowVisible ? formData.authority_kind : undefined,
           // is_default 는 BP 전용 — PLATFORM 에서는 키 누락
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,
@@ -332,6 +337,9 @@ export function useAuthorityForm({
           name: formData.name,
           is_used: formData.is_used,
           description: formData.description,
+          // authority_kind:
+          // - kind row 가 보이는 케이스: 사용자가 선택한 값(또는 undefined)
+          // - kind row 가 숨겨진 케이스: undefined (BE 필수값 검증 제외로 강제 매핑 불요)
           authority_kind: kindRowVisible ? formData.authority_kind : undefined,
           // is_default 는 BP 권한일 때만 의미 — PLATFORM 은 전달하지 않음
           is_default: !isPlatformOwner ? (formData.is_default ?? false) : undefined,

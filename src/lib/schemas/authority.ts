@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { AUTHORITY_KIND } from '@/constants/authority-kind'
 import { apiResponseSchema, pagedApiResponseSchema } from '@/lib/schemas/api'
 
 /**
@@ -58,7 +57,8 @@ export type OwnerCode = typeof OWNER_CODES[number]
 
 // 권한 생성 스키마
 // BE PR #141 — is_bp_master → is_subscription, kind_code → authority_kind, is_basic → is_default
-// authority_kind 는 PRKND_001~004 필수, is_subscription 은 PLATFORM 전용, is_default 는 BP 전용
+// authority_kind 는 BE 필수값 검증 제외 정책으로 FE 도 optional 허용 (값이 있으면 PRKND_001~004).
+// is_subscription 은 PLATFORM 전용, is_default 는 BP 전용.
 export const authorityCreateSchema = z.object({
   owner_code: z.enum(OWNER_CODES, {
     message: '권한 소유를 선택해주세요',
@@ -68,9 +68,7 @@ export const authorityCreateSchema = z.object({
   name: z.string().min(2, '권한명은 2자 이상이어야 합니다'),
   is_subscription: z.boolean().nullable().optional(),
   plan_type_code: z.string().optional(),
-  // PLATFORM 페이지에서 본사·가맹점 owner_code 선택 시 권한 종류 row 가 숨겨지므로 optional 허용.
-  // 값이 있으면 PRKND_001~004 형식이라 min(1) 유지. validateForm 에서 가시 조건 시 사용자 입력 강제.
-  authority_kind: z.string().min(1, '권한 종류를 선택해주세요').optional(),
+  authority_kind: z.string().optional(),
   is_default: z.boolean().nullable().optional(),
   is_used: z.boolean(),
   description: z.string().optional(),
@@ -123,7 +121,9 @@ export const authorityCreateSchema = z.object({
   // 진짜 방어선은 BE 가드이며 이 superRefine 은 회귀 방지/UX 차원.
   const isPlatformOwner = data.owner_code === 'PRGRP_001_001'
   if (!isPlatformOwner) {
-    // 본사·가맹점 권한 — is_subscription / plan_type_code / PRKND_001 은 PLATFORM 전용
+    // 본사·가맹점 권한 — is_subscription / plan_type_code 는 PLATFORM 전용
+    // authority_kind PRKND_001(본사 BP) 은 PLATFORM owner 직접 선택 전용이므로 본사/가맹점 owner 에서 차단.
+    // (form 자동 매핑은 PRKND_002 로 통일되지만 schema 단에서도 회귀/변조 방지)
     if (data.is_subscription === true) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -138,11 +138,11 @@ export const authorityCreateSchema = z.object({
         message: '요금제는 플랫폼 전용입니다',
       })
     }
-    if (data.authority_kind === AUTHORITY_KIND.PLATFORM) {
+    if (data.authority_kind === 'PRKND_001') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['authority_kind'],
-        message: '해당 권한 종류는 플랫폼 전용입니다',
+        message: '본사 BP(PRKND_001) 종류는 플랫폼 전용입니다',
       })
     }
   } else {
@@ -154,6 +154,16 @@ export const authorityCreateSchema = z.object({
         message: '기초 권한은 본사·가맹점 전용입니다',
       })
     }
+  }
+
+  // BE DEFAULT_REQUIRES_USED (ERR9112) 사전 차단 — 운영여부 사용 안 함 + 기초 권한 동시 설정 불가.
+  // (BE 검증과 별개로 schema 단에서도 사전 차단해 사용자 저장 후 400 왕복 제거)
+  if (data.is_used === false && data.is_default === true) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['is_default'],
+      message: '운영여부가 사용 안 함인 권한은 기초 권한으로 설정할 수 없습니다',
+    })
   }
 })
 
@@ -168,6 +178,15 @@ export const authorityUpdateSchema = z.object({
   description: z.string().optional(),
   authority_kind: z.string().optional(),
   is_default: z.boolean().nullable().optional(),
+}).superRefine((data, ctx) => {
+  // BE DEFAULT_REQUIRES_USED (ERR9112) 사전 차단 — create 와 동일.
+  if (data.is_used === false && data.is_default === true) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['is_default'],
+      message: '운영여부가 사용 안 함인 권한은 기초 권한으로 설정할 수 없습니다',
+    })
+  }
 })
 
 export type AuthorityUpdateRequest = z.infer<typeof authorityUpdateSchema>
@@ -254,3 +273,22 @@ export type AuthorityItem = z.infer<typeof authorityItemSchema>
 export const authorityItemListResponseSchema = apiResponseSchema(
   z.object({ content: z.array(authorityItemSchema) })
 )
+
+// 권한 후보 응답 스키마 (직원 초대 / BP 수정 selectbox 옵션 용도).
+// BE 가 신규 endpoint /system/authorities/employee-invitation, /system/authorities/bp-edit 에서 반환.
+// BE 응답이 snake_case 이므로 스키마와 사용처 모두 snake_case 그대로 사용.
+export const authorityCandidateSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  authority_kind: z.string(),
+  authority_kind_name: z.string(),
+  owner_code: z.string(),
+  plan_type_code: z.string().nullable(),
+  is_default: z.boolean().nullable(),
+  is_subscription: z.boolean().nullable(),
+  is_used: z.boolean(),
+})
+
+export type AuthorityCandidate = z.infer<typeof authorityCandidateSchema>
+
+export const authorityCandidateListResponseSchema = apiResponseSchema(z.array(authorityCandidateSchema))

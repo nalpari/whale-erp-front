@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BP 등록 & 로그인 프로세스 플로우</title>
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    @media print {
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: avoid; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+    }
+
+    .page {
+      width: 1120px;
+      height: 780px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 48px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #2563eb, #7c3aed, #ec4899);
+    }
+
+    .page-number {
+      position: absolute;
+      bottom: 24px;
+      right: 40px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .footer-label {
+      position: absolute;
+      bottom: 24px;
+      left: 40px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    /* Cover */
+    .cover { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    .cover h1 { font-size: 42px; font-weight: 800; color: #1e293b; line-height: 1.3; }
+    .cover h1 span { color: #2563eb; }
+    .cover .subtitle { font-size: 20px; color: #64748b; margin-top: 16px; font-weight: 400; }
+    .cover .meta { margin-top: 48px; font-size: 15px; color: #94a3b8; }
+    .cover .divider { width: 80px; height: 4px; background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 2px; margin: 32px auto; }
+
+    /* Section headers */
+    h2 { font-size: 28px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+    h2 .badge { display: inline-block; background: #2563eb; color: #fff; font-size: 13px; padding: 4px 12px; border-radius: 20px; vertical-align: middle; margin-right: 8px; font-weight: 600; }
+    .section-desc { font-size: 15px; color: #64748b; margin-bottom: 28px; }
+
+    /* Flow diagram */
+    .flow-container { display: flex; flex-direction: column; gap: 0; }
+
+    .flow-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .step-num.blue { background: #2563eb; }
+    .step-num.purple { background: #7c3aed; }
+    .step-num.green { background: #059669; }
+    .step-num.orange { background: #d97706; }
+    .step-num.red { background: #dc2626; }
+    .step-num.gray { background: #64748b; }
+
+    .step-box {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      flex: 1;
+    }
+    .step-box.highlight {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .step-box.warn {
+      background: #fef3c7;
+      border-color: #fcd34d;
+    }
+    .step-box.success {
+      background: #ecfdf5;
+      border-color: #6ee7b7;
+    }
+    .step-box.error {
+      background: #fef2f2;
+      border-color: #fca5a5;
+    }
+
+    .step-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .step-desc { font-size: 13px; color: #64748b; line-height: 1.5; }
+    .step-detail { font-size: 12px; color: #94a3b8; margin-top: 4px; font-family: 'SF Mono', 'Menlo', monospace; }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0;
+    }
+    .flow-arrow svg { color: #cbd5e1; }
+
+    .flow-arrow-right {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .flow-arrow-right svg { color: #cbd5e1; }
+
+    /* Horizontal flow */
+    .h-flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+    .h-flow-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Swim lane */
+    .swim-lane {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 0;
+    }
+    .lane-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      border-radius: 8px 0 0 8px;
+      padding: 12px 8px;
+    }
+    .lane-label.frontend { background: #2563eb; }
+    .lane-label.api { background: #7c3aed; }
+    .lane-label.db { background: #059669; }
+    .lane-label.email-lane { background: #d97706; }
+
+    .lane-content {
+      border: 1.5px solid #e2e8f0;
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fafbfc;
+    }
+
+    /* Process cards */
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .process-card {
+      border-radius: 10px;
+      padding: 20px;
+      border: 1.5px solid;
+    }
+    .process-card.blue-card { background: #eff6ff; border-color: #bfdbfe; }
+    .process-card.purple-card { background: #f5f3ff; border-color: #c4b5fd; }
+    .process-card.green-card { background: #ecfdf5; border-color: #a7f3d0; }
+    .process-card.orange-card { background: #fffbeb; border-color: #fcd34d; }
+    .process-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .process-card.blue-card h3 { color: #1d4ed8; }
+    .process-card.purple-card h3 { color: #6d28d9; }
+    .process-card.green-card h3 { color: #047857; }
+    .process-card.orange-card h3 { color: #b45309; }
+    .process-card p { font-size: 13px; color: #475569; line-height: 1.6; }
+    .process-card ul { font-size: 13px; color: #475569; line-height: 1.8; padding-left: 16px; }
+
+    /* Comparison table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .comp-table th {
+      background: #f1f5f9;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: #334155;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .comp-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+    }
+    .comp-table tr:hover td { background: #f8fafc; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .tag-blue { background: #dbeafe; color: #1d4ed8; }
+    .tag-purple { background: #ede9fe; color: #6d28d9; }
+    .tag-green { background: #d1fae5; color: #047857; }
+    .tag-red { background: #fee2e2; color: #dc2626; }
+    .tag-orange { background: #fef3c7; color: #b45309; }
+
+    /* Vertical timeline */
+    .timeline { position: relative; padding-left: 40px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #e2e8f0;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 20px;
+    }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-dot {
+      position: absolute;
+      left: -29px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+    }
+    .timeline-dot.blue { background: #2563eb; }
+    .timeline-dot.purple { background: #7c3aed; }
+    .timeline-dot.green { background: #059669; }
+    .timeline-dot.orange { background: #d97706; }
+    .timeline-dot.red { background: #dc2626; }
+
+    .note-box {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #92400e;
+      margin-top: 20px;
+    }
+    .note-box strong { color: #78350f; }
+
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #1e40af;
+    }
+
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* Sequence diagram style */
+    .seq-container { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+    .seq-row { display: flex; align-items: center; min-height: 52px; }
+    .seq-actor {
+      width: 120px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .seq-actor.left { color: #2563eb; }
+    .seq-actor.middle { color: #7c3aed; }
+    .seq-actor.right { color: #059669; }
+    .seq-arrow-container { flex: 1; position: relative; display: flex; align-items: center; }
+    .seq-arrow-line {
+      height: 2px;
+      flex: 1;
+      position: relative;
+    }
+    .seq-arrow-line.solid { background: #64748b; }
+    .seq-arrow-line.dashed { background: repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 6px, transparent 6px, transparent 12px); }
+    .seq-arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -5px;
+      border: 6px solid transparent;
+      border-left-color: #64748b;
+    }
+    .seq-arrow-line.reverse::after {
+      right: auto;
+      left: -1px;
+      border-left-color: transparent;
+      border-right-color: #94a3b8;
+    }
+    .seq-label {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #475569;
+      white-space: nowrap;
+      background: #fff;
+      padding: 0 6px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page 1: Cover -->
+<div class="page cover">
+  <h1>
+    <span>Business Partner</span> 등록 &<br>로그인 프로세스 플로우
+  </h1>
+  <div class="divider"></div>
+  <div class="subtitle">BP 등록 시 Member 계정 자동 생성 + 초기 비밀번호(= Master ID) + 최초 로그인 시 비밀번호 변경 강제</div>
+  <div class="meta">
+    Whale ERP &mdash; 파트너 정보 관리<br>
+    2026. 03.
+  </div>
+  <div class="page-number">1</div>
+</div>
+
+<!-- Page 2: Overview -->
+<div class="page">
+  <h2><span class="badge">Overview</span> 전체 프로세스 개요</h2>
+  <p class="section-desc">BP 등록부터 최초 로그인까지의 전체 흐름을 2단계로 나누어 설명합니다.</p>
+
+  <div class="process-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 28px;">
+    <div class="process-card blue-card">
+      <h3>STEP 1. BP 등록</h3>
+      <p>관리자가 Business Partner를 등록하면<br>로그인용 <strong>Member 계정</strong>이 자동 생성됩니다.</p>
+      <ul style="margin-top: 10px;">
+        <li>Organization(BP) 생성</li>
+        <li>Member + MemberDetail 생성</li>
+        <li>masterId &rarr; loginId</li>
+        <li><strong>초기 비밀번호 = masterId</strong></li>
+        <li>관리자가 BP 사용자에게 ID 전달</li>
+      </ul>
+    </div>
+    <div class="process-card green-card">
+      <h3>STEP 2. 최초 로그인</h3>
+      <p>BP 사용자가 최초 로그인하면<br><strong>비밀번호 변경 모달</strong>이 강제 표시됩니다.</p>
+      <ul style="margin-top: 10px;">
+        <li>loginId와 동일한 비밀번호로 로그인</li>
+        <li>비밀번호 변경 모달 (닫기 불가)</li>
+        <li>변경 완료 후 시스템 사용 가능</li>
+        <li>변경 전까지 어떤 기능도 사용 불가</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="info-box" style="margin-bottom: 16px;">
+    <strong>초기 비밀번호 정책:</strong> 초기 비밀번호는 Master ID와 동일하게 설정됩니다. 별도의 이메일 발송이나 랜덤 비밀번호 생성 없이, 관리자가 BP 사용자에게 직접 Master ID를 전달하면 됩니다. 보안을 위해 최초 로그인 시 반드시 비밀번호를 변경해야 합니다.
+  </div>
+
+  <div class="note-box">
+    <strong>참고:</strong> 권한(Authority) 부여는 별도 작업으로 진행됩니다. Member 생성 시점에는 권한이 없으므로, 관리자가 사후에 권한을 부여한 뒤 로그인이 정상 동작합니다.
+  </div>
+
+  <div class="page-number">2</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+<!-- Page 3: BP Registration Flow (Detail) -->
+<div class="page">
+  <h2><span class="badge">STEP 1</span> BP 등록 프로세스 상세</h2>
+  <p class="section-desc">관리자가 BP를 등록할 때의 시스템 내부 처리 흐름입니다.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot blue"></div>
+          <div class="step-box">
+            <div class="step-title">1. 관리자가 BP 등록 폼 작성</div>
+            <div class="step-desc">업체명, 사업자등록번호, 대표자 정보 등 기본 정보 입력</div>
+            <div class="step-detail">Master ID = 로그인에 사용될 ID (영문+숫자 8자 이상)</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot blue"></div>
+          <div class="step-box">
+            <div class="step-title">2. Master ID 중복 확인</div>
+            <div class="step-desc">입력한 Master ID가 이미 사용 중인지 검증</div>
+            <div class="step-detail">GET /api/auth/check-login-id?loginId={masterId}</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot purple"></div>
+          <div class="step-box highlight">
+            <div class="step-title">3. 저장 버튼 클릭 &rarr; API 호출</div>
+            <div class="step-desc">폼 데이터 + LNB 로고 파일을 multipart/form-data로 전송</div>
+            <div class="step-detail">POST /api/master/bp</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot purple"></div>
+          <div class="step-box">
+            <div class="step-title">4. Organization(BP) 생성</div>
+            <div class="step-desc">공통코드 검증 &rarr; 사업자번호 중복 검증 &rarr; Organization 엔티티 저장 &rarr; BP코드 자동 생성 (PTN000001)</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot green"></div>
+          <div class="step-box success">
+            <div class="step-title">5. Member 계정 자동 생성 <span class="tag tag-green">NEW</span></div>
+            <div class="step-desc">Organization 저장 후 Member + MemberDetail을 함께 생성<br>초기 비밀번호 = masterId (로그인 ID와 동일)</div>
+            <div class="step-detail">Member(loginId=masterId, passwordHash=encode(masterId), passwordChangeRequired=true)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">Member 생성 상세</h3>
+        <table class="comp-table">
+          <tr><th style="width:40%">항목</th><th>값</th></tr>
+          <tr><td><strong>loginId</strong></td><td>masterId (폼에서 입력)</td></tr>
+          <tr><td><strong>name</strong></td><td>대표자명</td></tr>
+          <tr><td><strong>passwordHash</strong></td><td>masterId를 BCrypt 해시 (초기 비밀번호 = loginId)</td></tr>
+          <tr><td><strong>email</strong></td><td>대표자 이메일</td></tr>
+          <tr><td><strong>isOperate</strong></td><td>1 (활성)</td></tr>
+          <tr><td><strong>passwordChangeRequired</strong></td><td>true <span class="tag tag-red">강제 변경</span></td></tr>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">MemberDetail 생성 상세</h3>
+        <table class="comp-table">
+          <tr><th style="width:40%">항목</th><th>값</th></tr>
+          <tr><td><strong>member</strong></td><td>위에서 생성한 Member</td></tr>
+          <tr><td><strong>organization</strong></td><td>새로 생성된 Organization</td></tr>
+          <tr><td><strong>mobilePhone</strong></td><td>대표자 휴대폰번호</td></tr>
+        </table>
+      </div>
+
+      <div class="info-box">
+        <strong>초기 비밀번호 정책:</strong><br>
+        초기 비밀번호는 Master ID와 동일하게 설정됩니다.<br>
+        <code style="background:#dbeafe;padding:2px 6px;border-radius:3px;">passwordEncoder.encode(masterId)</code><br>
+        예시: masterId가 <code>partner001</code>이면 비밀번호도 <code>partner001</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-number">3</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+<!-- Page 4: Login Flow -->
+<div class="page">
+  <h2><span class="badge">STEP 2</span> 최초 로그인 & 비밀번호 변경 강제</h2>
+  <p class="section-desc">BP에서 생성된 계정으로 최초 로그인 시의 흐름입니다. 비밀번호 변경 전까지 시스템을 사용할 수 없습니다.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot blue"></div>
+          <div class="step-box">
+            <div class="step-title">1. 로그인 페이지에서 인증</div>
+            <div class="step-desc">관리자에게 전달받은 Master ID(= loginId)와 동일한 초기 비밀번호로 로그인</div>
+            <div class="step-detail">POST /api/auth/login</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot purple"></div>
+          <div class="step-box">
+            <div class="step-title">2. 서버 인증 처리</div>
+            <div class="step-desc">loginId 조회 &rarr; 비밀번호 BCrypt 검증 &rarr; JWT 발급</div>
+            <div class="step-detail">응답에 passwordChangeRequired: true 포함</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot blue"></div>
+          <div class="step-box highlight">
+            <div class="step-title">3. 프론트엔드에서 응답 확인</div>
+            <div class="step-desc"><code>passwordChangeRequired === true</code> 이면<br>auth-store에 상태 저장 &rarr; 비밀번호 변경 모달 호출</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot red"></div>
+          <div class="step-box error">
+            <div class="step-title">4. 비밀번호 변경 모달 (강제)</div>
+            <div class="step-desc"><strong>닫기 불가</strong> (ESC, 백드롭 클릭, X 버튼 없음)<br>현재 비밀번호 + 새 비밀번호 + 확인 입력</div>
+            <div class="step-detail">PUT /api/auth/change-password</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot green"></div>
+          <div class="step-box success">
+            <div class="step-title">5. 변경 완료 &rarr; 시스템 사용 가능</div>
+            <div class="step-desc">passwordChangeRequired &rarr; false 업데이트<br>모달 닫힘 &rarr; 정상 메인 화면 진입</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">비밀번호 변경 모달 UI</h3>
+        <div style="background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; padding:28px;">
+          <div style="text-align:center; font-size:18px; font-weight:700; color:#1e293b; margin-bottom:4px;">비밀번호 변경</div>
+          <div style="text-align:center; font-size:13px; color:#dc2626; margin-bottom:20px;">보안을 위해 비밀번호를 변경해주세요.</div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:4px;">현재 비밀번호</div>
+            <div style="background:#fff; border:1px solid #d1d5db; border-radius:6px; padding:10px 12px; color:#94a3b8; font-size:13px;">********</div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:4px;">새 비밀번호</div>
+            <div style="background:#fff; border:1px solid #d1d5db; border-radius:6px; padding:10px 12px; color:#94a3b8; font-size:13px;">영문+숫자+특수문자 8~20자</div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:4px;">새 비밀번호 확인</div>
+            <div style="background:#fff; border:1px solid #d1d5db; border-radius:6px; padding:10px 12px; color:#94a3b8; font-size:13px;">비밀번호를 다시 입력</div>
+          </div>
+          <div style="background:#2563eb; color:#fff; text-align:center; padding:12px; border-radius:8px; font-weight:700; font-size:14px;">비밀번호 변경</div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">비밀번호 검증 규칙</h3>
+      <table class="comp-table">
+        <tr><th style="width:40%">규칙</th><th>상세</th></tr>
+        <tr><td>영문 포함</td><td>최소 1자 이상</td></tr>
+        <tr><td>숫자 포함</td><td>최소 1자 이상</td></tr>
+        <tr><td>특수문자 포함</td><td>@$!%*#?& 중 1자 이상</td></tr>
+        <tr><td>길이</td><td>8자 이상 20자 이하</td></tr>
+        <tr><td>현재 비밀번호와 상이</td><td>동일 비밀번호 재사용 불가</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-number">4</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+<!-- Page 5: Data Flow -->
+<div class="page">
+  <h2><span class="badge">Data Flow</span> 데이터 흐름 & 엔티티 관계</h2>
+  <p class="section-desc">BP 등록 시 생성되는 엔티티 간의 관계와 데이터 흐름입니다.</p>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #334155;">엔티티 생성 순서</h3>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="step-num blue">1</span>
+          <div class="step-box" style="flex:1;">
+            <div class="step-title">Organization (BP)</div>
+            <div class="step-desc">업체 정보 + masterId 저장</div>
+            <div class="step-detail">organizations 테이블</div>
+          </div>
+        </div>
+        <div style="text-align:center; color:#cbd5e1; font-size:20px;">&darr;</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="step-num purple">2</span>
+          <div class="step-box" style="flex:1;">
+            <div class="step-title">Member (로그인 계정)</div>
+            <div class="step-desc">loginId + passwordHash + passwordChangeRequired</div>
+            <div class="step-detail">members 테이블</div>
+          </div>
+        </div>
+        <div style="text-align:center; color:#cbd5e1; font-size:20px;">&darr;</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="step-num green">3</span>
+          <div class="step-box" style="flex:1;">
+            <div class="step-title">MemberDetail (상세 정보)</div>
+            <div class="step-desc">Member &harr; Organization 연결 + 연락처</div>
+            <div class="step-detail">member_details 테이블</div>
+          </div>
+        </div>
+        <div style="text-align:center; color:#cbd5e1; font-size:20px;">&darr;</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="step-num orange">4</span>
+          <div class="step-box" style="flex:1;">
+            <div class="step-title">Partner Function (선택)</div>
+            <div class="step-desc">본사-가맹점 관계 매핑</div>
+            <div class="step-detail">partner_functions 테이블</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-box" style="margin-top: 16px;">
+        <strong>MemberAuthorityMapping</strong>은 이번 범위에서 <strong>생성하지 않습니다.</strong><br>
+        관리자가 별도로 권한을 부여한 후 로그인이 정상 동작합니다.
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #334155;">엔티티 관계도</h3>
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:24px; font-size:13px; line-height:2.2;">
+        <pre style="font-family:'SF Mono','Menlo',monospace; font-size:13px; color:#334155;">
+┌──────────────────────┐
+│   <strong style="color:#2563eb;">Organization</strong> (BP)   │
+│──────────────────────│
+│ id                   │
+│ masterId ─────────┐  │
+│ companyName        │  │
+│ organizationCode   │  │
+│ representativeEmail│  │
+└────────┬───────────┘  │
+         │              │
+         │ 1:1          │
+         ▼              │
+┌──────────────────┐   │
+│  <strong style="color:#059669;">MemberDetail</strong>     │   │
+│──────────────────│   │
+│ organization ────┘   │
+│ member ──────┐       │
+│ mobilePhone  │       │
+└──────────────┘       │
+               │       │
+         1:1   │       │
+               ▼       │
+┌──────────────────┐   │
+│    <strong style="color:#7c3aed;">Member</strong>        │   │
+│──────────────────│   │
+│ loginId ◄────────┘   │
+│ passwordHash         │
+│ passwordChangeRequired│
+│ email                │
+│ name                 │
+└──────────────────────┘
+
+<span style="color:#94a3b8;">* loginId = masterId (동일 값)</span>
+<span style="color:#94a3b8;">* MemberDetail이 Organization과</span>
+<span style="color:#94a3b8;">  Member를 연결하는 브릿지 역할</span>
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-number">5</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+<!-- Page 6: Login Response Change -->
+<div class="page">
+  <h2><span class="badge">API</span> 로그인 응답 변경 & 비밀번호 변경 API</h2>
+  <p class="section-desc">기존 로그인 API 응답에 passwordChangeRequired 필드가 추가되고, 비밀번호 변경 전용 API가 신규 생성됩니다.</p>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">로그인 응답 (변경 후)</h3>
+      <div style="background:#1e293b; border-radius:10px; padding:20px; color:#e2e8f0; font-size:13px; font-family:'SF Mono','Menlo',monospace; line-height:1.8;">
+        <div style="color:#94a3b8;">POST /api/auth/login</div>
+        <div style="color:#94a3b8;">Response 200 OK</div>
+        <br>
+        <div>{</div>
+        <div>&nbsp;&nbsp;"accessToken": "eyJhbG...",</div>
+        <div>&nbsp;&nbsp;"refreshToken": "eyJhbG...",</div>
+        <div>&nbsp;&nbsp;"tokenType": "Bearer",</div>
+        <div>&nbsp;&nbsp;"expiresIn": 3600,</div>
+        <div>&nbsp;&nbsp;"loginId": "masterid001",</div>
+        <div>&nbsp;&nbsp;"name": "홍길동",</div>
+        <div>&nbsp;&nbsp;"mobilePhone": "01012345678",</div>
+        <div style="color:#fbbf24; font-weight:700;">&nbsp;&nbsp;"passwordChangeRequired": true,</div>
+        <div>&nbsp;&nbsp;"authority": null,</div>
+        <div>&nbsp;&nbsp;"companies": [...]</div>
+        <div>}</div>
+      </div>
+
+      <div class="info-box" style="margin-top: 16px;">
+        <strong>passwordChangeRequired 값에 따른 분기:</strong><br>
+        &bull; <code>true</code> &rarr; 비밀번호 변경 모달 강제 표시<br>
+        &bull; <code>false</code> &rarr; 기존 흐름 (권한 선택 또는 메인 진입)
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">비밀번호 변경 API <span class="tag tag-green">NEW</span></h3>
+      <div style="background:#1e293b; border-radius:10px; padding:20px; color:#e2e8f0; font-size:13px; font-family:'SF Mono','Menlo',monospace; line-height:1.8; margin-bottom:16px;">
+        <div style="color:#94a3b8;">PUT /api/auth/change-password</div>
+        <div style="color:#94a3b8;">Authorization: Bearer {accessToken}</div>
+        <br>
+        <div style="color:#60a5fa;">Request</div>
+        <div>{</div>
+        <div>&nbsp;&nbsp;"currentPassword": "masterid001",</div>
+        <div>&nbsp;&nbsp;"newPassword": "NewPass1234!"</div>
+        <div>}</div>
+        <br>
+        <div style="color:#34d399;">Response 200 OK</div>
+        <div>{</div>
+        <div>&nbsp;&nbsp;"code": "SUCCESS",</div>
+        <div>&nbsp;&nbsp;"message": "비밀번호가 변경되었습니다."</div>
+        <div>}</div>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">서버 처리 흐름</h3>
+      <table class="comp-table">
+        <tr><th>#</th><th>처리 내용</th></tr>
+        <tr><td>1</td><td>JWT에서 loginId 추출</td></tr>
+        <tr><td>2</td><td>Member 조회</td></tr>
+        <tr><td>3</td><td>currentPassword BCrypt 검증</td></tr>
+        <tr><td>4</td><td>newPassword 형식 검증 (영문+숫자+특수 8~20자)</td></tr>
+        <tr><td>5</td><td>currentPassword &ne; newPassword 확인</td></tr>
+        <tr><td>6</td><td>passwordHash 업데이트</td></tr>
+        <tr><td>7</td><td><strong>passwordChangeRequired = false</strong></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-number">6</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+<!-- Page 7: Summary -->
+<div class="page">
+  <h2><span class="badge">Summary</span> 전체 흐름 요약</h2>
+  <p class="section-desc">관리자의 BP 등록부터 BP 사용자의 최초 로그인까지 전체 시나리오를 시간순으로 정리합니다.</p>
+
+  <div style="display:flex; gap:0; align-items:stretch; margin-bottom:24px;">
+    <div style="flex:1; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:10px 0 0 10px; padding:20px; text-align:center;">
+      <div style="font-size:13px; color:#3b82f6; font-weight:700; margin-bottom:8px;">관리자</div>
+      <div style="font-size:32px; margin-bottom:8px;">&#128100;</div>
+      <div style="font-size:12px; color:#64748b;">BP 등록 폼 작성<br>Master ID 입력<br>저장 버튼 클릭</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:0 4px; color:#cbd5e1; font-size:24px;">&rarr;</div>
+    <div style="flex:1; background:#f5f3ff; border:1.5px solid #c4b5fd; padding:20px; text-align:center;">
+      <div style="font-size:13px; color:#7c3aed; font-weight:700; margin-bottom:8px;">API 서버</div>
+      <div style="font-size:32px; margin-bottom:8px;">&#9881;</div>
+      <div style="font-size:12px; color:#64748b;">Organization 생성<br>Member 생성<br>MemberDetail 생성</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:0 4px; color:#cbd5e1; font-size:24px;">&rarr;</div>
+    <div style="flex:1; background:#fffbeb; border:1.5px solid #fcd34d; padding:20px; text-align:center;">
+      <div style="font-size:13px; color:#d97706; font-weight:700; margin-bottom:8px;">ID 전달</div>
+      <div style="font-size:32px; margin-bottom:8px;">&#128172;</div>
+      <div style="font-size:12px; color:#64748b;">관리자가 BP 사용자에게<br>Master ID 전달<br>(초기 비밀번호 = Master ID)</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:0 4px; color:#cbd5e1; font-size:24px;">&rarr;</div>
+    <div style="flex:1; background:#fef2f2; border:1.5px solid #fca5a5; padding:20px; text-align:center;">
+      <div style="font-size:13px; color:#dc2626; font-weight:700; margin-bottom:8px;">최초 로그인</div>
+      <div style="font-size:32px; margin-bottom:8px;">&#128274;</div>
+      <div style="font-size:12px; color:#64748b;">Master ID로 로그인<br>변경 모달 강제<br>비밀번호 변경</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:0 4px; color:#cbd5e1; font-size:24px;">&rarr;</div>
+    <div style="flex:1; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:0 10px 10px 0; padding:20px; text-align:center;">
+      <div style="font-size:13px; color:#059669; font-weight:700; margin-bottom:8px;">시스템 사용</div>
+      <div style="font-size:32px; margin-bottom:8px;">&#10004;</div>
+      <div style="font-size:12px; color:#64748b;">비밀번호 변경 완료<br>정상 로그인<br>ERP 사용 가능</div>
+    </div>
+  </div>
+
+  <div class="two-col" style="gap:20px;">
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">예외 케이스 처리</h3>
+      <table class="comp-table">
+        <tr><th style="width:40%">상황</th><th>처리</th></tr>
+        <tr>
+          <td><span class="tag tag-red">비밀번호 분실</span></td>
+          <td>비밀번호 찾기로 임시 비밀번호 재발급 (이메일 발송)</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-orange">권한 미부여</span></td>
+          <td>로그인 시 "권한이 없습니다" 안내. 관리자가 권한 부여 후 재로그인</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">비밀번호 변경 미완료</span></td>
+          <td>시스템 접근 차단. 모달 닫기 불가. 변경해야만 진행</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">2회차 이후 로그인</span></td>
+          <td>passwordChangeRequired=false. 기존 흐름과 동일</td>
+        </tr>
+      </table>
+    </div>
+
+    <div>
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #334155;">구현 범위</h3>
+      <table class="comp-table">
+        <tr><th style="width:50%">항목</th><th>범위</th></tr>
+        <tr>
+          <td>BP 등록 시 Member 자동 생성</td>
+          <td><span class="tag tag-green">이번 작업</span></td>
+        </tr>
+        <tr>
+          <td>초기 비밀번호 = Master ID 설정</td>
+          <td><span class="tag tag-green">이번 작업</span></td>
+        </tr>
+        <tr>
+          <td>비밀번호 변경 API</td>
+          <td><span class="tag tag-green">이번 작업</span></td>
+        </tr>
+        <tr>
+          <td>비밀번호 변경 강제 모달</td>
+          <td><span class="tag tag-green">이번 작업</span></td>
+        </tr>
+        <tr>
+          <td>권한(Authority) 부여</td>
+          <td><span class="tag tag-orange">추후 작업</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-number">7</div>
+  <div class="footer-label">Whale ERP &mdash; BP 등록 & 로그인 프로세스</div>
+</div>
+
+</body>
+</html>
