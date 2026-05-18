@@ -12,8 +12,9 @@ const PLATFORM_OWNER_CODE = 'PRGRP_001_001'
 /**
  * 권한 종류(authority_kind) row 가시 여부.
  *
- * - BP context: 본사·가맹점 권한도 항상 권한 종류 필요
- * - PLATFORM context: PLATFORM owner 선택 시에만 표시 (본사/가맹점 owner 선택 시 숨김)
+ * - BP context: 본사·가맹점 권한 항상 권한 종류 row 노출 (선택은 선택사항)
+ * - PLATFORM context + PLATFORM owner: 구독 권한 토글 ON 일 때만 노출
+ * - PLATFORM context + 본사/가맹점 owner: 숨김 (페이로드에서도 미전송)
  *
  * AuthorityForm 의 렌더 가시 조건과 useAuthorityForm 의 검증/페이로드 가시 조건이
  * 동일하게 평가되도록 단일 정의 사용 — 양쪽이 어긋나면 "입력 UI 없는데 필수 에러" 회귀 발생.
@@ -21,7 +22,12 @@ const PLATFORM_OWNER_CODE = 'PRGRP_001_001'
 export const isKindRowVisible = (
   context: AuthorityFormContext,
   ownerCode?: OwnerCode | string,
-): boolean => context === 'bp' || ownerCode === PLATFORM_OWNER_CODE
+  isSubscription?: boolean | null,
+): boolean => {
+  if (context === 'bp') return true
+  if (ownerCode === PLATFORM_OWNER_CODE) return isSubscription === true
+  return false
+}
 
 /**
  * 기초 권한(is_default) row 가시 여부.

@@ -76,8 +76,8 @@ function AuthorityEditContent({
   const { mutateAsync: deleteAuthority } = useDeleteAuthority()
 
   // system 라우트는 항상 platform context 로 고정 — settings(/settings/authority/*) 와의 폼 차별화 정책.
-  // - BP owner 권한 편집 시: authority_kind row 자동 숨김 (useAuthorityForm 에서 owner_code 기반 payload 자동 매핑), is_default row 도 숨김
-  // - PLATFORM owner 권한 편집 시: authority_kind / 구독·요금제 row 그대로 노출 (PLATFORM 전용 시야)
+  // - BP owner 권한 편집 시: authority_kind / is_default row 자동 숨김 (페이로드도 undefined 전송)
+  // - PLATFORM owner 권한 편집 시: 구독 권한 토글 ON 일 때만 authority_kind row 노출 (선택사항)
   // AuthorityForm 의 렌더 가시 조건과 useAuthorityForm 의 검증/페이로드 가시 조건이 동일하게 평가되도록 양쪽에 동일 값 전달.
   const formContext = 'platform' as const
 

@@ -79,26 +79,18 @@ export default function AuthorityForm({
   const isBpDisabled = mode === 'edit'
   // 가시 조건은 lib/authority-visibility 의 단일 정의 사용 — useAuthorityForm 의 검증/페이로드와 동일하게 평가되어야 함
   const showSubscriptionRow = isSubscriptionRowVisible(context, formData.owner_code)
-  const showKindRow = isKindRowVisible(context, formData.owner_code)
+  const showKindRow = isKindRowVisible(context, formData.owner_code, formData.is_subscription)
   const showBasicRow = isBasicRowVisible(context, formData.owner_code)
 
   const handleOwnerCodeChange = (value: string) => {
-    // 본사/가맹점 owner 선택 시 권한 종류 row 가 숨겨지므로 자동 매핑:
-    // 운영 정책상 본사/가맹점 owner 권한은 둘 다 PRKND_002(가맹 BP) 로 통일 저장.
-    // (PRKND_001 은 옵션·필터에서 제외되어 신규 데이터 생성 경로 없음)
-    const autoKind =
-      value === OWNER_CODE.HEAD_OFFICE || value === OWNER_CODE.FRANCHISE
-        ? AUTHORITY_KIND.FRANCHISE_BP
-        : undefined
-
-    // authority_kind 는 conditional spread 밖에서 항상 갱신 — PLATFORM 전환 시 이전 owner 의 stale
-    // 자동 매핑 값(PRKND_002) 잔존 차단. 부모 onChange 가 setFormData((prev) => ({ ...prev, ...data }))
-    // 로 부분 업데이트이기 때문에 키 누락 시 이전 값이 그대로 남는다.
+    // BE 가 authority_kind 필수값 검증을 제외하므로 본사/가맹점 owner 자동 매핑(FRANCHISE_BP) 제거.
+    // owner 전환 시 이전 값이 남지 않도록 단순 undefined 리셋.
+    // 부모 onChange 가 부분 업데이트라 키 누락 시 stale 값 잔존 → 명시적 undefined 필요.
     const newData: Partial<AuthorityCreateRequest> = {
       owner_code: value as OwnerCode,
       head_office_id: undefined,
       franchisee_id: undefined,
-      authority_kind: autoKind,
+      authority_kind: undefined,
       // 플랫폼이 아니면 구독 권한/요금제 초기화 (PLATFORM 일 때는 기존 값 유지)
       ...(value !== 'PRGRP_001_001' && {
         is_subscription: false,
@@ -131,9 +123,11 @@ export default function AuthorityForm({
   }
 
   const handleSubscriptionChange = (checked: boolean) => {
+    // 구독 토글 off 시 권한 종류 row 가 숨겨지므로 stale 값 잔존 방지 위해 함께 리셋
     onChange({
       is_subscription: checked,
       plan_type_code: checked ? formData.plan_type_code : undefined,
+      authority_kind: checked ? formData.authority_kind : undefined,
     })
   }
 
@@ -281,7 +275,8 @@ export default function AuthorityForm({
               {showKindRow && (
                 <tr>
                   <th>
-                    권한 종류 <span className="red">*</span>
+                    권한 종류
+                    {context === 'platform' && <> <span className="red">*</span></>}
                   </th>
                   <td colSpan={showFranchise ? 3 : undefined}>
                     <RadioButtonGroup
