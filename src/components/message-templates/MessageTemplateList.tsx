@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ColDef, RowClickedEvent } from 'ag-grid-community'
 import AgGrid from '@/components/ui/AgGrid'
 import Pagination from '@/components/ui/Pagination'
+import { useAlert } from '@/components/common/ui'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { formatDateTimeYmdHm } from '@/util/date-util'
 import type { MessageTemplateListItem, SendType } from '@/types/notification'
@@ -71,6 +72,7 @@ export default function MessageTemplateList({
   onPageSizeChange,
 }: MessageTemplateListProps) {
   const router = useRouter()
+  const { alert } = useAlert()
 
   const handleRowClick = (event: RowClickedEvent<MessageTemplateListItem>) => {
     if (event.data) {
@@ -78,11 +80,9 @@ export default function MessageTemplateList({
     }
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!REGISTER_SUPPORTED_SEND_TYPES[sendType]) {
-      window.alert(
-        `${SEND_TYPE_LABEL[sendType]} 템플릿 등록은 후속 작업에서 지원됩니다.`,
-      )
+      await alert(`${SEND_TYPE_LABEL[sendType]} 템플릿 등록은 후속 작업에서 지원됩니다.`)
       return
     }
     router.push(buildRegisterPath(sendType))

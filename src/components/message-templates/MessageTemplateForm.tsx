@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AnimateHeight from 'react-animate-height'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
-import { Input } from '@/components/common/ui'
+import { Input, useAlert } from '@/components/common/ui'
 import Location from '@/components/ui/Location'
 import { useCommonCodeHierarchy } from '@/hooks/queries'
 import {
@@ -51,6 +51,7 @@ const EMPTY_FORM: FormState = {
 
 export default function MessageTemplateForm({ mode, sendType, initial }: MessageTemplateFormProps) {
   const router = useRouter()
+  const { confirm } = useAlert()
   const [slideboxOpen, setSlideboxOpen] = useState(true)
 
   const [form, setForm] = useState<FormState>(() =>
@@ -130,7 +131,9 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
 
   const handleDelete = async () => {
     if (!initial) return
-    if (!window.confirm('정말 삭제하시겠습니까? (사용 여부 N으로 전환)')) return
+    // V82(2026-05-15) 이후 hard delete 정책 — 문구를 영구 삭제 의미로 명시
+    const ok = await confirm('정말 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.')
+    if (!ok) return
     try {
       await deleteMutation.mutateAsync(initial.id)
       goList()
