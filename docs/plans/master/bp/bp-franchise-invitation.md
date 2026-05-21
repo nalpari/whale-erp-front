@@ -271,3 +271,29 @@ export default BpInvitationPage
 | CORS | 공공데이터 API 직접 호출 시 CORS 차단 가능 → whale-erp-api에 프록시 엔드포인트 추가 검토 |
 | 인증키 관리 | 공공데이터 API 인증키는 환경변수(`NEXT_PUBLIC_*`)로 관리 |
 | 카톡 발송 | API에 TODO로 남아있음 (추후 개발) |
+
+---
+
+## 변경 이력
+
+| 날짜 | 변경 내용 |
+|------|-----------|
+| 2026-05-21 | **초대하기 버튼 더블클릭/race 방어** — 사용자가 응답 대기 중 한 번 더 클릭 시 메일이 이미 발송된 상태에서 두 번째 호출이 `BP_INVITATION_ALREADY_EXISTS`(중복) 차단되어 "등록 실패" 알림이 표시되던 버그 수정. §"중복 호출 방어" 참조 |
+
+## 중복 호출 방어 (2026-05-21)
+
+### 문제
+- 초대하기 버튼에 `disabled` 처리 없음 + `handleSubmit` 진입 가드 없음
+- 사용자가 응답 대기 중에 한 번 더 클릭하면 mutation 이 2번 실행
+- 1차: 검증 통과 → 가맹점 저장 → 메일 발송 → 200
+- 2차: `validateNoDuplicateInvitation` 에서 `BP_INVITATION_ALREADY_EXISTS` 차단 → 사용자 화면에는 "중복" 에러 alert
+- 결과: 사용자 입장 "메일은 갔는데 등록 실패"
+
+### 해결
+1. `useInviteFranchise()` 의 `isPending` 받기
+2. `초대하기` 버튼 `disabled={isInviting || businessVerification.isPending}` + 라벨 변경 ("초대 중...")
+3. `handleSubmit` 진입 시 `isInviting` 가드 (mutateAsync 사이 race 방어)
+4. `취소` 버튼도 동일하게 `disabled={isInviting}` (진행 중 페이지 이탈 방지)
+
+### 후속 검토 (별도)
+- 백엔드 `inviteFranchise` 에 idempotency 가드 추가 (직원 가입 패턴 — 5분 내 동일 사업자등록번호 차단). 프론트 fix 만으로 100% 차단 불가 (다른 클라이언트/네트워크 재시도 등 가능)

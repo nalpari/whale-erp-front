@@ -82,7 +82,7 @@ const BpInvitationManageContent = () => {
     && headOffices.some((o) => o.id === defaultHeadOfficeId)
   const isHeadOfficeLocked = hasMatchedHeadOffice
     || (defaultHeadOfficeId != null && isHeadOfficesPending)
-  const { mutateAsync: inviteFranchise } = useInviteFranchise()
+  const { mutateAsync: inviteFranchise, isPending: isInviting } = useInviteFranchise()
 
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
     headOffices.map((o) => ({ label: o.companyName, value: String(o.id) })),
@@ -200,6 +200,9 @@ const BpInvitationManageContent = () => {
   }, [form, isVerified, headOffices])
 
   const handleSubmit = useCallback(async () => {
+    // 더블클릭/race 방어: 진행 중 추가 호출 차단
+    // (button disabled 와 함께 2중 가드 — disabled 가 React state 반영 지연 시 safety net)
+    if (isInviting) return
     if (!validate()) return
 
     try {
@@ -215,7 +218,7 @@ const BpInvitationManageContent = () => {
     } catch (err) {
       await alert(getErrorMessage(err, '가맹점 초대에 실패했습니다.'))
     }
-  }, [form, validate, inviteFranchise, alert, router])
+  }, [form, validate, inviteFranchise, alert, router, isInviting])
 
   return (
     <div className="data-wrap">
@@ -404,11 +407,21 @@ const BpInvitationManageContent = () => {
           </div>
         </div>
         <div className="invitation-form-footer">
-          <button className="btn-form gray" onClick={() => router.push('/master/bp')} type="button">
+          <button
+            className="btn-form gray"
+            onClick={() => router.push('/master/bp')}
+            type="button"
+            disabled={isInviting}
+          >
             취소
           </button>
-          <button className="btn-form basic" onClick={handleSubmit} type="button">
-            초대하기
+          <button
+            className="btn-form basic"
+            onClick={handleSubmit}
+            type="button"
+            disabled={isInviting || businessVerification.isPending}
+          >
+            {isInviting ? '초대 중...' : '초대하기'}
           </button>
         </div>
       </div>
