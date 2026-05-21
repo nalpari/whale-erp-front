@@ -30,7 +30,8 @@ export async function fetchBpAdmins(params: BpAdminSearchParams, signal?: AbortS
       login_id: params.login_id,
       user_type: params.user_type,
       organization_type: params.organization_type,
-      organization_id: params.organization_id,
+      head_office_id: params.head_office_id,
+      franchise_id: params.franchise_id,
       authority_id: params.authority_id,
       start_date: params.start_date,
       end_date: params.end_date,
@@ -81,13 +82,17 @@ export async function resetBpAdminPassword(id: number): Promise<string> {
 }
 
 export async function fetchBpAdminAuthorityCandidates(
-  organizationId: number,
+  organizationId: number | null | undefined,
   signal?: AbortSignal,
 ): Promise<BpAdminAuthorityCandidate[]> {
   const response = await getWithSchema(
     `${BASE}/authority-options`,
     bpAdminAuthorityCandidateListResponseSchema,
-    { params: { organization_id: organizationId }, signal },
+    {
+      params:
+        organizationId != null ? { organization_id: organizationId } : undefined,
+      signal,
+    },
   )
   return response.data
 }

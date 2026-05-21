@@ -5,7 +5,8 @@ export interface BpAdminSearchParams {
   login_id?: string
   user_type?: string
   organization_type?: AdminType
-  organization_id?: number
+  head_office_id?: number
+  franchise_id?: number
   authority_id?: number
   start_date?: string
   end_date?: string

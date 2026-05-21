@@ -82,11 +82,15 @@ export function useBpAdminOrganizationOptions() {
   })
 }
 
-export function useBpAdminAuthorityCandidates(organizationId: number | null) {
+export function useBpAdminAuthorityCandidates(
+  organizationId: number | null,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: bpAdminKeys.authorityOptions(organizationId ?? 0),
-    queryFn: ({ signal }) => fetchBpAdminAuthorityCandidates(organizationId!, signal),
+    queryFn: ({ signal }) => fetchBpAdminAuthorityCandidates(organizationId, signal),
     enabled:
-      organizationId != null && Number.isFinite(organizationId) && organizationId > 0,
+      options?.enabled ??
+      (organizationId != null && Number.isFinite(organizationId) && organizationId > 0),
   })
 }
