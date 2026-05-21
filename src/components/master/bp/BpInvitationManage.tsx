@@ -82,7 +82,7 @@ const BpInvitationManageContent = () => {
     && headOffices.some((o) => o.id === defaultHeadOfficeId)
   const isHeadOfficeLocked = hasMatchedHeadOffice
     || (defaultHeadOfficeId != null && isHeadOfficesPending)
-  const { mutateAsync: inviteFranchise } = useInviteFranchise()
+  const { mutateAsync: inviteFranchise, isPending: isInviting } = useInviteFranchise()
 
   const headOfficeOptions = useMemo<SelectOption[]>(() =>
     headOffices.map((o) => ({ label: o.companyName, value: String(o.id) })),
@@ -200,6 +200,9 @@ const BpInvitationManageContent = () => {
   }, [form, isVerified, headOffices])
 
   const handleSubmit = useCallback(async () => {
+    // 더블클릭/race 방어: 진행 중 추가 호출 차단
+    // (button disabled 와 함께 2중 가드 — disabled 가 React state 반영 지연 시 safety net)
+    if (isInviting) return
     if (!validate()) return
 
     try {
@@ -215,7 +218,7 @@ const BpInvitationManageContent = () => {
     } catch (err) {
       await alert(getErrorMessage(err, '가맹점 초대에 실패했습니다.'))
     }
-  }, [form, validate, inviteFranchise, alert, router])
+  }, [form, validate, inviteFranchise, alert, router, isInviting])
 
   return (
     <div className="data-wrap">
@@ -404,11 +407,33 @@ const BpInvitationManageContent = () => {
           </div>
         </div>
         <div className="invitation-form-footer">
-          <button className="btn-form gray" onClick={() => router.push('/master/bp')} type="button">
+          {/* 취소 버튼은 race 방어 대상 아님 (라우팅 차원) — 사용자 탈출구 보장 (PR #100 review MED #3) */}
+          <button
+            className="btn-form gray"
+            onClick={() => router.push('/master/bp')}
+            type="button"
+          >
             취소
           </button>
-          <button className="btn-form basic" onClick={handleSubmit} type="button">
-            초대하기
+          {/* 초대하기 4중 가드 + 라벨 분기:
+              - isInviting (mutation 진행) → "초대 중..."
+              - businessVerification.isPending (인증 호출 중) → "인증 처리 중"
+              - !isVerified (인증 미시도/실패 — PR #100 review MED #4) → "인증 후 가능"
+              - 그 외 → "초대하기"
+              !isVerified disabled 추가로 인증 안 한 상태에서 click → validate 실패 우회 방지 */}
+          <button
+            className="btn-form basic"
+            onClick={handleSubmit}
+            type="button"
+            disabled={isInviting || businessVerification.isPending || !isVerified}
+          >
+            {isInviting
+              ? '초대 중...'
+              : businessVerification.isPending
+                ? '인증 처리 중'
+                : !isVerified
+                  ? '인증 후 가능'
+                  : '초대하기'}
           </button>
         </div>
       </div>
