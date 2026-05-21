@@ -8,7 +8,7 @@ import Location from '@/components/ui/Location'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
 import { useBpDetail, useCommonCodeHierarchy } from '@/hooks/queries'
-import { useDeleteBp } from '@/hooks/queries/use-bp-queries'
+import { useDeleteBp, useResendBpInvitation } from '@/hooks/queries/use-bp-queries'
 import { getErrorMessage } from '@/lib/api'
 
 interface BpDetailViewProps {
@@ -23,6 +23,7 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
 
   const { data: bp, isPending } = useBpDetail(id)
   const { mutateAsync: deleteBp } = useDeleteBp()
+  const { mutateAsync: resendBpInvitation, isPending: isResending } = useResendBpInvitation()
   const { data: bpoprCodes = [] } = useCommonCodeHierarchy('BPOPR')
   const { data: bpTypeCodes = [] } = useCommonCodeHierarchy('BPTYP')
 
@@ -36,6 +37,8 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
 
   const isHeadOffice = bp?.organizationType === 'HEAD_OFFICE'
   const isEditDisabled = bp?.bpoprType === 'BPOPR_001' && bp?.invitationStatus != null && bp?.invitationStatus !== 'ACCEPTED'
+  // 재발송 노출: 상담중(BPOPR_001) + 미가입(PENDING) 일 때만 (BE 가드와 동일)
+  const isResendVisible = bp?.bpoprType === 'BPOPR_001' && bp?.invitationStatus === 'PENDING'
 
   const handleDelete = async () => {
     const confirmed = await confirm('삭제하시겠습니까?')
@@ -46,6 +49,17 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
       router.push('/master/bp')
     } catch (error) {
       await alert(getErrorMessage(error, '삭제에 실패했습니다.'))
+    }
+  }
+
+  const handleResendInvitation = async () => {
+    const confirmed = await confirm('초대 메일을 다시 발송하시겠습니까?')
+    if (!confirmed) return
+    try {
+      await resendBpInvitation(id)
+      await alert('초대 메일이 재발송되었습니다.')
+    } catch (error) {
+      await alert(getErrorMessage(error, '초대 메일 재발송에 실패했습니다.'))
     }
   }
 
@@ -78,6 +92,11 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
             <div className="slidebox-btn-wrap">
               {!isEditDisabled && (
                 <button className="slidebox-btn" onClick={() => router.push(`/master/bp/${id}/edit`)}>수정</button>
+              )}
+              {isResendVisible && (
+                <button className="slidebox-btn" onClick={handleResendInvitation} disabled={isResending}>
+                  {isResending ? '재발송 중...' : '초대 메일 재발송'}
+                </button>
               )}
               <button className="slidebox-btn" onClick={handleDelete}>삭제</button>
               <button className="slidebox-btn" onClick={() => router.push('/master/bp')}>목록</button>

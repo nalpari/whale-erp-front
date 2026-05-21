@@ -29,6 +29,29 @@ BP Master 목록에서 행 클릭 시 이동하는 상세 조회 페이지
 | - | LNB 로고 이미지 표시, 검색 조건 유지 (Zustand), 수정 제한 (상담중+미가입) |
 | - | 운영여부에 본사/가맹점 표시, 분류 정보 bpClassification(BPTYP) 사용 |
 | 2026-03-10 | 삭제 기능 추가 (확인 다이얼로그 + API 호출 + invitation PENDING→EXPIRED) |
+| 2026-05-21 | **재초대 메일/알림톡 재발송 버튼 추가** — 상담중(BPOPR_001) + 미가입(PENDING) 조건일 때만 노출. 5분 idempotency. §"재초대 발송" 섹션 참조 |
+
+---
+
+## 재초대 발송 (2026-05-21)
+
+### 노출 조건
+- `bp.bpoprType === 'BPOPR_001'` (상담중) **AND** `bp.invitationStatus === 'PENDING'`
+- 조건 미충족 시 버튼 자체 미렌더 (disabled 아님)
+
+### 동작
+- 버튼 클릭 → confirm 다이얼로그 ("초대 메일을 다시 발송하시겠습니까?")
+- 확인 시 `POST /api/master/bp/{id}/resend-invitation` 호출
+- 성공: alert "초대 메일이 발송되었습니다." (알림톡은 best-effort 동시 발송 — 사용자에게는 메일 기준으로만 안내)
+- 실패: alert(getErrorMessage(error))
+  - 5분 이내 재발송 시 429 응답 → "잠시 후 다시 시도해 주세요." (백엔드 ErrorCode 메시지 사용)
+
+### 위치
+- 섹션 1 슬라이드박스 헤더 버튼 영역: `[수정] [삭제]` 사이에 `[초대 메일 재발송]` (조건부 노출)
+
+### 백엔드 정합
+- 관련 API plan: `whale-erp-api/docs/plans/master-bp-2026-05-21-invitation-mail-alimtalk.md` §16
+- 메일/알림톡 발송 헬퍼는 `BpService.inviteFranchise` 와 동일 — 신규 등록 vs 재발송만 분기, 본문/템플릿 동일
 
 ---
 
@@ -38,7 +61,8 @@ BP Master 목록에서 행 클릭 시 이동하는 상세 조회 페이지
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ slidebox-header: "Business Partner 정보"  [수정] [삭제] [목록] [▲] │
+│ slidebox-header: "Business Partner 정보"  [수정] [재발송*] [삭제] [목록] [▲] │
+│                                            * BPOPR_001+PENDING 일 때만        │
 ├─────────────────────────────────────────────────────────────┤
 │ slidebox-body > detail-data-wrap                             │
 │ ┌──────────────────┬────────────────────────────────────────┐│

@@ -259,3 +259,20 @@ export const useInviteFranchise = () => {
     },
   })
 }
+
+/**
+ * 가맹BP 초대 메일/알림톡 재발송 mutation.
+ *
+ * 노출 조건: bpopr_type=BPOPR_001(상담중) + invitation_status=PENDING
+ * 5분 이내 재발송 시 백엔드가 429(NOTIFICATION_IDEMPOTENCY_BLOCKED) 반환.
+ */
+export const useResendBpInvitation = () => {
+  return useMutation({
+    mutationFn: async (bpId: number) => {
+      const response = await api.post<ApiResponse<void>>(
+        `/api/v1/master/bp/${bpId}/resend-invitation`,
+      )
+      return response.data
+    },
+  })
+}
