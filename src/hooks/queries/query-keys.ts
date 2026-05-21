@@ -1,6 +1,7 @@
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
+import type { BpAdminSearchParams } from '@/types/bp-admin'
 import type { CustomerSearchParams } from '@/types/customer'
 import type { EmployeeTodoListParams, EmployeeTodoSelectParams } from '@/types/employee-todo'
 
@@ -266,6 +267,22 @@ export const adminKeys = {
   detail: (id: number) => [...adminKeys.details(), id] as const,
   selectOptions: () => [...adminKeys.all, 'select-options'] as const,
   authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
+}
+
+export interface BpAdminListParams extends BpAdminSearchParams {
+  page?: number
+  size?: number
+}
+
+export const bpAdminKeys = {
+  all: ['bp-admins'] as const,
+  lists: () => [...bpAdminKeys.all, 'list'] as const,
+  list: (params: BpAdminListParams) => [...bpAdminKeys.lists(), params] as const,
+  details: () => [...bpAdminKeys.all, 'detail'] as const,
+  detail: (id: number) => [...bpAdminKeys.details(), id] as const,
+  selectOptions: () => [...bpAdminKeys.all, 'select-options'] as const,
+  authorityCandidates: (headOfficeId: number, franchiseId?: number | null) =>
+    [...bpAdminKeys.all, 'authority-candidates', { headOfficeId, franchiseId: franchiseId ?? null }] as const,
 }
 
 export const authorityKeys = {

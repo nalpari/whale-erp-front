@@ -74,6 +74,7 @@ import type { EmployeeTodoSearchFilters } from '@/components/employee/todo/Emplo
 import type { AttendanceSearchFilters } from '@/components/employee/attendance/AttendanceSearch'
 import type { StoreScheduleQuery } from '@/types/work-schedule'
 import type { AdminSearchParams } from '@/types/admin'
+import type { BpAdminSearchParams } from '@/types/bp-admin'
 
 interface FilterStoreState<T> {
   searchParams: T
@@ -135,3 +136,6 @@ export const useAttendanceSearchStore = createFilterStore<AttendanceSearchFilter
 
 // 관리자 관리 (system/admin)
 export const useAdminManageSearchStore = createFilterStore<AdminSearchParams>({})
+
+// BP 관리자 관리 (settings/admin)
+export const useBpAdminManageSearchStore = createFilterStore<BpAdminSearchParams>({})
