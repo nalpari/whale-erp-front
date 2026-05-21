@@ -407,25 +407,33 @@ const BpInvitationManageContent = () => {
           </div>
         </div>
         <div className="invitation-form-footer">
+          {/* 취소 버튼은 race 방어 대상 아님 (라우팅 차원) — 사용자 탈출구 보장 (PR #100 review MED #3) */}
           <button
             className="btn-form gray"
             onClick={() => router.push('/master/bp')}
             type="button"
-            disabled={isInviting}
           >
             취소
           </button>
+          {/* 초대하기 4중 가드 + 라벨 분기:
+              - isInviting (mutation 진행) → "초대 중..."
+              - businessVerification.isPending (인증 호출 중) → "인증 처리 중"
+              - !isVerified (인증 미시도/실패 — PR #100 review MED #4) → "인증 후 가능"
+              - 그 외 → "초대하기"
+              !isVerified disabled 추가로 인증 안 한 상태에서 click → validate 실패 우회 방지 */}
           <button
             className="btn-form basic"
             onClick={handleSubmit}
             type="button"
-            disabled={isInviting || businessVerification.isPending}
+            disabled={isInviting || businessVerification.isPending || !isVerified}
           >
             {isInviting
               ? '초대 중...'
               : businessVerification.isPending
-                ? '인증 완료 후 가능'
-                : '초대하기'}
+                ? '인증 처리 중'
+                : !isVerified
+                  ? '인증 후 가능'
+                  : '초대하기'}
           </button>
         </div>
       </div>

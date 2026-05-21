@@ -30,7 +30,8 @@ BP Master 목록에서 행 클릭 시 이동하는 상세 조회 페이지
 | - | 운영여부에 본사/가맹점 표시, 분류 정보 bpClassification(BPTYP) 사용 |
 | 2026-03-10 | 삭제 기능 추가 (확인 다이얼로그 + API 호출 + invitation PENDING→EXPIRED) |
 | 2026-05-21 | **재초대 메일/알림톡 재발송 버튼 추가** — 상담중(BPOPR_001) + 미가입(PENDING) 조건일 때만 노출. 5분 idempotency. §"재초대 발송" 섹션 참조 |
-| 2026-05-21 | **Boston Code Review front 반영** — `useResendBpInvitation`에 `onSuccess` invalidate 추가 (sentAt stale 방지) + alert 메시지 "초대 메일/알림톡이 재발송되었습니다." (두 채널 안내) |
+| 2026-05-21 | **Boston Code Review front 반영** — `useResendBpInvitation`에 `onSuccess` invalidate 추가 (sentAt stale 방지) + alert 메시지 "초대 메일/alimtalk이 재발송되었습니다." (두 채널 안내) |
+| 2026-05-21 | **PR #100 review HIGH/MEDIUM 반영** — (HIGH#1) alert/confirm 카피 best-effort 톤("요청했습니다") + 5분 안내 / (HIGH#2) `isResendVisible` 정책 주석 (EXPIRED/REJECTED 는 삭제 후 재초대) / (MED#1) 재발송 중 수정/삭제/목록 버튼 동시 disable / (MED#2) `handleResendInvitation` 진입 가드 추가 |
 
 ---
 

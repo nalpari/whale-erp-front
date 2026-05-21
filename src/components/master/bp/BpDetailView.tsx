@@ -37,7 +37,12 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
 
   const isHeadOffice = bp?.organizationType === 'HEAD_OFFICE'
   const isEditDisabled = bp?.bpoprType === 'BPOPR_001' && bp?.invitationStatus != null && bp?.invitationStatus !== 'ACCEPTED'
-  // 재발송 노출: 상담중(BPOPR_001) + 미가입(PENDING) 일 때만 (BE 가드와 동일)
+  // 재발송 노출: 상담중(BPOPR_001) + 미가입(PENDING) 일 때만 (BE assertConsultingBpopr + PENDING 가드와 1:1)
+  //
+  // 정책 (PR #100 review HIGH #2): EXPIRED/REJECTED 상태 BP 는 재발송 버튼 미노출.
+  //   - BE 가 PENDING 만 허용 (다른 상태는 BP_RESEND_NOT_ALLOWED 차단)
+  //   - 정상 운영 경로: EXPIRED/REJECTED → "삭제 후 재초대" (BP Master 목록에서 다시 초대)
+  //   - 본 상세 화면에서 재발송은 PENDING 한정. 상태 변경은 신규 초대 흐름에서.
   const isResendVisible = bp?.bpoprType === 'BPOPR_001' && bp?.invitationStatus === 'PENDING'
 
   const handleDelete = async () => {
@@ -53,12 +58,15 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
   }
 
   const handleResendInvitation = async () => {
-    const confirmed = await confirm('초대 메일을 다시 발송하시겠습니까?')
+    // 진입 가드 (PR #100 review MED #2) — confirm 모달 닫힘 ↔ mutation 진입 사이 1 tick race 차단
+    if (isResending) return
+    const confirmed = await confirm('초대 메일과 알림톡을 다시 발송하시겠습니까?')
     if (!confirmed) return
     try {
       await resendBpInvitation(id)
-      // 메일 + 알림톡 둘 다 best-effort afterCommit 발송 — 두 채널 모두 안내 (front HIGH #2)
-      await alert('초대 메일/알림톡이 재발송되었습니다.')
+      // 메일 + 알림톡 둘 다 best-effort afterCommit 발송 → 단정형 카피 회피 (PR #100 review HIGH #1)
+      // 채널 실패해도 BE 는 200 + 사용자에게 성공 안내 → 5분 idempotency 차단 시 혼란 방지
+      await alert('초대 메일과 알림톡 재발송을 요청했습니다.\n수 분 내 도착하지 않으면 5분 후 다시 시도해주세요.')
     } catch (error) {
       // BE 의 ErrorResponse.message 가 친절하게 작성되어 있어 그대로 표시
       // (NOTIFICATION_IDEMPOTENCY_BLOCKED 등 429 도 BE 메시지로 충분)
@@ -93,16 +101,17 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
           <div className="slidebox-header">
             <h2>파트너 정보</h2>
             <div className="slidebox-btn-wrap">
+              {/* 재발송 진행 중에는 다른 헤더 액션도 disable — 동시 mutation race 방지 (PR #100 review MED #1) */}
               {!isEditDisabled && (
-                <button className="slidebox-btn" onClick={() => router.push(`/master/bp/${id}/edit`)}>수정</button>
+                <button className="slidebox-btn" onClick={() => router.push(`/master/bp/${id}/edit`)} disabled={isResending}>수정</button>
               )}
               {isResendVisible && (
                 <button className="slidebox-btn" onClick={handleResendInvitation} disabled={isResending}>
                   {isResending ? '재발송 중...' : '초대 메일 재발송'}
                 </button>
               )}
-              <button className="slidebox-btn" onClick={handleDelete}>삭제</button>
-              <button className="slidebox-btn" onClick={() => router.push('/master/bp')}>목록</button>
+              <button className="slidebox-btn" onClick={handleDelete} disabled={isResending}>삭제</button>
+              <button className="slidebox-btn" onClick={() => router.push('/master/bp')} disabled={isResending}>목록</button>
               <button className="slidebox-btn arr" onClick={() => setBpInfoOpen(!bpInfoOpen)}>
                 <i className="arr-icon"></i>
               </button>
