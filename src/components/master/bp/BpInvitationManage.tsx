@@ -421,7 +421,11 @@ const BpInvitationManageContent = () => {
             type="button"
             disabled={isInviting || businessVerification.isPending}
           >
-            {isInviting ? '초대 중...' : '초대하기'}
+            {isInviting
+              ? '초대 중...'
+              : businessVerification.isPending
+                ? '인증 완료 후 가능'
+                : '초대하기'}
           </button>
         </div>
       </div>

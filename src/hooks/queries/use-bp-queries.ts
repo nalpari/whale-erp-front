@@ -265,14 +265,21 @@ export const useInviteFranchise = () => {
  *
  * 노출 조건: bpopr_type=BPOPR_001(상담중) + invitation_status=PENDING
  * 5분 이내 재발송 시 백엔드가 429(NOTIFICATION_IDEMPOTENCY_BLOCKED) 반환.
+ *
+ * 재발송 성공 시 bpKeys.detail invalidate 로 BP 상세 화면의 sentAt/상태 갱신
+ * (Boston Review front HIGH #1 — stale UI 방지).
  */
 export const useResendBpInvitation = () => {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (bpId: number) => {
       const response = await api.post<ApiResponse<void>>(
         `/api/v1/master/bp/${bpId}/resend-invitation`,
       )
       return response.data
+    },
+    onSuccess: (_data, bpId) => {
+      queryClient.invalidateQueries({ queryKey: bpKeys.detail(bpId) })
     },
   })
 }

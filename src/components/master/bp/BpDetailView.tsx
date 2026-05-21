@@ -57,8 +57,11 @@ const BpDetailView = ({ id }: BpDetailViewProps) => {
     if (!confirmed) return
     try {
       await resendBpInvitation(id)
-      await alert('초대 메일이 재발송되었습니다.')
+      // 메일 + 알림톡 둘 다 best-effort afterCommit 발송 — 두 채널 모두 안내 (front HIGH #2)
+      await alert('초대 메일/알림톡이 재발송되었습니다.')
     } catch (error) {
+      // BE 의 ErrorResponse.message 가 친절하게 작성되어 있어 그대로 표시
+      // (NOTIFICATION_IDEMPOTENCY_BLOCKED 등 429 도 BE 메시지로 충분)
       await alert(getErrorMessage(error, '초대 메일 재발송에 실패했습니다.'))
     }
   }
