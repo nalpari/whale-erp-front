@@ -15,6 +15,17 @@ interface BpAdminRowDataInternal extends BpAdminItem {
   rowNumber: number
 }
 
+const EMPTY = '-'
+
+/**
+ * 빈 값(null/undefined/빈 문자열) 공통 폴백 포매터
+ */
+const dashFallback = (value: unknown): string => {
+  if (value === null || value === undefined) return EMPTY
+  const str = String(value)
+  return str.length > 0 ? str : EMPTY
+}
+
 /**
  * 관리자 종류 셀 렌더러: HEAD_OFFICE / FRANCHISE 한글 변환
  */
@@ -22,14 +33,15 @@ const AdminTypeCellRenderer = (params: ICellRendererParams<BpAdminRowDataInterna
   const value = params.value as AdminType | null | undefined
   if (value === 'HEAD_OFFICE') return <span>본사 관리자</span>
   if (value === 'FRANCHISE') return <span>가맹 관리자</span>
-  return <span></span>
+  return <span>{EMPTY}</span>
 }
 
 /**
  * 날짜 셀 렌더러
  */
 const DateCellRenderer = (params: ICellRendererParams<BpAdminRowDataInternal>) => {
-  return <span>{formatDateYmd(params.value)}</span>
+  const formatted = formatDateYmd(params.value)
+  return <span>{formatted && formatted.length > 0 ? formatted : EMPTY}</span>
 }
 
 const columnDefs: ColDef<BpAdminRowDataInternal>[] = [
@@ -42,6 +54,7 @@ const columnDefs: ColDef<BpAdminRowDataInternal>[] = [
     headerName: '이름',
     field: 'name',
     flex: 1,
+    valueFormatter: (params) => dashFallback(params.value),
   },
   {
     headerName: '관리자 종류',
@@ -50,33 +63,45 @@ const columnDefs: ColDef<BpAdminRowDataInternal>[] = [
     cellRenderer: AdminTypeCellRenderer,
   },
   {
-    headerName: '소속 조직',
-    field: 'organizationName',
+    headerName: '본사',
+    colId: 'headOfficeName',
     flex: 1,
-    valueGetter: (params) => params.data?.organizationName ?? '',
+    valueGetter: (params) =>
+      params.data?.organizationType === 'HEAD_OFFICE'
+        ? params.data?.organizationName ?? null
+        : params.data?.parentOrganizationName ?? null,
+    valueFormatter: (params) => dashFallback(params.value),
   },
   {
-    headerName: '상위 본사',
-    field: 'parentOrganizationName',
+    headerName: '가맹점',
+    colId: 'franchiseName',
     flex: 1,
-    valueGetter: (params) => params.data?.parentOrganizationName ?? '',
+    valueGetter: (params) =>
+      params.data?.organizationType === 'FRANCHISE'
+        ? params.data?.organizationName ?? null
+        : null,
+    valueFormatter: (params) => dashFallback(params.value),
   },
   {
     headerName: '권한명',
     field: 'authorityName',
     flex: 1,
-    valueGetter: (params) => params.data?.authorityName ?? '-',
+    valueFormatter: (params) => dashFallback(params.value),
   },
   {
     headerName: '로그인 ID',
     field: 'loginId',
     width: 150,
+    valueFormatter: (params) => dashFallback(params.value),
   },
   {
     headerName: '근무여부',
     field: 'userType',
     width: 100,
-    valueFormatter: (params) => getWorkStatusLabel(params.value),
+    valueFormatter: (params) => {
+      const label = getWorkStatusLabel(params.value)
+      return label && label.length > 0 ? label : EMPTY
+    },
   },
   {
     headerName: '등록일',

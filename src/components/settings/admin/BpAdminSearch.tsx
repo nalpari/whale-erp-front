@@ -1,16 +1,15 @@
 'use client'
 
 import AnimateHeight from 'react-animate-height'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
 import Input from '@/components/common/ui/Input'
-import { useAuthorityOptions } from '@/hooks/queries/use-admin-queries'
+import { useBpAdminAuthorityCandidates } from '@/hooks/queries/use-bp-admin-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
 import { WORK_STATUS_OPTIONS } from '@/lib/schemas/admin'
 import type { BpAdminSearchParams, AdminType } from '@/types/bp-admin'
 import { formatDateYmdOrUndefined } from '@/util/date-util'
-import { OWNER_CODE } from '@/constants/owner-code'
 import { useAuthStore } from '@/stores/auth-store'
 
 interface BpAdminSearchProps {
@@ -26,7 +25,7 @@ const ADMIN_TYPE_OPTIONS: { value: AdminType; label: string }[] = [
 ]
 
 /**
- * BE 검색 모델(organization_type + organization_id)을 컴포넌트 내부의
+ * BE 검색 모델(organization_type + head_office_id + franchise_id)을 컴포넌트 내부의
  * UI 모델(adminType + headOfficeId + franchiseId)로 분리해서 다룬다.
  * - 부모 → 컴포넌트: BE 모델 → local 변환 (마운트/params 변경 시 1회)
  * - 컴포넌트 → 부모: local 모델 → BE 모델 변환 후 onSearch 호출
@@ -46,10 +45,10 @@ export default function BpAdminSearch({
     params.organization_type,
   )
   const [localHeadOfficeId, setLocalHeadOfficeId] = useState<number | null>(
-    params.organization_type === 'HEAD_OFFICE' ? params.organization_id ?? null : null,
+    params.head_office_id ?? null,
   )
   const [localFranchiseId, setLocalFranchiseId] = useState<number | null>(
-    params.organization_type === 'FRANCHISE' ? params.organization_id ?? null : null,
+    params.franchise_id ?? null,
   )
   const [localAuthorityId, setLocalAuthorityId] = useState<number | null>(
     params.authority_id ?? null,
@@ -65,28 +64,35 @@ export default function BpAdminSearch({
     setLocalName(params.name ?? '')
     setLocalLoginId(params.login_id ?? '')
     setLocalAdminType(params.organization_type)
-    setLocalHeadOfficeId(
-      params.organization_type === 'HEAD_OFFICE' ? params.organization_id ?? null : null,
-    )
-    setLocalFranchiseId(
-      params.organization_type === 'FRANCHISE' ? params.organization_id ?? null : null,
-    )
+    setLocalHeadOfficeId(params.head_office_id ?? null)
+    setLocalFranchiseId(params.franchise_id ?? null)
     setLocalAuthorityId(params.authority_id ?? null)
     setLocalUserType(params.user_type)
   }
 
-  // 권한 정책: 본사/가맹 사용자는 관리자 종류/본사/가맹이 자동선택 + 잠금
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
+  // 옵션 데이터
+  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
+
+  // 권한 정책 (BE PR #152 accountType 기반)
+  // - PLATFORM: 전체 노출 (자동선택 X, 잠금 X)
+  // - HEAD_OFFICE: 해당 본사만 고정 (산하 가맹은 1개여도 고정 X — 종류·가맹 자유)
+  // - FRANCHISE: 상위 본사 + 가맹점 모두 고정 + 종류=FRANCHISE 고정
+  const accountType = useAuthStore((s) => s.accountType)
+  const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
+  const isFranchiseUser = accountType === 'FRANCHISE'
 
   const isAdminTypeFixed = isFranchiseUser
   const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
   const isFranchiseFixed = isFranchiseUser
-
-  // 옵션 데이터
-  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
-  const { data: authorities = [] } = useAuthorityOptions()
+  // 권한 옵션 (/bp-admins/authority-options):
+  // - 조직 미선택 → organization_id 미전송 → 전체 권한
+  // - 가맹 선택 → 가맹 id 전송 → 해당 가맹 권한
+  // - 본사만 선택 → 본사 id 전송 → 해당 본사 권한
+  const effectiveAuthorityOrgId = localFranchiseId ?? localHeadOfficeId
+  const { data: authorities = [] } = useBpAdminAuthorityCandidates(
+    effectiveAuthorityOrgId,
+    { enabled: true },
+  )
 
   const adminTypeSelectOptions = ADMIN_TYPE_OPTIONS.map((opt) => ({
     value: opt.value,
@@ -146,65 +152,58 @@ export default function BpAdminSearch({
     const end_date =
       overrides?.endDate !== undefined ? overrides.endDate : formatDateYmdOrUndefined(endDate)
 
-    const organization_id =
-      adminType === 'FRANCHISE'
-        ? franchiseId ?? undefined
-        : adminType === 'HEAD_OFFICE'
-        ? headOfficeId ?? undefined
-        : undefined
-
     return {
       name: name.trim() || undefined,
       login_id: loginId.trim() || undefined,
       user_type: userType || undefined,
       organization_type: adminType,
-      organization_id,
+      head_office_id: headOfficeId ?? undefined,
+      franchise_id: franchiseId ?? undefined,
       authority_id: authorityId ?? undefined,
       start_date,
       end_date,
     }
   }
 
-  // 권한별 자동선택 (render-time setState 가드 — react-hooks/set-state-in-effect 회피)
-  // bpTree 로드 완료 + 가드 미적용 시 1회 자동선택 + 부모 onSearch 호출.
-  const [autoApplied, setAutoApplied] = useState(false)
+  // 권한별 자동선택 — useEffect 패턴.
+  // render-time에 부모 onSearch (= setSearchParams)를 호출하면 React가
+  // "Cannot update a component while rendering" 경고를 띄우므로 effect로 미룬다.
+  // autoApplied는 state 대신 ref로 — set-state-in-effect 회피.
+  const autoAppliedRef = useRef(false)
 
-  if (!autoApplied && !bpLoading && bpTree.length > 0) {
+  useEffect(() => {
+    if (autoAppliedRef.current) return
+    // accountType 이 null 이면 persist hydration 전 → 가드 마킹 보류
+    if (accountType == null) return
+    if (bpLoading || bpTree.length === 0) return
+
+    // effect 안에서는 부모 onSearch 만 호출. local state 는 부모 params 변경 이후
+    // render-time 가드 (params !== prevParams) 가 자동 동기화하므로 여기서 setState 안 함.
+    // BE 가 자기 권한 조직만 내려주므로 bpTree[0] 가 자기 본사.
     if (isFranchiseUser) {
       const targetOffice = bpTree[0]
       const targetFranchise = targetOffice?.franchises[0]
       if (targetOffice && targetFranchise) {
-        setAutoApplied(true)
-        setLocalAdminType('FRANCHISE')
-        setLocalHeadOfficeId(targetOffice.id)
-        setLocalFranchiseId(targetFranchise.id)
-        const nextParams = buildBeParams({
-          adminType: 'FRANCHISE',
-          headOfficeId: targetOffice.id,
-          franchiseId: targetFranchise.id,
+        autoAppliedRef.current = true
+        onSearch({
+          organization_type: 'FRANCHISE',
+          head_office_id: targetOffice.id,
+          franchise_id: targetFranchise.id,
         })
-        setPrevParams(nextParams)
-        onSearch(nextParams)
       }
     } else if (isHeadOfficeUser) {
       const targetOffice = bpTree[0]
       if (targetOffice) {
-        setAutoApplied(true)
-        setLocalAdminType('HEAD_OFFICE')
-        setLocalHeadOfficeId(targetOffice.id)
-        const nextParams = buildBeParams({
-          adminType: 'HEAD_OFFICE',
-          headOfficeId: targetOffice.id,
-          franchiseId: null,
+        autoAppliedRef.current = true
+        onSearch({
+          head_office_id: targetOffice.id,
         })
-        setPrevParams(nextParams)
-        onSearch(nextParams)
       }
     } else {
-      // PLATFORM: 자연 잠금 효과 없음 — 가드만 표시
-      setAutoApplied(true)
+      // PLATFORM: 자동선택 없이 가드만 적용
+      autoAppliedRef.current = true
     }
-  }
+  }, [accountType, bpLoading, bpTree, isFranchiseUser, isHeadOfficeUser, onSearch])
 
   // 적용된 검색 조건 태그 (parent params 기반 → 실제 조회 조건 반영)
   const appliedTags: { key: string; value: string; category: string }[] = []
@@ -218,21 +217,17 @@ export default function BpAdminSearch({
     const label = adminTypeSelectOptions.find((o) => o.value === params.organization_type)?.label
     if (label) appliedTags.push({ key: 'adminType', value: label, category: '관리자 종류' })
   }
-  if (params.organization_type === 'HEAD_OFFICE' && params.organization_id != null) {
+  if (params.head_office_id != null) {
     const label = headOfficeOptions.find(
-      (o) => o.value === String(params.organization_id),
+      (o) => o.value === String(params.head_office_id),
     )?.label
     if (label) appliedTags.push({ key: 'headOffice', value: label, category: '본사' })
   }
-  if (params.organization_type === 'FRANCHISE' && params.organization_id != null) {
-    // 가맹 ID에서 부모 본사 + 가맹 라벨 모두 표기
+  if (params.franchise_id != null) {
     const office = bpTree.find((o) =>
-      o.franchises.some((f) => f.id === params.organization_id),
+      o.franchises.some((f) => f.id === params.franchise_id),
     )
-    if (office) {
-      appliedTags.push({ key: 'headOffice', value: office.name, category: '본사' })
-    }
-    const franchise = office?.franchises.find((f) => f.id === params.organization_id)
+    const franchise = office?.franchises.find((f) => f.id === params.franchise_id)
     if (franchise) {
       appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹' })
     }
@@ -280,7 +275,7 @@ export default function BpAdminSearch({
         })
         break
       case 'headOffice':
-        // 본사 제거 시 가맹도 같이 초기화 (HEAD_OFFICE 타입이라면 organization_id가 사라짐)
+        // 본사 제거 시 가맹도 같이 초기화 (본사 컨텍스트가 사라지므로)
         setLocalHeadOfficeId(null)
         setLocalFranchiseId(null)
         next = buildBeParams({ headOfficeId: null, franchiseId: null })
@@ -385,16 +380,12 @@ export default function BpAdminSearch({
       <div className="search-result-wrap">
         <ul className="search-result-list">
           {appliedTags.map((tag) => {
-            const isFixedTag =
-              (tag.key === 'adminType' && isAdminTypeFixed) ||
-              (tag.key === 'headOffice' && isOfficeFixed) ||
-              (tag.key === 'franchise' && isFranchiseFixed)
             return (
               <li key={tag.key} className="search-result-item">
                 <div className="search-result-item-txt">
                   <span>{tag.value}</span> ({tag.category})
                 </div>
-                {!isFixedTag && (
+                {(
                   <button
                     type="button"
                     className="search-result-item-btn"

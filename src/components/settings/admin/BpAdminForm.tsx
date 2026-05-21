@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AnimateHeight from 'react-animate-height'
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import { Input, useAlert } from '@/components/common/ui'
@@ -14,7 +14,6 @@ import { useCommonCode } from '@/hooks/useCommonCode'
 import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { BpAdminDetail } from '@/lib/schemas/bp-admin'
 import type { AdminType, BpAdminFormData } from '@/types/bp-admin'
-import { OWNER_CODE } from '@/constants/owner-code'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmd } from '@/util/date-util'
 
@@ -115,17 +114,20 @@ export default function BpAdminForm({
   const [formOpen, setFormOpen] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
 
-  // 권한 정책: 본사/가맹 사용자는 adminType, 본사, 가맹이 자동선택 + 잠금
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
+  // BP 트리 데이터
+  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
+
+  // 권한 정책 (BE PR #152 accountType 기반)
+  // - PLATFORM: 자동선택/잠금 없음
+  // - HEAD_OFFICE: 본사 자동선택 + 본사 잠금 (가맹은 1개여도 고정 X — 종류·가맹 자유)
+  // - FRANCHISE: 본사+가맹 자동선택 + 모두 잠금 + 종류=FRANCHISE 고정
+  const accountType = useAuthStore((s) => s.accountType)
+  const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
+  const isFranchiseUser = accountType === 'FRANCHISE'
 
   const isAdminTypeFixed = isFranchiseUser
   const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
   const isFranchiseFixed = isFranchiseUser
-
-  // BP 트리 데이터
-  const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
 
   const adminTypeSelectOptions = ADMIN_TYPE_OPTIONS.map((opt) => ({
     value: opt.value,
@@ -177,62 +179,76 @@ export default function BpAdminForm({
     ...rankChildren.map((c) => ({ value: c.code, label: c.name })),
   ]
 
-  // 권한별 자동선택 (render-time setState 가드 패턴 — react-hooks/set-state-in-effect 회피)
-  // edit 모드는 서버 응답으로 init되므로 자동선택 건너뜀 (autoApplied=true로 마킹).
-  const [autoApplied, setAutoApplied] = useState(mode === 'edit')
+  // 권한별 자동선택 — useEffect 패턴.
+  // render-time에 부모 onChange (= setFormData) 를 호출하면 React가 "Cannot update a component
+  // while rendering a different component" 경고를 띄우므로 effect로 미룬다.
+  // autoApplied/franchiseParentResolved는 state 대신 ref로 — set-state-in-effect 회피.
+  // ref.current = ... 갱신은 effect 안에서만 수행 (react-hooks/refs 규칙).
+  const autoAppliedRef = useRef(mode === 'edit')
+  const franchiseParentResolvedRef = useRef(false)
 
   // edit 모드의 FRANCHISE 관리자: detail 응답엔 본사 ID가 없으므로 bpTree에서 역추적
-  const [franchiseParentResolved, setFranchiseParentResolved] = useState(false)
-  if (
-    mode === 'edit' &&
-    !franchiseParentResolved &&
-    !bpLoading &&
-    bpTree.length > 0 &&
-    formData.adminType === 'FRANCHISE' &&
-    formData.franchiseOrganizationId != null &&
-    formData.headOfficeOrganizationId == null
-  ) {
+  useEffect(() => {
+    if (
+      mode !== 'edit' ||
+      franchiseParentResolvedRef.current ||
+      bpLoading ||
+      bpTree.length === 0 ||
+      formData.adminType !== 'FRANCHISE' ||
+      formData.franchiseOrganizationId == null ||
+      formData.headOfficeOrganizationId != null
+    ) {
+      return
+    }
+    franchiseParentResolvedRef.current = true
     const parent = bpTree.find((office) =>
       office.franchises.some((f) => f.id === formData.franchiseOrganizationId),
     )
     if (parent) {
-      setFranchiseParentResolved(true)
       onChange({ headOfficeOrganizationId: parent.id })
-    } else {
-      // 매칭 실패해도 무한루프 방지
-      setFranchiseParentResolved(true)
     }
-  }
+  }, [
+    mode,
+    bpLoading,
+    bpTree,
+    formData.adminType,
+    formData.franchiseOrganizationId,
+    formData.headOfficeOrganizationId,
+    onChange,
+  ])
 
-  if (mode === 'create' && !autoApplied && !bpLoading && bpTree.length > 0) {
+  useEffect(() => {
+    if (mode !== 'create' || autoAppliedRef.current) return
+    if (accountType == null) return
+    if (bpLoading || bpTree.length === 0) return
+
     if (isFranchiseUser) {
       const targetOffice = bpTree[0]
       const targetFranchise = targetOffice?.franchises[0]
       if (targetOffice && targetFranchise) {
-        setAutoApplied(true)
+        autoAppliedRef.current = true
         onChange({
           adminType: 'FRANCHISE',
           headOfficeOrganizationId: targetOffice.id,
           franchiseOrganizationId: targetFranchise.id,
-          authorityId: null, // 명시: 자동선택 후 권한은 사용자 선택
+          authorityId: null,
         })
       }
     } else if (isHeadOfficeUser) {
       const targetOffice = bpTree[0]
       if (targetOffice) {
-        setAutoApplied(true)
+        autoAppliedRef.current = true
         onChange({
-          adminType: 'HEAD_OFFICE',
           headOfficeOrganizationId: targetOffice.id,
-          franchiseOrganizationId: null, // 명시: HEAD_OFFICE는 가맹 없음
-          authorityId: null, // 명시: 자동선택 후 권한은 사용자 선택
+          franchiseOrganizationId: null,
+          authorityId: null,
         })
       }
     } else {
       // PLATFORM: 자동선택 없이 가드만 적용
-      setAutoApplied(true)
+      autoAppliedRef.current = true
     }
-  }
+  }, [mode, accountType, bpLoading, bpTree, isFranchiseUser, isHeadOfficeUser, onChange])
 
   // ID 중복체크
   const handleCheckLoginId = async () => {
@@ -326,70 +342,70 @@ export default function BpAdminForm({
                   </td>
                 </tr>
 
-                {/* 소속 본사 */}
+                {/* 본사 / 가맹점 — 가맹 관리자 선택 시 본사 select 옆에 가맹 select 노출 */}
                 <tr>
-                  <th>소속 본사 <span className="red">*</span></th>
+                  <th>본사/가맹점 <span className="red">*</span></th>
                   <td>
-                    <div className="mx-500">
-                      <SearchSelect
-                        options={headOfficeOptions}
-                        value={
-                          formData.headOfficeOrganizationId != null
-                            ? headOfficeOptions.find(
-                                (opt) => opt.value === String(formData.headOfficeOrganizationId),
-                              ) ?? null
-                            : null
-                        }
-                        onChange={(opt) =>
-                          onChange({
-                            headOfficeOrganizationId: opt?.value ? Number(opt.value) : null,
-                            // 본사 변경 → 가맹/권한 초기화
-                            franchiseOrganizationId: null,
-                            authorityId: null,
-                          })
-                        }
-                        isDisabled={isOfficeFixed}
-                        error={!!errors.headOfficeOrganizationId}
-                      />
-                      {errors.headOfficeOrganizationId && (
-                        <div className="warning-txt mt5" role="alert">* {errors.headOfficeOrganizationId}</div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* 소속 가맹 (FRANCHISE 일 때만 노출) */}
-                {formData.adminType === 'FRANCHISE' && (
-                  <tr>
-                    <th>소속 가맹 <span className="red">*</span></th>
-                    <td>
-                      <div className="mx-500">
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+                      <div className="mx-500" style={{ flexShrink: 0 }}>
                         <SearchSelect
-                          options={franchiseOptions}
+                          options={headOfficeOptions}
                           value={
-                            formData.franchiseOrganizationId != null
-                              ? franchiseOptions.find(
-                                  (opt) => opt.value === String(formData.franchiseOrganizationId),
+                            formData.headOfficeOrganizationId != null
+                              ? headOfficeOptions.find(
+                                  (opt) => opt.value === String(formData.headOfficeOrganizationId),
                                 ) ?? null
                               : null
                           }
                           onChange={(opt) =>
                             onChange({
-                              franchiseOrganizationId: opt?.value ? Number(opt.value) : null,
-                              // 가맹 변경 → 권한 초기화
+                              headOfficeOrganizationId: opt?.value ? Number(opt.value) : null,
+                              // 본사 변경 → 가맹/권한 초기화
+                              franchiseOrganizationId: null,
                               authorityId: null,
                             })
                           }
-                          isDisabled={isFranchiseFixed && formData.franchiseOrganizationId != null}
-                          error={!!errors.franchiseOrganizationId}
+                          isDisabled={isOfficeFixed}
+                          error={!!errors.headOfficeOrganizationId}
+                          placeholder="본사 선택"
                         />
-                        {errors.franchiseOrganizationId && (
-                          <div className="warning-txt mt5" role="alert">* {errors.franchiseOrganizationId}</div>
+                        {errors.headOfficeOrganizationId && (
+                          <div className="warning-txt mt5" role="alert">* {errors.headOfficeOrganizationId}</div>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                )}
+                      {formData.adminType === 'FRANCHISE' && (
+                        <div className="mx-500" style={{ flexShrink: 0 }}>
+                          <SearchSelect
+                            options={franchiseOptions}
+                            value={
+                              formData.franchiseOrganizationId != null
+                                ? franchiseOptions.find(
+                                    (opt) => opt.value === String(formData.franchiseOrganizationId),
+                                  ) ?? null
+                                : null
+                            }
+                            onChange={(opt) =>
+                              onChange({
+                                franchiseOrganizationId: opt?.value ? Number(opt.value) : null,
+                                // 가맹 변경 → 권한 초기화
+                                authorityId: null,
+                              })
+                            }
+                            isDisabled={
+                              (isFranchiseFixed && formData.franchiseOrganizationId != null) ||
+                              formData.headOfficeOrganizationId == null
+                            }
+                            error={!!errors.franchiseOrganizationId}
+                            placeholder="가맹점 선택"
+                          />
+                          {errors.franchiseOrganizationId && (
+                            <div className="warning-txt mt5" role="alert">* {errors.franchiseOrganizationId}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
 
                 {/* 관리자명 */}
                 <tr>
