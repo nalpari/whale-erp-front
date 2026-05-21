@@ -89,31 +89,22 @@ function BpAdminEditContent({
   }
 
   const handleSave = async () => {
+    // 수정 body에는 organizationId가 없으므로 권한 미선택만 친화 메시지 처리
     const preErrors: Record<string, string> = {}
-    if (formData.headOfficeOrganizationId == null) {
-      preErrors.headOfficeOrganizationId = '소속 본사를 선택해주세요.'
-    }
-    if (formData.adminType === 'FRANCHISE' && formData.franchiseOrganizationId == null) {
-      preErrors.franchiseOrganizationId = '소속 가맹을 선택해주세요.'
-    }
     if (formData.authorityId == null) {
       preErrors.authorityId = '권한을 선택해주세요.'
     }
 
     const result = bpAdminUpdateRequestSchema.safeParse({
-      adminType: formData.adminType,
-      headOfficeOrganizationId: formData.headOfficeOrganizationId ?? undefined,
-      franchiseOrganizationId:
-        formData.adminType === 'FRANCHISE' ? formData.franchiseOrganizationId : null,
-      name: formData.name,
+      name: formData.name.trim(),
       userType: formData.userType,
-      department: formData.department || null,
-      rank: formData.rank,
-      mobilePhone: formData.mobilePhone ? formData.mobilePhone.replace(/\D/g, '') : null,
-      officePhone: formData.officePhone ? formData.officePhone.replace(/\D/g, '') : null,
-      extensionNumber: formData.extensionNumber || null,
+      department: formData.department.trim() || null,
+      rank: formData.rank || null,
+      mobilePhone: formData.mobilePhone.replace(/\D/g, '') || '',
+      officePhone: formData.officePhone.replace(/\D/g, '') || null,
+      extensionNumber: formData.extensionNumber.trim() || null,
+      email: formData.email.trim() || null,
       authorityId: formData.authorityId ?? undefined,
-      email: formData.email,
     })
 
     const fieldErrors: Record<string, string> = {

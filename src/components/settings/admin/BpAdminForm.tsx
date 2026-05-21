@@ -27,10 +27,18 @@ const ADMIN_TYPE_OPTIONS: { value: AdminType; label: string }[] = [
 
 export function getInitialFormData(admin?: BpAdminDetail | null): BpAdminFormData {
   if (admin) {
+    // BE 신규 명세: organizationId 단일 + organizationType 으로 식별
+    // FRANCHISE 인 경우 본사 ID는 detail 응답에 없음 — 컴포넌트에서 bpTree로 역추적
+    const adminType: AdminType = admin.organizationType ?? 'HEAD_OFFICE'
+    const headOfficeOrganizationId =
+      adminType === 'HEAD_OFFICE' ? admin.organizationId : null
+    const franchiseOrganizationId =
+      adminType === 'FRANCHISE' ? admin.organizationId : null
+
     return {
-      adminType: admin.adminType ?? 'HEAD_OFFICE',
-      headOfficeOrganizationId: admin.headOfficeOrganizationId ?? null,
-      franchiseOrganizationId: admin.franchiseOrganizationId ?? null,
+      adminType,
+      headOfficeOrganizationId,
+      franchiseOrganizationId,
       name: admin.name || '',
       userType: admin.userType || 'MSTWK_001',
       department: admin.department || '',
@@ -139,19 +147,15 @@ export default function BpAdminForm({
       label: f.name,
     })) ?? []
 
-  // 권한 후보 (본사/가맹 선택 완료 시에만 호출)
-  const authorityCandidatesParams =
-    formData.headOfficeOrganizationId != null &&
-    (formData.adminType === 'HEAD_OFFICE' || formData.franchiseOrganizationId != null)
-      ? {
-          headOfficeOrganizationId: formData.headOfficeOrganizationId,
-          franchiseOrganizationId:
-            formData.adminType === 'FRANCHISE' ? formData.franchiseOrganizationId : null,
-        }
-      : null
+  // 권한 후보: organizationId 단일 모델
+  // FRANCHISE → franchiseOrganizationId, HEAD_OFFICE → headOfficeOrganizationId
+  const effectiveOrganizationId =
+    formData.adminType === 'FRANCHISE'
+      ? formData.franchiseOrganizationId
+      : formData.headOfficeOrganizationId
 
   const { data: authorityCandidates = [], isPending: authorityLoading } =
-    useBpAdminAuthorityCandidates(authorityCandidatesParams)
+    useBpAdminAuthorityCandidates(effectiveOrganizationId)
 
   const authorityOptions = authorityCandidates.map((a) => ({
     value: String(a.id),
@@ -176,6 +180,29 @@ export default function BpAdminForm({
   // 권한별 자동선택 (render-time setState 가드 패턴 — react-hooks/set-state-in-effect 회피)
   // edit 모드는 서버 응답으로 init되므로 자동선택 건너뜀 (autoApplied=true로 마킹).
   const [autoApplied, setAutoApplied] = useState(mode === 'edit')
+
+  // edit 모드의 FRANCHISE 관리자: detail 응답엔 본사 ID가 없으므로 bpTree에서 역추적
+  const [franchiseParentResolved, setFranchiseParentResolved] = useState(false)
+  if (
+    mode === 'edit' &&
+    !franchiseParentResolved &&
+    !bpLoading &&
+    bpTree.length > 0 &&
+    formData.adminType === 'FRANCHISE' &&
+    formData.franchiseOrganizationId != null &&
+    formData.headOfficeOrganizationId == null
+  ) {
+    const parent = bpTree.find((office) =>
+      office.franchises.some((f) => f.id === formData.franchiseOrganizationId),
+    )
+    if (parent) {
+      setFranchiseParentResolved(true)
+      onChange({ headOfficeOrganizationId: parent.id })
+    } else {
+      // 매칭 실패해도 무한루프 방지
+      setFranchiseParentResolved(true)
+    }
+  }
 
   if (mode === 'create' && !autoApplied && !bpLoading && bpTree.length > 0) {
     if (isFranchiseUser) {
@@ -218,18 +245,17 @@ export default function BpAdminForm({
     }
 
     try {
-      // checkBpAdminLoginId는 available(true=사용 가능) 반환 — 청사진(isDuplicate)과 의미 반전
-      const isAvailable = await checkLoginId(formData.loginId)
+      const isDuplicate = await checkLoginId(formData.loginId)
       // 중복체크 결과 표시를 위해 기존 loginId 에러 클리어
       onChange({ loginId: formData.loginId })
-      if (isAvailable) {
-        setIdCheckMessage('사용할 수 있는 ID 입니다.')
-        setIdCheckPassed(true)
-        onIdCheckStatusChange?.(true)
-      } else {
+      if (isDuplicate) {
         setIdCheckMessage('사용할 수 없는 ID 입니다.')
         setIdCheckPassed(false)
         onIdCheckStatusChange?.(false)
+      } else {
+        setIdCheckMessage('사용할 수 있는 ID 입니다.')
+        setIdCheckPassed(true)
+        onIdCheckStatusChange?.(true)
       }
     } catch {
       alert('ID 중복 확인 중 오류가 발생했습니다.')
@@ -243,8 +269,8 @@ export default function BpAdminForm({
     if (!confirmed) return
 
     try {
-      await resetPassword(admin.id)
-      await alert('비밀번호가 초기화 처리되었습니다.')
+      const tempPassword = await resetPassword(admin.id)
+      await alert(`비밀번호가 초기화 처리되었습니다. 초기화 비밀번호는 ${tempPassword} 입니다.`)
     } catch {
       await alert('비밀번호 초기화에 실패했습니다.')
     }
@@ -564,9 +590,9 @@ export default function BpAdminForm({
                           onChange={(opt) =>
                             onChange({ authorityId: opt?.value ? Number(opt.value) : null })
                           }
-                          isDisabled={authorityCandidatesParams == null || authorityLoading}
+                          isDisabled={effectiveOrganizationId == null || authorityLoading}
                           placeholder={
-                            authorityCandidatesParams == null
+                            effectiveOrganizationId == null
                               ? '본사/가맹 선택 후 권한 부여 가능'
                               : '권한 선택'
                           }
@@ -596,12 +622,24 @@ export default function BpAdminForm({
             </colgroup>
             <tbody>
               <tr>
+                <th>등록자</th>
+                <td>
+                  <Input value={admin.createdByLoginId ? `${admin.createdByName}(${admin.createdByLoginId})` : '-'} disabled />
+                </td>
                 <th>등록일</th>
                 <td>
                   <Input value={formatDateYmd(admin.createdAt)} disabled />
                 </td>
-                <th></th>
-                <td></td>
+              </tr>
+              <tr>
+                <th>최종 수정자</th>
+                <td>
+                  <Input value={admin.updatedByLoginId ? `${admin.updatedByName}(${admin.updatedByLoginId})` : '-'} disabled />
+                </td>
+                <th>최종 수정일</th>
+                <td>
+                  <Input value={formatDateYmd(admin.updatedAt)} disabled />
+                </td>
               </tr>
             </tbody>
           </table>

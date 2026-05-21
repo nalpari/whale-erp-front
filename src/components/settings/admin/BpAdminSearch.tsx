@@ -4,6 +4,7 @@ import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import SearchSelect from '@/components/ui/common/SearchSelect'
 import RangeDatePicker from '@/components/ui/common/RangeDatePicker'
+import Input from '@/components/common/ui/Input'
 import { useAuthorityOptions } from '@/hooks/queries/use-admin-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
 import { WORK_STATUS_OPTIONS } from '@/lib/schemas/admin'
@@ -24,6 +25,12 @@ const ADMIN_TYPE_OPTIONS: { value: AdminType; label: string }[] = [
   { value: 'FRANCHISE', label: '가맹 관리자' },
 ]
 
+/**
+ * BE 검색 모델(organization_type + organization_id)을 컴포넌트 내부의
+ * UI 모델(adminType + headOfficeId + franchiseId)로 분리해서 다룬다.
+ * - 부모 → 컴포넌트: BE 모델 → local 변환 (마운트/params 변경 시 1회)
+ * - 컴포넌트 → 부모: local 모델 → BE 모델 변환 후 onSearch 호출
+ */
 export default function BpAdminSearch({
   params,
   onSearch,
@@ -31,18 +38,44 @@ export default function BpAdminSearch({
   resultCount = 0,
 }: BpAdminSearchProps) {
   const [searchOpen, setSearchOpen] = useState(false)
-  const [localParams, setLocalParams] = useState<BpAdminSearchParams>(params)
-  const [prevParams, setPrevParams] = useState(params)
+
+  // ----- local UI state (FE 모델) -----
+  const [localName, setLocalName] = useState<string>(params.name ?? '')
+  const [localLoginId, setLocalLoginId] = useState<string>(params.login_id ?? '')
+  const [localAdminType, setLocalAdminType] = useState<AdminType | undefined>(
+    params.organization_type,
+  )
+  const [localHeadOfficeId, setLocalHeadOfficeId] = useState<number | null>(
+    params.organization_type === 'HEAD_OFFICE' ? params.organization_id ?? null : null,
+  )
+  const [localFranchiseId, setLocalFranchiseId] = useState<number | null>(
+    params.organization_type === 'FRANCHISE' ? params.organization_id ?? null : null,
+  )
+  const [localAuthorityId, setLocalAuthorityId] = useState<number | null>(
+    params.authority_id ?? null,
+  )
+  const [localUserType, setLocalUserType] = useState<string | undefined>(params.user_type)
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
 
-  // 부모에서 params가 갱신되면 동기화 (AdminSearch와 동일한 render-time setState 패턴)
+  // 부모에서 params가 갱신되면 local 모델로 역변환 (render-time setState 가드 패턴)
+  const [prevParams, setPrevParams] = useState(params)
   if (params !== prevParams) {
     setPrevParams(params)
-    setLocalParams(params)
+    setLocalName(params.name ?? '')
+    setLocalLoginId(params.login_id ?? '')
+    setLocalAdminType(params.organization_type)
+    setLocalHeadOfficeId(
+      params.organization_type === 'HEAD_OFFICE' ? params.organization_id ?? null : null,
+    )
+    setLocalFranchiseId(
+      params.organization_type === 'FRANCHISE' ? params.organization_id ?? null : null,
+    )
+    setLocalAuthorityId(params.authority_id ?? null)
+    setLocalUserType(params.user_type)
   }
 
-  // 권한 정책: 본사/가맹 사용자는 admin_type, 본사, 가맹이 자동선택 + 잠금
+  // 권한 정책: 본사/가맹 사용자는 관리자 종류/본사/가맹이 자동선택 + 잠금
   const ownerCode = useAuthStore((s) => s.ownerCode)
   const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
   const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
@@ -65,9 +98,8 @@ export default function BpAdminSearch({
     label: office.name,
   }))
 
-  const selectedOffice = localParams.head_office_organization_id
-    ? bpTree.find((o) => o.id === localParams.head_office_organization_id)
-    : null
+  const selectedOffice =
+    localHeadOfficeId != null ? bpTree.find((o) => o.id === localHeadOfficeId) : null
 
   const franchiseOptions =
     selectedOffice?.franchises.map((f) => ({
@@ -85,7 +117,55 @@ export default function BpAdminSearch({
     label: opt.label,
   }))
 
-  // 권한별 자동선택 (render-time setState 가드 패턴 — react-hooks/set-state-in-effect 회피)
+  // local 모델 → BE 모델 변환
+  const buildBeParams = (overrides?: {
+    name?: string
+    loginId?: string
+    adminType?: AdminType | undefined
+    headOfficeId?: number | null
+    franchiseId?: number | null
+    authorityId?: number | null
+    userType?: string | undefined
+    startDate?: string | undefined
+    endDate?: string | undefined
+  }): BpAdminSearchParams => {
+    const name = overrides?.name ?? localName
+    const loginId = overrides?.loginId ?? localLoginId
+    const adminType = overrides?.adminType !== undefined ? overrides.adminType : localAdminType
+    const headOfficeId =
+      overrides?.headOfficeId !== undefined ? overrides.headOfficeId : localHeadOfficeId
+    const franchiseId =
+      overrides?.franchiseId !== undefined ? overrides.franchiseId : localFranchiseId
+    const authorityId =
+      overrides?.authorityId !== undefined ? overrides.authorityId : localAuthorityId
+    const userType = overrides?.userType !== undefined ? overrides.userType : localUserType
+    const start_date =
+      overrides?.startDate !== undefined
+        ? overrides.startDate
+        : formatDateYmdOrUndefined(startDate)
+    const end_date =
+      overrides?.endDate !== undefined ? overrides.endDate : formatDateYmdOrUndefined(endDate)
+
+    const organization_id =
+      adminType === 'FRANCHISE'
+        ? franchiseId ?? undefined
+        : adminType === 'HEAD_OFFICE'
+        ? headOfficeId ?? undefined
+        : undefined
+
+    return {
+      name: name.trim() || undefined,
+      login_id: loginId.trim() || undefined,
+      user_type: userType || undefined,
+      organization_type: adminType,
+      organization_id,
+      authority_id: authorityId ?? undefined,
+      start_date,
+      end_date,
+    }
+  }
+
+  // 권한별 자동선택 (render-time setState 가드 — react-hooks/set-state-in-effect 회피)
   // bpTree 로드 완료 + 가드 미적용 시 1회 자동선택 + 부모 onSearch 호출.
   const [autoApplied, setAutoApplied] = useState(false)
 
@@ -95,13 +175,14 @@ export default function BpAdminSearch({
       const targetFranchise = targetOffice?.franchises[0]
       if (targetOffice && targetFranchise) {
         setAutoApplied(true)
-        const nextParams: BpAdminSearchParams = {
-          ...localParams,
-          admin_type: 'FRANCHISE',
-          head_office_organization_id: targetOffice.id,
-          franchise_organization_id: targetFranchise.id,
-        }
-        setLocalParams(nextParams)
+        setLocalAdminType('FRANCHISE')
+        setLocalHeadOfficeId(targetOffice.id)
+        setLocalFranchiseId(targetFranchise.id)
+        const nextParams = buildBeParams({
+          adminType: 'FRANCHISE',
+          headOfficeId: targetOffice.id,
+          franchiseId: targetFranchise.id,
+        })
         setPrevParams(nextParams)
         onSearch(nextParams)
       }
@@ -109,41 +190,57 @@ export default function BpAdminSearch({
       const targetOffice = bpTree[0]
       if (targetOffice) {
         setAutoApplied(true)
-        const nextParams: BpAdminSearchParams = {
-          ...localParams,
-          head_office_organization_id: targetOffice.id,
-        }
-        setLocalParams(nextParams)
+        setLocalAdminType('HEAD_OFFICE')
+        setLocalHeadOfficeId(targetOffice.id)
+        const nextParams = buildBeParams({
+          adminType: 'HEAD_OFFICE',
+          headOfficeId: targetOffice.id,
+          franchiseId: null,
+        })
         setPrevParams(nextParams)
         onSearch(nextParams)
       }
     } else {
-      // PLATFORM: bpTree.length === 1 이면 자연 잠금 효과
+      // PLATFORM: 자연 잠금 효과 없음 — 가드만 표시
       setAutoApplied(true)
     }
   }
 
-  // 적용된 검색 조건 태그
+  // 적용된 검색 조건 태그 (parent params 기반 → 실제 조회 조건 반영)
   const appliedTags: { key: string; value: string; category: string }[] = []
-  if (params.admin_type) {
-    const label = adminTypeSelectOptions.find((o) => o.value === params.admin_type)?.label
+  if (params.name) {
+    appliedTags.push({ key: 'name', value: params.name, category: '관리자명' })
+  }
+  if (params.login_id) {
+    appliedTags.push({ key: 'loginId', value: params.login_id, category: '로그인 ID' })
+  }
+  if (params.organization_type) {
+    const label = adminTypeSelectOptions.find((o) => o.value === params.organization_type)?.label
     if (label) appliedTags.push({ key: 'adminType', value: label, category: '관리자 종류' })
   }
-  if (params.head_office_organization_id != null) {
+  if (params.organization_type === 'HEAD_OFFICE' && params.organization_id != null) {
     const label = headOfficeOptions.find(
-      (o) => o.value === String(params.head_office_organization_id),
+      (o) => o.value === String(params.organization_id),
     )?.label
     if (label) appliedTags.push({ key: 'headOffice', value: label, category: '본사' })
   }
-  if (params.franchise_organization_id != null) {
+  if (params.organization_type === 'FRANCHISE' && params.organization_id != null) {
+    // 가맹 ID에서 부모 본사 + 가맹 라벨 모두 표기
     const office = bpTree.find((o) =>
-      o.franchises.some((f) => f.id === params.franchise_organization_id),
+      o.franchises.some((f) => f.id === params.organization_id),
     )
-    const label = office?.franchises.find((f) => f.id === params.franchise_organization_id)?.name
-    if (label) appliedTags.push({ key: 'franchise', value: label, category: '가맹' })
+    if (office) {
+      appliedTags.push({ key: 'headOffice', value: office.name, category: '본사' })
+    }
+    const franchise = office?.franchises.find((f) => f.id === params.organization_id)
+    if (franchise) {
+      appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹' })
+    }
   }
   if (params.authority_id != null) {
-    const label = authoritySelectOptions.find((o) => o.value === String(params.authority_id))?.label
+    const label = authoritySelectOptions.find(
+      (o) => o.value === String(params.authority_id),
+    )?.label
     if (label) appliedTags.push({ key: 'authority', value: label, category: '권한' })
   }
   if (params.user_type) {
@@ -162,94 +259,125 @@ export default function BpAdminSearch({
     if (key === 'headOffice' && isOfficeFixed) return
     if (key === 'franchise' && isFranchiseFixed) return
 
-    const resetMap: Record<string, Partial<BpAdminSearchParams>> = {
-      adminType: { admin_type: undefined },
-      headOffice: {
-        head_office_organization_id: undefined,
-        franchise_organization_id: undefined,
-      },
-      franchise: { franchise_organization_id: undefined },
-      authority: { authority_id: undefined },
-      workStatus: { user_type: undefined },
-      date: { start_date: undefined, end_date: undefined },
+    let next: BpAdminSearchParams
+    switch (key) {
+      case 'name':
+        setLocalName('')
+        next = buildBeParams({ name: '' })
+        break
+      case 'loginId':
+        setLocalLoginId('')
+        next = buildBeParams({ loginId: '' })
+        break
+      case 'adminType':
+        setLocalAdminType(undefined)
+        setLocalHeadOfficeId(null)
+        setLocalFranchiseId(null)
+        next = buildBeParams({
+          adminType: undefined,
+          headOfficeId: null,
+          franchiseId: null,
+        })
+        break
+      case 'headOffice':
+        // 본사 제거 시 가맹도 같이 초기화 (HEAD_OFFICE 타입이라면 organization_id가 사라짐)
+        setLocalHeadOfficeId(null)
+        setLocalFranchiseId(null)
+        next = buildBeParams({ headOfficeId: null, franchiseId: null })
+        break
+      case 'franchise':
+        setLocalFranchiseId(null)
+        next = buildBeParams({ franchiseId: null })
+        break
+      case 'authority':
+        setLocalAuthorityId(null)
+        next = buildBeParams({ authorityId: null })
+        break
+      case 'workStatus':
+        setLocalUserType(undefined)
+        next = buildBeParams({ userType: undefined })
+        break
+      case 'date':
+        setStartDate(null)
+        setEndDate(null)
+        next = buildBeParams({ startDate: undefined, endDate: undefined })
+        break
+      default:
+        return
     }
-    const patch = resetMap[key]
-    if (!patch) return
-    const nextParams = { ...localParams, ...patch }
-    setLocalParams(nextParams)
-    if (key === 'date') {
-      setStartDate(null)
-      setEndDate(null)
-    }
-    onSearch(nextParams)
+    setPrevParams(next)
+    onSearch(next)
   }
 
   const handleSearch = () => {
-    onSearch(localParams)
+    const next = buildBeParams()
+    setPrevParams(next)
+    onSearch(next)
     setSearchOpen(false)
   }
 
   const handleReset = () => {
-    // 잠금 필드는 보존
-    const preserved: BpAdminSearchParams = {}
-    if (isAdminTypeFixed) preserved.admin_type = localParams.admin_type
-    if (isOfficeFixed) preserved.head_office_organization_id = localParams.head_office_organization_id
-    if (isFranchiseFixed) preserved.franchise_organization_id = localParams.franchise_organization_id
-    setLocalParams(preserved)
-    // 부모 params 동기화 전에 prevParams 도 갱신해 render-time 동기화 루프 방지
-    setPrevParams(preserved)
+    // 잠금 필드는 보존, 그 외는 모두 초기화
+    const preservedAdminType: AdminType | undefined = isAdminTypeFixed ? localAdminType : undefined
+    const preservedHeadOfficeId: number | null = isOfficeFixed ? localHeadOfficeId : null
+    const preservedFranchiseId: number | null = isFranchiseFixed ? localFranchiseId : null
+
+    setLocalName('')
+    setLocalLoginId('')
+    setLocalAdminType(preservedAdminType)
+    setLocalHeadOfficeId(preservedHeadOfficeId)
+    setLocalFranchiseId(preservedFranchiseId)
+    setLocalAuthorityId(null)
+    setLocalUserType(undefined)
     setStartDate(null)
     setEndDate(null)
-    // 부모 params 까지 잠금 필드 보존된 상태로 동기화
-    onSearch(preserved)
+
+    const next = buildBeParams({
+      name: '',
+      loginId: '',
+      adminType: preservedAdminType,
+      headOfficeId: preservedHeadOfficeId,
+      franchiseId: preservedFranchiseId,
+      authorityId: null,
+      userType: undefined,
+      startDate: undefined,
+      endDate: undefined,
+    })
+    // 부모 params 동기화 전에 prevParams 도 갱신해 render-time 동기화 루프 방지
+    setPrevParams(next)
+    onSearch(next)
     onReset?.()
   }
 
   const handleAdminTypeChange = (option: { value: string; label: string } | null) => {
-    setLocalParams({
-      ...localParams,
-      admin_type: (option?.value as AdminType | undefined) || undefined,
-    })
+    const nextType = (option?.value as AdminType | undefined) || undefined
+    setLocalAdminType(nextType)
+    // 타입 변경 시 본사/가맹 선택 초기화 (잠금 사용자가 아닐 때만)
+    if (!isOfficeFixed) setLocalHeadOfficeId(null)
+    if (!isFranchiseFixed) setLocalFranchiseId(null)
   }
 
   const handleHeadOfficeChange = (option: { value: string; label: string } | null) => {
-    setLocalParams({
-      ...localParams,
-      head_office_organization_id: option ? Number(option.value) : undefined,
-      // 본사가 바뀌면 가맹 선택 초기화
-      franchise_organization_id: undefined,
-    })
+    setLocalHeadOfficeId(option ? Number(option.value) : null)
+    // 본사 변경 시 가맹 초기화
+    if (!isFranchiseFixed) setLocalFranchiseId(null)
   }
 
   const handleFranchiseChange = (option: { value: string; label: string } | null) => {
-    setLocalParams({
-      ...localParams,
-      franchise_organization_id: option ? Number(option.value) : undefined,
-    })
+    setLocalFranchiseId(option ? Number(option.value) : null)
   }
 
   const handleAuthorityChange = (option: { value: string; label: string } | null) => {
-    setLocalParams({
-      ...localParams,
-      authority_id: option ? Number(option.value) : undefined,
-    })
+    setLocalAuthorityId(option ? Number(option.value) : null)
   }
 
   const handleWorkStatusChange = (option: { value: string; label: string } | null) => {
-    setLocalParams({
-      ...localParams,
-      user_type: option?.value || undefined,
-    })
+    setLocalUserType(option?.value || undefined)
   }
 
   const handleDateChange = (range: { startDate: Date | null; endDate: Date | null }) => {
     setStartDate(range.startDate)
     setEndDate(range.endDate)
-    setLocalParams({
-      ...localParams,
-      start_date: formatDateYmdOrUndefined(range.startDate),
-      end_date: formatDateYmdOrUndefined(range.endDate),
-    })
   }
 
   return (
@@ -302,16 +430,39 @@ export default function BpAdminSearch({
             </colgroup>
             <tbody>
               <tr>
+                <th>관리자명</th>
+                <td>
+                  <div className="data-filed">
+                    <Input
+                      type="text"
+                      value={localName}
+                      onChange={(e) => setLocalName(e.target.value)}
+                      placeholder="관리자명 입력"
+                      fullWidth
+                    />
+                  </div>
+                </td>
+                <th>로그인 ID</th>
+                <td>
+                  <div className="data-filed">
+                    <Input
+                      type="text"
+                      value={localLoginId}
+                      onChange={(e) => setLocalLoginId(e.target.value)}
+                      placeholder="로그인 ID 입력"
+                      fullWidth
+                    />
+                  </div>
+                </td>
                 <th>관리자 종류</th>
                 <td>
                   <div className="data-filed">
                     <SearchSelect
                       options={adminTypeSelectOptions}
                       value={
-                        localParams.admin_type
-                          ? adminTypeSelectOptions.find(
-                              (opt) => opt.value === localParams.admin_type,
-                            ) ?? null
+                        localAdminType
+                          ? adminTypeSelectOptions.find((opt) => opt.value === localAdminType) ??
+                            null
                           : null
                       }
                       onChange={handleAdminTypeChange}
@@ -321,16 +472,17 @@ export default function BpAdminSearch({
                     />
                   </div>
                 </td>
+              </tr>
+              <tr>
                 <th>본사</th>
                 <td>
                   <div className="data-filed">
                     <SearchSelect
                       options={headOfficeOptions}
                       value={
-                        localParams.head_office_organization_id != null
+                        localHeadOfficeId != null
                           ? headOfficeOptions.find(
-                              (opt) =>
-                                opt.value === String(localParams.head_office_organization_id),
+                              (opt) => opt.value === String(localHeadOfficeId),
                             ) ?? null
                           : null
                       }
@@ -347,31 +499,28 @@ export default function BpAdminSearch({
                     <SearchSelect
                       options={franchiseOptions}
                       value={
-                        localParams.franchise_organization_id != null
+                        localFranchiseId != null
                           ? franchiseOptions.find(
-                              (opt) =>
-                                opt.value === String(localParams.franchise_organization_id),
+                              (opt) => opt.value === String(localFranchiseId),
                             ) ?? null
                           : null
                       }
                       onChange={handleFranchiseChange}
                       placeholder="전체"
                       isClearable={!isFranchiseFixed}
-                      isDisabled={isFranchiseFixed || !localParams.head_office_organization_id}
+                      isDisabled={isFranchiseFixed || localHeadOfficeId == null}
                     />
                   </div>
                 </td>
-              </tr>
-              <tr>
                 <th>권한</th>
                 <td>
                   <div className="data-filed">
                     <SearchSelect
                       options={authoritySelectOptions}
                       value={
-                        localParams.authority_id != null
+                        localAuthorityId != null
                           ? authoritySelectOptions.find(
-                              (opt) => opt.value === String(localParams.authority_id),
+                              (opt) => opt.value === String(localAuthorityId),
                             ) ?? null
                           : null
                       }
@@ -381,16 +530,17 @@ export default function BpAdminSearch({
                     />
                   </div>
                 </td>
+              </tr>
+              <tr>
                 <th>근무여부</th>
                 <td>
                   <div className="data-filed">
                     <SearchSelect
                       options={workStatusSelectOptions}
                       value={
-                        localParams.user_type
-                          ? workStatusSelectOptions.find(
-                              (opt) => opt.value === localParams.user_type,
-                            ) ?? null
+                        localUserType
+                          ? workStatusSelectOptions.find((opt) => opt.value === localUserType) ??
+                            null
                           : null
                       }
                       onChange={handleWorkStatusChange}
@@ -400,7 +550,7 @@ export default function BpAdminSearch({
                   </div>
                 </td>
                 <th>등록일</th>
-                <td>
+                <td colSpan={3}>
                   <div className="data-filed">
                     <RangeDatePicker
                       startDate={startDate}

@@ -45,21 +45,21 @@ const columnDefs: ColDef<BpAdminRowDataInternal>[] = [
   },
   {
     headerName: '관리자 종류',
-    field: 'adminType',
+    field: 'organizationType',
     width: 130,
     cellRenderer: AdminTypeCellRenderer,
   },
   {
-    headerName: '소속 본사',
-    field: 'headOfficeOrganizationName',
+    headerName: '소속 조직',
+    field: 'organizationName',
     flex: 1,
-    valueGetter: (params) => params.data?.headOfficeOrganizationName ?? '',
+    valueGetter: (params) => params.data?.organizationName ?? '',
   },
   {
-    headerName: '소속 가맹',
-    field: 'franchiseOrganizationName',
+    headerName: '상위 본사',
+    field: 'parentOrganizationName',
     flex: 1,
-    valueGetter: (params) => params.data?.franchiseOrganizationName ?? '',
+    valueGetter: (params) => params.data?.parentOrganizationName ?? '',
   },
   {
     headerName: '권한명',

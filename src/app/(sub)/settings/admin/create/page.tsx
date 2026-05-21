@@ -45,27 +45,44 @@ export default function BpAdminCreatePage() {
       preErrors.authorityId = '권한을 선택해주세요.'
     }
 
+    // BE 명세에 맞춰 organizationId 단일로 변환
+    const effectiveOrganizationId =
+      formData.adminType === 'FRANCHISE'
+        ? formData.franchiseOrganizationId
+        : formData.headOfficeOrganizationId
+
     // Zod 유효성 검사 (digit-only 처리 포함)
     const result = bpAdminCreateRequestSchema.safeParse({
-      adminType: formData.adminType,
-      headOfficeOrganizationId: formData.headOfficeOrganizationId ?? undefined,
-      franchiseOrganizationId:
-        formData.adminType === 'FRANCHISE' ? formData.franchiseOrganizationId : null,
-      name: formData.name,
+      name: formData.name.trim(),
       userType: formData.userType,
-      department: formData.department || null,
-      rank: formData.rank,
-      mobilePhone: formData.mobilePhone ? formData.mobilePhone.replace(/\D/g, '') : null,
-      officePhone: formData.officePhone ? formData.officePhone.replace(/\D/g, '') : null,
-      extensionNumber: formData.extensionNumber || null,
+      department: formData.department.trim() || null,
+      rank: formData.rank || null,
+      mobilePhone: formData.mobilePhone.replace(/\D/g, '') || '',
+      officePhone: formData.officePhone.replace(/\D/g, '') || null,
+      extensionNumber: formData.extensionNumber.trim() || null,
       loginId: formData.loginId,
       password: formData.password,
+      email: formData.email.trim() || null,
+      organizationId: effectiveOrganizationId ?? undefined,
       authorityId: formData.authorityId ?? undefined,
-      email: formData.email,
     })
 
+    const zodErrors: Record<string, string> = result.success
+      ? {}
+      : formatZodFieldErrors(result.error)
+
+    // BE schema의 organizationId 에러를 폼 UI 키(헤드오피스/가맹)로 재매핑
+    if (zodErrors.organizationId) {
+      const targetKey =
+        formData.adminType === 'FRANCHISE'
+          ? 'franchiseOrganizationId'
+          : 'headOfficeOrganizationId'
+      zodErrors[targetKey] = zodErrors[targetKey] ?? zodErrors.organizationId
+      delete zodErrors.organizationId
+    }
+
     const fieldErrors: Record<string, string> = {
-      ...(result.success ? {} : formatZodFieldErrors(result.error)),
+      ...zodErrors,
       ...preErrors, // 친화 메시지가 Zod 기본 메시지를 덮어쓰도록 마지막에 spread
     }
 

@@ -9,7 +9,7 @@ import {
   checkBpAdminLoginId,
   resetBpAdminPassword,
   fetchBpAdminAuthorityCandidates,
-  type BpAdminAuthorityCandidateParams,
+  fetchBpAdminOrganizationOptions,
 } from '@/lib/api/bp-admin'
 import type { BpAdminCreateRequest, BpAdminUpdateRequest } from '@/lib/schemas/bp-admin'
 
@@ -41,7 +41,8 @@ export function useCreateBpAdmin() {
 export function useUpdateBpAdmin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: BpAdminUpdateRequest }) => updateBpAdmin(id, data),
+    mutationFn: ({ id, data }: { id: number; data: BpAdminUpdateRequest }) =>
+      updateBpAdmin(id, data),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: bpAdminKeys.lists() })
       qc.invalidateQueries({ queryKey: bpAdminKeys.detail(vars.id) })
@@ -60,25 +61,32 @@ export function useDeleteBpAdmin() {
   })
 }
 
+// check-login-id: BE는 true=중복. 청사진 AdminForm 시맨틱과 동일.
 export function useCheckBpAdminLoginId() {
   return useMutation({
     mutationFn: (loginId: string) => checkBpAdminLoginId(loginId),
   })
 }
 
+// reset-password: 평문 password 반환
 export function useResetBpAdminPassword() {
   return useMutation({
     mutationFn: (id: number) => resetBpAdminPassword(id),
   })
 }
 
-export function useBpAdminAuthorityCandidates(params: BpAdminAuthorityCandidateParams | null) {
+export function useBpAdminOrganizationOptions() {
   return useQuery({
-    queryKey: bpAdminKeys.authorityCandidates(
-      params?.headOfficeOrganizationId ?? 0,
-      params?.franchiseOrganizationId,
-    ),
-    queryFn: ({ signal }) => fetchBpAdminAuthorityCandidates(params!, signal),
-    enabled: params != null && Number.isFinite(params.headOfficeOrganizationId) && params.headOfficeOrganizationId > 0,
+    queryKey: bpAdminKeys.organizationOptions(),
+    queryFn: ({ signal }) => fetchBpAdminOrganizationOptions(signal),
+  })
+}
+
+export function useBpAdminAuthorityCandidates(organizationId: number | null) {
+  return useQuery({
+    queryKey: bpAdminKeys.authorityOptions(organizationId ?? 0),
+    queryFn: ({ signal }) => fetchBpAdminAuthorityCandidates(organizationId!, signal),
+    enabled:
+      organizationId != null && Number.isFinite(organizationId) && organizationId > 0,
   })
 }

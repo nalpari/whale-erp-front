@@ -1,12 +1,12 @@
 export type AdminType = 'HEAD_OFFICE' | 'FRANCHISE'
 
 export interface BpAdminSearchParams {
-  admin_id?: number
-  admin_type?: AdminType
-  head_office_organization_id?: number
-  franchise_organization_id?: number
-  authority_id?: number
+  name?: string
+  login_id?: string
   user_type?: string
+  organization_type?: AdminType
+  organization_id?: number
+  authority_id?: number
   start_date?: string
   end_date?: string
   page?: number

@@ -280,9 +280,9 @@ export const bpAdminKeys = {
   list: (params: BpAdminListParams) => [...bpAdminKeys.lists(), params] as const,
   details: () => [...bpAdminKeys.all, 'detail'] as const,
   detail: (id: number) => [...bpAdminKeys.details(), id] as const,
-  selectOptions: () => [...bpAdminKeys.all, 'select-options'] as const,
-  authorityCandidates: (headOfficeId: number, franchiseId?: number | null) =>
-    [...bpAdminKeys.all, 'authority-candidates', { headOfficeId, franchiseId: franchiseId ?? null }] as const,
+  organizationOptions: () => [...bpAdminKeys.all, 'organization-options'] as const,
+  authorityOptions: (organizationId: number) =>
+    [...bpAdminKeys.all, 'authority-options', organizationId] as const,
 }
 
 export const authorityKeys = {
