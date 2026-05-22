@@ -129,16 +129,19 @@ function LoginContent() {
 
         setAuthCookie()
 
-        console.log('[Auth] 로그인 성공 - Zustand 상태:', {
-          accessToken: accessToken.substring(0, 20) + '...',
-          refreshToken: refreshToken.substring(0, 20) + '...',
-          authority: authority.programs,
-          affiliationId: String(authority.authorityId),
-          loginId: resLoginId,
-          name: resName,
-          mobilePhone,
-          subscriptionPlan: subscriptionPlanId ?? 0,
-        })
+        if (process.env.NODE_ENV === 'development') {
+          // 토큰 prefix 는 JWT 메타데이터 노출 위험으로 길이만 출력
+          console.log('[Auth] 로그인 성공 - Zustand 상태:', {
+            accessTokenLength: accessToken.length,
+            refreshTokenLength: refreshToken.length,
+            authority: authority.programs,
+            affiliationId: String(authority.authorityId),
+            loginId: resLoginId,
+            name: resName,
+            mobilePhone,
+            subscriptionPlan: subscriptionPlanId ?? 0,
+          })
+        }
 
         if (passwordChangeRequired) {
           router.push('/change-password');

@@ -56,7 +56,10 @@ export const bpAdminCreateRequestSchema = z.object({
   userType: z.string().min(1, '근무여부를 선택해주세요.'),
   department: z.string().optional().nullable(),
   rank: z.string().optional().nullable(),
-  mobilePhone: z.string().min(1, '휴대폰 번호를 입력해주세요.'),
+  mobilePhone: z
+    .string()
+    .min(1, '휴대폰 번호를 입력해주세요.')
+    .regex(/^\d{10,11}$/, '유효하지 않은 전화번호입니다.'),
   officePhone: z.string().optional().nullable(),
   extensionNumber: z.string().optional().nullable(),
   loginId: z

@@ -346,8 +346,8 @@ export default function BpAdminForm({
                 <tr>
                   <th>본사/가맹점 <span className="red">*</span></th>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'nowrap' }}>
-                      <div className="mx-500" style={{ flexShrink: 0 }}>
+                    <div className="flex gap-2 items-start flex-nowrap">
+                      <div className="mx-500 shrink-0">
                         <SearchSelect
                           options={headOfficeOptions}
                           value={
@@ -374,7 +374,7 @@ export default function BpAdminForm({
                         )}
                       </div>
                       {formData.adminType === 'FRANCHISE' && (
-                        <div className="mx-500" style={{ flexShrink: 0 }}>
+                        <div className="mx-500 shrink-0">
                           <SearchSelect
                             options={franchiseOptions}
                             value={
@@ -391,10 +391,7 @@ export default function BpAdminForm({
                                 authorityId: null,
                               })
                             }
-                            isDisabled={
-                              (isFranchiseFixed && formData.franchiseOrganizationId != null) ||
-                              formData.headOfficeOrganizationId == null
-                            }
+                            isDisabled={isFranchiseFixed || formData.headOfficeOrganizationId == null}
                             error={!!errors.franchiseOrganizationId}
                             placeholder="가맹점 선택"
                           />
