@@ -195,8 +195,8 @@ export default function BpAdminSearch({
       const targetFranchise = targetOffice?.franchises[0]
       if (targetOffice && targetFranchise) {
         autoAppliedRef.current = true
+        // 본사+가맹만 자동 고정. 관리자 종류는 자유(사용자가 종류로 추가 필터링 가능).
         onSearch({
-          organization_type: 'FRANCHISE',
           head_office_id: targetOffice.id,
           franchise_id: targetFranchise.id,
         })
@@ -275,14 +275,9 @@ export default function BpAdminSearch({
         next = buildBeParams({ loginId: '' })
         break
       case 'adminType':
+        // 관리자 종류만 해제 (본사/가맹점 잠금은 보존)
         setLocalAdminType(undefined)
-        setLocalHeadOfficeId(null)
-        setLocalFranchiseId(null)
-        next = buildBeParams({
-          adminType: undefined,
-          headOfficeId: null,
-          franchiseId: null,
-        })
+        next = buildBeParams({ adminType: undefined })
         break
       case 'headOffice':
         // 본사 제거 시 가맹도 같이 초기화 (본사 컨텍스트가 사라지므로)
