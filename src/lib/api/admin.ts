@@ -12,6 +12,7 @@ import {
   adminIdCheckResponseSchema,
   adminSelectOptionsResponseSchema,
 } from '@/lib/schemas/admin'
+import { OWNER_CODE } from '@/constants/owner-code'
 
 /**
  * 관리자 목록 조회
@@ -114,14 +115,17 @@ export async function fetchAdminSelectOptions(signal?: AbortSignal): Promise<Arr
 }
 
 /**
- * 권한 SelectBox 목록 조회
- * GET /api/v1/system/admins/authority-options
+ * 권한 SelectBox 목록 조회 (플랫폼 관리자 폼 전용)
+ * GET /api/v1/system/bp-admins/authority-options?owner_code=PRGRP_001_001
+ *
+ * BE PR #152 (2026-05-21): /admins/authority-options 제거 → /bp-admins/authority-options 로 통합.
+ * 플랫폼 관리자 권한만 받기 위해 owner_code=PRGRP_001_001 명시.
  */
 export async function fetchAuthorityOptions(signal?: AbortSignal): Promise<Array<{ id: number; name: string }>> {
   const response = await getWithSchema(
-    '/api/v1/system/admins/authority-options',
+    '/api/v1/system/bp-admins/authority-options',
     adminSelectOptionsResponseSchema,
-    { signal }
+    { params: { owner_code: OWNER_CODE.PLATFORM }, signal }
   )
   return response.data
 }

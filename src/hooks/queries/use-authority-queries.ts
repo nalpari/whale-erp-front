@@ -5,7 +5,6 @@ import {
   authKeys,
   authorityKeys,
   type AuthorityListParams,
-  type AuthorityEmployeeInvitationParams,
 } from './query-keys'
 import {
   fetchAuthorities,
@@ -16,7 +15,6 @@ import {
   deleteAuthority,
 } from '@/lib/api/authority'
 import {
-  getAuthoritiesForEmployeeInvitation,
   getAuthoritiesForBpEdit,
 } from '@/lib/api/employee'
 import type {
@@ -86,25 +84,6 @@ function debounce<F extends (...args: never[]) => void>(fn: F, ms: number): F {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => fn(...args), ms)
   }) as F
-}
-
-/**
- * 직원 초대 selectbox 권한 후보 조회.
- *
- * - BE endpoint: GET /api/v1/system/authorities/employee-invitation
- * - store_id 또는 head_office_organization_id 중 최소 하나 필수
- * - storeId 우선 (있으면 storeId, 없으면 headOfficeOrganizationId)
- */
-export function useAuthorityOptionsForEmployeeInvitation(params: AuthorityEmployeeInvitationParams) {
-  const { storeId, headOfficeOrganizationId } = params
-  const enabled = storeId != null || headOfficeOrganizationId != null
-  return useQuery({
-    queryKey: authorityKeys.employeeInvitation({ storeId, headOfficeOrganizationId }),
-    queryFn: ({ signal }) =>
-      getAuthoritiesForEmployeeInvitation({ storeId, headOfficeOrganizationId }, signal),
-    enabled,
-    staleTime: 5 * 60 * 1000,
-  })
 }
 
 /**

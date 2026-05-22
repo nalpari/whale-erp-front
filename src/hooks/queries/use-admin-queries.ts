@@ -111,8 +111,8 @@ export function useAdminSelectOptions() {
 }
 
 /**
- * 권한 SelectBox 목록 조회
- * GET /api/v1/system/admins/authority-options
+ * 권한 SelectBox 목록 조회 (플랫폼 관리자 폼 전용)
+ * GET /api/v1/system/bp-admins/authority-options?owner_code=PRGRP_001_001
  */
 export function useAuthorityOptions() {
   return useQuery({
