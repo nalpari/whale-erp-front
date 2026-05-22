@@ -50,6 +50,33 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
+      // v2: accountType 필드 신규 추가 (BE PR #152). 기존 사용자(v1 이전)는 accountType 누락 →
+      // 자동선택 가드(`if (accountType == null) return`)에 영구 차단되므로 인증 상태를 무효화하여
+      // 강제 재로그인 유도. API 401 인터셉터가 로그인 페이지로 리다이렉트.
+      version: 2,
+      migrate: (_persistedState, version) => {
+        if (version < 2) {
+          return {
+            accessToken: null,
+            refreshToken: null,
+            authority: null,
+            affiliationId: null,
+            ownerCode: null,
+            accountType: null,
+            loginId: null,
+            name: null,
+            mobilePhone: null,
+            avatar: null,
+            passwordChangeRequired: false,
+            subscriptionPlan: 0,
+            defaultHeadOfficeId: null,
+          } as AuthState & { subscriptionPlan: number; defaultHeadOfficeId: number | null }
+        }
+        return _persistedState as AuthState & {
+          subscriptionPlan: number
+          defaultHeadOfficeId: number | null
+        }
+      },
     }
   )
 );

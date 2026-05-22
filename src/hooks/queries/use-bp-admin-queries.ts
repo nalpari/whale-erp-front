@@ -13,10 +13,11 @@ import {
 } from '@/lib/api/bp-admin'
 import type { BpAdminCreateRequest, BpAdminUpdateRequest } from '@/lib/schemas/bp-admin'
 
-export function useBpAdminList(params: BpAdminListParams) {
+export function useBpAdminList(params: BpAdminListParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: bpAdminKeys.list(params),
     queryFn: ({ signal }) => fetchBpAdmins(params, signal),
+    enabled: options?.enabled ?? true,
   })
 }
 

@@ -39,17 +39,25 @@ function BpAdminContent() {
   }
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  // 자동선택 (본사/가맹 사용자) 완료 또는 PLATFORM ready 시점까지 fetch 보류 (Boston #5).
+  // BpAdminSearch 가 mount 후 accountType 결정 시점에 1회 onSearch 를 호출하므로
+  // 그 시점에 enabled=true 로 전환되어 정확한 params 로 1회만 fetch.
+  const [hasInitialApply, setHasInitialApply] = useState(false)
 
-  const { data, isLoading, error: queryError } = useBpAdminList({
-    ...searchParams,
-    page,
-    size: pageSize,
-  })
+  const { data, isLoading, error: queryError } = useBpAdminList(
+    {
+      ...searchParams,
+      page,
+      size: pageSize,
+    },
+    { enabled: hasInitialApply },
+  )
   const errorMessage = useQueryError(queryError)
 
   const handleSearch = (params: BpAdminSearchParams) => {
     setSearchParams(params)
     setPage(1)
+    if (!hasInitialApply) setHasInitialApply(true)
   }
 
   const handlePageChange = (newPage: number) => {

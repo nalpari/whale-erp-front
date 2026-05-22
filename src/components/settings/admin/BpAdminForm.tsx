@@ -222,6 +222,16 @@ export default function BpAdminForm({
     if (accountType == null) return
     if (bpLoading || bpTree.length === 0) return
 
+    // BE 명세상 본사BP/가맹BP 계정은 자기 조직만 내려와야 함. 위반 시 dev warning (Boston #8).
+    if (process.env.NODE_ENV === 'development') {
+      if (isHeadOfficeUser && bpTree.length > 1) {
+        console.warn('[BpAdminForm] HEAD_OFFICE 계정에 본사 2개+ 내려옴 — BE 명세 위반 의심', bpTree)
+      }
+      if (isFranchiseUser && (bpTree.length > 1 || (bpTree[0]?.franchises.length ?? 0) > 1)) {
+        console.warn('[BpAdminForm] FRANCHISE 계정에 다중 본사/가맹 내려옴 — BE 명세 위반 의심', bpTree)
+      }
+    }
+
     if (isFranchiseUser) {
       const targetOffice = bpTree[0]
       const targetFranchise = targetOffice?.franchises[0]

@@ -177,6 +177,16 @@ export default function BpAdminSearch({
     if (accountType == null) return
     if (bpLoading || bpTree.length === 0) return
 
+    // BE 명세상 본사BP/가맹BP 계정은 자기 조직만 내려와야 함. 위반 시 dev warning (Boston #8).
+    if (process.env.NODE_ENV === 'development') {
+      if (isHeadOfficeUser && bpTree.length > 1) {
+        console.warn('[BpAdminSearch] HEAD_OFFICE 계정에 본사 2개+ 내려옴 — BE 명세 위반 의심', bpTree)
+      }
+      if (isFranchiseUser && (bpTree.length > 1 || (bpTree[0]?.franchises.length ?? 0) > 1)) {
+        console.warn('[BpAdminSearch] FRANCHISE 계정에 다중 본사/가맹 내려옴 — BE 명세 위반 의심', bpTree)
+      }
+    }
+
     // effect 안에서는 부모 onSearch 만 호출. local state 는 부모 params 변경 이후
     // render-time 가드 (params !== prevParams) 가 자동 동기화하므로 여기서 setState 안 함.
     // BE 가 자기 권한 조직만 내려주므로 bpTree[0] 가 자기 본사.
@@ -200,10 +210,11 @@ export default function BpAdminSearch({
         })
       }
     } else {
-      // PLATFORM: 자동선택 없이 가드만 적용
+      // PLATFORM: 자동선택 없음. 단 page 의 hasInitialApply 가드 해제를 위해 현재 params 그대로 한 번 호출.
       autoAppliedRef.current = true
+      onSearch(params)
     }
-  }, [accountType, bpLoading, bpTree, isFranchiseUser, isHeadOfficeUser, onSearch])
+  }, [accountType, bpLoading, bpTree, isFranchiseUser, isHeadOfficeUser, onSearch, params])
 
   // 적용된 검색 조건 태그 (parent params 기반 → 실제 조회 조건 반영)
   const appliedTags: { key: string; value: string; category: string }[] = []
