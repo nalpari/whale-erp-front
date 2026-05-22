@@ -19,11 +19,6 @@ import { formatDateYmd } from '@/util/date-util'
 
 export type { BpAdminFormData }
 
-const ADMIN_TYPE_OPTIONS: { value: AdminType; label: string }[] = [
-  { value: 'HEAD_OFFICE', label: '본사 관리자' },
-  { value: 'FRANCHISE', label: '가맹 관리자' },
-]
-
 export function getInitialFormData(admin?: BpAdminDetail | null): BpAdminFormData {
   if (admin) {
     // BE 신규 명세: organizationId 단일 + organizationType 으로 식별
@@ -128,11 +123,6 @@ export default function BpAdminForm({
   const isAdminTypeFixed = isFranchiseUser
   const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
   const isFranchiseFixed = isFranchiseUser
-
-  const adminTypeSelectOptions = ADMIN_TYPE_OPTIONS.map((opt) => ({
-    value: opt.value,
-    label: opt.label,
-  }))
 
   const headOfficeOptions = bpTree.map((office) => ({
     value: String(office.id),
@@ -327,37 +317,55 @@ export default function BpAdminForm({
                 <col />
               </colgroup>
               <tbody>
-                {/* 관리자 종류 */}
+                {/* 관리자 종류 — 라디오 (StaffInvitationPop 패턴) */}
                 <tr>
                   <th>관리자 종류 <span className="red">*</span></th>
                   <td>
-                    <div className="mx-500">
-                      <SearchSelect
-                        options={adminTypeSelectOptions}
-                        value={
-                          adminTypeSelectOptions.find((opt) => opt.value === formData.adminType) ?? null
-                        }
-                        onChange={(opt) => {
-                          const next = ((opt?.value as AdminType | undefined) ?? 'HEAD_OFFICE') as AdminType
-                          onChange({
-                            adminType: next,
-                            // adminType 변경 시 가맹/권한 초기화
-                            franchiseOrganizationId: null,
-                            authorityId: null,
-                          })
-                        }}
-                        isDisabled={isAdminTypeFixed}
-                      />
+                    <div className="filed-check-flx">
+                      <div className="radio-form-box">
+                        <input
+                          type="radio"
+                          name="bpAdminType"
+                          id="bpAdminType-headoffice"
+                          checked={formData.adminType === 'HEAD_OFFICE'}
+                          onChange={() =>
+                            onChange({
+                              adminType: 'HEAD_OFFICE',
+                              // 종류 변경 → 가맹/권한 초기화
+                              franchiseOrganizationId: null,
+                              authorityId: null,
+                            })
+                          }
+                          disabled={isAdminTypeFixed}
+                        />
+                        <label htmlFor="bpAdminType-headoffice">본사</label>
+                      </div>
+                      <div className="radio-form-box">
+                        <input
+                          type="radio"
+                          name="bpAdminType"
+                          id="bpAdminType-franchise"
+                          checked={formData.adminType === 'FRANCHISE'}
+                          onChange={() =>
+                            onChange({
+                              adminType: 'FRANCHISE',
+                              authorityId: null,
+                            })
+                          }
+                          disabled={isAdminTypeFixed}
+                        />
+                        <label htmlFor="bpAdminType-franchise">가맹점</label>
+                      </div>
                     </div>
                   </td>
                 </tr>
 
-                {/* 본사 / 가맹점 — 가맹 관리자 선택 시 본사 select 옆에 가맹 select 노출 */}
+                {/* 본사 / 가맹점 — 표준 filed-flx + block 패턴 (StaffInvitationPop 동일) */}
                 <tr>
                   <th>본사/가맹점 <span className="red">*</span></th>
                   <td>
-                    <div className="flex gap-2 items-start flex-nowrap">
-                      <div className="mx-500 shrink-0">
+                    <div className="filed-flx">
+                      <div className="block">
                         <SearchSelect
                           options={headOfficeOptions}
                           value={
@@ -384,7 +392,7 @@ export default function BpAdminForm({
                         )}
                       </div>
                       {formData.adminType === 'FRANCHISE' && (
-                        <div className="mx-500 shrink-0">
+                        <div className="block">
                           <SearchSelect
                             options={franchiseOptions}
                             value={
