@@ -73,15 +73,15 @@ export default function BpAdminSearch({
   // 옵션 데이터
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree()
 
-  // 권한 정책 (BE PR #152 accountType 기반)
+  // 권한 정책 (BE PR #152 accountType 기반) — 검색 폼 한정
   // - PLATFORM: 전체 노출 (자동선택 X, 잠금 X)
-  // - HEAD_OFFICE: 해당 본사만 고정 (산하 가맹은 1개여도 고정 X — 종류·가맹 자유)
-  // - FRANCHISE: 상위 본사 + 가맹점 모두 고정 + 종류=FRANCHISE 고정
+  // - HEAD_OFFICE: 본사 자동선택 + 잠금 (산하 가맹은 1개여도 고정 X — 종류·가맹 자유)
+  // - FRANCHISE: 본사+가맹 자동선택 + 잠금 (관리자 종류는 자유 — 검색 UX 유연성)
   const accountType = useAuthStore((s) => s.accountType)
   const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
   const isFranchiseUser = accountType === 'FRANCHISE'
 
-  const isAdminTypeFixed = isFranchiseUser
+  // 검색 폼에서 관리자 종류는 항상 자유 선택 가능 (등록 폼은 BpAdminForm 에서 별도 잠금).
   const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
   const isFranchiseFixed = isFranchiseUser
   // 권한 옵션 (/bp-admins/authority-options):
@@ -260,8 +260,7 @@ export default function BpAdminSearch({
   }
 
   const handleRemoveTag = (key: string) => {
-    // 잠금 필드는 제거 불가
-    if (key === 'adminType' && isAdminTypeFixed) return
+    // 잠금 필드는 제거 불가 (관리자 종류는 검색에서 자유)
     if (key === 'headOffice' && isOfficeFixed) return
     if (key === 'franchise' && isFranchiseFixed) return
 
@@ -323,8 +322,8 @@ export default function BpAdminSearch({
   }
 
   const handleReset = () => {
-    // 잠금 필드는 보존, 그 외는 모두 초기화
-    const preservedAdminType: AdminType | undefined = isAdminTypeFixed ? localAdminType : undefined
+    // 잠금 필드는 보존, 그 외는 모두 초기화 (관리자 종류는 검색에서 자유)
+    const preservedAdminType: AdminType | undefined = undefined
     const preservedHeadOfficeId: number | null = isOfficeFixed ? localHeadOfficeId : null
     const preservedFranchiseId: number | null = isFranchiseFixed ? localFranchiseId : null
 
@@ -469,8 +468,7 @@ export default function BpAdminSearch({
                       }
                       onChange={handleAdminTypeChange}
                       placeholder="전체"
-                      isClearable={!isAdminTypeFixed}
-                      isDisabled={isAdminTypeFixed}
+                      isClearable
                     />
                   </div>
                 </td>
