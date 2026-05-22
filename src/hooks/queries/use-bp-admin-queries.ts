@@ -12,10 +12,14 @@ import {
   fetchBpAdminOrganizationOptions,
 } from '@/lib/api/bp-admin'
 import type { BpAdminCreateRequest, BpAdminUpdateRequest } from '@/lib/schemas/bp-admin'
+import { useAuthStore } from '@/stores/auth-store'
 
 export function useBpAdminList(params: BpAdminListParams, options?: { enabled?: boolean }) {
+  // affiliation 헤더가 BE 응답을 결정하므로 queryKey 에도 포함 — PLATFORM 위장 본사 전환 시
+  // staleTime 내 이전 본사 캐시 hit 으로 인한 데이터 누출 차단 (Boston M5)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   return useQuery({
-    queryKey: bpAdminKeys.list(params),
+    queryKey: [...bpAdminKeys.list(params), { affiliationId }],
     queryFn: ({ signal }) => fetchBpAdmins(params, signal),
     enabled: options?.enabled ?? true,
   })

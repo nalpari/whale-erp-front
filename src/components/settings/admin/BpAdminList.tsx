@@ -20,7 +20,7 @@ const EMPTY = '-'
 /**
  * 빈 값(null/undefined/빈 문자열) 공통 폴백 포매터
  */
-const dashFallback = (value: unknown): string => {
+const dashFallback = (value: string | number | null | undefined): string => {
   if (value === null || value === undefined) return EMPTY
   const str = String(value)
   return str.length > 0 ? str : EMPTY
