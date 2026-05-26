@@ -39,6 +39,7 @@ function LoginContent() {
   const setAuthority = useAuthStore((state) => state.setAuthority);
   const setAffiliationId = useAuthStore((state) => state.setAffiliationId);
   const setOwnerCode = useAuthStore((state) => state.setOwnerCode);
+  const setAccountType = useAuthStore((state) => state.setAccountType);
   const setUserInfo = useAuthStore((state) => state.setUserInfo);
   const setSubscriptionPlan = useAuthStore((state) => state.setSubscriptionPlan);
   const setPasswordChangeRequired = useAuthStore((state) => state.setPasswordChangeRequired);
@@ -109,9 +110,10 @@ function LoginContent() {
 
         setAuthority(authority.programs);
         setAffiliationId(String(authority.authorityId));
-        // ownerCode / headOfficeId 는 companies[] 배열에 포함됨
+        // ownerCode / accountType / headOfficeId 는 companies[] 배열에 포함됨
         const matchedCompany = companies?.find(c => c.authorityId === authority.authorityId);
         setOwnerCode(matchedCompany?.ownerCode ?? authority.ownerCode ?? null);
+        setAccountType(matchedCompany?.accountType ?? authority.accountType ?? null);
         setDefaultHeadOfficeId(matchedCompany?.headOfficeId ?? authority.headOfficeId ?? null);
         setTokens(accessToken, refreshToken);
         setUserInfo(resLoginId || '', resName || '', mobilePhone || '', avatar ?? null);
@@ -127,16 +129,19 @@ function LoginContent() {
 
         setAuthCookie()
 
-        console.log('[Auth] 로그인 성공 - Zustand 상태:', {
-          accessToken: accessToken.substring(0, 20) + '...',
-          refreshToken: refreshToken.substring(0, 20) + '...',
-          authority: authority.programs,
-          affiliationId: String(authority.authorityId),
-          loginId: resLoginId,
-          name: resName,
-          mobilePhone,
-          subscriptionPlan: subscriptionPlanId ?? 0,
-        })
+        if (process.env.NODE_ENV === 'development') {
+          // 토큰 prefix 는 JWT 메타데이터 노출 위험으로 길이만 출력
+          console.log('[Auth] 로그인 성공 - Zustand 상태:', {
+            accessTokenLength: accessToken.length,
+            refreshTokenLength: refreshToken.length,
+            authority: authority.programs,
+            affiliationId: String(authority.authorityId),
+            loginId: resLoginId,
+            name: resName,
+            mobilePhone,
+            subscriptionPlan: subscriptionPlanId ?? 0,
+          })
+        }
 
         if (passwordChangeRequired) {
           router.push('/change-password');
@@ -146,10 +151,11 @@ function LoginContent() {
           router.push(redirectTarget);
         }
       } else if (companies && companies.length > 0) {
-        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string; headOfficeId?: number | null }) => ({
+        setAuthorities(companies.map((c: { authorityId: number; companyName: string | null; brandName: string | null; ownerCode?: string; accountType?: 'PLATFORM' | 'HEAD_OFFICE' | 'FRANCHISE'; headOfficeId?: number | null }) => ({
           id: String(c.authorityId),
           name: c.companyName || c.brandName || `회사 ${c.authorityId}`,
           ownerCode: c.ownerCode,
+          accountType: c.accountType,
           headOfficeId: c.headOfficeId ?? null,
         })));
         setPendingTokens({ accessToken, refreshToken });
@@ -190,6 +196,7 @@ function LoginContent() {
 
       setAffiliationId(authority.id);
       setOwnerCode(data.authority?.ownerCode ?? authority.ownerCode ?? null);
+      setAccountType(data.authority?.accountType ?? authority.accountType ?? null);
       // ⚠️ 클라이언트 신뢰 제한 사항 (Boston Code Review HIGH #3):
       // authority.headOfficeId 는 login 응답의 companies[] 에서 모달로 전달된 값.
       // 메모리 변조 시 임의 headOfficeId 가 store 에 들어갈 수 있음.

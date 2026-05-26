@@ -274,8 +274,8 @@ export const authorityItemListResponseSchema = apiResponseSchema(
   z.object({ content: z.array(authorityItemSchema) })
 )
 
-// 권한 후보 응답 스키마 (직원 초대 / BP 수정 selectbox 옵션 용도).
-// BE 가 신규 endpoint /system/authorities/employee-invitation, /system/authorities/bp-edit 에서 반환.
+// 권한 후보 응답 스키마 (BP 수정 selectbox 옵션 용도).
+// BE 가 신규 endpoint /system/authorities/bp-edit 에서 반환.
 // BE 응답이 snake_case 이므로 스키마와 사용처 모두 snake_case 그대로 사용.
 export const authorityCandidateSchema = z.object({
   id: z.number(),

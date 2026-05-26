@@ -16,12 +16,22 @@ export const loginRequestSchema = z.object({
 });
 
 /**
+ * 계정 신분 타입 (BE PR #152 도입).
+ * V75 매트릭스에서 본사/가맹 BP master 가 시스템 템플릿 권한을 받으면 ownerCode 가
+ * 'PRGRP_001_001' 로 노출되어 플랫폼으로 오인되는 문제 회피용 정규화 값.
+ * 신분 분기는 모두 이 필드로 수행. ownerCode 는 raw 값으로만 유지.
+ */
+export const accountTypeSchema = z.enum(['PLATFORM', 'HEAD_OFFICE', 'FRANCHISE']);
+export type AccountType = z.infer<typeof accountTypeSchema>;
+
+/**
  * Authority (조직/권한) 스키마
  */
 export const authoritySchema = z.object({
   id: z.string(),
   name: z.string(),
   ownerCode: z.string().optional(),
+  accountType: accountTypeSchema.optional(),
   headOfficeId: z.number().nullable().optional(),
 });
 
@@ -115,6 +125,7 @@ export const authStateSchema = z.object({
   authority: z.custom<LoginAuthorityProgram[]>().nullable(),
   affiliationId: z.string().nullable(),
   ownerCode: z.string().nullable(),
+  accountType: accountTypeSchema.nullable(),
   loginId: z.string().nullable(),
   name: z.string().nullable(),
   mobilePhone: z.string().nullable(),

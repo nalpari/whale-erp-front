@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import api from '@/lib/api'
-import type { LoginRequest, LoginAuthorityProgram } from '@/lib/schemas/auth'
+import type { AccountType, LoginRequest, LoginAuthorityProgram } from '@/lib/schemas/auth'
 
 interface LoginResponse {
   accessToken: string
@@ -9,6 +9,7 @@ interface LoginResponse {
     authorityId: number
     programs: LoginAuthorityProgram[]
     ownerCode?: string
+    accountType?: AccountType
     headOfficeId?: number | null
   }
   companies?: Array<{
@@ -16,6 +17,7 @@ interface LoginResponse {
     companyName: string | null
     brandName: string | null
     ownerCode?: string
+    accountType?: AccountType
     headOfficeId?: number | null
   }>
   loginId?: string
@@ -48,6 +50,7 @@ interface AuthoritySelectResponse {
   authority?: {
     programs: LoginAuthorityProgram[]
     ownerCode?: string
+    accountType?: AccountType
   }
 }
 

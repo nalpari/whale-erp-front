@@ -1,6 +1,7 @@
 import type { AuthoritySearchParams } from '@/lib/schemas/authority'
 import type { BpListParams } from '@/types/bp'
 import type { AdminSearchParams } from '@/lib/schemas/admin'
+import type { BpAdminSearchParams } from '@/types/bp-admin'
 import type { CustomerSearchParams } from '@/types/customer'
 import type { EmployeeTodoListParams, EmployeeTodoSelectParams } from '@/types/employee-todo'
 
@@ -268,9 +269,20 @@ export const adminKeys = {
   authorityOptions: () => [...adminKeys.all, 'authority-options'] as const,
 }
 
-export interface AuthorityEmployeeInvitationParams {
-  storeId?: number
-  headOfficeOrganizationId?: number
+export interface BpAdminListParams extends BpAdminSearchParams {
+  page?: number
+  size?: number
+}
+
+export const bpAdminKeys = {
+  all: ['bp-admins'] as const,
+  lists: () => [...bpAdminKeys.all, 'list'] as const,
+  list: (params: BpAdminListParams) => [...bpAdminKeys.lists(), params] as const,
+  details: () => [...bpAdminKeys.all, 'detail'] as const,
+  detail: (id: number) => [...bpAdminKeys.details(), id] as const,
+  organizationOptions: () => [...bpAdminKeys.all, 'organization-options'] as const,
+  authorityOptions: (organizationId: number) =>
+    [...bpAdminKeys.all, 'authority-options', organizationId] as const,
 }
 
 export const authorityKeys = {
@@ -279,13 +291,8 @@ export const authorityKeys = {
   list: (params: AuthorityListParams) => [...authorityKeys.lists(), params] as const,
   details: () => [...authorityKeys.all, 'detail'] as const,
   detail: (id: number) => [...authorityKeys.details(), id] as const,
-  // 권한 후보 (selectbox 옵션) — Approach C 전용 endpoint × 2
+  // 권한 후보 (selectbox 옵션) — BP 수정 전용 endpoint
   candidatesAll: () => [...authorityKeys.all, 'candidates'] as const,
-  employeeInvitation: (params: AuthorityEmployeeInvitationParams) =>
-    [...authorityKeys.candidatesAll(), 'employee-invitation', {
-      storeId: params.storeId,
-      headOfficeOrganizationId: params.headOfficeOrganizationId,
-    }] as const,
   bpEdit: (bpId: number | null) =>
     [...authorityKeys.candidatesAll(), 'bp-edit', bpId] as const,
 }
