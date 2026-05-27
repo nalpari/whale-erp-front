@@ -10,10 +10,12 @@ interface ErrorResponseBody {
   code?: string
 }
 
+type DiagnosticPayload = Record<string, unknown>
+
 interface HandleConflictOptions {
   context: ConflictContext
-  payload: unknown
-  prevSnapshot?: unknown
+  payload: DiagnosticPayload
+  prevSnapshot?: DiagnosticPayload
   alert: (msg: string) => Promise<void> | void
   invalidate?: () => void
 }
@@ -73,21 +75,11 @@ export async function handleAuthorityConflict(
   return true
 }
 
-function diffKeys(prev: unknown, next: unknown): string[] {
-  if (
-    prev == null ||
-    next == null ||
-    typeof prev !== 'object' ||
-    typeof next !== 'object'
-  ) {
-    return []
-  }
-  const prevObj = prev as Record<string, unknown>
-  const nextObj = next as Record<string, unknown>
-  const keys = new Set([...Object.keys(prevObj), ...Object.keys(nextObj)])
+function diffKeys(prev: DiagnosticPayload, next: DiagnosticPayload): string[] {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)])
   const changed: string[] = []
   for (const key of keys) {
-    if (!shallowEqual(prevObj[key], nextObj[key])) {
+    if (!shallowEqual(prev[key], next[key])) {
       changed.push(key)
     }
   }
