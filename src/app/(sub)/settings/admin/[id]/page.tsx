@@ -110,6 +110,7 @@ function BpAdminEditContent({
       extensionNumber: formData.extensionNumber.trim() || null,
       email: formData.email.trim() || null,
       authorityId: formData.authorityId ?? undefined,
+      storeId: formData.storeId,
     })
 
     const fieldErrors: Record<string, string> = {
