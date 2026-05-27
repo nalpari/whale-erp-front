@@ -168,7 +168,7 @@ export default function BpAdminForm({
     storeQueryOfficeId != null &&
     (formData.adminType !== 'FRANCHISE' || storeQueryFranchiseId != null)
 
-  const { data: storeOptionsData = [] } = useStoreOptions(
+  const { data: storeOptionsData = [], isSuccess: storeOptionsLoaded } = useStoreOptions(
     storeQueryOfficeId,
     storeQueryFranchiseId,
     storeOptionsEnabled,
@@ -244,8 +244,8 @@ export default function BpAdminForm({
     ) {
       return
     }
-    // 로딩 중이면 다음 effect 사이클까지 대기 — storeOptionsData 가 도착하면 다시 평가됨
-    if (storeOptionsData.length === 0 && storeOptionsEnabled) {
+    // 쿼리 로딩 중이면 대기 — isSuccess 로 분기 (length === 0 은 "BE 가 합법적으로 0 store 응답" 도 포함하므로 부적합)
+    if (!storeOptionsLoaded) {
       return
     }
     const found = storeOptionsData.some((s) => s.id === formData.storeId)
@@ -261,7 +261,7 @@ export default function BpAdminForm({
     } else {
       storeStaleResolvedRef.current = true
     }
-  }, [mode, storeOptionsEnabled, storeOptionsData, formData.storeId, onChange])
+  }, [mode, storeOptionsEnabled, storeOptionsLoaded, storeOptionsData, formData.storeId, onChange])
 
   useEffect(() => {
     if (mode !== 'create' || autoAppliedRef.current) return
