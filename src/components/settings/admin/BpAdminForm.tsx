@@ -168,7 +168,11 @@ export default function BpAdminForm({
     storeQueryOfficeId != null &&
     (formData.adminType !== 'FRANCHISE' || storeQueryFranchiseId != null)
 
-  const { data: storeOptionsData = [], isSuccess: storeOptionsLoaded } = useStoreOptions(
+  const {
+    data: storeOptionsData = [],
+    isSuccess: storeOptionsLoaded,
+    isPending: storeOptionsPending,
+  } = useStoreOptions(
     storeQueryOfficeId,
     storeQueryFranchiseId,
     storeOptionsEnabled,
@@ -511,9 +515,11 @@ export default function BpAdminForm({
                               ? formData.adminType === 'FRANCHISE'
                                 ? '가맹점을 먼저 선택해 주세요.'
                                 : '본사를 먼저 선택해 주세요.'
+                              : storeOptionsPending
+                              ? '점포 로딩 중...'
                               : storeOptions.length === 0
                               ? '등록된 점포가 없습니다.'
-                              : '점포 선택 (선택 사항)'
+                              : '점포 선택'
                           }
                         />
                         {errors.storeId && (
