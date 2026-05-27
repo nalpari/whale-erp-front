@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { redirect, useParams, useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import BpAdminForm, { getInitialFormData } from '@/components/settings/admin/BpAdminForm'
@@ -80,7 +80,8 @@ function BpAdminEditContent({
   const { mutateAsync: deleteBpAdmin } = useDeleteBpAdmin()
   const { alert, confirm } = useAlert()
   const queryClient = useQueryClient()
-  const initialAuthorityId = admin.authorityId
+  // mount 시점 1회 캡처 — 409 진단용 prevSnapshot. invalidate 로 admin prop 이 갱신돼도 유지.
+  const initialAuthorityIdRef = useRef(admin.authorityId)
   const [formData, setFormData] = useState<BpAdminFormData>(() => getInitialFormData(admin))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -135,7 +136,7 @@ function BpAdminEditContent({
       const handled = await handleAuthorityConflict(error, {
         context: 'BP_ADMIN_AUTHORITY',
         payload: { id: adminId, ...result.data },
-        prevSnapshot: { authorityId: initialAuthorityId },
+        prevSnapshot: { authorityId: initialAuthorityIdRef.current },
         alert,
         invalidate: () => {
           queryClient.invalidateQueries({ queryKey: bpAdminKeys.detail(adminId) })

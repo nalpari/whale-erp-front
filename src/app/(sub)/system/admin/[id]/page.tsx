@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { redirect, useParams, useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import AdminForm, { getInitialFormData } from '@/components/system/admin/AdminForm'
@@ -71,7 +71,8 @@ function AdminEditContent({
   const router = useRouter()
   const { mutateAsync: updateAdmin } = useUpdateAdmin()
   const queryClient = useQueryClient()
-  const initialAuthorityId = admin.authorityId ?? null
+  // mount 시점 1회 캡처 — 409 진단용 prevSnapshot. invalidate 로 admin prop 이 갱신돼도 유지.
+  const initialAuthorityIdRef = useRef(admin.authorityId ?? null)
   const { mutateAsync: deleteAdmin } = useDeleteAdmin()
   const { alert, confirm } = useAlert()
   const [formData, setFormData] = useState<AdminFormData>(() => getInitialFormData(admin))
@@ -107,7 +108,7 @@ function AdminEditContent({
       const handled = await handleAuthorityConflict(error, {
         context: 'PLATFORM_ADMIN_AUTHORITY',
         payload: { id: adminId, ...result.data },
-        prevSnapshot: { authorityId: initialAuthorityId },
+        prevSnapshot: { authorityId: initialAuthorityIdRef.current },
         alert,
         invalidate: () => {
           queryClient.invalidateQueries({ queryKey: adminKeys.detail(adminId) })
