@@ -20,6 +20,8 @@ export const bpAdminItemSchema = z.object({
   parentOrganizationName: z.string().nullable(),
   authorityId: z.number().nullable(),
   authorityName: z.string().nullable(),
+  storeId: z.number().nullable(),
+  storeName: z.string().nullable(),
   createdAt: z.string().nullable(),
 })
 
@@ -77,6 +79,7 @@ export const bpAdminCreateRequestSchema = z.object({
   email: z.string().email('이메일 형식이 올바르지 않습니다.').optional().nullable(),
   organizationId: z.number({ message: '소속 조직을 선택해주세요.' }),
   authorityId: z.number({ message: '권한을 선택해주세요.' }),
+  storeId: z.number().nullable().optional(),
 })
 
 // 수정 요청 — loginId/password/organizationId 제외

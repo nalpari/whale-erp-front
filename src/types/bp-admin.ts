@@ -18,6 +18,7 @@ export interface BpAdminFormData {
   adminType: AdminType
   headOfficeOrganizationId: number | null
   franchiseOrganizationId: number | null
+  storeId: number | null
   name: string
   userType: string
   department: string
