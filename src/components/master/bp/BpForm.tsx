@@ -12,6 +12,9 @@ import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
 import { useAuthorityOptionsForBpEdit } from '@/hooks/queries/use-authority-queries'
 import api, { getErrorMessage } from '@/lib/api'
+import { handleAuthorityConflict } from '@/lib/api/conflict-handler'
+import { useQueryClient } from '@tanstack/react-query'
+import { bpKeys } from '@/hooks/queries/query-keys'
 import { useAuthStore } from '@/stores/auth-store'
 import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpDetailResponse, BpFormData } from '@/types/bp'
@@ -68,6 +71,9 @@ const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
 const BpForm = ({ id, bp }: BpFormProps) => {
   const router = useRouter()
   const { alert, confirm } = useAlert()
+  const queryClient = useQueryClient()
+  // 409 진단용 — 폼이 시작될 때의 권한 ID 스냅샷
+  const initialAuthorityId = bp?.authorityId ?? null
   const isEditMode = !!id
 
   // 권한 분기
@@ -374,7 +380,22 @@ const BpForm = ({ id, bp }: BpFormProps) => {
         router.push(`/master/bp/${result.id}`)
       }
     } catch (error) {
-      await alert(getErrorMessage(error, isEditMode ? '수정에 실패했습니다.' : '등록에 실패했습니다.'))
+      if (isEditMode) {
+        const handled = await handleAuthorityConflict(error, {
+          context: 'BP_AUTHORITY',
+          payload: { ...form, id },
+          prevSnapshot: { authorityId: initialAuthorityId },
+          alert,
+          invalidate: () => {
+            queryClient.invalidateQueries({ queryKey: bpKeys.detail(id!) })
+            queryClient.invalidateQueries({ queryKey: bpKeys.lists() })
+          },
+        })
+        if (handled) return
+      }
+      await alert(
+        getErrorMessage(error, isEditMode ? '수정에 실패했습니다.' : '등록에 실패했습니다.'),
+      )
     }
   }
 
