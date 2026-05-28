@@ -113,8 +113,8 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     ? bpoprCodes
     : bpoprCodes.filter((c) => c.code !== BPOPR_TERMINATED)
 
-  // 권한별 PF 옵션 필터링
-  const visiblePfCodes = isPlatform
+  // 권한별 PF 옵션 필터링 — 수정 모드는 기존 BP 의 pfType 이 옵션에 포함되어야 하므로 전체 노출
+  const visiblePfCodes = isPlatform || isEditMode
     ? pfCodes
     : pfCodes.filter((c) =>
         isHeadOfficeUser ? c.code === 'PF_001'
