@@ -283,22 +283,44 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 값 출처 (bpTree 무관):
     // - 본사: defaultHeadOfficeId (로그인 응답)
     // - 가맹: FRANCHISE 계정의 affiliationId (로그인 응답)
+    // 가맹점 ID 출처: bpTree 에서 자기 본사 산하 첫 가맹을 사용 (BE 가 가맹점 계정에
+    // 본사 + 자기 가맹만 응답한다는 정합 가정). affiliationId 와 매칭되면 그것 우선.
+    // bpTree 가 아직 로드 안 됐으면 null — effect 가 bpTree 도착 후 재실행되며 적용.
+    const autoSelectedFranchiseId = (() => {
+        if (!isFranchiseFixed) return null
+        const targetOffice = bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
+        if (!targetOffice) return null
+        // 1. affiliationId 와 일치하는 가맹 우선
+        if (franchiseAffiliationId != null) {
+            const matched = targetOffice.franchises.find((f) => f.id === franchiseAffiliationId)
+            if (matched) return matched.id
+        }
+        // 2. 폴백 — 첫 가맹 (BE 가 가맹점 계정에 자기 가맹만 응답한다는 정합 가정)
+        return targetOffice.franchises[0]?.id ?? null
+    })()
+
     useEffect(() => {
         if (isDisabled) return
         if (!autoSelect) return
         if (!shouldAutoSelectOffice) return
         if (defaultHeadOfficeId == null) return
-        // 기존 값이 있으면 덮어쓰지 않음 — 수정 폼 데이터 보존
-        if (officeId != null) return
+
+        // 가맹점 계정인데 bpTree 가 아직 로드 안 됐고 가맹 ID 도 못 구하면 다음 사이클 대기
+        if (isFranchiseFixed && autoSelectedFranchiseId == null && bpLoading) return
+
+        // 정합 검사: stale storage 복원으로 본사만 채워지고 가맹은 빠진 케이스도 보정
+        const officeMatches = officeId === defaultHeadOfficeId
+        const franchiseMatches = !isFranchiseFixed || franchiseId === autoSelectedFranchiseId
+        if (officeMatches && franchiseMatches) return
 
         const value: OfficeFranchiseStoreValue = {
             head_office: defaultHeadOfficeId,
-            franchise: franchiseAffiliationId ?? franchiseId ?? null,
+            franchise: autoSelectedFranchiseId ?? (officeMatches ? franchiseId : null) ?? null,
             store: null,
         }
         onChangeRef.current(value)
         onAutoSelectRef.current?.(value)
-    }, [autoSelect, isDisabled, officeId, franchiseId, shouldAutoSelectOffice, defaultHeadOfficeId, franchiseAffiliationId])
+    }, [autoSelect, isDisabled, officeId, franchiseId, shouldAutoSelectOffice, defaultHeadOfficeId, autoSelectedFranchiseId, isFranchiseFixed, bpLoading])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
