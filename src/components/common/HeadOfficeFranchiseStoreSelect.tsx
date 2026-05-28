@@ -85,23 +85,26 @@
  *
  * ## 계정 유형별 자동 선택 (`autoSelect={true}` 기본값일 때)
  *
- * ownerCode(Zustand auth-store)와 bpTree 길이로 계정 유형을 판단한다.
+ * `accountType`(Zustand auth-store, 로그인 응답)과 `defaultHeadOfficeId`/`affiliationId`로
+ * 자동 선택 정책을 결정한다. bpTree 응답 옵션 수는 정책에 영향을 주지 않는다.
  *
- * 백엔드 `findHeadOfficeTree`가 이미 affiliationId 기반으로 bpTree를 필터링해주므로,
- * `bpTree.length === 1`이면 그 본사가 곧 현재 affiliation 매핑 본사다.
- *
- * | ownerCode       | 계정 유형         | 본사 자동선택                                   | 본사 잠금                | 가맹점               | 점포        |
- * | --------------- | ----------------- | ----------------------------------------------- | ------------------------ | -------------------- | ----------- |
- * | PRGRP_001_001   | 플랫폼/BP Master  | defaultHeadOfficeId 매핑 또는 단일 본사 시 발동 | ✅ 자동선택 시 잠금 동반 | 사용자 선택          | 사용자 선택 |
- * | PRGRP_001_001   | 슈퍼 어드민(매핑X)| 미발동 (본사 다수 환경)                         | ❌ 잠금 없음             | 사용자 선택          | 사용자 선택 |
- * | PRGRP_002_001   | 본사              | 자동 발동                                       | ✅ 잠금                  | 사용자 선택          | 사용자 선택 |
- * | PRGRP_002_002   | 가맹점            | 자동 발동                                       | ✅ 잠금                  | 자동 발동 + 잠금     | 사용자 선택 |
- * | (없음)          | 다중 본사 권한    | bpTree.length===1 시 발동                       | ✅ 잠금                  | 단일 가맹점 시 고정  | 사용자 선택 |
+ * | accountType                       | 계정 유형        | 본사 자동선택                              | 본사 잠금                | 가맹점                                | 점포        |
+ * | --------------------------------- | ---------------- | ------------------------------------------ | ------------------------ | ------------------------------------- | ----------- |
+ * | PLATFORM + defaultHeadOfficeId 有 | 플랫폼/BP Master | defaultHeadOfficeId 자동 발동              | ✅ 자동선택 시 잠금 동반 | 사용자 선택                           | 사용자 선택 |
+ * | PLATFORM + defaultHeadOfficeId 無 | 슈퍼 어드민      | 미발동 (자유 선택)                         | ❌ 잠금 없음             | 사용자 선택                           | 사용자 선택 |
+ * | HEAD_OFFICE                       | 본사             | defaultHeadOfficeId 자동 발동              | ✅ 잠금                  | 사용자 선택                           | 사용자 선택 |
+ * | FRANCHISE                         | 가맹점           | defaultHeadOfficeId 자동 발동              | ✅ 잠금                  | affiliationId 자동 발동 + 잠금        | 사용자 선택 |
  *
  * ### 자동 적용 가드 (모두 만족 시 발동)
  * - `autoSelect === true`
  * - `!isDisabled`
- * - `officeId == null` (수정 폼 데이터 보존 — 기존 값이 있으면 덮어쓰지 않음)
+ * - `shouldAutoSelectOffice` (위 표의 자동발동 행)
+ * - `defaultHeadOfficeId != null`
+ * - **정합 검사 실패**: `officeId !== defaultHeadOfficeId` 또는
+ *   (FRANCHISE 일 때) `franchiseId !== autoSelectedFranchiseId`
+ *   → stale storage 복원/잘못된 사전 입력 케이스를 로그인 응답 기준으로 강제 보정한다.
+ *   기존 `officeId == null` 가드는 제거됨 — 잠금 계정의 헤더-화면 본사 정합성을
+ *   런타임 가드로 보장하기 위함 (Boston Code Review HIGH #4 의 BE 재검증과 별개의 UX 가드).
  *
  * ### 잠금 정책 — 자동선택 = 잠금 통합
  * - 자동선택 발동 시 잠금 동반 (헤더 affiliationId ↔ 화면 본사 정합성 보장)
@@ -126,11 +129,11 @@
  * - `useStoreOptions(officeId, franchiseId)` → 선택된 본사/가맹점에 해당하는 점포 옵션 로드
  *
  * ### 자동 선택 useEffect 로직 (autoSelect=true 시)
- * - `isOfficeFixed`: ownerCode가 본사(PRGRP_002_001) 또는 가맹점(PRGRP_002_002)이면 true.
- *   ownerCode 없으면 bpTree.length === 1이면 true. 초기화 후에도 자동 복원(readOnly).
- * - `isFranchiseFixed`: ownerCode가 가맹점(PRGRP_002_002)이면 true.
- *   ownerCode 없으면 bpTree.length === 1 && franchises.length === 1이면 true.
- * - **다중 본사**: 자동 선택 없음. onMultiOffice(true) 콜백으로 상위에 통보.
+ * - `isOfficeFixed` = `shouldAutoSelectOffice`: HEAD_OFFICE / FRANCHISE / (PLATFORM + defaultHeadOfficeId)
+ *   계정에서 true. 초기화 후에도 자동 복원(readOnly).
+ * - `isFranchiseFixed`: FRANCHISE 이고 `affiliationId` 가 유효한 숫자면 true.
+ *   bpTree 응답에서 자기 본사 산하 가맹 중 affiliationId 일치 항목을 선택(없으면 첫 가맹).
+ * - **PLATFORM + 매핑 없음 (슈퍼 어드민)**: 자동 선택 없음. onMultiOffice 콜백으로 상위에 통보.
  *
  * ### 핵심 Ref
  * - `onChangeRef`: onChange 콜백의 안정적 참조 유지. useEffect 내에서 호출 시
@@ -278,7 +281,8 @@ export default function HeadOfficeFranchiseStoreSelect({
     // - autoSelect=true (시스템 관리/세팅 페이지 우회)
     // - !isDisabled (수정 폼/상세 잠금 우회)
     // - shouldAutoSelectOffice (HEAD_OFFICE / FRANCHISE / PLATFORM+defaultHeadOfficeId)
-    // - officeId == null (기존 값 보존 — 수정 폼 데이터 무결성)
+    // - 정합 검사 실패 시 발동 (officeId !== defaultHeadOfficeId 또는 가맹 ID 불일치)
+    //   → 잠금 계정의 헤더↔화면 본사 정합성 보장. stale storage 복원/잘못된 사전 입력 보정.
     //
     // 값 출처 (bpTree 무관):
     // - 본사: defaultHeadOfficeId (로그인 응답)
