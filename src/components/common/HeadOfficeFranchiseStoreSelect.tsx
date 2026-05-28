@@ -239,27 +239,29 @@ export default function HeadOfficeFranchiseStoreSelect({
     //
     // 자동 선택과 잠금은 동일 조건에서 동시에 발동된다 (헤더 affiliationId ↔ 화면 본사 정합성).
     //
-    // 발동 조건 (V75 매트릭스 회피용 정규화 필드 accountType 기반):
-    //   (1) accountType 매칭 (HEAD_OFFICE / FRANCHISE)
-    //   (2) bpTree 단일 본사 — 백엔드 `findHeadOfficeTree`가 affiliationId 기반으로 필터링
-    //   (3) PLATFORM + defaultHeadOfficeId 매핑 — 로그인 응답 CompanyInfo.headOfficeId
-    //       (BP Master는 본인이 등록한 본사가 MemberDetail.organization → headOfficeId로 fallback)
+    // 발동 조건 (로그인 응답 단일 출처 — bpTree 의존성 제거):
+    //   - PLATFORM + defaultHeadOfficeId == null: 자동선택/잠금 없음 (자유)
+    //   - PLATFORM + defaultHeadOfficeId 있음: 본사 = defaultHeadOfficeId, 잠금
+    //   - HEAD_OFFICE: 본사 = defaultHeadOfficeId, 잠금
+    //   - FRANCHISE: 본사 = defaultHeadOfficeId, 가맹 = Number(affiliationId), 둘 다 잠금
     //
-    // PLATFORM이라도 매핑 본사가 명확하면 잠금 — 헤더 정합성을 위해 다른 본사로 변경 차단.
-    // 슈퍼 어드민(매핑 없음 + 본사 다수)만 자동 선택 미발동 + 잠금 없음 (횡단 운영).
+    // bpTree.length === 1 / franchises.length === 1 폴백 제거 — bpTree 응답 옵션 수와 무관.
     const isPlatformAdmin = accountType === 'PLATFORM'
-
-    const platformHasDefault = isPlatformAdmin && defaultHeadOfficeId != null
-        && bpTree.some((office) => office.id === defaultHeadOfficeId)
+    const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+        ? Number(affiliationId)
+        : null
 
     const shouldAutoSelectOffice = autoSelect
+        && defaultHeadOfficeId != null
         && (accountType === 'HEAD_OFFICE'
             || accountType === 'FRANCHISE'
-            || bpTree.length === 1
-            || platformHasDefault)
+            || isPlatformAdmin)
 
     const isOfficeFixed = shouldAutoSelectOffice
-    const isFranchiseFixed = autoSelect && accountType === 'FRANCHISE'
+    const isFranchiseFixed = autoSelect
+        && accountType === 'FRANCHISE'
+        && franchiseAffiliationId != null
+        && Number.isFinite(franchiseAffiliationId)
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
@@ -275,39 +277,28 @@ export default function HeadOfficeFranchiseStoreSelect({
     // 가드 (모두 만족 시 발동):
     // - autoSelect=true (시스템 관리/세팅 페이지 우회)
     // - !isDisabled (수정 폼/상세 잠금 우회)
-    // - bpTree 로드 완료
-    // - shouldAutoSelectOffice (ownerCode 매칭 또는 단일 본사)
+    // - shouldAutoSelectOffice (HEAD_OFFICE / FRANCHISE / PLATFORM+defaultHeadOfficeId)
     // - officeId == null (기존 값 보존 — 수정 폼 데이터 무결성)
     //
-    // 동작:
-    // - 본사(PRGRP_002_001): 본사 값 설정 + 잠금(readOnly)
-    // - 가맹점(PRGRP_002_002): 본사+가맹점 값 설정 + 잠금
-    // - 플랫폼(PRGRP_001_001) + 단일 본사: 본사 값 설정만 (잠금 안 함, 변경 가능)
-    // - 다중 본사 권한 + 단일 본사 응답: 본사 값 설정 + 잠금 (헤더 정합성)
+    // 값 출처 (bpTree 무관):
+    // - 본사: defaultHeadOfficeId (로그인 응답)
+    // - 가맹: FRANCHISE 계정의 affiliationId (로그인 응답)
     useEffect(() => {
         if (isDisabled) return
-        if (!autoSelect || bpLoading || bpTree.length === 0) return
+        if (!autoSelect) return
         if (!shouldAutoSelectOffice) return
+        if (defaultHeadOfficeId == null) return
         // 기존 값이 있으면 덮어쓰지 않음 — 수정 폼 데이터 보존
         if (officeId != null) return
 
-        // PLATFORM은 defaultHeadOfficeId 매핑 본사를, 그 외는 bpTree[0]을 사용.
-        const targetOffice = platformHasDefault
-            ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-            : bpTree[0]
-        // 가맹점 고정(가맹점 계정)일 때만 자동 선택/복원
-        const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
-            ? targetOffice.franchises[0].id
-            : null
-
         const value: OfficeFranchiseStoreValue = {
-            head_office: targetOffice.id,
-            franchise: autoFranchiseId ?? franchiseId ?? null,
+            head_office: defaultHeadOfficeId,
+            franchise: franchiseAffiliationId ?? franchiseId ?? null,
             store: null,
         }
         onChangeRef.current(value)
         onAutoSelectRef.current?.(value)
-    }, [autoSelect, isDisabled, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed, platformHasDefault, defaultHeadOfficeId, isPlatformAdmin, accountType])
+    }, [autoSelect, isDisabled, officeId, franchiseId, shouldAutoSelectOffice, defaultHeadOfficeId, franchiseAffiliationId])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])

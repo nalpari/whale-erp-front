@@ -56,8 +56,9 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const isEditMode = todoId != null
   const { alert, confirm } = useAlert()
 
-  // 계정 유형 판단 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  // 계정 유형 판단 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
   const accountType = useAuthStore((s) => s.accountType)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
   const isHeadOfficeAccount = accountType === 'HEAD_OFFICE'
   const isFranchiseAccount = accountType === 'FRANCHISE'
@@ -66,16 +67,14 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
 
-  // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / 단일 본사 / PLATFORM + 매핑 본사
+  // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / PLATFORM + defaultHeadOfficeId
   const isPlatformAdmin = accountType === 'PLATFORM'
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((o) => o.id === defaultHeadOfficeId)
+  const franchiseAffiliationId = isFranchiseAccount && affiliationId != null
+    ? Number(affiliationId)
+    : null
   const shouldAutoSelectOffice =
-    isHeadOfficeAccount
-    || isFranchiseAccount
-    || bpTree.length === 1
-    || platformHasDefault
+    defaultHeadOfficeId != null
+    && (isHeadOfficeAccount || isFranchiseAccount || isPlatformAdmin)
 
   // 렌더 중 setState 패턴 — useEffect 안에서 setState 회피 (react-hooks/set-state-in-effect 규칙 준수)
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
@@ -100,21 +99,19 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     }
   }
 
-  // 자동선택 1회 (등록 모드 + bpTree 로드 후)
+  // 자동선택 1회 (등록 모드)
   if (
     !bpAutoApplied
     && !detail
-    && bpTree.length > 0
     && shouldAutoSelectOffice
+    && defaultHeadOfficeId != null
   ) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
-    const franchiseId = isFranchiseAccount && targetOffice.franchises.length >= 1
-      ? targetOffice.franchises[0].id
-      : null
-    setForm({ ...DEFAULT_FORM, officeId: targetOffice.id, franchiseId })
+    setForm({
+      ...DEFAULT_FORM,
+      officeId: defaultHeadOfficeId,
+      franchiseId: franchiseAffiliationId,
+    })
   }
 
   const [slideboxOpen, setSlideboxOpen] = useState(true)

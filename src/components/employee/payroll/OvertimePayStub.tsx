@@ -127,40 +127,34 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
-  // 권한 기반 표준 정책 변수 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  // 권한 기반 표준 정책 변수 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
   const isPlatformAdmin = accountType === 'PLATFORM'
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
   const shouldAutoSelectOffice =
-    accountType === 'HEAD_OFFICE'
-    || accountType === 'FRANCHISE'
-    || bpTree.length === 1
-    || platformHasDefault
+    defaultHeadOfficeId != null
+    && (accountType === 'HEAD_OFFICE'
+      || accountType === 'FRANCHISE'
+      || isPlatformAdmin)
   const isOfficeFixed = shouldAutoSelectOffice
   const isFranchiseFixed = accountType === 'FRANCHISE'
+    && franchiseAffiliationId != null
+    && Number.isFinite(franchiseAffiliationId)
 
-  // 자동선택 로직 (렌더 중 setState 패턴 — PartTimePayStub와 동일)
+  // 자동선택 로직 (렌더 중 setState 패턴)
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
   if (
     !bpAutoApplied
     && isNewMode
     && !fromWorkTimeEdit
-    && bpTree.length > 0
     && shouldAutoSelectOffice
+    && defaultHeadOfficeId != null
   ) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
-
-    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
-      ? targetOffice.franchises[0].id
-      : null
-
-    setSelectedHeadquarter(String(targetOffice.id))
-    if (autoFranchiseId !== null) {
-      setSelectedFranchise(String(autoFranchiseId))
+    setSelectedHeadquarter(String(defaultHeadOfficeId))
+    if (franchiseAffiliationId !== null) {
+      setSelectedFranchise(String(franchiseAffiliationId))
     }
   }
 

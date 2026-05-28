@@ -411,23 +411,25 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     { value: 'SLRCF_002', label: '익월' }
   ], [])
 
-  // 표준 권한 정책 변수 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  // 표준 권한 정책 변수 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
   const isPlatformAdmin = accountType === 'PLATFORM'
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
   const shouldAutoSelectOffice =
-    accountType === 'HEAD_OFFICE'
-    || accountType === 'FRANCHISE'
-    || bpTree.length === 1
-    || platformHasDefault
+    defaultHeadOfficeId != null
+    && (accountType === 'HEAD_OFFICE'
+      || accountType === 'FRANCHISE'
+      || isPlatformAdmin)
   const isOfficeFixed = shouldAutoSelectOffice
   const isFranchiseFixed = accountType === 'FRANCHISE'
+    && franchiseAffiliationId != null
+    && Number.isFinite(franchiseAffiliationId)
   const isWorkplaceTypeFixed =
     accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 
   // 모달 열림 시 자동선택 (렌더 중 setState 패턴 — react-hooks/set-state-in-effect 회피)
-  // isOpen 닫힘 → 가드 리셋, isOpen 열림 + bpTree 로드 완료 + shouldAutoSelectOffice → 1회 자동선택
+  // isOpen 닫힘 → 가드 리셋, isOpen 열림 + shouldAutoSelectOffice → 1회 자동선택
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
   const [lastIsOpen, setLastIsOpen] = useState(isOpen)
 
@@ -439,22 +441,18 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     }
   }
 
-  if (isOpen && !bpLoading && bpTree.length > 0 && !bpAutoApplied && shouldAutoSelectOffice) {
+  if (isOpen && !bpAutoApplied && shouldAutoSelectOffice && defaultHeadOfficeId != null) {
     setBpAutoApplied(true)
 
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
-
-    setHeadOfficeOrganizationId(targetOffice.id)
+    setHeadOfficeOrganizationId(defaultHeadOfficeId)
 
     if (accountType === 'HEAD_OFFICE') {
       setWorkplaceType('HEAD_OFFICE')
       setFranchiseOrganizationId(null)
     } else if (accountType === 'FRANCHISE') {
       setWorkplaceType('FRANCHISE')
-      if (targetOffice.franchises.length === 1) {
-        setFranchiseOrganizationId(targetOffice.franchises[0].id)
+      if (franchiseAffiliationId != null) {
+        setFranchiseOrganizationId(franchiseAffiliationId)
       }
     }
   }

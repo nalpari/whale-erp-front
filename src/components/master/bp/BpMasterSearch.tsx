@@ -56,24 +56,23 @@ const BpMasterSearch = ({
 }: BpMasterSearchProps) => {
   const [searchOpen, setSearchOpen] = useState(false)
 
-  // V75 매트릭스 회피용 정규화 필드 accountType 기반 잠금 정책
+  // 로그인 응답 단일 출처 — accountType / affiliationId 기반 잠금 정책
   const accountType = useAuthStore((s) => s.accountType)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
-  const isFranchiseFixed = accountType === 'FRANCHISE'
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
+  const isFranchiseFixed = franchiseAffiliationId != null && Number.isFinite(franchiseAffiliationId)
 
-  // 가맹점 계정 자동선택 — 본사 자동선택 후 franchiseOptions 도착하면 1회 적용
+  // 가맹점 자동선택 — affiliationId 직접 사용 (franchiseOptions 도착 무관)
   // 다른 검색조건들은 HeadOfficeFranchiseStoreSelect 내부에서 처리하지만,
   // BpMasterSearch 는 가맹점을 별도 SearchSelect 로 구성하므로 본 컴포넌트가 직접 처리.
   useEffect(() => {
     if (!isFranchiseFixed) return
-    if (filters.officeId == null) return
     if (filters.franchiseId != null) return
-    if (franchiseOptions.length !== 1) return
-    const onlyFranchiseId = Number(franchiseOptions[0].value)
-    if (Number.isFinite(onlyFranchiseId)) {
-      onChange({ franchiseId: onlyFranchiseId })
-    }
-  }, [isFranchiseFixed, filters.officeId, filters.franchiseId, franchiseOptions, onChange])
+    onChange({ franchiseId: franchiseAffiliationId })
+  }, [isFranchiseFixed, filters.franchiseId, franchiseAffiliationId, onChange])
 
   // 적용된 검색 조건 태그
   const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []

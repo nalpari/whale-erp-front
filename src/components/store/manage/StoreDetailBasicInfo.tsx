@@ -156,20 +156,22 @@ export const StoreDetailBasicInfo = ({
   //   PLATFORM + defaultHeadOfficeId 매핑: 본사 고정
   //   PLATFORM + 매핑 없음 + 다중 본사(슈퍼 어드민): 고정 없음
   const accountType = useAuthStore((s) => s.accountType)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
 
+  // 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
   const isPlatformAdmin = accountType === 'PLATFORM'
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((o) => o.id === defaultHeadOfficeId)
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
   const isOfficeFixed =
-    accountType === 'HEAD_OFFICE'
-    || accountType === 'FRANCHISE'
-    || bpTree.length === 1
-    || platformHasDefault
-  // FRANCHISE 사용자 + 본사의 가맹점이 1개일 때만 가맹점 잠금 (다중 가맹점 사용자 변경 가능)
+    defaultHeadOfficeId != null
+    && (accountType === 'HEAD_OFFICE'
+      || accountType === 'FRANCHISE'
+      || isPlatformAdmin)
   const isFranchiseFixed = accountType === 'FRANCHISE'
-    && bpTree[0]?.franchises.length === 1
+    && franchiseAffiliationId != null
+    && Number.isFinite(franchiseAffiliationId)
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)

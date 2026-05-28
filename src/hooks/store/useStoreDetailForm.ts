@@ -448,33 +448,39 @@ export const useStoreDetailForm = ({
   //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
   //       호출해야 하므로 useRef+useEffect 패턴을 사용)
   const accountType = useAuthStore((s) => s.accountType)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
 
+  // 로그인 응답 단일 출처 — accountType / affiliationId / defaultHeadOfficeId
   const isPlatformAdmin = accountType === 'PLATFORM'
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
   const shouldAutoSelectOffice =
-    accountType === 'HEAD_OFFICE'
-    || accountType === 'FRANCHISE'
-    || bpTree.length === 1
-    || platformHasDefault
+    defaultHeadOfficeId != null
+    && (accountType === 'HEAD_OFFICE'
+      || accountType === 'FRANCHISE'
+      || isPlatformAdmin)
   const isFranchiseFixed = accountType === 'FRANCHISE'
+    && franchiseAffiliationId != null
+    && Number.isFinite(franchiseAffiliationId)
 
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
-  if (!bpAutoApplied && bpTree.length > 0 && !(isEditMode && detail) && shouldAutoSelectOffice) {
+  if (
+    !bpAutoApplied
+    && !(isEditMode && detail)
+    && shouldAutoSelectOffice
+    && defaultHeadOfficeId != null
+  ) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
 
-    // FRANCHISE 사용자 + 해당 본사의 가맹점이 1개면 자동선택
-    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
-      ? targetOffice.franchises[0].id
-      : null
+    const autoFranchiseId = isFranchiseFixed ? franchiseAffiliationId : null
 
-    // HEAD_OFFICE 사용자 + 가맹점 0개 본사 자동선택 시 storeOwner 강제 지정 (미선택 회귀 방지)
-    const isHeadOfficeOwnerForced = !isFranchiseFixed && targetOffice.franchises.length === 0
+    // HEAD_OFFICE 사용자 + 본사 자동선택 시 storeOwner 강제 지정 (미선택 회귀 방지)
+    // (bpTree 응답으로 본사 산하 가맹 0개인지 확인은 옵션 풀 측 — 자동선택 정책과 분리)
+    const isHeadOfficeOwnerForced =
+      accountType === 'HEAD_OFFICE'
+      && bpTree.find((o) => o.id === defaultHeadOfficeId)?.franchises.length === 0
 
     setFormState((prev) => {
       const nextStoreOwner = isFranchiseFixed
@@ -482,12 +488,12 @@ export const useStoreDetailForm = ({
         : isHeadOfficeOwnerForced ? 'HEAD_OFFICE'
         : prev.storeOwner
       const nextOrganizationId =
-        isHeadOfficeOwnerForced ? targetOffice.id
+        isHeadOfficeOwnerForced ? defaultHeadOfficeId
         : isFranchiseFixed ? (autoFranchiseId ?? prev.organizationId)
-        : (nextStoreOwner === 'HEAD_OFFICE' ? targetOffice.id : prev.organizationId)
+        : (nextStoreOwner === 'HEAD_OFFICE' ? defaultHeadOfficeId : prev.organizationId)
       return {
         ...prev,
-        officeId: targetOffice.id,
+        officeId: defaultHeadOfficeId,
         franchiseId: autoFranchiseId ?? prev.franchiseId,
         storeOwner: nextStoreOwner,
         organizationId: nextOrganizationId,
