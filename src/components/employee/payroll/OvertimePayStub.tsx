@@ -31,7 +31,6 @@ import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
 import { calculatePayrollPeriod } from '@/lib/utils/payroll'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 // 연장근무 수당 배율 (통상임금의 1.5배 — 근로기준법 제56조)
 const OVERTIME_RATE_MULTIPLIER = 1.5
@@ -124,22 +123,22 @@ export default function OvertimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }, [isEditMode, existingStatement])
 
   // BP 트리 데이터
-  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
-  // 권한 기반 표준 정책 변수
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  // 권한 기반 표준 정책 변수 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((office) => office.id === defaultHeadOfficeId)
   const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
   const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   // 자동선택 로직 (렌더 중 setState 패턴 — PartTimePayStub와 동일)
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
