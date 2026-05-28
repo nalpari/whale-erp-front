@@ -217,7 +217,7 @@ export default function BpAdminSearch({
   }, [accountType, bpLoading, bpTree, isFranchiseUser, isHeadOfficeUser, onSearch, params])
 
   // 적용된 검색 조건 태그 (parent params 기반 → 실제 조회 조건 반영)
-  const appliedTags: { key: string; value: string; category: string }[] = []
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
   if (params.name) {
     appliedTags.push({ key: 'name', value: params.name, category: '관리자명' })
   }
@@ -232,7 +232,7 @@ export default function BpAdminSearch({
     const label = headOfficeOptions.find(
       (o) => o.value === String(params.head_office_id),
     )?.label
-    if (label) appliedTags.push({ key: 'headOffice', value: label, category: '본사' })
+    if (label) appliedTags.push({ key: 'headOffice', value: label, category: '본사', removable: !isOfficeFixed })
   }
   if (params.franchise_id != null) {
     const office = bpTree.find((o) =>
@@ -240,7 +240,7 @@ export default function BpAdminSearch({
     )
     const franchise = office?.franchises.find((f) => f.id === params.franchise_id)
     if (franchise) {
-      appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹' })
+      appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹', removable: !isFranchiseFixed })
     }
   }
   if (params.authority_id != null) {
@@ -390,7 +390,7 @@ export default function BpAdminSearch({
                 <div className="search-result-item-txt">
                   <span>{tag.value}</span> ({tag.category})
                 </div>
-                {(
+                {tag.removable !== false && (
                   <button
                     type="button"
                     className="search-result-item-btn"

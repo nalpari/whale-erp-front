@@ -8,6 +8,7 @@ import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSe
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { usePartTimePayrollSearchStore } from '@/stores/search-stores'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface PartTimePayrollSearchProps {
   onSearch: (params: SearchParams) => void
@@ -72,6 +73,9 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
 
 export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }: PartTimePayrollSearchProps) {
   const store = usePartTimePayrollSearchStore()
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
   const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>
@@ -145,15 +149,15 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
   ], [])
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; label: string; category: string }[] = []
+  const appliedTags: { key: string; label: string; category: string; removable?: boolean }[] = []
   if (appliedFormData) {
     if (appliedFormData.headOfficeId != null) {
       const name = officeNameMap.get(appliedFormData.headOfficeId)
-      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사', removable: !isOfficeFixed })
     }
     if (appliedFormData.franchiseId != null) {
       const name = franchiseNameMap.get(appliedFormData.franchiseId)
-      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점', removable: !isFranchiseFixed })
     }
     if (appliedFormData.storeId != null) {
       const name = storeNameMap.get(appliedFormData.storeId)
@@ -250,12 +254,14 @@ export default function PartTimePayrollSearch({ onSearch, onReset, totalCount }:
               <div className="search-result-item-txt">
                 <span>{tag.label}</span> ({tag.category})
               </div>
-              <button
-                type="button"
-                className="search-result-item-btn"
-                onClick={() => handleRemoveTag(tag.key)}
-                aria-label={`${tag.category} 필터 제거`}
-              ></button>
+              {tag.removable !== false && (
+                <button
+                  type="button"
+                  className="search-result-item-btn"
+                  onClick={() => handleRemoveTag(tag.key)}
+                  aria-label={`${tag.category} 필터 제거`}
+                ></button>
+              )}
             </li>
           ))}
           <li className="search-result-item">
