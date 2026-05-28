@@ -34,7 +34,7 @@ export function getInitialFormData(admin?: BpAdminDetail | null): BpAdminFormDat
       adminType,
       headOfficeOrganizationId,
       franchiseOrganizationId,
-      storeId: admin.storeId,
+      storeId: admin.storeId ?? null,
       name: admin.name || '',
       userType: admin.userType || 'MSTWK_001',
       department: admin.department || '',

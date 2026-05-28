@@ -20,8 +20,8 @@ export const bpAdminItemSchema = z.object({
   parentOrganizationName: z.string().nullable(),
   authorityId: z.number().nullable(),
   authorityName: z.string().nullable(),
-  storeId: z.number().nullable(),
-  storeName: z.string().nullable(),
+  storeId: z.number().nullish(),
+  storeName: z.string().nullish(),
   createdAt: z.string().nullable(),
 })
 
