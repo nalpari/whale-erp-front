@@ -11,7 +11,6 @@ import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 import { useQueryError } from '@/hooks/useQueryError'
 import { useHolidaySearchStore } from '@/stores/search-stores'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -56,17 +55,17 @@ export default function HolidayInfo() {
   // 자동선택 발동 가능성 판단 — 자동선택 사용자라면 bpTree 로드 + officeId 세팅 후 첫 fetch
   const accessToken = useAuthStore((s) => s.accessToken)
   const affiliationId = useAuthStore((s) => s.affiliationId)
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((o) => o.id === defaultHeadOfficeId)
   const willAutoSelect =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
 

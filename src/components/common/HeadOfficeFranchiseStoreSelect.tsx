@@ -152,7 +152,6 @@ import './custom-css/FormHelper.css'
 import { useEffect, useMemo, useRef } from 'react'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
 
@@ -222,7 +221,7 @@ export default function HeadOfficeFranchiseStoreSelect({
     onMultiOffice,
     onAutoSelect,
 }: HeadOfficeFranchiseStoreSelectProps) {
-    const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+    const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
@@ -240,27 +239,27 @@ export default function HeadOfficeFranchiseStoreSelect({
     //
     // 자동 선택과 잠금은 동일 조건에서 동시에 발동된다 (헤더 affiliationId ↔ 화면 본사 정합성).
     //
-    // 발동 조건:
-    //   (1) ownerCode 매칭 (HEAD_OFFICE / FRANCHISEE)
+    // 발동 조건 (V75 매트릭스 회피용 정규화 필드 accountType 기반):
+    //   (1) accountType 매칭 (HEAD_OFFICE / FRANCHISE)
     //   (2) bpTree 단일 본사 — 백엔드 `findHeadOfficeTree`가 affiliationId 기반으로 필터링
     //   (3) PLATFORM + defaultHeadOfficeId 매핑 — 로그인 응답 CompanyInfo.headOfficeId
     //       (BP Master는 본인이 등록한 본사가 MemberDetail.organization → headOfficeId로 fallback)
     //
     // PLATFORM이라도 매핑 본사가 명확하면 잠금 — 헤더 정합성을 위해 다른 본사로 변경 차단.
     // 슈퍼 어드민(매핑 없음 + 본사 다수)만 자동 선택 미발동 + 잠금 없음 (횡단 운영).
-    const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+    const isPlatformAdmin = accountType === 'PLATFORM'
 
     const platformHasDefault = isPlatformAdmin && defaultHeadOfficeId != null
         && bpTree.some((office) => office.id === defaultHeadOfficeId)
 
     const shouldAutoSelectOffice = autoSelect
-        && (ownerCode === OWNER_CODE.HEAD_OFFICE
-            || ownerCode === OWNER_CODE.FRANCHISE
+        && (accountType === 'HEAD_OFFICE'
+            || accountType === 'FRANCHISE'
             || bpTree.length === 1
             || platformHasDefault)
 
     const isOfficeFixed = shouldAutoSelectOffice
-    const isFranchiseFixed = autoSelect && ownerCode === OWNER_CODE.FRANCHISE
+    const isFranchiseFixed = autoSelect && accountType === 'FRANCHISE'
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
@@ -308,7 +307,7 @@ export default function HeadOfficeFranchiseStoreSelect({
         }
         onChangeRef.current(value)
         onAutoSelectRef.current?.(value)
-    }, [autoSelect, isDisabled, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed, platformHasDefault, defaultHeadOfficeId, isPlatformAdmin, ownerCode])
+    }, [autoSelect, isDisabled, bpLoading, bpTree, officeId, franchiseId, shouldAutoSelectOffice, isFranchiseFixed, platformHasDefault, defaultHeadOfficeId, isPlatformAdmin, accountType])
 
     // 본사/가맹점 옵션은 BP 트리에서 파생
     const officeOptions = useMemo(() => buildOfficeOptions(bpTree), [bpTree])
