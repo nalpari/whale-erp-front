@@ -107,7 +107,10 @@ function AdminEditContent({
     } catch (error) {
       const handled = await handleAuthorityConflict(error, {
         context: 'PLATFORM_ADMIN_AUTHORITY',
-        payload: { id: adminId, ...result.data },
+        payload: {
+          id: adminId,
+          authorityId: result.data.authorityId,
+        },
         prevSnapshot: { authorityId: initialAuthorityIdRef.current },
         alert,
         invalidate: () => {

@@ -135,7 +135,11 @@ function BpAdminEditContent({
     } catch (error) {
       const handled = await handleAuthorityConflict(error, {
         context: 'BP_ADMIN_AUTHORITY',
-        payload: { id: adminId, ...result.data },
+        payload: {
+          id: adminId,
+          authorityId: result.data.authorityId,
+          storeId: result.data.storeId ?? null,
+        },
         prevSnapshot: { authorityId: initialAuthorityIdRef.current },
         alert,
         invalidate: () => {
@@ -174,7 +178,7 @@ function BpAdminEditContent({
       />
       <div className="contents-wrap">
         <BpAdminForm
-          key={`edit-${adminId}`}
+          key={`edit-${adminId}-${admin.updatedAt ?? ''}`}
           mode="edit"
           formData={formData}
           errors={errors}

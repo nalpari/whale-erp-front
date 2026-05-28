@@ -382,7 +382,12 @@ const BpForm = ({ id, bp }: BpFormProps) => {
       if (isEditMode) {
         const handled = await handleAuthorityConflict(error, {
           context: 'BP_AUTHORITY',
-          payload: { ...form, id },
+          payload: {
+            id,
+            authorityId: form.authorityId ?? null,
+            bpType: form.bpType,
+            bpoprType: form.bpoprType,
+          },
           prevSnapshot: { authorityId: initialAuthorityId },
           alert,
           invalidate: () => {
