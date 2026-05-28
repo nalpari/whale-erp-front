@@ -217,9 +217,15 @@ export default function StoreMenuSearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              {tag.removable !== false && (
-                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
-              )}
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
             </li>
           ))}
           <li className="search-result-item">

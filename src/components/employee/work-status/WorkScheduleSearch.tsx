@@ -30,6 +30,8 @@ type WorkScheduleSearchProps = {
   onSearch: (query: StoreScheduleQuery) => void;
   onReset: () => void;
   onRemoveFilter: (key: string) => void;
+  /** 본사/가맹 자동선택 시 부모에 즉시 통보 — appliedQuery 에도 반영 가능 */
+  onAutoSelect?: (value: { head_office: number | null; franchise: number | null }) => void;
 };
 
 const getDefaultRange = () => {
@@ -63,6 +65,7 @@ export default function WorkScheduleSearch({
   onSearch,
   onReset,
   onRemoveFilter,
+  onAutoSelect,
 }: WorkScheduleSearchProps) {
   const [searchOpen, setSearchOpen] = useState(!initialQuery?.storeId);
   const [showOfficeError, setShowOfficeError] = useState(false);
@@ -286,9 +289,15 @@ export default function WorkScheduleSearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              {tag.removable !== false && (
-                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
-              )}
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
             </li>
           ))}
           <li className="search-result-item">
@@ -343,6 +352,12 @@ export default function WorkScheduleSearch({
                     }));
                   }}
                   onMultiOffice={handleMultiOffice}
+                  onAutoSelect={(next) => {
+                    onAutoSelect?.({
+                      head_office: next.head_office,
+                      franchise: next.franchise,
+                    });
+                  }}
                 />
               </tr>
               <tr>
