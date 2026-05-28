@@ -123,9 +123,13 @@ export default function BpAdminForm({
   const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
   const isFranchiseUser = accountType === 'FRANCHISE'
 
-  const isAdminTypeFixed = isFranchiseUser
-  const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
-  const isFranchiseFixed = isFranchiseUser
+  // edit 모드 — BE update API (bpAdminUpdateRequestSchema) 가 organizationId 를 omit 하므로
+  // 본사/가맹/관리자종류 변경을 UI 에서도 차단. PLATFORM 계정도 edit 에선 org 변경 불가.
+  // storeId / authorityId 는 update body 에 포함되므로 edit 에서 변경 가능 (현재 org 산하 옵션만).
+  const isEditMode = mode === 'edit'
+  const isAdminTypeFixed = isFranchiseUser || isEditMode
+  const isOfficeFixed = isHeadOfficeUser || isFranchiseUser || isEditMode
+  const isFranchiseFixed = isFranchiseUser || isEditMode
 
   const headOfficeOptions = bpTree.map((office) => ({
     value: String(office.id),
