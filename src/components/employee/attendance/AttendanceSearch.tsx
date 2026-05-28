@@ -7,7 +7,6 @@ import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 export interface AttendanceSearchFilters {
   officeId?: number | null
@@ -69,9 +68,9 @@ export default function AttendanceSearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(
@@ -172,9 +171,15 @@ export default function AttendanceSearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              {tag.removable !== false && (
-                <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
-              )}
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
             </li>
           ))}
           <li className="search-result-item">

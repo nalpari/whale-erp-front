@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { redirect, useParams, useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import BpAdminForm, { getInitialFormData } from '@/components/settings/admin/BpAdminForm'
@@ -14,6 +14,9 @@ import { bpAdminUpdateRequestSchema, type BpAdminDetail } from '@/lib/schemas/bp
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
+import { handleAuthorityConflict } from '@/lib/api/conflict-handler'
+import { useQueryClient } from '@tanstack/react-query'
+import { bpAdminKeys } from '@/hooks/queries/query-keys'
 
 /**
  * BP 관리자 상세/수정 페이지 (Wrapper)
@@ -76,6 +79,9 @@ function BpAdminEditContent({
   const { mutateAsync: updateBpAdmin } = useUpdateBpAdmin()
   const { mutateAsync: deleteBpAdmin } = useDeleteBpAdmin()
   const { alert, confirm } = useAlert()
+  const queryClient = useQueryClient()
+  // mount 시점 1회 캡처 — 409 진단용 prevSnapshot. invalidate 로 admin prop 이 갱신돼도 유지.
+  const initialAuthorityIdRef = useRef(admin.authorityId)
   const [formData, setFormData] = useState<BpAdminFormData>(() => getInitialFormData(admin))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -105,6 +111,7 @@ function BpAdminEditContent({
       extensionNumber: formData.extensionNumber.trim() || null,
       email: formData.email.trim() || null,
       authorityId: formData.authorityId ?? undefined,
+      storeId: formData.storeId,
     })
 
     const fieldErrors: Record<string, string> = {
@@ -125,7 +132,22 @@ function BpAdminEditContent({
     try {
       await updateBpAdmin({ id: adminId, data: result.data })
       router.push('/settings/admin')
-    } catch {
+    } catch (error) {
+      const handled = await handleAuthorityConflict(error, {
+        context: 'BP_ADMIN_AUTHORITY',
+        payload: {
+          id: adminId,
+          authorityId: result.data.authorityId,
+          storeId: result.data.storeId ?? null,
+        },
+        prevSnapshot: { authorityId: initialAuthorityIdRef.current },
+        alert,
+        invalidate: () => {
+          queryClient.invalidateQueries({ queryKey: bpAdminKeys.detail(adminId) })
+          queryClient.invalidateQueries({ queryKey: bpAdminKeys.lists() })
+        },
+      })
+      if (handled) return
       await alert('저장에 실패하였습니다. 잠시 후 다시 시도해주세요.')
     }
   }
@@ -156,7 +178,7 @@ function BpAdminEditContent({
       />
       <div className="contents-wrap">
         <BpAdminForm
-          key={`edit-${adminId}`}
+          key={`edit-${adminId}-${admin.updatedAt ?? ''}`}
           mode="edit"
           formData={formData}
           errors={errors}

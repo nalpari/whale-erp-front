@@ -80,7 +80,9 @@ export default function StoreSchedulePageClient() {
   const [showStoreError, setShowStoreError] = useState(false);
   const [validationResult, setValidationResult] = useState<ExcelValidationResult | null>(null);
 
-  const scheduleQuery = useStoreScheduleList(lastQuery, lastQuery !== null);
+  // 자동선택으로 lastQuery 에 본사/가맹만 채워진 상태(storeId 없음)에서는 fetch 보류.
+  // storeId 가 정해진 후(사용자가 점포 선택 + 검색)에만 fetch.
+  const scheduleQuery = useStoreScheduleList(lastQuery, lastQuery !== null && lastQuery.storeId != null);
   const validateMutation = useStoreScheduleValidateExcel();
   const upsertMutation = useStoreScheduleUpsert();
   const downloadMutation = useStoreScheduleDownloadExcel();
@@ -105,6 +107,22 @@ export default function StoreSchedulePageClient() {
   const handleReset = () => {
     setShowStoreError(false);
     scheduleStore.reset();
+  };
+
+  // 본사/가맹점 자동선택 시 검색 툴바 태그가 즉시 보이도록 lastQuery 에 반영.
+  // storeId 가 비어있으면 useStoreScheduleList 의 enabled 조건이 fetch 를 막아야 함.
+  const handleAutoSelect = (value: { head_office: number | null; franchise: number | null }) => {
+    if (
+      lastQuery?.officeId === value.head_office &&
+      lastQuery?.franchiseId === value.franchise
+    ) {
+      return;
+    }
+    setLastQuery({
+      ...(lastQuery ?? {}),
+      officeId: value.head_office,
+      franchiseId: value.franchise,
+    } as StoreScheduleQuery);
   };
 
   const handleRemoveFilter = (key: string) => {
@@ -255,6 +273,7 @@ export default function StoreSchedulePageClient() {
         onSearch={handleSearch}
         onReset={handleReset}
         onRemoveFilter={handleRemoveFilter}
+        onAutoSelect={handleAutoSelect}
       />
       <WorkScheduleTable
         schedules={schedules}

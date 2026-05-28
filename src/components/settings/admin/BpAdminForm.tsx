@@ -10,6 +10,7 @@ import {
   useResetBpAdminPassword,
 } from '@/hooks/queries/use-bp-admin-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
+import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { BpAdminDetail } from '@/lib/schemas/bp-admin'
@@ -33,6 +34,7 @@ export function getInitialFormData(admin?: BpAdminDetail | null): BpAdminFormDat
       adminType,
       headOfficeOrganizationId,
       franchiseOrganizationId,
+      storeId: admin.storeId ?? null,
       name: admin.name || '',
       userType: admin.userType || 'MSTWK_001',
       department: admin.department || '',
@@ -50,6 +52,7 @@ export function getInitialFormData(admin?: BpAdminDetail | null): BpAdminFormDat
     adminType: 'HEAD_OFFICE',
     headOfficeOrganizationId: null,
     franchiseOrganizationId: null,
+    storeId: null,
     name: '',
     userType: 'MSTWK_001',
     department: '',
@@ -120,9 +123,13 @@ export default function BpAdminForm({
   const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
   const isFranchiseUser = accountType === 'FRANCHISE'
 
-  const isAdminTypeFixed = isFranchiseUser
-  const isOfficeFixed = isHeadOfficeUser || isFranchiseUser
-  const isFranchiseFixed = isFranchiseUser
+  // edit 모드 — BE update API (bpAdminUpdateRequestSchema) 가 organizationId 를 omit 하므로
+  // 본사/가맹/관리자종류 변경을 UI 에서도 차단. PLATFORM 계정도 edit 에선 org 변경 불가.
+  // storeId / authorityId 는 update body 에 포함되므로 edit 에서 변경 가능 (현재 org 산하 옵션만).
+  const isEditMode = mode === 'edit'
+  const isAdminTypeFixed = isFranchiseUser || isEditMode
+  const isOfficeFixed = isHeadOfficeUser || isFranchiseUser || isEditMode
+  const isFranchiseFixed = isFranchiseUser || isEditMode
 
   const headOfficeOptions = bpTree.map((office) => ({
     value: String(office.id),
@@ -152,6 +159,32 @@ export default function BpAdminForm({
   const authorityOptions = authorityCandidates.map((a) => ({
     value: String(a.id),
     label: a.name,
+  }))
+
+  // 점포 옵션 — 본사(officeId)와 가맹(franchiseId) 둘 다 전달
+  // - HEAD_OFFICE 관리자: officeId 만 전달
+  // - FRANCHISE 관리자: officeId + franchiseId 둘 다 전달
+  const storeQueryOfficeId = formData.headOfficeOrganizationId
+  const storeQueryFranchiseId =
+    formData.adminType === 'FRANCHISE' ? formData.franchiseOrganizationId : null
+
+  const storeOptionsEnabled =
+    storeQueryOfficeId != null &&
+    (formData.adminType !== 'FRANCHISE' || storeQueryFranchiseId != null)
+
+  const {
+    data: storeOptionsData = [],
+    isSuccess: storeOptionsLoaded,
+    isPending: storeOptionsPending,
+  } = useStoreOptions(
+    storeQueryOfficeId,
+    storeQueryFranchiseId,
+    storeOptionsEnabled,
+  )
+
+  const storeOptions = storeOptionsData.map((s) => ({
+    value: String(s.id),
+    label: s.storeName,
   }))
 
   const workStatusSelectOptions = WORK_STATUS_OPTIONS.map((opt) => ({
@@ -207,6 +240,37 @@ export default function BpAdminForm({
     onChange,
   ])
 
+  // edit 모드 진입 후 storeId 가 옵션 목록에 없으면 자동 null 처리.
+  // BP 소속 변경 이력 등으로 storeId 가 stale 한 경우 대비 (mass-assignment 방지 보조).
+  const storeStaleResolvedRef = useRef(false)
+  useEffect(() => {
+    if (
+      mode !== 'edit' ||
+      storeStaleResolvedRef.current ||
+      !storeOptionsEnabled ||
+      formData.storeId == null
+    ) {
+      return
+    }
+    // 쿼리 로딩 중이면 대기 — isSuccess 로 분기 (length === 0 은 "BE 가 합법적으로 0 store 응답" 도 포함하므로 부적합)
+    if (!storeOptionsLoaded) {
+      return
+    }
+    const found = storeOptionsData.some((s) => s.id === formData.storeId)
+    if (!found) {
+      storeStaleResolvedRef.current = true
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[BpAdminForm] stale storeId — auto reset', {
+          storeId: formData.storeId,
+          options: storeOptionsData,
+        })
+      }
+      onChange({ storeId: null })
+    } else {
+      storeStaleResolvedRef.current = true
+    }
+  }, [mode, storeOptionsEnabled, storeOptionsLoaded, storeOptionsData, formData.storeId, onChange])
+
   useEffect(() => {
     if (mode !== 'create' || autoAppliedRef.current) return
     if (accountType == null) return
@@ -231,6 +295,7 @@ export default function BpAdminForm({
           adminType: 'FRANCHISE',
           headOfficeOrganizationId: targetOffice.id,
           franchiseOrganizationId: targetFranchise.id,
+          storeId: null,
           authorityId: null,
         })
       }
@@ -241,6 +306,7 @@ export default function BpAdminForm({
         onChange({
           headOfficeOrganizationId: targetOffice.id,
           franchiseOrganizationId: null,
+          storeId: null,
           authorityId: null,
         })
       }
@@ -331,8 +397,9 @@ export default function BpAdminForm({
                           onChange={() =>
                             onChange({
                               adminType: 'HEAD_OFFICE',
-                              // 종류 변경 → 가맹/권한 초기화
+                              // 종류 변경 → 가맹/점포/권한 초기화
                               franchiseOrganizationId: null,
+                              storeId: null,
                               authorityId: null,
                             })
                           }
@@ -349,6 +416,7 @@ export default function BpAdminForm({
                           onChange={() =>
                             onChange({
                               adminType: 'FRANCHISE',
+                              storeId: null,
                               authorityId: null,
                             })
                           }
@@ -378,8 +446,9 @@ export default function BpAdminForm({
                           onChange={(opt) =>
                             onChange({
                               headOfficeOrganizationId: opt?.value ? Number(opt.value) : null,
-                              // 본사 변경 → 가맹/권한 초기화
+                              // 본사 변경 → 가맹/점포/권한 초기화
                               franchiseOrganizationId: null,
+                              storeId: null,
                               authorityId: null,
                             })
                           }
@@ -405,7 +474,8 @@ export default function BpAdminForm({
                             onChange={(opt) =>
                               onChange({
                                 franchiseOrganizationId: opt?.value ? Number(opt.value) : null,
-                                // 가맹 변경 → 권한 초기화
+                                // 가맹 변경 → 점포/권한 초기화
+                                storeId: null,
                                 authorityId: null,
                               })
                             }
@@ -418,6 +488,48 @@ export default function BpAdminForm({
                           )}
                         </div>
                       )}
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 점포 — optional, 단일 선택 */}
+                <tr>
+                  <th>점포</th>
+                  <td>
+                    <div className="filed-flx">
+                      <div className="block">
+                        <SearchSelect
+                          options={storeOptions}
+                          value={
+                            formData.storeId != null
+                              ? storeOptions.find(
+                                  (opt) => opt.value === String(formData.storeId),
+                                ) ?? null
+                              : null
+                          }
+                          onChange={(opt) =>
+                            onChange({
+                              storeId: opt?.value ? Number(opt.value) : null,
+                            })
+                          }
+                          isDisabled={!storeOptionsEnabled}
+                          error={!!errors.storeId}
+                          placeholder={
+                            !storeOptionsEnabled
+                              ? formData.adminType === 'FRANCHISE'
+                                ? '가맹점을 먼저 선택해 주세요.'
+                                : '본사를 먼저 선택해 주세요.'
+                              : storeOptionsPending
+                              ? '점포 로딩 중...'
+                              : storeOptions.length === 0
+                              ? '등록된 점포가 없습니다.'
+                              : '점포 선택'
+                          }
+                        />
+                        {errors.storeId && (
+                          <div className="warning-txt mt5" role="alert">* {errors.storeId}</div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

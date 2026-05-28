@@ -207,7 +207,6 @@ export default function AuthorityForm({
                   <HeadOfficeFranchiseStoreSelect
                     isHeadOfficeRequired={true}
                     showHeadOfficeError={!!errors.head_office_id}
-                    isFranchiseRequired={showFranchise && formData.owner_code === OWNER_CODE.FRANCHISE}
                     fields={showFranchise ? ['office', 'franchise'] : ['office']}
                     officeId={formData.head_office_id ?? null}
                     franchiseId={formData.franchisee_id ?? null}

@@ -65,6 +65,7 @@ export default function BpAdminCreatePage() {
       email: formData.email.trim() || null,
       organizationId: effectiveOrganizationId ?? undefined,
       authorityId: formData.authorityId ?? undefined,
+      storeId: formData.storeId,
     })
 
     const zodErrors: Record<string, string> = result.success

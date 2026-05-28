@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AnimateHeight from 'react-animate-height'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { Input } from '@/components/common/ui'
 import RadioButtonGroup, { type RadioOption } from '@/components/common/ui/RadioButtonGroup'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
+import { useAuthStore } from '@/stores/auth-store'
 import type { BpSearchFilters } from '@/types/bp'
 
 interface BpMasterSearchProps {
@@ -55,11 +56,33 @@ const BpMasterSearch = ({
 }: BpMasterSearchProps) => {
   const [searchOpen, setSearchOpen] = useState(false)
 
+  // 로그인 응답 단일 출처 — accountType / affiliationId 기반 잠금 정책
+  const accountType = useAuthStore((s) => s.accountType)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
+    ? Number(affiliationId)
+    : null
+  const isFranchiseFixed = franchiseAffiliationId != null && Number.isFinite(franchiseAffiliationId)
+
+  // 가맹점 자동선택 — affiliationId 직접 사용 (franchiseOptions 도착 무관)
+  // 다른 검색조건들은 HeadOfficeFranchiseStoreSelect 내부에서 처리하지만,
+  // BpMasterSearch 는 가맹점을 별도 SearchSelect 로 구성하므로 본 컴포넌트가 직접 처리.
+  useEffect(() => {
+    if (!isFranchiseFixed) return
+    if (filters.franchiseId != null) return
+    onChange({ franchiseId: franchiseAffiliationId })
+  }, [isFranchiseFixed, filters.franchiseId, franchiseAffiliationId, onChange])
+
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; value: string; category: string }[] = []
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
   if (appliedFilters.officeId != null) {
     const name = officeNameMap.get(appliedFilters.officeId)
-    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사', removable: !isOfficeFixed })
+  }
+  if (appliedFilters.franchiseId != null) {
+    const franchise = franchiseOptions.find((opt) => opt.value === String(appliedFilters.franchiseId))
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.label, category: '가맹점', removable: !isFranchiseFixed })
   }
   if (appliedFilters.bpoprType) {
     const name = operationStatusCodeMap.get(appliedFilters.bpoprType)
@@ -108,7 +131,10 @@ const BpMasterSearch = ({
               <button
                 type="button"
                 className="search-result-item-btn"
-                onClick={() => handleRemoveTag(tag.key)}
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
                 aria-label={`${tag.category} 필터 제거`}
               ></button>
             </li>
@@ -165,8 +191,8 @@ const BpMasterSearch = ({
                       value={franchiseOptions.find((opt) => opt.value === String(filters.franchiseId)) ?? null}
                       onChange={(opt) => onChange({ franchiseId: opt ? Number(opt.value) : null })}
                       placeholder="전체"
-                      isClearable
-                      isDisabled={!filters.officeId}
+                      isClearable={!isFranchiseFixed}
+                      isDisabled={!filters.officeId || isFranchiseFixed}
                     />
                   </div>
                 </td>

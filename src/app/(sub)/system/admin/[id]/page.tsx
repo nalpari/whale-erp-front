@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { redirect, useParams, useRouter } from 'next/navigation'
 import Location from '@/components/ui/Location'
 import AdminForm, { getInitialFormData } from '@/components/system/admin/AdminForm'
@@ -15,6 +15,9 @@ import type { AdminDetail } from '@/lib/schemas/admin'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useAlert } from '@/components/common/ui'
+import { handleAuthorityConflict } from '@/lib/api/conflict-handler'
+import { useQueryClient } from '@tanstack/react-query'
+import { adminKeys } from '@/hooks/queries/query-keys'
 
 /**
  * 관리자 상세/수정 페이지 (Wrapper)
@@ -67,6 +70,9 @@ function AdminEditContent({
 }) {
   const router = useRouter()
   const { mutateAsync: updateAdmin } = useUpdateAdmin()
+  const queryClient = useQueryClient()
+  // mount 시점 1회 캡처 — 409 진단용 prevSnapshot. invalidate 로 admin prop 이 갱신돼도 유지.
+  const initialAuthorityIdRef = useRef(admin.authorityId ?? null)
   const { mutateAsync: deleteAdmin } = useDeleteAdmin()
   const { alert, confirm } = useAlert()
   const [formData, setFormData] = useState<AdminFormData>(() => getInitialFormData(admin))
@@ -98,7 +104,21 @@ function AdminEditContent({
     try {
       await updateAdmin({ id: adminId, data: result.data })
       router.push('/system/admin')
-    } catch {
+    } catch (error) {
+      const handled = await handleAuthorityConflict(error, {
+        context: 'PLATFORM_ADMIN_AUTHORITY',
+        payload: {
+          id: adminId,
+          authorityId: result.data.authorityId,
+        },
+        prevSnapshot: { authorityId: initialAuthorityIdRef.current },
+        alert,
+        invalidate: () => {
+          queryClient.invalidateQueries({ queryKey: adminKeys.detail(adminId) })
+          queryClient.invalidateQueries({ queryKey: adminKeys.lists() })
+        },
+      })
+      if (handled) return
       await alert('저장에 실패하였습니다. 잠시 후 다시 시도해주세요.')
     }
   }
