@@ -12,7 +12,6 @@ import { useCategoryList } from '@/hooks/queries/use-category-queries'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import type { Category } from '@/types/category'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 export interface StoreMenuSearchFilters {
   officeId?: number | null
@@ -64,8 +63,8 @@ export default function StoreMenuSearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(

@@ -8,7 +8,6 @@ import { Input } from '@/components/common/ui'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 export interface PromotionSearchFilters {
   officeId: number | null
@@ -56,9 +55,9 @@ export default function PromotionSearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(

@@ -11,7 +11,6 @@ import { useBpHeadOfficeTree, useStoreOptions, useEmployeeTodoSelectList } from 
 import { formatDateYmd } from '@/util/date-util'
 import { formatEmployeeLabel, resolveEmployeeName } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import type { OfficeFranchiseStoreValue } from '@/components/common/HeadOfficeFranchiseStoreSelect'
 
 export type TodoCompletedFilter = 'ALL' | 'true' | 'false'
@@ -72,9 +71,9 @@ export default function EmployeeTodoSearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(

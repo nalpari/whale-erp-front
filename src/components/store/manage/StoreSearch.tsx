@@ -7,7 +7,6 @@ import HeadOfficeFranchiseStoreSelect, { type OfficeFranchiseStoreValue } from '
 import { RadioButtonGroup } from '@/components/common/ui'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 
 // 점포 검색 필터 상태
@@ -56,9 +55,9 @@ export default function StoreSearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showOfficeError, setShowOfficeError] = useState(false)
 
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(

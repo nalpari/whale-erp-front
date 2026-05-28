@@ -11,7 +11,6 @@ import type { DayType, StoreScheduleQuery } from '@/types/work-schedule';
 import { formatDateYmd } from '@/util/date-util';
 import { formatEmployeeLabel, resolveEmployeeName } from '@/util/employee-label';
 import { useAuthStore } from '@/stores/auth-store';
-import { OWNER_CODE } from '@/constants/owner-code';
 
 type WorkScheduleSearchProps = {
   resultCount: number;
@@ -68,9 +67,9 @@ export default function WorkScheduleSearch({
   const [searchOpen, setSearchOpen] = useState(!initialQuery?.storeId);
   const [showOfficeError, setShowOfficeError] = useState(false);
 
-  const ownerCode = useAuthStore((s) => s.ownerCode);
-  const isOfficeFixed = ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE;
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE;
+  const accountType = useAuthStore((s) => s.accountType);
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE';
+  const isFranchiseFixed = accountType === 'FRANCHISE';
 
   const { data: bpTree = [] } = useBpHeadOfficeTree();
   const { data: storeOptionsList = [] } = useStoreOptions(
