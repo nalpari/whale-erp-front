@@ -256,9 +256,36 @@ export default function HeadOfficeFranchiseStoreSelect({
     //   - PLATFORM + defaultHeadOfficeId 있음: 본사 = defaultHeadOfficeId, 잠금
     //   - HEAD_OFFICE: 본사 = defaultHeadOfficeId, 잠금
     //   - FRANCHISE: 본사 = defaultHeadOfficeId, 가맹 = Number(affiliationId), 둘 다 잠금
-    const shouldAutoSelectOffice = autoSelect && policyShouldAutoSelectOffice
+    //
+    // 안전망 — bpTree membership 검증:
+    // login 응답의 defaultHeadOfficeId 가 bpTree 응답에 존재하지 않는 drift 케이스에서는
+    // 자동선택/잠금을 발동하지 않는다. 잠금 상태로 invalid id 에 묶이면 사용자가 UI 에서
+    // 복구 불가능해지기 때문. bpTree 가 아직 로딩 중이면 매칭 판정 보류 (false 가정 X).
+    const officeInBpTree =
+        defaultHeadOfficeId != null && bpTree.some((o) => o.id === defaultHeadOfficeId)
+    const isOfficeReady = bpLoading || officeInBpTree
+
+    const shouldAutoSelectOffice = autoSelect && policyShouldAutoSelectOffice && isOfficeReady
     const isOfficeFixed = shouldAutoSelectOffice
-    const isFranchiseFixed = autoSelect && policyIsFranchiseFixed
+    const isFranchiseFixed = autoSelect && policyIsFranchiseFixed && isOfficeReady
+
+    // dev only — drift 진단. bpTree 도착 후 매칭 실패 시 1회 경고.
+    const driftWarnedRef = useRef(false)
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'development') return
+        if (bpLoading) return
+        if (defaultHeadOfficeId == null) return
+        if (officeInBpTree) {
+            driftWarnedRef.current = false
+            return
+        }
+        if (driftWarnedRef.current) return
+        driftWarnedRef.current = true
+        console.warn(
+            '[HeadOfficeFranchiseStoreSelect] login defaultHeadOfficeId not found in bpTree — auto-select/lock disabled',
+            { defaultHeadOfficeId, bpTreeIds: bpTree.map((o) => o.id) },
+        )
+    }, [bpLoading, defaultHeadOfficeId, officeInBpTree, bpTree])
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)
