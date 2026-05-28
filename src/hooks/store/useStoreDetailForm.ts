@@ -4,7 +4,6 @@ import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCodeCache } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
   A001: '필수 입력 항목입니다.',
@@ -440,26 +439,27 @@ export const useStoreDetailForm = ({
   }, [bpTree, formState.officeId])
 
   // 로그인 사용자 권한에 따른 본사/가맹점 자동 선택 (렌더링 시점 동기화)
-  // HeadOfficeFranchiseStoreSelect와 동일한 표준 정책 적용:
-  //   (1) ownerCode 매칭 (HEAD_OFFICE / FRANCHISE)
+  // HeadOfficeFranchiseStoreSelect와 동일한 표준 정책 적용 — V75 매트릭스 회피용
+  // 정규화 필드 accountType 기반:
+  //   (1) accountType 매칭 (HEAD_OFFICE / FRANCHISE)
   //   (2) bpTree 단일 본사 폴백
   //   (3) PLATFORM + defaultHeadOfficeId 매핑
   // NOTE: useEffect 내 setState는 react-hooks/set-state-in-effect 린트 에러가 발생하므로
   //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
   //       호출해야 하므로 useRef+useEffect 패턴을 사용)
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
 
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((office) => office.id === defaultHeadOfficeId)
   const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
   if (!bpAutoApplied && bpTree.length > 0 && !(isEditMode && detail) && shouldAutoSelectOffice) {
