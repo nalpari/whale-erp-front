@@ -18,7 +18,6 @@ import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHea
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import { formatDateYmd } from '@/util/date-util'
 
 interface EmployContractEditProps {
@@ -45,24 +44,24 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const [selectedEmployeeInfoId, setSelectedEmployeeInfoId] = useState<number | null>(null)
 
   // BP 트리 데이터
-  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
-  // 표준 권한 정책 변수
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  // 표준 권한 정책 변수 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((office) => office.id === defaultHeadOfficeId)
   const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
   const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = accountType === 'FRANCHISE'
   const isAffiliationFixed =
-    ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 
   // 파일 input refs
   const laborContractFileRef = useRef<HTMLInputElement>(null)
@@ -118,9 +117,9 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
       ...prev,
       headOfficeId: String(targetOffice.id),
       franchiseId: autoFranchiseId !== null ? String(autoFranchiseId) : prev.franchiseId,
-      employeeAffiliation: ownerCode === OWNER_CODE.FRANCHISE
+      employeeAffiliation: accountType === 'FRANCHISE'
         ? 'FRANCHISE'
-        : ownerCode === OWNER_CODE.HEAD_OFFICE
+        : accountType === 'HEAD_OFFICE'
           ? 'HEAD_OFFICE'
           : prev.employeeAffiliation,
     }))

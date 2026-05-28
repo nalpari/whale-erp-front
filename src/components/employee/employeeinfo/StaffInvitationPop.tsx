@@ -1,6 +1,5 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { OWNER_CODE } from '@/constants/owner-code'
 import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
@@ -376,7 +375,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   }
 
   // BP 트리 기반 동적 옵션 (검색 영역과 동일한 로직)
-  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
@@ -412,20 +411,20 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     { value: 'SLRCF_002', label: '익월' }
   ], [])
 
-  // 표준 권한 정책 변수
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  // 표준 권한 정책 변수 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((office) => office.id === defaultHeadOfficeId)
   const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
   const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = accountType === 'FRANCHISE'
   const isWorkplaceTypeFixed =
-    ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 
   // 모달 열림 시 자동선택 (렌더 중 setState 패턴 — react-hooks/set-state-in-effect 회피)
   // isOpen 닫힘 → 가드 리셋, isOpen 열림 + bpTree 로드 완료 + shouldAutoSelectOffice → 1회 자동선택
@@ -449,10 +448,10 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
 
     setHeadOfficeOrganizationId(targetOffice.id)
 
-    if (ownerCode === OWNER_CODE.HEAD_OFFICE) {
+    if (accountType === 'HEAD_OFFICE') {
       setWorkplaceType('HEAD_OFFICE')
       setFranchiseOrganizationId(null)
-    } else if (ownerCode === OWNER_CODE.FRANCHISE) {
+    } else if (accountType === 'FRANCHISE') {
       setWorkplaceType('FRANCHISE')
       if (targetOffice.franchises.length === 1) {
         setFranchiseOrganizationId(targetOffice.franchises[0].id)

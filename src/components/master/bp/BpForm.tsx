@@ -16,7 +16,6 @@ import { handleAuthorityConflict } from '@/lib/api/conflict-handler'
 import { useQueryClient } from '@tanstack/react-query'
 import { bpKeys } from '@/hooks/queries/query-keys'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpDetailResponse, BpFormData } from '@/types/bp'
 
 interface BpFormProps {
@@ -76,12 +75,12 @@ const BpForm = ({ id, bp }: BpFormProps) => {
   const initialAuthorityId = bp?.authorityId ?? null
   const isEditMode = !!id
 
-  // 권한 분기
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  // 권한 분기 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const isPlatform = ownerCode === OWNER_CODE.PLATFORM
-  const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
+  const isPlatform = accountType === 'PLATFORM'
+  const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
+  const isFranchiseUser = accountType === 'FRANCHISE'
 
   const initialPfType = isHeadOfficeUser ? 'PF_001'
     : isFranchiseUser ? 'PF_002'

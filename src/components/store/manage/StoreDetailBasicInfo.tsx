@@ -15,7 +15,6 @@ import {
   type FileItem,
   type RadioOption,
 } from '@/components/common/ui'
-import { OWNER_CODE } from '@/constants/owner-code'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBusinessLicenseOcr } from '@/hooks/queries/use-ocr-queries'
@@ -156,20 +155,20 @@ export const StoreDetailBasicInfo = ({
   //   bpTree 단일 본사 폴백: 본사 고정
   //   PLATFORM + defaultHeadOfficeId 매핑: 본사 고정
   //   PLATFORM + 매핑 없음 + 다중 본사(슈퍼 어드민): 고정 없음
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
 
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((o) => o.id === defaultHeadOfficeId)
   const isOfficeFixed =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE'
+    || accountType === 'FRANCHISE'
     || bpTree.length === 1
     || platformHasDefault
   // FRANCHISE 사용자 + 본사의 가맹점이 1개일 때만 가맹점 잠금 (다중 가맹점 사용자 변경 가능)
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  const isFranchiseFixed = accountType === 'FRANCHISE'
     && bpTree[0]?.franchises.length === 1
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 

@@ -19,7 +19,6 @@ import {
 import { formatDateYmd } from '@/util/date-util'
 import { formatEmployeeLabel } from '@/util/employee-label'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
 
 const BREADCRUMBS = ['Home', '직원 관리', '직원별 TO-DO 관리']
@@ -57,18 +56,18 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const isEditMode = todoId != null
   const { alert, confirm } = useAlert()
 
-  // 계정 유형 판단
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  // 계정 유형 판단 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const isHeadOfficeAccount = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseAccount = ownerCode === OWNER_CODE.FRANCHISE
+  const isHeadOfficeAccount = accountType === 'HEAD_OFFICE'
+  const isFranchiseAccount = accountType === 'FRANCHISE'
 
   // BP 트리 / 상세 데이터 조회
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
 
   // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / 단일 본사 / PLATFORM + 매핑 본사
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
+  const isPlatformAdmin = accountType === 'PLATFORM'
   const platformHasDefault = isPlatformAdmin
     && defaultHeadOfficeId != null
     && bpTree.some((o) => o.id === defaultHeadOfficeId)
