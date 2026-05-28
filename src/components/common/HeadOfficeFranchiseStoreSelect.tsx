@@ -155,6 +155,7 @@ import './custom-css/FormHelper.css'
 import { useEffect, useMemo, useRef } from 'react'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import type { BpHeadOfficeNode } from '@/types/bp'
 import SearchSelect, { type SelectOption as SearchSelectOption } from '@/components/ui/common/SearchSelect'
 
@@ -224,7 +225,14 @@ export default function HeadOfficeFranchiseStoreSelect({
     onMultiOffice,
     onAutoSelect,
 }: HeadOfficeFranchiseStoreSelectProps) {
-    const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
+    const accessToken = useAuthStore((s) => s.accessToken)
+    const {
+        affiliationId,
+        defaultHeadOfficeId,
+        franchiseAffiliationId,
+        shouldAutoSelectOffice: policyShouldAutoSelectOffice,
+        isFranchiseFixed: policyIsFranchiseFixed,
+    } = useAccountPolicy()
     const isReady = Boolean(accessToken && affiliationId)
     const visibleFields: OfficeFranchiseStoreField[] = fields ?? ['office', 'franchise', 'store']
     const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
@@ -240,31 +248,17 @@ export default function HeadOfficeFranchiseStoreSelect({
 
     // --- 자동 선택 + 잠금 통합 정책 ---
     //
-    // 자동 선택과 잠금은 동일 조건에서 동시에 발동된다 (헤더 affiliationId ↔ 화면 본사 정합성).
+    // useAccountPolicy 가 단일 출처. 본 컴포넌트는 autoSelect prop 으로 검색 컨텍스트에서
+    // 자동선택을 우회할 수 있어 policy 결과에 autoSelect 를 추가로 곱한다.
     //
     // 발동 조건 (로그인 응답 단일 출처 — bpTree 의존성 제거):
     //   - PLATFORM + defaultHeadOfficeId == null: 자동선택/잠금 없음 (자유)
     //   - PLATFORM + defaultHeadOfficeId 있음: 본사 = defaultHeadOfficeId, 잠금
     //   - HEAD_OFFICE: 본사 = defaultHeadOfficeId, 잠금
     //   - FRANCHISE: 본사 = defaultHeadOfficeId, 가맹 = Number(affiliationId), 둘 다 잠금
-    //
-    // bpTree.length === 1 / franchises.length === 1 폴백 제거 — bpTree 응답 옵션 수와 무관.
-    const isPlatformAdmin = accountType === 'PLATFORM'
-    const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-        ? Number(affiliationId)
-        : null
-
-    const shouldAutoSelectOffice = autoSelect
-        && defaultHeadOfficeId != null
-        && (accountType === 'HEAD_OFFICE'
-            || accountType === 'FRANCHISE'
-            || isPlatformAdmin)
-
+    const shouldAutoSelectOffice = autoSelect && policyShouldAutoSelectOffice
     const isOfficeFixed = shouldAutoSelectOffice
-    const isFranchiseFixed = autoSelect
-        && accountType === 'FRANCHISE'
-        && franchiseAffiliationId != null
-        && Number.isFinite(franchiseAffiliationId)
+    const isFranchiseFixed = autoSelect && policyIsFranchiseFixed
 
     // 다중 본사 여부를 상위 컴포넌트에 알림
     const onMultiOfficeRef = useRef(onMultiOffice)

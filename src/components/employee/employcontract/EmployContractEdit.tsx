@@ -18,6 +18,7 @@ import type { CreateEmploymentContractHeaderRequest, UpdateEmploymentContractHea
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { formatDateYmd } from '@/util/date-util'
 
 interface EmployContractEditProps {
@@ -44,24 +45,20 @@ export default function EmployContractEdit({ contractId, id }: EmployContractEdi
   const [selectedEmployeeInfoId, setSelectedEmployeeInfoId] = useState<number | null>(null)
 
   // BP 트리 데이터
-  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const {
+    accountType,
+    affiliationId,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isOfficeFixed,
+    isFranchiseFixed,
+  } = useAccountPolicy()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
-  // 표준 권한 정책 변수 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const shouldAutoSelectOffice =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || isPlatformAdmin)
-  const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = accountType === 'FRANCHISE'
-    && franchiseAffiliationId != null
-    && Number.isFinite(franchiseAffiliationId)
+  // employeeAffiliation 잠금 — 본사/가맹 계정은 자기 소속으로 고정 (useAccountPolicy 외 정책)
   const isAffiliationFixed =
     accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 

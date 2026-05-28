@@ -2,7 +2,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import type { RefObject } from 'react'
 import { useMemo } from 'react'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
@@ -150,28 +150,8 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
-  // HeadOfficeFranchiseStoreSelect와 동일한 표준 잠금 정책:
-  //   HEAD_OFFICE / FRANCHISE: 본사 고정
-  //   bpTree 단일 본사 폴백: 본사 고정
-  //   PLATFORM + defaultHeadOfficeId 매핑: 본사 고정
-  //   PLATFORM + 매핑 없음 + 다중 본사(슈퍼 어드민): 고정 없음
-  const accountType = useAuthStore((s) => s.accountType)
-  const affiliationId = useAuthStore((s) => s.affiliationId)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-
-  // 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const isOfficeFixed =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || isPlatformAdmin)
-  const isFranchiseFixed = accountType === 'FRANCHISE'
-    && franchiseAffiliationId != null
-    && Number.isFinite(franchiseAffiliationId)
+  // useAccountPolicy 단일 출처 — HEAD_OFFICE/FRANCHISE/(PLATFORM + defaultHeadOfficeId) 본사 고정
+  const { isOfficeFixed, isFranchiseFixed } = useAccountPolicy()
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)

@@ -10,7 +10,7 @@ import { useHolidayList } from '@/hooks/queries'
 import type { HolidayListItem, HolidayListParams } from '@/types/holiday'
 import { useQueryError } from '@/hooks/useQueryError'
 import { useHolidaySearchStore } from '@/stores/search-stores'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 
 const BREADCRUMBS = ['Home', '시스템 관리', '휴일 관리']
 const currentYear = new Date().getFullYear()
@@ -52,14 +52,8 @@ export default function HolidayInfo() {
     [appliedFilters, page, pageSize]
   )
 
-  // 자동선택 발동 가능성 판단 — 로그인 응답 단일 출처 (accountType / defaultHeadOfficeId)
-  const accountType = useAuthStore((s) => s.accountType)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const willAutoSelect =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || accountType === 'PLATFORM')
+  // 자동선택 발동 가능성 판단 — useAccountPolicy 단일 출처
+  const { shouldAutoSelectOffice: willAutoSelect } = useAccountPolicy()
 
   // 휴일 관리 fetch 가드:
   // willAutoSelect = true 이면 officeId 가 자동 채워질 예정이므로 채워질 때까지 fetch 보류.

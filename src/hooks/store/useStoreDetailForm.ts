@@ -3,7 +3,7 @@ import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRe
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCodeCache } from '@/hooks/queries'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
   A001: '필수 입력 항목입니다.',
@@ -447,23 +447,14 @@ export const useStoreDetailForm = ({
   // NOTE: useEffect 내 setState는 react-hooks/set-state-in-effect 린트 에러가 발생하므로
   //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
   //       호출해야 하므로 useRef+useEffect 패턴을 사용)
-  const accountType = useAuthStore((s) => s.accountType)
-  const affiliationId = useAuthStore((s) => s.affiliationId)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-
-  // 로그인 응답 단일 출처 — accountType / affiliationId / defaultHeadOfficeId
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const shouldAutoSelectOffice =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || isPlatformAdmin)
-  const isFranchiseFixed = accountType === 'FRANCHISE'
-    && franchiseAffiliationId != null
-    && Number.isFinite(franchiseAffiliationId)
+  // 로그인 응답 단일 출처 — useAccountPolicy 가 accountType / affiliationId / defaultHeadOfficeId 를 묶어서 derive
+  const {
+    accountType,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isFranchiseFixed,
+  } = useAccountPolicy()
 
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
   if (

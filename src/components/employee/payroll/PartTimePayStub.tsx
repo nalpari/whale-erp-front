@@ -33,6 +33,7 @@ import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useContractsByEmployee, useContractList } from '@/hooks/queries/use-contract-queries'
 import { usePayrollStatementSettings } from '@/hooks/queries/use-employee-settings-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { calculatePayrollPeriod } from '@/lib/utils/payroll'
 import {
   WORKTIME_EDIT_STORAGE_KEY,
@@ -144,24 +145,17 @@ export default function PartTimePayStub({ id, isEditMode = false, fromWorkTimeEd
   }, [isEditMode, existingStatement])
 
   // BP 트리 데이터
-  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const {
+    affiliationId,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isOfficeFixed,
+    isFranchiseFixed,
+  } = useAccountPolicy()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
-
-  // 권한 기반 표준 정책 변수 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const shouldAutoSelectOffice =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || isPlatformAdmin)
-  const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = accountType === 'FRANCHISE'
-    && franchiseAffiliationId != null
-    && Number.isFinite(franchiseAffiliationId)
 
   // 자동선택 로직 (렌더 중 setState 패턴)
   const [bpAutoApplied, setBpAutoApplied] = useState(false)

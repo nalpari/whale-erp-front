@@ -6,6 +6,7 @@ import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePick
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -375,7 +376,16 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   }
 
   // BP 트리 기반 동적 옵션 (검색 영역과 동일한 로직)
-  const { accessToken, affiliationId, accountType, defaultHeadOfficeId } = useAuthStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const {
+    accountType,
+    affiliationId,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isOfficeFixed,
+    isFranchiseFixed,
+  } = useAccountPolicy()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
@@ -411,20 +421,7 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     { value: 'SLRCF_002', label: '익월' }
   ], [])
 
-  // 표준 권한 정책 변수 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = accountType === 'FRANCHISE' && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const shouldAutoSelectOffice =
-    defaultHeadOfficeId != null
-    && (accountType === 'HEAD_OFFICE'
-      || accountType === 'FRANCHISE'
-      || isPlatformAdmin)
-  const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = accountType === 'FRANCHISE'
-    && franchiseAffiliationId != null
-    && Number.isFinite(franchiseAffiliationId)
+  // workplaceType 잠금은 본사/가맹 계정 — useAccountPolicy 외 정책은 컴포넌트 로컬 유지
   const isWorkplaceTypeFixed =
     accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 

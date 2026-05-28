@@ -18,7 +18,7 @@ import {
 } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
 import { formatEmployeeLabel } from '@/util/employee-label'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
 
 const BREADCRUMBS = ['Home', '직원 관리', '직원별 TO-DO 관리']
@@ -56,25 +56,18 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const isEditMode = todoId != null
   const { alert, confirm } = useAlert()
 
-  // 계정 유형 판단 — 로그인 응답 단일 출처 (accountType / affiliationId / defaultHeadOfficeId)
-  const accountType = useAuthStore((s) => s.accountType)
-  const affiliationId = useAuthStore((s) => s.affiliationId)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const isHeadOfficeAccount = accountType === 'HEAD_OFFICE'
-  const isFranchiseAccount = accountType === 'FRANCHISE'
+  // 계정 유형 + 자동선택 정책 — useAccountPolicy 단일 출처 (isHeadOfficeAccount/isFranchiseAccount 는 컴포넌트 로컬 별칭)
+  const {
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isHeadOfficeAdmin: isHeadOfficeAccount,
+    isFranchiseAdmin: isFranchiseAccount,
+  } = useAccountPolicy()
 
   // BP 트리 / 상세 데이터 조회
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
-
-  // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / PLATFORM + defaultHeadOfficeId
-  const isPlatformAdmin = accountType === 'PLATFORM'
-  const franchiseAffiliationId = isFranchiseAccount && affiliationId != null
-    ? Number(affiliationId)
-    : null
-  const shouldAutoSelectOffice =
-    defaultHeadOfficeId != null
-    && (isHeadOfficeAccount || isFranchiseAccount || isPlatformAdmin)
 
   // 렌더 중 setState 패턴 — useEffect 안에서 setState 회피 (react-hooks/set-state-in-effect 규칙 준수)
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
