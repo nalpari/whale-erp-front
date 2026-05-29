@@ -278,6 +278,7 @@ export default BpInvitationPage
 
 | 날짜 | 변경 내용 |
 |------|-----------|
+| 2026-05-29 | **초대 후 목록 미갱신 버그 수정** — `useInviteFranchise` 에 `onSuccess` invalidate 누락으로 초대 성공 후 `/master/bp` 진입 시 캐시된 stale 목록이 표시되고(신규 초대 항목 미노출), 새로고침해야 보이던 문제 수정. §"초대 후 목록 캐시 무효화" 참조 |
 | 2026-05-21 | **초대하기 버튼 더블클릭/race 방어** — 사용자가 응답 대기 중 한 번 더 클릭 시 메일이 이미 발송된 상태에서 두 번째 호출이 `BP_INVITATION_ALREADY_EXISTS`(중복) 차단되어 "등록 실패" 알림이 표시되던 버그 수정. §"중복 호출 방어" 참조 |
 | 2026-05-21 | **Boston Code Review front 반영** — 사업자등록번호 인증 진행 중 "초대하기" 버튼 라벨을 `"인증 완료 후 가능"` 으로 분기하여 사용자에게 이유 명시 (이전엔 disabled 만 되고 안내 부재) |
 | 2026-05-21 | **PR #100 review MEDIUM 반영** — (MED#3) 취소 버튼 `disabled={isInviting}` 제거 — 라우팅 차원이라 race 방어 대상 아님, 사용자 탈출구 보장 / (MED#4) `!isVerified` 라벨/disabled 반영 — 인증 미시도 상태에서 버튼이 활성처럼 보이고 클릭 시 validate 실패만 표시되던 비대칭 수정. 라벨 4분기: 초대중/인증처리중/인증후가능/초대하기 |
@@ -299,3 +300,19 @@ export default BpInvitationPage
 
 ### 후속 검토 (별도)
 - 백엔드 `inviteFranchise` 에 idempotency 가드 추가 (직원 가입 패턴 — 5분 내 동일 사업자등록번호 차단). 프론트 fix 만으로 100% 차단 불가 (다른 클라이언트/네트워크 재시도 등 가능)
+
+## 초대 후 목록 캐시 무효화 (2026-05-29)
+
+### 문제
+- `useInviteFranchise()` 에 `onSuccess` 콜백이 없어 BP 목록 쿼리 캐시를 무효화하지 않음
+- 초대 성공 → `router.push('/master/bp')` 진입 시, `useBpList` 의 query key 가 이미 캐시에 있고 글로벌 `staleTime: 5분` 때문에 fresh 로 판단 → refetch 안 함 → 신규 초대 항목이 빠진 stale 목록 표시
+- 브라우저 새로고침 시에만 인메모리 캐시가 초기화되어 새 항목이 보임
+- (목록 데이터는 zustand `bp-search-store` 가 아니라 TanStack Query 가 관리하므로 zustand 가 아닌 React Query 캐시 문제)
+
+### 해결
+- `useInviteFranchise` 에 다른 BP mutation(`useCreateBp`/`useUpdateBp`/`useDeleteBp`)과 동일하게 `onSuccess` 추가
+  ```typescript
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: bpKeys.all })
+  }
+  ```
