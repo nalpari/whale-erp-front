@@ -243,6 +243,7 @@ export const useDeleteBp = () => {
  * 가맹점 초대 mutation.
  */
 export const useInviteFranchise = () => {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (data: {
       id: number
@@ -256,6 +257,9 @@ export const useInviteFranchise = () => {
         data
       )
       return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bpKeys.all })
     },
   })
 }

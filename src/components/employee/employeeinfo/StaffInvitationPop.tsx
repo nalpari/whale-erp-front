@@ -1,12 +1,12 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { OWNER_CODE } from '@/constants/owner-code'
 import { Input, useAlert } from '@/components/common/ui'
 import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
 import type {
   PostEmployeeInfoRequest,
@@ -376,7 +376,16 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
   }
 
   // BP 트리 기반 동적 옵션 (검색 영역과 동일한 로직)
-  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const {
+    accountType,
+    affiliationId,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isOfficeFixed,
+    isFranchiseFixed,
+  } = useAccountPolicy()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [], isPending: bpLoading } = useBpHeadOfficeTree(isReady)
 
@@ -412,23 +421,12 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     { value: 'SLRCF_002', label: '익월' }
   ], [])
 
-  // 표준 권한 정책 변수
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
-  const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
-    || bpTree.length === 1
-    || platformHasDefault
-  const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  // workplaceType 잠금은 본사/가맹 계정 — useAccountPolicy 외 정책은 컴포넌트 로컬 유지
   const isWorkplaceTypeFixed =
-    ownerCode === OWNER_CODE.HEAD_OFFICE || ownerCode === OWNER_CODE.FRANCHISE
+    accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
 
   // 모달 열림 시 자동선택 (렌더 중 setState 패턴 — react-hooks/set-state-in-effect 회피)
-  // isOpen 닫힘 → 가드 리셋, isOpen 열림 + bpTree 로드 완료 + shouldAutoSelectOffice → 1회 자동선택
+  // isOpen 닫힘 → 가드 리셋, isOpen 열림 + shouldAutoSelectOffice → 1회 자동선택
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
   const [lastIsOpen, setLastIsOpen] = useState(isOpen)
 
@@ -440,22 +438,18 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     }
   }
 
-  if (isOpen && !bpLoading && bpTree.length > 0 && !bpAutoApplied && shouldAutoSelectOffice) {
+  if (isOpen && !bpAutoApplied && shouldAutoSelectOffice && defaultHeadOfficeId != null) {
     setBpAutoApplied(true)
 
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
+    setHeadOfficeOrganizationId(defaultHeadOfficeId)
 
-    setHeadOfficeOrganizationId(targetOffice.id)
-
-    if (ownerCode === OWNER_CODE.HEAD_OFFICE) {
+    if (accountType === 'HEAD_OFFICE') {
       setWorkplaceType('HEAD_OFFICE')
       setFranchiseOrganizationId(null)
-    } else if (ownerCode === OWNER_CODE.FRANCHISE) {
+    } else if (accountType === 'FRANCHISE') {
       setWorkplaceType('FRANCHISE')
-      if (targetOffice.franchises.length === 1) {
-        setFranchiseOrganizationId(targetOffice.franchises[0].id)
+      if (franchiseAffiliationId != null) {
+        setFranchiseOrganizationId(franchiseAffiliationId)
       }
     }
   }

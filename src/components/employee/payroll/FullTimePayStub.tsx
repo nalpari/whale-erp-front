@@ -22,6 +22,7 @@ import { getPayrollStatement, getPayrollStatements } from '@/lib/api/payrollStat
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import type {
   PayrollStatementResponse,
   PaymentItemDto,
@@ -31,7 +32,6 @@ import type {
 } from '@/lib/api/payrollStatement'
 import type { BonusCategory } from '@/lib/api/payrollStatementSettings'
 import { calculatePayrollPeriod } from '@/lib/utils/payroll'
-import { OWNER_CODE } from '@/constants/owner-code'
 
 // 에러 메시지 추출 헬퍼 함수
 const getErrorMessage = (error: unknown): string => {
@@ -188,38 +188,25 @@ export default function FullTimePayStub({ id, isEditMode = false }: FullTimePayS
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null)
 
   // BP 트리 데이터
-  const { accessToken, affiliationId, ownerCode, defaultHeadOfficeId } = useAuthStore()
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const {
+    affiliationId,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isOfficeFixed,
+    isFranchiseFixed,
+  } = useAccountPolicy()
   const isReady = Boolean(accessToken && affiliationId)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
 
-  // 권한 기반 표준 정책 변수
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
-  const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
-    || bpTree.length === 1
-    || platformHasDefault
-  const isOfficeFixed = shouldAutoSelectOffice
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
-
-  // 자동선택 로직 (렌더 중 setState 패턴 — BpForm/useStoreDetailForm와 동일)
+  // 자동선택 로직 (렌더 중 setState 패턴)
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
-  if (!bpAutoApplied && isNewMode && bpTree.length > 0 && shouldAutoSelectOffice) {
+  if (!bpAutoApplied && isNewMode && shouldAutoSelectOffice && defaultHeadOfficeId != null) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
-
-    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
-      ? targetOffice.franchises[0].id
-      : null
-
-    setSelectedHeadOfficeId(targetOffice.id)
-    if (autoFranchiseId !== null) {
-      setSelectedFranchiseStoreId(autoFranchiseId)
+    setSelectedHeadOfficeId(defaultHeadOfficeId)
+    if (franchiseAffiliationId !== null) {
+      setSelectedFranchiseStoreId(franchiseAffiliationId)
     }
   }
 

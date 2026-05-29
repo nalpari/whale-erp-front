@@ -2,7 +2,7 @@ import '@/components/common/custom-css/FormHelper.css'
 import '@/components/store/custom-css/StoreDetailBasicInfo.css'
 import type { RefObject } from 'react'
 import { useMemo } from 'react'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import AnimateHeight from 'react-animate-height'
 import { Tooltip } from 'react-tooltip'
 import type { BpHeadOfficeNode, BpFranchiseNode } from '@/types/bp'
@@ -15,7 +15,6 @@ import {
   type FileItem,
   type RadioOption,
 } from '@/components/common/ui'
-import { OWNER_CODE } from '@/constants/owner-code'
 import AddressSearch, { type AddressData } from '@/components/common/ui/AddressSearch'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBusinessLicenseOcr } from '@/hooks/queries/use-ocr-queries'
@@ -151,26 +150,8 @@ export const StoreDetailBasicInfo = ({
     [franchiseOptions]
   )
 
-  // HeadOfficeFranchiseStoreSelect와 동일한 표준 잠금 정책:
-  //   HEAD_OFFICE / FRANCHISE: 본사 고정
-  //   bpTree 단일 본사 폴백: 본사 고정
-  //   PLATFORM + defaultHeadOfficeId 매핑: 본사 고정
-  //   PLATFORM + 매핑 없음 + 다중 본사(슈퍼 어드민): 고정 없음
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((o) => o.id === defaultHeadOfficeId)
-  const isOfficeFixed =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
-    || bpTree.length === 1
-    || platformHasDefault
-  // FRANCHISE 사용자 + 본사의 가맹점이 1개일 때만 가맹점 잠금 (다중 가맹점 사용자 변경 가능)
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
-    && bpTree[0]?.franchises.length === 1
+  // useAccountPolicy 단일 출처 — HEAD_OFFICE/FRANCHISE/(PLATFORM + defaultHeadOfficeId) 본사 고정
+  const { isOfficeFixed, isFranchiseFixed } = useAccountPolicy()
   const isOwnerFixed = bpTree.length === 1 && bpTree[0]?.franchises.length === 0
 
   // 사업자등록증 파일 목록 (기존 파일 + 새 파일)

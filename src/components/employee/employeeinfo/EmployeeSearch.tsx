@@ -86,8 +86,10 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
   )
 
   // auth hydration 완료 후에만 API 호출
-  const { accessToken, affiliationId } = useAuthStore()
+  const { accessToken, affiliationId, accountType } = useAuthStore()
   const isReady = Boolean(accessToken && affiliationId)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
 
   // BP 본사 트리 조회 (본사명 표시용)
   const { data: bpTree = [] } = useBpHeadOfficeTree(isReady)
@@ -183,15 +185,15 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
   }, [storeOptionList])
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; label: string; category: string }[] = []
+  const appliedTags: { key: string; label: string; category: string; removable?: boolean }[] = []
   if (appliedFormData) {
     if (appliedFormData.headOfficeOrganizationId != null) {
       const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
-      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사', removable: !isOfficeFixed })
     }
     if (appliedFormData.franchiseOrganizationId != null) {
       const name = franchiseNameMap.get(appliedFormData.franchiseOrganizationId)
-      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점', removable: !isFranchiseFixed })
     }
     if (appliedFormData.storeId != null) {
       const name = storeNameMap.get(appliedFormData.storeId)
@@ -285,7 +287,10 @@ export default function EmployeeSearch({ onSearch, onReset, totalCount }: Employ
               <button
                 type="button"
                 className="search-result-item-btn"
-                onClick={() => handleRemoveTag(tag.key)}
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
                 aria-label={`${tag.category} 필터 제거`}
               ></button>
             </li>

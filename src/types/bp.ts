@@ -96,7 +96,10 @@ export interface BpFormData {
 export interface BpListParams {
     page?: number
     size?: number
+    /** 본사 selectbox 값 (본사 PK 또는 가맹 PK). 본사 PK → 본사 + 산하 가맹, 가맹 PK → 그 가맹 1건 */
     id?: number
+    /** 가맹점 selectbox 값. 단독 입력 또는 id 와 함께 AND 결합 (BE PR 신규) */
+    franchiseId?: number
     companyName?: string
     businessRegistrationNumber?: string
     representativeName?: string

@@ -3,8 +3,7 @@ import type { FieldErrors, OperatingHourInfo, StoreDetailResponse, StoreHeaderRe
 import type { BpHeadOfficeNode } from '@/types/bp'
 import type { OperatingDayType, OperatingFormState, StoreFormState, WeekdayKey } from '@/types/store'
 import { useCommonCodeCache } from '@/hooks/queries'
-import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 
 export const VALIDATE_MESSAGE: Record<string, string> = {
   A001: '필수 입력 항목입니다.',
@@ -440,41 +439,39 @@ export const useStoreDetailForm = ({
   }, [bpTree, formState.officeId])
 
   // 로그인 사용자 권한에 따른 본사/가맹점 자동 선택 (렌더링 시점 동기화)
-  // HeadOfficeFranchiseStoreSelect와 동일한 표준 정책 적용:
-  //   (1) ownerCode 매칭 (HEAD_OFFICE / FRANCHISE)
+  // HeadOfficeFranchiseStoreSelect와 동일한 표준 정책 적용 — V75 매트릭스 회피용
+  // 정규화 필드 accountType 기반:
+  //   (1) accountType 매칭 (HEAD_OFFICE / FRANCHISE)
   //   (2) bpTree 단일 본사 폴백
   //   (3) PLATFORM + defaultHeadOfficeId 매핑
   // NOTE: useEffect 내 setState는 react-hooks/set-state-in-effect 린트 에러가 발생하므로
   //       렌더 중 setState 패턴을 사용한다. (HeadOfficeFranchiseStoreSelect는 부모 onChange를
   //       호출해야 하므로 useRef+useEffect 패턴을 사용)
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((office) => office.id === defaultHeadOfficeId)
-  const shouldAutoSelectOffice =
-    ownerCode === OWNER_CODE.HEAD_OFFICE
-    || ownerCode === OWNER_CODE.FRANCHISE
-    || bpTree.length === 1
-    || platformHasDefault
-  const isFranchiseFixed = ownerCode === OWNER_CODE.FRANCHISE
+  // 로그인 응답 단일 출처 — useAccountPolicy 가 accountType / affiliationId / defaultHeadOfficeId 를 묶어서 derive
+  const {
+    accountType,
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isFranchiseFixed,
+  } = useAccountPolicy()
 
   const [bpAutoApplied, setBpAutoApplied] = useState(false)
-  if (!bpAutoApplied && bpTree.length > 0 && !(isEditMode && detail) && shouldAutoSelectOffice) {
+  if (
+    !bpAutoApplied
+    && !(isEditMode && detail)
+    && shouldAutoSelectOffice
+    && defaultHeadOfficeId != null
+  ) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
 
-    // FRANCHISE 사용자 + 해당 본사의 가맹점이 1개면 자동선택
-    const autoFranchiseId = isFranchiseFixed && targetOffice.franchises.length === 1
-      ? targetOffice.franchises[0].id
-      : null
+    const autoFranchiseId = isFranchiseFixed ? franchiseAffiliationId : null
 
-    // HEAD_OFFICE 사용자 + 가맹점 0개 본사 자동선택 시 storeOwner 강제 지정 (미선택 회귀 방지)
-    const isHeadOfficeOwnerForced = !isFranchiseFixed && targetOffice.franchises.length === 0
+    // HEAD_OFFICE 사용자 + 본사 자동선택 시 storeOwner 강제 지정 (미선택 회귀 방지)
+    // (bpTree 응답으로 본사 산하 가맹 0개인지 확인은 옵션 풀 측 — 자동선택 정책과 분리)
+    const isHeadOfficeOwnerForced =
+      accountType === 'HEAD_OFFICE'
+      && bpTree.find((o) => o.id === defaultHeadOfficeId)?.franchises.length === 0
 
     setFormState((prev) => {
       const nextStoreOwner = isFranchiseFixed
@@ -482,12 +479,12 @@ export const useStoreDetailForm = ({
         : isHeadOfficeOwnerForced ? 'HEAD_OFFICE'
         : prev.storeOwner
       const nextOrganizationId =
-        isHeadOfficeOwnerForced ? targetOffice.id
+        isHeadOfficeOwnerForced ? defaultHeadOfficeId
         : isFranchiseFixed ? (autoFranchiseId ?? prev.organizationId)
-        : (nextStoreOwner === 'HEAD_OFFICE' ? targetOffice.id : prev.organizationId)
+        : (nextStoreOwner === 'HEAD_OFFICE' ? defaultHeadOfficeId : prev.organizationId)
       return {
         ...prev,
-        officeId: targetOffice.id,
+        officeId: defaultHeadOfficeId,
         franchiseId: autoFranchiseId ?? prev.franchiseId,
         storeOwner: nextStoreOwner,
         organizationId: nextOrganizationId,

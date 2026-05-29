@@ -40,9 +40,15 @@ export default function StoreInfo() {
   const [pageSize, setPageSize] = useState(50)
 
   // 본사/가맹점 계정: HeadOfficeFranchiseStoreSelect 자동선택 시 appliedFilters 직접 세팅
-  // 이미 검색이 수행된 적 있으면 무시 (초기화 시 자동선택 재발동 방지)
+  // stale storage 로 인해 본사만 채워지고 가맹이 누락된 케이스도 보정해야 하므로
+  // 기존 값과 자동선택 결과가 정합인지 검사하여 다를 때만 갱신.
   const handleAutoSelect = (value: OfficeFranchiseStoreValue) => {
-    if (appliedFilters.officeId != null) return
+    if (
+      appliedFilters.officeId === value.head_office &&
+      appliedFilters.franchiseId === value.franchise
+    ) {
+      return
+    }
     setAppliedFilters({
       ...DEFAULT_FILTERS,
       officeId: value.head_office,

@@ -337,6 +337,22 @@ export default function WorkSchedulePlan() {
     setShowStoreError(false);
   }, []);
 
+  // 본사/가맹점 자동선택 시 검색 툴바 태그가 즉시 보이도록 lastQuery 에 반영.
+  // storeId 가 없으면 데이터 fetch 는 별도 onSearch 흐름에서만 발생.
+  const handleAutoSelect = useCallback((value: { head_office: number | null; franchise: number | null }) => {
+    if (
+      lastQuery?.officeId === value.head_office &&
+      lastQuery?.franchiseId === value.franchise
+    ) {
+      return;
+    }
+    setLastQuery({
+      ...(lastQuery ?? {}),
+      officeId: value.head_office,
+      franchiseId: value.franchise,
+    } as StoreScheduleQuery);
+  }, [lastQuery]);
+
   const handleRemoveFilter = useCallback((key: string) => {
     // 필수 필드(office, store, period) 제거 시 lastQuery 유지 → 목록 데이터 보존
     if (key === 'office' || key === 'store' || key === 'period') return;
@@ -617,6 +633,7 @@ export default function WorkSchedulePlan() {
           onSearch={handleSearch}
           onReset={handleReset}
           onRemoveFilter={handleRemoveFilter}
+          onAutoSelect={handleAutoSelect}
         />
         <div className="contents-body">
           <div className="content-wrap">

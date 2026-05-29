@@ -12,8 +12,10 @@ import { useCommonCodeHierarchy, useOperatingHeadOffices } from '@/hooks/queries
 import { useCreateBp, useUpdateBp } from '@/hooks/queries/use-bp-queries'
 import { useAuthorityOptionsForBpEdit } from '@/hooks/queries/use-authority-queries'
 import api, { getErrorMessage } from '@/lib/api'
+import { handleAuthorityConflict } from '@/lib/api/conflict-handler'
+import { useQueryClient } from '@tanstack/react-query'
+import { bpKeys } from '@/hooks/queries/query-keys'
 import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
 import type { BpDetailResponse, BpFormData } from '@/types/bp'
 
 interface BpFormProps {
@@ -68,14 +70,17 @@ const mapBpToLogoImages = (bp: BpDetailResponse): ImageItem[] =>
 const BpForm = ({ id, bp }: BpFormProps) => {
   const router = useRouter()
   const { alert, confirm } = useAlert()
+  const queryClient = useQueryClient()
+  // 409 진단용 — 폼이 시작될 때의 권한 ID 스냅샷
+  const initialAuthorityId = bp?.authorityId ?? null
   const isEditMode = !!id
 
-  // 권한 분기
-  const ownerCode = useAuthStore((s) => s.ownerCode)
+  // 권한 분기 — V75 매트릭스 회피용 정규화 필드 accountType 기반
+  const accountType = useAuthStore((s) => s.accountType)
   const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const isPlatform = ownerCode === OWNER_CODE.PLATFORM
-  const isHeadOfficeUser = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseUser = ownerCode === OWNER_CODE.FRANCHISE
+  const isPlatform = accountType === 'PLATFORM'
+  const isHeadOfficeUser = accountType === 'HEAD_OFFICE'
+  const isFranchiseUser = accountType === 'FRANCHISE'
 
   const initialPfType = isHeadOfficeUser ? 'PF_001'
     : isFranchiseUser ? 'PF_002'
@@ -108,8 +113,8 @@ const BpForm = ({ id, bp }: BpFormProps) => {
     ? bpoprCodes
     : bpoprCodes.filter((c) => c.code !== BPOPR_TERMINATED)
 
-  // 권한별 PF 옵션 필터링
-  const visiblePfCodes = isPlatform
+  // 권한별 PF 옵션 필터링 — 수정 모드는 기존 BP 의 pfType 이 옵션에 포함되어야 하므로 전체 노출
+  const visiblePfCodes = isPlatform || isEditMode
     ? pfCodes
     : pfCodes.filter((c) =>
         isHeadOfficeUser ? c.code === 'PF_001'
@@ -374,7 +379,27 @@ const BpForm = ({ id, bp }: BpFormProps) => {
         router.push(`/master/bp/${result.id}`)
       }
     } catch (error) {
-      await alert(getErrorMessage(error, isEditMode ? '수정에 실패했습니다.' : '등록에 실패했습니다.'))
+      if (isEditMode) {
+        const handled = await handleAuthorityConflict(error, {
+          context: 'BP_AUTHORITY',
+          payload: {
+            id,
+            authorityId: form.authorityId ?? null,
+            bpType: form.bpType,
+            bpoprType: form.bpoprType,
+          },
+          prevSnapshot: { authorityId: initialAuthorityId },
+          alert,
+          invalidate: () => {
+            queryClient.invalidateQueries({ queryKey: bpKeys.detail(id!) })
+            queryClient.invalidateQueries({ queryKey: bpKeys.lists() })
+          },
+        })
+        if (handled) return
+      }
+      await alert(
+        getErrorMessage(error, isEditMode ? '수정에 실패했습니다.' : '등록에 실패했습니다.'),
+      )
     }
   }
 

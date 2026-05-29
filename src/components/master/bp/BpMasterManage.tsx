@@ -109,6 +109,7 @@ const BpMasterManage = () => {
     page,
     size: pageSize,
     id: appliedFilters.officeId ?? undefined,
+    franchiseId: appliedFilters.franchiseId ?? undefined,
     representativeName: appliedFilters.representativeName || undefined,
     bpoprType: appliedFilters.bpoprType || undefined,
     subscriptionPlanType: appliedFilters.subscriptionPlanType || undefined,

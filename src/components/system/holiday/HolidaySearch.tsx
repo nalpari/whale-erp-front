@@ -5,6 +5,7 @@ import AnimateHeight from 'react-animate-height'
 import { useState } from 'react'
 import HeadOfficeFranchiseStoreSelect from '@/components/common/HeadOfficeFranchiseStoreSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { useAuthStore } from '@/stores/auth-store'
 
 export interface HolidaySearchFilters {
   year: number | null
@@ -41,6 +42,10 @@ export default function HolidaySearch({
   const [searchOpen, setSearchOpen] = useState(false)
   const [showYearError, setShowYearError] = useState(false)
 
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
+
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: storeOptionsList = [] } = useStoreOptions(
     appliedFilters.officeId ?? null,
@@ -52,17 +57,17 @@ export default function HolidaySearch({
   // - year(필수값): filters 기준 — x 클릭 시 즉시 사라지고, 검색 버튼에서 필수 체크
   // - office/franchise/store: appliedFilters 기준 — 검색 적용 후의 조건만 표시
   // (변수명 appliedTags지만 year만 미적용 상태 반영. 향후 displayedTags로 리팩토링 검토)
-  const appliedTags: { key: string; value: string; category: string }[] = []
+  const appliedTags: { key: string; value: string; category: string; removable?: boolean }[] = []
   if (filters.year != null) {
     appliedTags.push({ key: 'year', value: `${filters.year}년`, category: '연도' })
   }
   if (appliedFilters.officeId != null) {
     const name = bpTree.find((o) => o.id === appliedFilters.officeId)?.name
-    if (name) appliedTags.push({ key: 'office', value: name, category: '본사' })
+    if (name) appliedTags.push({ key: 'office', value: name, category: '본사', removable: !isOfficeFixed })
   }
   if (appliedFilters.franchiseId != null) {
     const franchise = bpTree.flatMap((o) => o.franchises).find((f) => f.id === appliedFilters.franchiseId)
-    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점' })
+    if (franchise) appliedTags.push({ key: 'franchise', value: franchise.name, category: '가맹점', removable: !isFranchiseFixed })
   }
   if (appliedFilters.storeId != null) {
     const store = storeOptionsList.find((s) => s.id === appliedFilters.storeId)
@@ -101,7 +106,15 @@ export default function HolidaySearch({
               <div className="search-result-item-txt">
                 <span>{tag.value}</span> ({tag.category})
               </div>
-              <button type="button" className="search-result-item-btn" onClick={() => handleRemoveTag(tag.key)} aria-label={`${tag.category} 필터 제거`}></button>
+              <button
+                type="button"
+                className="search-result-item-btn"
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
+                aria-label={`${tag.category} 필터 제거`}
+              ></button>
             </li>
           ))}
           <li className="search-result-item">

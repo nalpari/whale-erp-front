@@ -9,6 +9,7 @@ import { useEmployeeInfoSettings } from '@/hooks/queries/use-employee-settings-q
 import { useBpHeadOfficeTree } from '@/hooks/queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
 import { useEmployContractSearchStore } from '@/stores/search-stores'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface EmployContractSearchProps {
   onSearch?: (params: Record<string, unknown>) => void
@@ -61,6 +62,9 @@ const restoreFormData = (sp: Record<string, unknown>): FormData => ({
 
 export default function EmployContractSearch({ onSearch, onReset, totalCount = 0 }: EmployContractSearchProps) {
   const store = useEmployContractSearchStore()
+  const accountType = useAuthStore((s) => s.accountType)
+  const isOfficeFixed = accountType === 'HEAD_OFFICE' || accountType === 'FRANCHISE'
+  const isFranchiseFixed = accountType === 'FRANCHISE'
   const [searchOpen, setSearchOpen] = useState(() => !store.hasSearched)
   const [showOfficeError, setShowOfficeError] = useState(false)
   const [formData, setFormData] = useState<FormData>(() =>
@@ -156,15 +160,15 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
   ], [])
 
   // 적용된 검색 조건 태그
-  const appliedTags: { key: string; label: string; category: string }[] = []
+  const appliedTags: { key: string; label: string; category: string; removable?: boolean }[] = []
   if (appliedFormData) {
     if (appliedFormData.headOfficeOrganizationId != null) {
       const name = officeNameMap.get(appliedFormData.headOfficeOrganizationId)
-      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사' })
+      if (name) appliedTags.push({ key: 'headOffice', label: name, category: '본사', removable: !isOfficeFixed })
     }
     if (appliedFormData.franchiseOrganizationId != null) {
       const name = franchiseNameMap.get(appliedFormData.franchiseOrganizationId)
-      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점' })
+      if (name) appliedTags.push({ key: 'franchise', label: name, category: '가맹점', removable: !isFranchiseFixed })
     }
     if (appliedFormData.storeId != null) {
       const name = storeNameMap.get(appliedFormData.storeId)
@@ -313,7 +317,10 @@ export default function EmployContractSearch({ onSearch, onReset, totalCount = 0
               <button
                 type="button"
                 className="search-result-item-btn"
-                onClick={() => handleRemoveTag(tag.key)}
+                onClick={() => {
+                  if (tag.removable === false) return
+                  handleRemoveTag(tag.key)
+                }}
                 aria-label={`${tag.category} 필터 제거`}
               ></button>
             </li>

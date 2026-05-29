@@ -18,8 +18,7 @@ import {
 } from '@/hooks/queries'
 import { formatDateYmd } from '@/util/date-util'
 import { formatEmployeeLabel } from '@/util/employee-label'
-import { useAuthStore } from '@/stores/auth-store'
-import { OWNER_CODE } from '@/constants/owner-code'
+import { useAccountPolicy } from '@/hooks/use-account-policy'
 import type { EmployeeTodoCreateRequest, EmployeeTodoUpdateRequest } from '@/types/employee-todo'
 
 const BREADCRUMBS = ['Home', '직원 관리', '직원별 TO-DO 관리']
@@ -57,26 +56,18 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
   const isEditMode = todoId != null
   const { alert, confirm } = useAlert()
 
-  // 계정 유형 판단
-  const ownerCode = useAuthStore((s) => s.ownerCode)
-  const defaultHeadOfficeId = useAuthStore((s) => s.defaultHeadOfficeId)
-  const isHeadOfficeAccount = ownerCode === OWNER_CODE.HEAD_OFFICE
-  const isFranchiseAccount = ownerCode === OWNER_CODE.FRANCHISE
+  // 계정 유형 + 자동선택 정책 — useAccountPolicy 단일 출처 (isHeadOfficeAccount/isFranchiseAccount 는 컴포넌트 로컬 별칭)
+  const {
+    defaultHeadOfficeId,
+    franchiseAffiliationId,
+    shouldAutoSelectOffice,
+    isHeadOfficeAdmin: isHeadOfficeAccount,
+    isFranchiseAdmin: isFranchiseAccount,
+  } = useAccountPolicy()
 
   // BP 트리 / 상세 데이터 조회
   const { data: bpTree = [] } = useBpHeadOfficeTree()
   const { data: detail } = useEmployeeTodoDetail(todoId ?? null)
-
-  // 표준 자동선택 정책: HEAD_OFFICE / FRANCHISE / 단일 본사 / PLATFORM + 매핑 본사
-  const isPlatformAdmin = ownerCode === OWNER_CODE.PLATFORM
-  const platformHasDefault = isPlatformAdmin
-    && defaultHeadOfficeId != null
-    && bpTree.some((o) => o.id === defaultHeadOfficeId)
-  const shouldAutoSelectOffice =
-    isHeadOfficeAccount
-    || isFranchiseAccount
-    || bpTree.length === 1
-    || platformHasDefault
 
   // 렌더 중 setState 패턴 — useEffect 안에서 setState 회피 (react-hooks/set-state-in-effect 규칙 준수)
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
@@ -101,21 +92,19 @@ export default function EmployeeTodoForm({ todoId }: EmployeeTodoFormProps) {
     }
   }
 
-  // 자동선택 1회 (등록 모드 + bpTree 로드 후)
+  // 자동선택 1회 (등록 모드)
   if (
     !bpAutoApplied
     && !detail
-    && bpTree.length > 0
     && shouldAutoSelectOffice
+    && defaultHeadOfficeId != null
   ) {
     setBpAutoApplied(true)
-    const targetOffice = platformHasDefault
-      ? bpTree.find((o) => o.id === defaultHeadOfficeId) ?? bpTree[0]
-      : bpTree[0]
-    const franchiseId = isFranchiseAccount && targetOffice.franchises.length >= 1
-      ? targetOffice.franchises[0].id
-      : null
-    setForm({ ...DEFAULT_FORM, officeId: targetOffice.id, franchiseId })
+    setForm({
+      ...DEFAULT_FORM,
+      officeId: defaultHeadOfficeId,
+      franchiseId: franchiseAffiliationId,
+    })
   }
 
   const [slideboxOpen, setSlideboxOpen] = useState(true)
