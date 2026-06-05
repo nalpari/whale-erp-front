@@ -22,10 +22,16 @@ import type { BpHeadOfficeNode, BpDetailResponse, BpListParams, BpFormData } fro
  */
 export const useMyOrganizationBp = () => {
   const affiliationId = useAuthStore((s) => s.affiliationId)
+  const accountType = useAuthStore((s) => s.accountType)
   const queryClient = useQueryClient()
   return useQuery({
     queryKey: bpKeys.myOrganization(affiliationId),
     queryFn: async ({ signal }) => {
+      // PLATFORM(관리자)은 소속 BP가 없다. BP 목록 API는 admin에게 전체 BP를
+      // created_at desc 로 반환하므로, size=1 의 첫 건(최신 생성 BP)을 "내 조직"으로
+      // 오인 표시하던 버그를 방지하기 위해 조회하지 않고 "조직 없음"(null)으로 처리.
+      if (accountType === 'PLATFORM') return null
+
       const listResponse = await api.get<ApiResponse<PageResponse<BpDetailResponse>>>(
         '/api/v1/master/bp',
         { params: { page: 0, size: 1 }, signal }
