@@ -534,7 +534,7 @@ export default function BpAdminForm({
                               : storeOptionsPending
                               ? '점포 로딩 중...'
                               : storeOptions.length === 0
-                              ? '등록된 점포가 없습니다.'
+                              ? '선택 가능한 점포가 없습니다.'
                               : '점포 선택'
                           }
                         />

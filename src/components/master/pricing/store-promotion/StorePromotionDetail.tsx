@@ -212,11 +212,19 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   const effectiveOfficeId = isOfficeFixed ? bpTree[0].id : officeId
   const effectiveFranchiseId = isFranchiseFixed ? bpTree[0].franchises[0].id : franchiseId
 
+  // 점포 조회용 franchiseId — 라디오(소유자 모드) 기준
+  // - HEAD_OFFICE: null (직영 점포를 받기 위해 가맹 id를 전달하지 않음)
+  // - FRANCHISE: 선택/고정된 가맹 id
+  // effectiveFranchiseId를 그대로 넘기면 본사 모드에서도 가맹 점포만 조회돼
+  // filterStoreOptionsByOwner('HEAD_OFFICE')가 전부 걸러내 빈 목록이 된다.
+  const storeQueryFranchiseId =
+    menuProperty === MENU_PROPERTY.FRANCHISE ? effectiveFranchiseId : null
+
   const officeOptions = buildOfficeOptions(bpTree)
   const franchiseOptions = buildFranchiseOptions(bpTree, effectiveOfficeId)
   const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
     effectiveOfficeId,
-    effectiveFranchiseId,
+    storeQueryFranchiseId,
     isReady
   )
 
@@ -228,7 +236,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   const visibleStores =
     effectiveOfficeId == null
       ? []
-      : filterStoreOptionsByOwner(storeOptionList, storeOwnerType, effectiveFranchiseId)
+      : filterStoreOptionsByOwner(storeOptionList, storeOwnerType, storeQueryFranchiseId)
   const storeOptions = visibleStores.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
 
   // 점포 select 빈 목록 UX

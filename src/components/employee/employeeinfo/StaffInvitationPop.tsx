@@ -519,7 +519,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                             name="workplaceType"
                             id="workplaceType-franchise"
                             checked={workplaceType === 'FRANCHISE'}
-                            onChange={() => setWorkplaceType('FRANCHISE')}
+                            onChange={() => {
+                              setWorkplaceType('FRANCHISE')
+                              // 본사→가맹 전환 시 직영 점포로 선택해둔 stale storeId 초기화
+                              setStoreId(null)
+                            }}
                             disabled={isWorkplaceTypeFixed}
                           />
                           <label htmlFor="workplaceType-franchise">가맹점</label>
