@@ -29,6 +29,8 @@ export interface StoreListResponse {
 export interface StoreOption {
   id: number // 점포 ID
   storeName: string // 점포명
+  franchiseId: number | null // 가맹 점포일 때만 값 (직영이면 null) — headOfficeId와 상호 배타
+  headOfficeId: number | null // 직영 점포일 때만 값 (가맹 산하이면 null) — franchiseId와 상호 배타
 }
 
 // 운영 시간 정보 데이터 타입

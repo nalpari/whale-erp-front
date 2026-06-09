@@ -15,6 +15,7 @@ import {
   useStoreOptions,
 } from '@/hooks/queries'
 import { useStoreMenuList } from '@/hooks/queries/use-store-menu-queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -218,7 +219,30 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
     effectiveFranchiseId,
     isReady
   )
-  const storeOptions = storeOptionList.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
+
+  // 메뉴 소유 구분(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  // - 본사 미선택 시: useStoreOptions(enabled=isReady)가 officeId=null로 전체를 반환할 수 있으므로 빈 목록으로 가드
+  const storeOwnerType: StoreOwnerType =
+    menuProperty === MENU_PROPERTY.FRANCHISE ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores =
+    effectiveOfficeId == null
+      ? []
+      : filterStoreOptionsByOwner(storeOptionList, storeOwnerType, effectiveFranchiseId)
+  const storeOptions = visibleStores.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
+
+  // 점포 select 빈 목록 UX
+  const isFranchiseModeNoPick = showFranchise && effectiveFranchiseId == null
+  const storePlaceholder =
+    effectiveOfficeId == null
+      ? '본사를 먼저 선택하세요'
+      : isFranchiseModeNoPick
+        ? '가맹점을 먼저 선택하세요'
+        : visibleStores.length === 0
+          ? '선택 가능한 점포가 없습니다'
+          : '점포 선택'
+  const isStoreDisabled =
+    storeLoading || effectiveOfficeId == null || isFranchiseModeNoPick || visibleStores.length === 0
 
   // 선택한 본사/가맹점/점포에 해당하는 메뉴 목록 조회 (운영 메뉴만)
   const canFetchMenus = effectiveOfficeId != null
@@ -493,8 +517,8 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                       <SearchSelect
                         value={storeId !== null ? storeOptions.find((opt) => opt.value === String(storeId)) || null : null}
                         options={storeOptions}
-                        placeholder="점포 선택"
-                        isDisabled={storeLoading}
+                        placeholder={storePlaceholder}
+                        isDisabled={isStoreDisabled}
                         isSearchable
                         isClearable
                         onChange={(option) => {

@@ -11,6 +11,7 @@ import {
 } from '@/hooks/queries/use-bp-admin-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { BpAdminDetail } from '@/lib/schemas/bp-admin'
@@ -182,7 +183,17 @@ export default function BpAdminForm({
     storeOptionsEnabled,
   )
 
-  const storeOptions = storeOptionsData.map((s) => ({
+  // 관리자 종류(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  const storeOwnerType: StoreOwnerType =
+    formData.adminType === 'FRANCHISE' ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores = filterStoreOptionsByOwner(
+    storeOptionsData,
+    storeOwnerType,
+    storeQueryFranchiseId,
+  )
+
+  const storeOptions = visibleStores.map((s) => ({
     value: String(s.id),
     label: s.storeName,
   }))
@@ -256,20 +267,21 @@ export default function BpAdminForm({
     if (!storeOptionsLoaded) {
       return
     }
-    const found = storeOptionsData.some((s) => s.id === formData.storeId)
+    // 필터(직영/가맹) 적용 후 노출 목록 기준으로 stale 판정
+    const found = visibleStores.some((s) => s.id === formData.storeId)
     if (!found) {
       storeStaleResolvedRef.current = true
       if (process.env.NODE_ENV === 'development') {
         console.warn('[BpAdminForm] stale storeId — auto reset', {
           storeId: formData.storeId,
-          options: storeOptionsData,
+          options: visibleStores,
         })
       }
       onChange({ storeId: null })
     } else {
       storeStaleResolvedRef.current = true
     }
-  }, [mode, storeOptionsEnabled, storeOptionsLoaded, storeOptionsData, formData.storeId, onChange])
+  }, [mode, storeOptionsEnabled, storeOptionsLoaded, visibleStores, formData.storeId, onChange])
 
   useEffect(() => {
     if (mode !== 'create' || autoAppliedRef.current) return

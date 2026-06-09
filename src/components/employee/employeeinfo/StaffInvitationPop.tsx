@@ -5,6 +5,7 @@ import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
@@ -406,10 +407,29 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     isReady
   )
 
-  const storeOptions: SelectOption[] = useMemo(() =>
-    storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
-    [storeOptionList]
+  // 직원 소속(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  const storeOwnerType: StoreOwnerType =
+    workplaceType === 'FRANCHISE' ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores = useMemo(
+    () => filterStoreOptionsByOwner(storeOptionList, storeOwnerType, franchiseOrganizationId),
+    [storeOptionList, storeOwnerType, franchiseOrganizationId],
   )
+
+  const storeOptions: SelectOption[] = useMemo(() =>
+    visibleStores.map((s) => ({ value: String(s.id), label: s.storeName })),
+    [visibleStores]
+  )
+
+  // 점포 select 빈 목록 UX
+  const isFranchiseModeNoPick =
+    workplaceType === 'FRANCHISE' && franchiseOrganizationId == null
+  const storePlaceholder = isFranchiseModeNoPick
+    ? '가맹점을 먼저 선택하세요'
+    : visibleStores.length === 0
+      ? '선택 가능한 점포가 없습니다'
+      : '점포 선택'
+  const isStoreDisabled = storeLoading || isFranchiseModeNoPick || visibleStores.length === 0
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
     { value: 'SLRCC_001', label: '시급' },
@@ -575,8 +595,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           onChange={(opt) => {
                             setStoreId(opt?.value ? Number(opt.value) : null)
                           }}
-                          placeholder="점포 선택"
-                          isDisabled={storeLoading}
+                          placeholder={storePlaceholder}
+                          isDisabled={isStoreDisabled}
                           isSearchable={true}
                           isClearable={true}
                         />
