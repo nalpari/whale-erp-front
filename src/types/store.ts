@@ -1,5 +1,7 @@
-﻿import type { UploadFile } from './upload-files'
+﻿import type { z } from 'zod'
+import type { UploadFile } from './upload-files'
 import type { DayType } from '@/types/work-schedule'
+import type { storeOptionSchema } from '@/lib/schemas/store'
 
 export type OperationStatusCode = string // 운영여부 코드(STOPR_001: 운영, STOPR_002: 휴무)
 
@@ -25,13 +27,9 @@ export interface StoreListResponse {
   hasNext: boolean // 다음 페이지 여부
 }
 
-// 점포 옵션 데이터 타입
-export interface StoreOption {
-  id: number // 점포 ID
-  storeName: string // 점포명
-  franchiseId: number | null // 가맹 점포일 때만 값 (직영이면 null) — headOfficeId와 상호 배타
-  headOfficeId: number | null // 직영 점포일 때만 값 (가맹 산하이면 null) — franchiseId와 상호 배타
-}
+// 점포 옵션 데이터 타입 — zod 스키마(src/lib/schemas/store.ts)에서 추론하여 단일 진실로 유지.
+// franchiseId/headOfficeId는 상호 배타(한쪽은 항상 null). 직영 = franchiseId == null.
+export type StoreOption = z.infer<typeof storeOptionSchema>
 
 // 운영 시간 정보 데이터 타입
 export interface OperatingHourInfo {

@@ -1,11 +1,11 @@
 ﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '@/lib/api'
+import api, { getWithSchema } from '@/lib/api'
 import { storeKeys, type StoreListParams } from './query-keys'
 import type { ApiResponse } from '@/lib/schemas/api'
+import { storeOptionListResponseSchema } from '@/lib/schemas/store'
 import type {
   StoreListResponse,
   StoreDetailResponse,
-  StoreOption,
   StoreHeaderRequest,
   SubscribePlanCheckResponse,
 } from '@/types/store'
@@ -104,10 +104,12 @@ export const useStoreOptions = (
   return useQuery({
     queryKey: storeKeys.options(officeId, franchiseId),
     queryFn: async () => {
-      const response = await api.get<ApiResponse<StoreOption[]>>('/api/v1/stores/options', {
-        params: { officeId, franchiseId },
-      })
-      return response.data.data
+      const response = await getWithSchema(
+        '/api/v1/stores/options',
+        storeOptionListResponseSchema,
+        { params: { officeId, franchiseId } },
+      )
+      return response.data
     },
     enabled,
   })
