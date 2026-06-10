@@ -12,6 +12,7 @@ import OptionSetSection from '@/components/master/menu/OptionSetSection'
 import CategorySelectSection from '@/components/master/menu/CategorySelectSection'
 import CubeLoader from '@/components/common/ui/CubeLoader'
 import { useCommonCodeHierarchy, useStoreOptions } from '@/hooks/queries'
+import { filterStoreOptionsByOwner } from '@/util/store-options'
 import { useCreateMenu, useUpdateMenu, useMasterMenuDetail } from '@/hooks/queries/use-master-menu-queries'
 import { menuFormSchema, type MenuFormData, type OptionSetFormData, type MenuDetailResponse } from '@/lib/schemas/menu'
 import { formatZodFieldErrors } from '@/lib/zod-utils'
@@ -159,12 +160,34 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
   const { data: mkcfCodes = [] } = useCommonCodeHierarchy('MKCF')
   const { data: tmpcfCodes = [] } = useCommonCodeHierarchy('TMPCF')
 
-  // 점포 목록
-  const { data: storeOptionList = [] } = useStoreOptions(bpId, franchiseId, !!bpId)
-  const storeOptions = storeOptionList.map((s) => ({
+  // 점포 목록 — 메뉴 소유(라디오) 기준 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  const { data: storeOptionList = [], isError: storeError } = useStoreOptions(bpId, franchiseId, !!bpId)
+  const visibleStores = filterStoreOptionsByOwner(storeOptionList, menuOwnership, franchiseId)
+  const storeOptions = visibleStores.map((s) => ({
     value: String(s.id),
     label: s.storeName,
   }))
+
+  // 점포 select 빈 목록 UX
+  const isFranchiseModeNoPick = menuOwnership === 'FRANCHISE' && franchiseId == null
+  // 응답엔 점포가 있으나 소유자 필터로 전부 걸러진 경우 — "응답 0건"과 구분해 원인을 안내
+  const isFilteredEmpty = storeOptionList.length > 0 && visibleStores.length === 0
+  const storePlaceholder = !bpId
+    ? '본사를 먼저 선택하세요'
+    : isFranchiseModeNoPick
+      ? '가맹점을 먼저 선택하세요'
+      : storeError
+        ? '점포를 불러오지 못했습니다. 다시 시도해주세요'
+        : isFilteredEmpty
+          ? menuOwnership === 'HEAD_OFFICE'
+            ? '이 본사에 등록된 직영 점포가 없습니다'
+            : '이 가맹점에 등록된 점포가 없습니다'
+          : visibleStores.length === 0
+            ? '선택 가능한 점포가 없습니다'
+            : '점포 선택'
+  const isStoreDisabled =
+    !bpId || storeError || isFranchiseModeNoPick || visibleStores.length === 0
 
   // 공통코드 → 라디오 옵션 변환 (fallback 포함)
   const toRadioOptions = (codes: Array<{ code: string; name: string }>, fallback: Array<{ value: string; label: string }>) =>
@@ -247,7 +270,11 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
       menuOwnership,
       bpId: bpId!,
       menuGroup: resolvedMenuGroup,
-      storeId: SHOW_STORE_SELECT ? storeId : null,
+      // 노출 목록에 없는 storeId(stale/주입)는 제출하지 않음 — 소유자↔점포 정합성 best-effort 가드.
+      storeId:
+        SHOW_STORE_SELECT && storeId != null && visibleStores.some((s) => s.id === storeId)
+          ? storeId
+          : null,
       operationStatus: operationStatus || operationOptions[0]?.value,
       menuType: menuType || menuTypeOptions[0]?.value,
       setStatus: resolvedSetStatus,
@@ -395,10 +422,10 @@ function MenuFormContent({ menuId, initialData }: MenuFormContentProps) {
                                 : null
                             }
                             options={storeOptions}
-                            placeholder="점포 선택"
+                            placeholder={storePlaceholder}
                             isSearchable={true}
                             isClearable={true}
-                            isDisabled={!bpId}
+                            isDisabled={isStoreDisabled}
                             onChange={(option) =>
                               setStoreId(option ? Number(option.value) : null)
                             }
