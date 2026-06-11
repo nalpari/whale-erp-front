@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import {
   getDailySales,
   getDailySaleDetail,
@@ -67,6 +68,17 @@ export const useImportSales = () => {
       loginId: string
       loginPw: string
     }) => importSales(year, month, loginId, loginPw),
+    onError: (error, variables) => {
+      // 호출부에서 처리를 누락하더라도 최소한의 진단 로그는 남긴다(다분 소요 작업이라 사후 추적 필요).
+      // err 통째 기록 시 axios config.data(=loginPw 평문)가 노출되므로 안전 필드만 기록한다.
+      console.error('[useImportSales] 매출 연동 실패', {
+        year: variables.year,
+        month: variables.month,
+        status: axios.isAxiosError(error) ? error.response?.status : undefined,
+        code: axios.isAxiosError(error) ? error.code : undefined,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: salesKeys.all })
     },

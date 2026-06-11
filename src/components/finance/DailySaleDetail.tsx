@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { getErrorMessage } from '@/lib/api'
 import { useDailySaleDetail } from '@/hooks/queries/use-sales-queries'
 import { CARD_COMPANY_OPTIONS } from '@/types/sales'
 
@@ -25,16 +26,17 @@ export default function DailySaleDetail() {
   const date = searchParams.get('date')
 
   const [cardCompanyCode, setCardCompanyCode] = useState('')
-  const { data, isLoading, isError } = useDailySaleDetail(date, cardCompanyCode)
+  const { data, isLoading, isError, error, refetch } = useDailySaleDetail(date, cardCompanyCode)
   const items = data?.items ?? []
 
-  // 현재 필터(전체/선택 카드사) 기준 매출액 합계 — items가 이미 필터 반영됨
+  // 현재 필터(전체/선택 카드사) 기준 매출액 합계 — items가 이미 서버 필터 반영됨
   const selectedLabel = CARD_COMPANY_OPTIONS.find((o) => o.code === cardCompanyCode)?.label ?? '전체'
   const totalSaleAmount = items.reduce((sum, it) => sum + it.saleAmount, 0)
 
-  // 매입사가 '기타'(관리 외 카드사)인 행은 맨 아래로. 그 외는 백엔드 정렬 순서 유지(JS sort는 안정적)
+  // 매입사가 '기타'(관리 외, code 'ETC')인 행은 맨 아래로. 그 외는 백엔드 정렬 순서 유지(JS sort는 안정적).
+  // 현지화된 표시명(cardCompanyName) 대신 변하지 않는 코드로 비교해 라벨 변경에 영향받지 않게 한다.
   const sortedItems = [...items].sort(
-    (a, b) => (a.cardCompanyName === '기타' ? 1 : 0) - (b.cardCompanyName === '기타' ? 1 : 0),
+    (a, b) => (a.cardCompanyCode === 'ETC' ? 1 : 0) - (b.cardCompanyCode === 'ETC' ? 1 : 0),
   )
 
   return (
@@ -99,7 +101,19 @@ export default function DailySaleDetail() {
               <tr><td colSpan={7} style={{ textAlign: 'center' }}><div className="empty-data">조회 중...</div></td></tr>
             )}
             {isError && !isLoading && (
-              <tr><td colSpan={7} style={{ textAlign: 'center' }}><div className="empty-data">조회 중 오류가 발생했습니다.</div></td></tr>
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center' }}>
+                  <div
+                    className="empty-data"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                  >
+                    <span>{getErrorMessage(error, '조회 중 오류가 발생했습니다.')}</span>
+                    <button className="btn-form gray" type="button" onClick={() => refetch()}>
+                      다시 시도
+                    </button>
+                  </div>
+                </td>
+              </tr>
             )}
             {!isLoading && !isError && items.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center' }}><div className="empty-data">검색 결과가 없습니다.</div></td></tr>

@@ -1,27 +1,30 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import axios from 'axios'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import RangeDatePicker, { type DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useAlert } from '@/components/common/ui'
+import { getErrorMessage } from '@/lib/api'
 import { useDailySales, useImportSales, useImportedMonths } from '@/hooks/queries/use-sales-queries'
 
-const now = new Date()
 const won = (n: number) => n.toLocaleString('ko-KR')
-const today = format(now, 'yyyy-MM-dd')
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 /** 조회 기간 최대 일수 (화면정의서 p15: 일주일 이상 설정 불가) */
 const MAX_PERIOD_DAYS = 7
-const IMPORT_YEAR_OPTIONS: SelectOption[] = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => ({
-  value: String(y),
-  label: `${y}년`,
-}))
 const IMPORT_MONTH_OPTIONS: SelectOption[] = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => ({
   value: String(m),
   label: `${m}월`,
 }))
+/** 오늘 날짜/최근 6개년 옵션은 마운트 시점 기준으로 생성 (모듈 로드 시 고정돼 자정·연말 경과 시 stale 되는 것 방지) */
+const buildToday = () => format(new Date(), 'yyyy-MM-dd')
+const buildYearOptions = (): SelectOption[] =>
+  Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => ({
+    value: String(y),
+    label: `${y}년`,
+  }))
 
 /**
  * 일별 매출 조회 (화면정의서 p15).
@@ -34,6 +37,10 @@ export default function DailySales() {
   const searchParams = useSearchParams()
   const { alert } = useAlert()
 
+  // 오늘 날짜/연도 옵션을 마운트 시 1회 계산 (모듈 레벨 고정 대신 진입 시점 기준으로 갱신)
+  const [today] = useState(buildToday)
+  const [importYearOptions] = useState<SelectOption[]>(buildYearOptions)
+
   // URL 쿼리에 조회 조건이 있으면 복원, 없으면 오늘(시작/종료)
   const [form, setForm] = useState(() => ({
     from: searchParams.get('from') || today,
@@ -43,13 +50,16 @@ export default function DailySales() {
 
   // 데이터 가져오기(연동) 모달 상태
   const importMutation = useImportSales()
-  const { data: importedMonths } = useImportedMonths()
+  const { data: importedMonths, isError: importedMonthsError } = useImportedMonths()
   const [importOpen, setImportOpen] = useState(false)
-  const [importYm, setImportYm] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 })
+  const [importYm, setImportYm] = useState(() => {
+    const d = new Date()
+    return { year: d.getFullYear(), month: d.getMonth() + 1 }
+  })
   // Bizzle 로그인 자격증명 — 가져오기 시 매번 입력, 저장하지 않음(보안). 모달 닫을 때 비번 비움.
   const [importCred, setImportCred] = useState({ loginId: '', loginPw: '' })
 
-  const { data, isLoading, isError } = useDailySales(applied.from, applied.to)
+  const { data, isLoading, isError, error, refetch } = useDailySales(applied.from, applied.to)
   const items = useMemo(() => data?.items ?? [], [data])
 
   // 이미 가져온(적재된) 년월 집합 + 선택 월 보유 여부
@@ -83,9 +93,45 @@ export default function DailySales() {
         loginPw: importCred.loginPw,
       })
       closeImport()
-      await alert(result.message || '데이터 연동이 완료되었습니다.')
-    } catch {
-      await alert('데이터 연동에 실패했습니다. ID/비밀번호와 연결 상태를 확인 후 다시 시도해주세요.')
+      // 부분 수집을 성공으로 오인하지 않도록 분기.
+      // 백엔드는 실패 시 예외(4xx/5xx)를 던지므로 여기 도달하면 status는 항상 'SUCCESS'(상수) → 판별에 쓰지 않는다.
+      // 실제 부분 저장 신호는 수집 건수(totalCount) 대비 저장 건수(savedCount) 차이뿐이다
+      // (요청 월 범위 밖 row는 백엔드 mapNotNull에서 정상 스킵되어 savedCount < totalCount 가 됨).
+      const isPartial =
+        typeof result.savedCount === 'number' &&
+        typeof result.totalCount === 'number' &&
+        result.savedCount < result.totalCount
+      if (isPartial) {
+        await alert(
+          `일부 데이터만 수집되었습니다 (${result.savedCount ?? 0}/${result.totalCount ?? 0}건).` +
+            `${result.message ? ` ${result.message}` : ''} 다시 시도하면 누락분을 보완할 수 있습니다.`,
+        )
+      } else {
+        await alert(result.message || '데이터 연동이 완료되었습니다.')
+      }
+    } catch (err) {
+      // 실패 원인을 한 메시지로 뭉개지 않고 분기 + 진단 로그 (수 분 걸리는 스크래핑이라 사후 추적 필요).
+      // 주의: err를 통째로 찍으면 axios config.data(=loginPw 평문)가 노출되므로 안전 필드만 기록한다.
+      console.error('[DailySales] Bizzle 매출 연동 실패', {
+        year: importYm.year,
+        month: importYm.month,
+        status: axios.isAxiosError(err) ? err.response?.status : undefined,
+        code: axios.isAxiosError(err) ? err.code : undefined,
+        message: err instanceof Error ? err.message : String(err),
+      })
+      // 타임아웃 계열(코드/메시지)은 서버 수집이 계속 진행 중일 수 있어 재시도 전 새로고침 안내
+      const isTimeout =
+        axios.isAxiosError(err) &&
+        (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || /timeout/i.test(err.message))
+      let message: string
+      if (isTimeout) {
+        message =
+          '수집이 제한 시간을 초과했습니다. 백그라운드에서 계속 진행될 수 있으니, 잠시 후 목록을 새로고침해 적재 여부를 확인하고 데이터가 없으면 다시 시도해주세요.'
+      } else {
+        // 그 외(자격증명 오류·서버 오류 등)는 백엔드가 내려준 메시지를 그대로 노출
+        message = getErrorMessage(err, '데이터 연동에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      }
+      await alert(message)
     }
   }
 
@@ -95,6 +141,10 @@ export default function DailySales() {
       return
     }
     const diffDays = Math.floor((new Date(form.to).getTime() - new Date(form.from).getTime()) / MS_PER_DAY)
+    if (Number.isNaN(diffDays)) {
+      await alert('조회 기간이 올바르지 않습니다. 날짜를 다시 선택해주세요.')
+      return
+    }
     if (diffDays < 0) {
       await alert('시작일이 종료일보다 늦을 수 없습니다.')
       return
@@ -221,7 +271,19 @@ export default function DailySales() {
               <tr><td colSpan={8}><div className="empty-data">조회 중...</div></td></tr>
             )}
             {isError && !isLoading && (
-              <tr><td colSpan={8}><div className="empty-data">조회 중 오류가 발생했습니다.</div></td></tr>
+              <tr>
+                <td colSpan={8}>
+                  <div
+                    className="empty-data"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+                  >
+                    <span>{getErrorMessage(error, '조회 중 오류가 발생했습니다.')}</span>
+                    <button className="btn-form gray" type="button" onClick={() => refetch()}>
+                      다시 시도
+                    </button>
+                  </div>
+                </td>
+              </tr>
             )}
             {!isLoading && !isError && items.length === 0 && (
               <tr><td colSpan={8}><div className="empty-data">검색 결과가 없습니다.</div></td></tr>
@@ -264,8 +326,8 @@ export default function DailySales() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <SearchSelect
-                  options={IMPORT_YEAR_OPTIONS}
-                  value={IMPORT_YEAR_OPTIONS.find((o) => o.value === String(importYm.year)) ?? null}
+                  options={importYearOptions}
+                  value={importYearOptions.find((o) => o.value === String(importYm.year)) ?? null}
                   onChange={(opt) => opt && setImportYm({ ...importYm, year: Number(opt.value) })}
                   placeholder="년도"
                 />
@@ -281,7 +343,12 @@ export default function DailySales() {
             </div>
 
             {/* 선택한 년/월의 데이터 보유 상태 안내 (드롭다운의 ✓ 표시와 연동) */}
-            {selectedHasData ? (
+            {importedMonthsError ? (
+              // 보유 월 조회 실패 시 '데이터 없음'으로 위장되지 않도록 경고 (덮어쓰기 가능성 안내)
+              <p style={{ fontSize: '12px', color: '#d97706', marginBottom: '16px' }}>
+                ⚠️ 데이터 보유 여부를 확인할 수 없습니다. 기존 데이터가 있는 월이면 가져오기 시 덮어쓸 수 있습니다.
+              </p>
+            ) : selectedHasData ? (
               <p style={{ fontSize: '12px', color: '#d97706', marginBottom: '16px' }}>
                 ⚠️ 이미 데이터가 있는 월입니다. 가져오면 기존 데이터를 덮어씁니다(업데이트).
               </p>

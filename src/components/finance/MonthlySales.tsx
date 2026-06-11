@@ -3,19 +3,21 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
+import { getErrorMessage } from '@/lib/api'
 import { useMonthlySales } from '@/hooks/queries/use-sales-queries'
 import type { DailySaleItem } from '@/types/sales'
 
-const now = new Date()
 const won = (n: number) => n.toLocaleString('ko-KR')
-const YEAR_OPTIONS: SelectOption[] = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => ({
-  value: String(y),
-  label: `${y}년`,
-}))
 const MONTH_OPTIONS: SelectOption[] = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => ({
   value: String(m),
   label: `${m}월`,
 }))
+/** 최근 6개년 옵션은 마운트 시점 기준 생성 (모듈 로드 시 고정돼 연말 경과 시 stale 되는 것 방지) */
+const buildYearOptions = (): SelectOption[] =>
+  Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => ({
+    value: String(y),
+    label: `${y}년`,
+  }))
 const WEEK_DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 const dateKey = (year: number, month: number, day: number) =>
@@ -32,14 +34,20 @@ const weekdayColor = (col: number): string | undefined =>
 export default function MonthlySales() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // 연도 옵션을 마운트 시 1회 계산 (모듈 레벨 고정 대신 진입 시점 기준으로 갱신)
+  const [yearOptions] = useState<SelectOption[]>(buildYearOptions)
+
   // URL 쿼리에 년/월이 있으면 복원, 없으면 현재 년월
-  const [form, setForm] = useState(() => ({
-    year: Number(searchParams.get('year')) || now.getFullYear(),
-    month: Number(searchParams.get('month')) || now.getMonth() + 1,
-  }))
+  const [form, setForm] = useState(() => {
+    const d = new Date()
+    return {
+      year: Number(searchParams.get('year')) || d.getFullYear(),
+      month: Number(searchParams.get('month')) || d.getMonth() + 1,
+    }
+  })
   const [applied, setApplied] = useState(form)
 
-  const { data, isLoading, isError } = useMonthlySales(applied.year, applied.month)
+  const { data, isLoading, isError, error, refetch } = useMonthlySales(applied.year, applied.month)
 
   const handleSearch = () => {
     setApplied(form)
@@ -91,8 +99,8 @@ export default function MonthlySales() {
                   <div style={{ display: 'flex', gap: '8px', maxWidth: '320px' }}>
                     <div style={{ flex: 1 }}>
                       <SearchSelect
-                        options={YEAR_OPTIONS}
-                        value={YEAR_OPTIONS.find((o) => o.value === String(form.year)) ?? null}
+                        options={yearOptions}
+                        value={yearOptions.find((o) => o.value === String(form.year)) ?? null}
                         onChange={(opt) => opt && setForm({ ...form, year: Number(opt.value) })}
                         placeholder="년도"
                       />
@@ -134,7 +142,17 @@ export default function MonthlySales() {
       {/* 달력 */}
       <div className="data-list-bx">
         {isLoading && <div className="empty-data">조회 중...</div>}
-        {isError && !isLoading && <div className="empty-data">조회 중 오류가 발생했습니다.</div>}
+        {isError && !isLoading && (
+          <div
+            className="empty-data"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}
+          >
+            <span>{getErrorMessage(error, '조회 중 오류가 발생했습니다.')}</span>
+            <button className="btn-form gray" type="button" onClick={() => refetch()}>
+              다시 시도
+            </button>
+          </div>
+        )}
         {!isLoading && !isError && (
           <table className="default-table calendar-table">
             <thead>
