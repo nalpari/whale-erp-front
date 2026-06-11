@@ -154,7 +154,7 @@ export default function MonthlySales() {
           </div>
         )}
         {!isLoading && !isError && (
-          <table className="default-table calendar-table">
+          <table className="default-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead>
               <tr>
                 {WEEK_DAYS.map((w, ci) => (

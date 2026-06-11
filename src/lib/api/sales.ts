@@ -1,4 +1,11 @@
+import { z } from 'zod'
 import api from '@/lib/api'
+import {
+  dailySalesResponseSchema,
+  dailySaleDetailResponseSchema,
+  monthlySalesResponseSchema,
+  importedMonthSchema,
+} from '@/lib/schemas/sales'
 import type {
   DailySalesResponse,
   DailySaleDetailResponse,
@@ -7,10 +14,27 @@ import type {
   SalesImportResponse,
 } from '@/types/sales'
 
+/**
+ * 매출 조회 응답을 검증해 반환한다.
+ * 외부 스크래핑(Bizzle) 기반이라 응답 신뢰도가 낮으므로, dev에서만 검증하는 getWithSchema/validateApiResponse와 달리
+ * prod에서도 형식 불일치 시 throw한다. 이렇게 해야 잘못된 응답(필드 누락·null body·스키마 변경)이
+ * '0원/결과 없음'으로 silent 위장돼 재무 데이터를 오판하게 만드는 것을 막을 수 있다.
+ */
+function parseSalesData<T>(schema: z.ZodType<T>, data: unknown, label: string): T {
+  const result = schema.safeParse(data)
+  if (!result.success) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[sales] ${label} 응답 스키마 불일치:`, result.error.issues)
+    }
+    throw new Error(`${label} 응답 형식이 올바르지 않습니다.`)
+  }
+  return result.data
+}
+
 // 이미 가져온(적재된) 년/월 목록 — 가져오기 모달 데이터 보유 표시용
 export async function getImportedMonths(): Promise<ImportedMonth[]> {
-  const response = await api.get<{ data: ImportedMonth[] }>('/api/v1/sales/imported-months')
-  return response.data.data
+  const response = await api.get<{ data: unknown }>('/api/v1/sales/imported-months')
+  return parseSalesData(z.array(importedMonthSchema), response.data?.data, '가져온 월 목록')
 }
 
 // 매출 데이터 연동(가져오기) — sales-rader에서 해당 월 수집 후 저장.
@@ -33,10 +57,10 @@ export async function importSales(
 
 // 일별 매출 조회 (p15) — 기간(from~to) yyyy-MM-dd
 export async function getDailySales(from: string, to: string): Promise<DailySalesResponse> {
-  const response = await api.get<{ data: DailySalesResponse }>('/api/v1/sales/daily', {
+  const response = await api.get<{ data: unknown }>('/api/v1/sales/daily', {
     params: { from, to },
   })
-  return response.data.data
+  return parseSalesData(dailySalesResponseSchema, response.data?.data, '일별 매출')
 }
 
 // 일별 매출 상세 조회 (p16) — cardCompanyCode 비우면 전체
@@ -44,16 +68,16 @@ export async function getDailySaleDetail(
   date: string,
   cardCompanyCode?: string
 ): Promise<DailySaleDetailResponse> {
-  const response = await api.get<{ data: DailySaleDetailResponse }>('/api/v1/sales/daily/detail', {
+  const response = await api.get<{ data: unknown }>('/api/v1/sales/daily/detail', {
     params: { date, ...(cardCompanyCode ? { cardCompanyCode } : {}) },
   })
-  return response.data.data
+  return parseSalesData(dailySaleDetailResponseSchema, response.data?.data, '일별 매출 상세')
 }
 
 // 월별 매출 조회 (p17)
 export async function getMonthlySales(year: number, month: number): Promise<MonthlySalesResponse> {
-  const response = await api.get<{ data: MonthlySalesResponse }>('/api/v1/sales/monthly', {
+  const response = await api.get<{ data: unknown }>('/api/v1/sales/monthly', {
     params: { year, month },
   })
-  return response.data.data
+  return parseSalesData(monthlySalesResponseSchema, response.data?.data, '월별 매출')
 }
