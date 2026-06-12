@@ -26,6 +26,23 @@ const buildYearOptions = (): SelectOption[] =>
     label: `${y}년`,
   }))
 
+const isValidDateStr = (s: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(s).getTime())
+
+/**
+ * URL 쿼리(from/to)는 사용자가 임의로 조작할 수 있으므로 그대로 신뢰하지 않는다.
+ * 형식 오류·역순·최대 기간(7일) 초과 등 검색 버튼 검증을 우회한 값은 기본값(오늘)으로 교정해
+ * 백엔드의 제한 없는 장기 집계 쿼리 실행을 막는다.
+ */
+const sanitizeRange = (rawFrom: string | null, rawTo: string | null, fallback: string) => {
+  const from = rawFrom ?? ''
+  const to = rawTo ?? ''
+  if (!isValidDateStr(from) || !isValidDateStr(to)) return { from: fallback, to: fallback }
+  const diffDays = Math.floor((new Date(to).getTime() - new Date(from).getTime()) / MS_PER_DAY)
+  if (diffDays < 0 || diffDays + 1 > MAX_PERIOD_DAYS) return { from: fallback, to: fallback }
+  return { from, to }
+}
+
 /**
  * 일별 매출 조회 (화면정의서 p15).
  * 조회 조건은 기간(from~to). 기간 내 일자별 매출과 요약(총 매출/거래건수/건당평균)을 보여준다.
@@ -35,17 +52,16 @@ const buildYearOptions = (): SelectOption[] =>
 export default function DailySales() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { alert } = useAlert()
+  const { alert, confirm } = useAlert()
 
   // 오늘 날짜/연도 옵션을 마운트 시 1회 계산 (모듈 레벨 고정 대신 진입 시점 기준으로 갱신)
   const [today] = useState(buildToday)
   const [importYearOptions] = useState<SelectOption[]>(buildYearOptions)
 
-  // URL 쿼리에 조회 조건이 있으면 복원, 없으면 오늘(시작/종료)
-  const [form, setForm] = useState(() => ({
-    from: searchParams.get('from') || today,
-    to: searchParams.get('to') || today,
-  }))
+  // URL 쿼리에 조회 조건이 있으면 검증 후 복원, 형식 오류·기간 초과 등 비정상 값은 오늘로 교정
+  const [form, setForm] = useState(() =>
+    sanitizeRange(searchParams.get('from'), searchParams.get('to'), today),
+  )
   const [applied, setApplied] = useState(form)
 
   // 데이터 가져오기(연동) 모달 상태
@@ -85,6 +101,17 @@ export default function DailySales() {
     if (!importCred.loginId.trim() || !importCred.loginPw) {
       await alert('Bizzle 로그인 ID와 비밀번호를 입력해주세요.')
       return
+    }
+    // 기존 데이터가 있는(또는 보유 여부 확인 불가한) 월은 재수집 시 upstream이 일시적으로 빈 결과를 주면
+    // 기존 매출이 0건으로 덮어쓰여 사라질 수 있어 명시적 확인을 받는다.
+    if (selectedHasData || importedMonthsError) {
+      const ok = await confirm(
+        selectedHasData
+          ? `${importYm.year}년 ${importYm.month}월은 이미 데이터가 있습니다. 다시 가져오면 기존 데이터를 덮어씁니다. 수집 결과가 비어 있으면 기존 데이터가 사라질 수 있습니다. 진행할까요?`
+          : `${importYm.year}년 ${importYm.month}월의 데이터 보유 여부를 확인할 수 없습니다. 기존 데이터가 있으면 덮어쓸 수 있습니다. 진행할까요?`,
+        { confirmText: '가져오기', cancelText: '취소' },
+      )
+      if (!ok) return
     }
     try {
       const result = await importMutation.mutateAsync({
@@ -132,6 +159,11 @@ export default function DailySales() {
         message = getErrorMessage(err, '데이터 연동에 실패했습니다. 잠시 후 다시 시도해주세요.')
       }
       await alert(message)
+    } finally {
+      // 보안: 성공·실패와 무관하게 평문 비밀번호를 즉시 비우고, mutation variables(비밀번호 포함)에
+      // 자격증명이 장기 잔존(MutationCache·Devtools 노출)하지 않도록 mutation 상태를 reset한다.
+      setImportCred((c) => ({ ...c, loginPw: '' }))
+      importMutation.reset()
     }
   }
 
