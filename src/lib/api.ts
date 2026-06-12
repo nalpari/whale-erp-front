@@ -7,23 +7,20 @@ import { queryClient } from '@/lib/query-client';
 import { authKeys } from '@/hooks/queries/query-keys';
 
 /**
- * Axios 에러 타입 (클라이언트 측)
- */
-type AxiosApiError = {
-  response?: {
-    data?: {
-      message?: string
-    }
-  }
-  name?: string
-}
-
-/**
- * API 에러에서 메시지 추출
+ * API 에러에서 메시지 추출.
+ *
+ * - axios 에러: 백엔드가 내려준 message > axios 자체 message 순으로 사용
+ * - 그 외 일반 에러(런타임 TypeError, 응답 검증 throw 등): error.message 를 살린다
+ *   (무조건 axios 로 단언하면 response 가 없어 비-HTTP 에러의 실제 원인이 fallback 으로 뭉개진다)
  */
 export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다.'): string {
-  const apiError = error as AxiosApiError;
-  return apiError.response?.data?.message ?? fallback;
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message ?? error.message ?? fallback;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
 
 /**
