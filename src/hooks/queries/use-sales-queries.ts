@@ -7,12 +7,13 @@ import {
   getMonthlySales,
   importSales,
 } from '@/lib/api/sales'
+import type { CardCompanyCode } from '@/types/sales'
 
 /** 재무관리 매출조회 쿼리 키 (sales 도메인 self-contained) */
 export const salesKeys = {
   all: ['sales'] as const,
   daily: (from: string, to: string) => [...salesKeys.all, 'daily', from, to] as const,
-  dailyDetail: (date: string, cardCompanyCode: string) =>
+  dailyDetail: (date: string, cardCompanyCode: CardCompanyCode) =>
     [...salesKeys.all, 'daily-detail', date, cardCompanyCode] as const,
   monthly: (year: number, month: number) => [...salesKeys.all, 'monthly', year, month] as const,
   importedMonths: () => [...salesKeys.all, 'imported-months'] as const,
@@ -36,7 +37,7 @@ export const useDailySales = (from: string, to: string, enabled = true) => {
 }
 
 /** 일별 매출 상세 조회 (p16). date가 없으면 비활성화. */
-export const useDailySaleDetail = (date: string | null, cardCompanyCode: string) => {
+export const useDailySaleDetail = (date: string | null, cardCompanyCode: CardCompanyCode) => {
   return useQuery({
     queryKey: salesKeys.dailyDetail(date ?? '', cardCompanyCode),
     queryFn: () => getDailySaleDetail(date!, cardCompanyCode || undefined),

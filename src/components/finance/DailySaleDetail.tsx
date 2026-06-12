@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getErrorMessage } from '@/lib/api'
 import { useDailySaleDetail } from '@/hooks/queries/use-sales-queries'
-import { CARD_COMPANY_OPTIONS } from '@/types/sales'
+import { CARD_COMPANY_OPTIONS, type CardCompanyCode } from '@/types/sales'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
 
@@ -25,7 +25,7 @@ export default function DailySaleDetail() {
   const searchParams = useSearchParams()
   const date = searchParams.get('date')
 
-  const [cardCompanyCode, setCardCompanyCode] = useState('')
+  const [cardCompanyCode, setCardCompanyCode] = useState<CardCompanyCode>('')
   const { data, isLoading, isError, error, refetch } = useDailySaleDetail(date, cardCompanyCode)
   const items = data?.items ?? []
 

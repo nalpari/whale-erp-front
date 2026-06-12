@@ -7,6 +7,7 @@ import {
   importedMonthSchema,
 } from '@/lib/schemas/sales'
 import type {
+  CardCompanyCode,
   DailySalesResponse,
   DailySaleDetailResponse,
   ImportedMonth,
@@ -66,7 +67,7 @@ export async function getDailySales(from: string, to: string): Promise<DailySale
 // 일별 매출 상세 조회 (p16) — cardCompanyCode 비우면 전체
 export async function getDailySaleDetail(
   date: string,
-  cardCompanyCode?: string
+  cardCompanyCode?: CardCompanyCode
 ): Promise<DailySaleDetailResponse> {
   const response = await api.get<{ data: unknown }>('/api/v1/sales/daily/detail', {
     params: { date, ...(cardCompanyCode ? { cardCompanyCode } : {}) },
