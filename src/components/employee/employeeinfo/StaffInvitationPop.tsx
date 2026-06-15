@@ -5,6 +5,7 @@ import DatePicker from '@/components/ui/common/DatePicker'
 import RangeDatePicker, { DateRange } from '@/components/ui/common/RangeDatePicker'
 import SearchSelect, { type SelectOption } from '@/components/ui/common/SearchSelect'
 import { useBpHeadOfficeTree, useStoreOptions } from '@/hooks/queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
@@ -241,6 +242,14 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       return
     }
 
+    // 선택된 점포가 현재 노출 목록에 없으면(소속 변경 후 stale 또는 외부 주입) 비우고 중단.
+    // 클라이언트 best-effort 가드 — 소속↔점포 정합성의 최종 검증은 BE 책임.
+    if (storeId != null && !visibleStores.some((s) => s.id === storeId)) {
+      setStoreId(null)
+      await alert('선택한 점포가 현재 소속 조건에 맞지 않아 해제되었습니다. 점포를 다시 선택해주세요.')
+      return
+    }
+
     try {
 
       // 평일/토요일/일요일 근무 정보 반영
@@ -400,16 +409,59 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
     return office?.franchises.map((f) => ({ value: String(f.id), label: f.name })) ?? []
   }, [bpTree, headOfficeOrganizationId])
 
-  const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
+  // 본사 미선택 시 쿼리 비활성 — officeId=null이면 BE가 전 조직 점포를 반환할 수 있어
+  // 타 조직 직영 점포가 노출되는 cross-org 누출을 막는다(StorePromotionDetail과 동일 가드).
+  const {
+    data: storeOptionList = [],
+    isPending: storeLoading,
+    isError: storeError,
+  } = useStoreOptions(
     headOfficeOrganizationId,
     franchiseOrganizationId,
-    isReady
+    isReady && headOfficeOrganizationId != null
   )
 
-  const storeOptions: SelectOption[] = useMemo(() =>
-    storeOptionList.map((s) => ({ value: String(s.id), label: s.storeName })),
-    [storeOptionList]
-  )
+  // 직원 소속(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  // - 본사 미선택 시: 위 enabled 가드와 별개로 한 번 더 빈 목록으로 가드(캐시 잔존 응답 대비)
+  // React Compiler 자동 메모이제이션에 위임 — 다른 폼과 동일하게 파생 값으로 직접 계산.
+  const storeOwnerType: StoreOwnerType =
+    workplaceType === 'FRANCHISE' ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores =
+    headOfficeOrganizationId == null
+      ? []
+      : filterStoreOptionsByOwner(storeOptionList, storeOwnerType, franchiseOrganizationId)
+
+  const storeOptions: SelectOption[] = visibleStores.map((s) => ({
+    value: String(s.id),
+    label: s.storeName,
+  }))
+
+  // 점포 select 빈 목록 UX
+  const isOfficeNotPicked = headOfficeOrganizationId == null
+  const isFranchiseModeNoPick =
+    workplaceType === 'FRANCHISE' && franchiseOrganizationId == null
+  // 응답엔 점포가 있으나 소유자 필터로 전부 걸러진 경우 — "응답 0건"과 구분해 원인을 안내
+  const isFilteredEmpty = storeOptionList.length > 0 && visibleStores.length === 0
+  const storePlaceholder = isOfficeNotPicked
+    ? '본사를 먼저 선택하세요'
+    : isFranchiseModeNoPick
+      ? '가맹점을 먼저 선택하세요'
+      : storeError
+        ? '점포를 불러오지 못했습니다. 다시 시도해주세요'
+        : isFilteredEmpty
+          ? storeOwnerType === 'HEAD_OFFICE'
+            ? '이 본사에 등록된 직영 점포가 없습니다'
+            : '이 가맹점에 등록된 점포가 없습니다'
+          : visibleStores.length === 0
+            ? '선택 가능한 점포가 없습니다'
+            : '점포 선택'
+  const isStoreDisabled =
+    storeLoading ||
+    storeError ||
+    isOfficeNotPicked ||
+    isFranchiseModeNoPick ||
+    visibleStores.length === 0
 
   const salaryCycleOptions: SelectOption[] = useMemo(() => [
     { value: 'SLRCC_001', label: '시급' },
@@ -499,7 +551,11 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                             name="workplaceType"
                             id="workplaceType-franchise"
                             checked={workplaceType === 'FRANCHISE'}
-                            onChange={() => setWorkplaceType('FRANCHISE')}
+                            onChange={() => {
+                              setWorkplaceType('FRANCHISE')
+                              // 본사→가맹 전환 시 직영 점포로 선택해둔 stale storeId 초기화
+                              setStoreId(null)
+                            }}
                             disabled={isWorkplaceTypeFixed}
                           />
                           <label htmlFor="workplaceType-franchise">가맹점</label>
@@ -575,8 +631,8 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
                           onChange={(opt) => {
                             setStoreId(opt?.value ? Number(opt.value) : null)
                           }}
-                          placeholder="점포 선택"
-                          isDisabled={storeLoading}
+                          placeholder={storePlaceholder}
+                          isDisabled={isStoreDisabled}
                           isSearchable={true}
                           isClearable={true}
                         />

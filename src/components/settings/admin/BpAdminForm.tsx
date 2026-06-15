@@ -11,6 +11,7 @@ import {
 } from '@/hooks/queries/use-bp-admin-queries'
 import { useBpHeadOfficeTree } from '@/hooks/queries/use-bp-queries'
 import { useStoreOptions } from '@/hooks/queries/use-store-queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useCommonCode } from '@/hooks/useCommonCode'
 import { WORK_STATUS_OPTIONS, loginIdRegex } from '@/lib/schemas/admin'
 import type { BpAdminDetail } from '@/lib/schemas/bp-admin'
@@ -176,13 +177,24 @@ export default function BpAdminForm({
     data: storeOptionsData = [],
     isSuccess: storeOptionsLoaded,
     isPending: storeOptionsPending,
+    isError: storeOptionsError,
   } = useStoreOptions(
     storeQueryOfficeId,
     storeQueryFranchiseId,
     storeOptionsEnabled,
   )
 
-  const storeOptions = storeOptionsData.map((s) => ({
+  // 관리자 종류(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  const storeOwnerType: StoreOwnerType =
+    formData.adminType === 'FRANCHISE' ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores = filterStoreOptionsByOwner(
+    storeOptionsData,
+    storeOwnerType,
+    storeQueryFranchiseId,
+  )
+
+  const storeOptions = visibleStores.map((s) => ({
     value: String(s.id),
     label: s.storeName,
   }))
@@ -256,20 +268,21 @@ export default function BpAdminForm({
     if (!storeOptionsLoaded) {
       return
     }
-    const found = storeOptionsData.some((s) => s.id === formData.storeId)
+    // 필터(직영/가맹) 적용 후 노출 목록 기준으로 stale 판정
+    const found = visibleStores.some((s) => s.id === formData.storeId)
     if (!found) {
       storeStaleResolvedRef.current = true
       if (process.env.NODE_ENV === 'development') {
         console.warn('[BpAdminForm] stale storeId — auto reset', {
           storeId: formData.storeId,
-          options: storeOptionsData,
+          options: visibleStores,
         })
       }
       onChange({ storeId: null })
     } else {
       storeStaleResolvedRef.current = true
     }
-  }, [mode, storeOptionsEnabled, storeOptionsLoaded, storeOptionsData, formData.storeId, onChange])
+  }, [mode, storeOptionsEnabled, storeOptionsLoaded, visibleStores, formData.storeId, onChange])
 
   useEffect(() => {
     if (mode !== 'create' || autoAppliedRef.current) return
@@ -512,7 +525,7 @@ export default function BpAdminForm({
                               storeId: opt?.value ? Number(opt.value) : null,
                             })
                           }
-                          isDisabled={!storeOptionsEnabled}
+                          isDisabled={!storeOptionsEnabled || storeOptionsError}
                           error={!!errors.storeId}
                           placeholder={
                             !storeOptionsEnabled
@@ -521,8 +534,14 @@ export default function BpAdminForm({
                                 : '본사를 먼저 선택해 주세요.'
                               : storeOptionsPending
                               ? '점포 로딩 중...'
+                              : storeOptionsError
+                              ? '점포를 불러오지 못했습니다. 다시 시도해주세요'
+                              : storeOptionsData.length > 0 && storeOptions.length === 0
+                              ? formData.adminType === 'FRANCHISE'
+                                ? '이 가맹점에 등록된 점포가 없습니다.'
+                                : '이 본사에 등록된 직영 점포가 없습니다.'
                               : storeOptions.length === 0
-                              ? '등록된 점포가 없습니다.'
+                              ? '선택 가능한 점포가 없습니다.'
                               : '점포 선택'
                           }
                         />

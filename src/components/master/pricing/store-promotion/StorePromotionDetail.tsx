@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tooltip } from 'react-tooltip'
 import Location from '@/components/ui/Location'
@@ -15,6 +15,7 @@ import {
   useStoreOptions,
 } from '@/hooks/queries'
 import { useStoreMenuList } from '@/hooks/queries/use-store-menu-queries'
+import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-options'
 import { useAuthStore } from '@/stores/auth-store'
 import { formatDateYmd } from '@/util/date-util'
 import { formatPrice } from '@/util/format-util'
@@ -211,22 +212,104 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
   const effectiveOfficeId = isOfficeFixed ? bpTree[0].id : officeId
   const effectiveFranchiseId = isFranchiseFixed ? bpTree[0].franchises[0].id : franchiseId
 
+  // 점포 조회용 franchiseId — 라디오(소유자 모드) 기준
+  // - HEAD_OFFICE: null (직영 점포를 받기 위해 가맹 id를 전달하지 않음)
+  // - FRANCHISE: 선택/고정된 가맹 id
+  // effectiveFranchiseId를 그대로 넘기면 본사 모드에서도 가맹 점포만 조회돼
+  // filterStoreOptionsByOwner('HEAD_OFFICE')가 전부 걸러내 빈 목록이 된다.
+  const storeQueryFranchiseId =
+    menuProperty === MENU_PROPERTY.FRANCHISE ? effectiveFranchiseId : null
+
   const officeOptions = buildOfficeOptions(bpTree)
   const franchiseOptions = buildFranchiseOptions(bpTree, effectiveOfficeId)
-  const { data: storeOptionList = [], isPending: storeLoading } = useStoreOptions(
+  // 본사(officeId) 미선택 시에는 요청 자체를 보내지 않는다.
+  // officeId=null 로 호출하면 BE 가 전 조직 점포를 반환하므로(서버단 조직 격리 부재),
+  // enabled 에서 차단해 불필요한 응답이 React Query 캐시에 적재되는 것을 막는다.
+  // ※ 요청·캐시 절감 + 선택 UX 보조 목적일 뿐, 조직 격리의 최종 책임은 BE 에 있다.
+  const {
+    data: storeOptionList = [],
+    isPending: storeLoading,
+    isError: storeError,
+    isSuccess: storeLoaded,
+  } = useStoreOptions(effectiveOfficeId, storeQueryFranchiseId, isReady && effectiveOfficeId != null)
+
+  // 메뉴 소유 구분(라디오) 기준 노출 점포 필터링
+  // - HEAD_OFFICE: 직영 점포만 / FRANCHISE: 선택 가맹 산하만 (미선택 시 빈 목록)
+  const storeOwnerType: StoreOwnerType =
+    menuProperty === MENU_PROPERTY.FRANCHISE ? 'FRANCHISE' : 'HEAD_OFFICE'
+  const visibleStores =
+    effectiveOfficeId == null
+      ? []
+      : filterStoreOptionsByOwner(storeOptionList, storeOwnerType, storeQueryFranchiseId)
+  const storeOptions = visibleStores.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
+
+  // 점포 select 빈 목록 UX
+  const isFranchiseModeNoPick = showFranchise && effectiveFranchiseId == null
+  // 응답엔 점포가 있으나 소유자 필터로 전부 걸러진 경우 — "응답 0건"과 구분해 원인을 안내
+  const isFilteredEmpty = storeOptionList.length > 0 && visibleStores.length === 0
+  const storePlaceholder =
+    effectiveOfficeId == null
+      ? '본사를 먼저 선택하세요'
+      : isFranchiseModeNoPick
+        ? '가맹점을 먼저 선택하세요'
+        : storeError
+          ? '점포를 불러오지 못했습니다. 다시 시도해주세요'
+          : isFilteredEmpty
+            ? storeOwnerType === 'HEAD_OFFICE'
+              ? '이 본사에 등록된 직영 점포가 없습니다'
+              : '이 가맹점에 등록된 점포가 없습니다'
+            : visibleStores.length === 0
+              ? '선택 가능한 점포가 없습니다'
+              : '점포 선택'
+  const isStoreDisabled =
+    storeLoading ||
+    storeError ||
+    effectiveOfficeId == null ||
+    isFranchiseModeNoPick ||
+    visibleStores.length === 0
+
+  // edit 진입 시 initialData.storeId 가 현재 노출 목록(직영/가맹 필터 적용)에 없으면 자동 해제.
+  // 소유자/가맹 변경은 onChange(handleMenuPropertyChange·handleBpChange)가 이미 storeId 를 비우므로,
+  // 여기서는 edit 최초 로드의 stale 만 ref 가드로 1회 보정한다 (BpAdminForm 선례와 동일 정신).
+  const storeStaleResolvedRef = useRef(false)
+  useEffect(() => {
+    if (storeStaleResolvedRef.current || !isReady || storeId == null) return
+    // 본사 미선택/로딩 중에는 판정 보류 — isSuccess 로 "BE 합법적 0건"과 로딩을 구분
+    if (effectiveOfficeId == null || !storeLoaded) return
+    storeStaleResolvedRef.current = true
+    // 조건부 파생값(visibleStores)을 deps에 넣으면 매 렌더 참조가 바뀌므로,
+    // effect 내부에서 원시 deps 기준으로 다시 필터해 stale 여부만 판정한다.
+    const currentVisible = filterStoreOptionsByOwner(
+      storeOptionList,
+      storeOwnerType,
+      storeQueryFranchiseId,
+    )
+    if (!currentVisible.some((s) => s.id === storeId)) {
+      setStoreId(null)
+    }
+  }, [
+    isReady,
+    storeId,
     effectiveOfficeId,
-    effectiveFranchiseId,
-    isReady
-  )
-  const storeOptions = storeOptionList.map((opt) => ({ value: String(opt.id), label: opt.storeName }))
+    storeLoaded,
+    storeOptionList,
+    storeOwnerType,
+    storeQueryFranchiseId,
+  ])
+
+  // 메뉴 조회·payload 에 사용할 검증된 storeId — 현재 노출 목록에 있을 때만 유효로 인정.
+  // edit 최초 로드의 stale 또는 외부 주입 storeId 로 store 메뉴를 선요청하는 것을 차단한다.
+  // (stale 정리 effect 는 렌더 후 실행되므로, 그 직전 렌더에서의 선요청을 파생값으로 막는다)
+  const validatedStoreId =
+    storeId != null && visibleStores.some((s) => s.id === storeId) ? storeId : null
 
   // 선택한 본사/가맹점/점포에 해당하는 메뉴 목록 조회 (운영 메뉴만)
   const canFetchMenus = effectiveOfficeId != null
   const { data: storeMenuData } = useStoreMenuList(
     {
       bpId: effectiveOfficeId ?? undefined,
-      storeId: storeId ?? undefined,
-      menuGroup: storeId != null ? 'MNGRP_002' : 'MNGRP_001',
+      storeId: validatedStoreId ?? undefined,
+      menuGroup: validatedStoreId != null ? 'MNGRP_002' : 'MNGRP_001',
       operationStatus: 'STOPR_001',
       page: 0,
       size: 9999, // 전체 메뉴 조회 (페이지네이션 없이)
@@ -291,6 +374,12 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       setShowFranchiseError(true)
       valid = false
     }
+    // 선택된 점포가 현재 노출 목록에 없으면(소유자/가맹 변경 후 stale 또는 외부 주입) 비우고 거부.
+    // 클라이언트 best-effort 가드 — 소유자↔점포 정합성의 최종 검증은 BE 책임.
+    if (storeId != null && validatedStoreId == null) {
+      setStoreId(null)
+      valid = false
+    }
     if (!promotionName.trim()) {
       setShowNameError(true)
       valid = false
@@ -332,7 +421,7 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
       menuProperty,
       headOfficeId: effectiveOfficeId ?? 0,
       ...(menuProperty === MENU_PROPERTY.FRANCHISE && effectiveFranchiseId ? { franchiseId: effectiveFranchiseId } : {}),
-      ...(storeId != null ? { storeId } : {}),
+      ...(validatedStoreId != null ? { storeId: validatedStoreId } : {}),
       promotionName: promotionName.trim(),
       startDate: formatDateYmd(startDate, ''),
       endDate: formatDateYmd(endDate, ''),
@@ -493,8 +582,8 @@ export default function StorePromotionDetail({ promotionId, initialData }: Store
                       <SearchSelect
                         value={storeId !== null ? storeOptions.find((opt) => opt.value === String(storeId)) || null : null}
                         options={storeOptions}
-                        placeholder="점포 선택"
-                        isDisabled={storeLoading}
+                        placeholder={storePlaceholder}
+                        isDisabled={isStoreDisabled}
                         isSearchable
                         isClearable
                         onChange={(option) => {
