@@ -300,7 +300,7 @@ export default function DailySales() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={8} style={{ textAlign: 'center' }}><div className="empty-data">조회 중...</div></td></tr>
+              <tr><td colSpan={8}><div className="empty-data">조회 중...</div></td></tr>
             )}
             {isError && !isLoading && (
               <tr>
@@ -318,7 +318,7 @@ export default function DailySales() {
               </tr>
             )}
             {!isLoading && !isError && items.length === 0 && (
-              <tr><td colSpan={8} style={{ textAlign: 'center' }}><div className="empty-data">검색 결과가 없습니다.</div></td></tr>
+              <tr><td colSpan={8}><div className="empty-data">검색 결과가 없습니다.</div></td></tr>
             )}
             {items.map((item) => (
               <tr key={`${item.saleDate}-${item.compNo}`} onClick={() => goDetail(item.saleDate)} style={{ cursor: 'pointer' }}>
