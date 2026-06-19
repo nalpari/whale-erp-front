@@ -42,16 +42,26 @@ export async function getImportedMonths(): Promise<ImportedMonth[]> {
 // sales-rader가 Bizzle 로그인+스크래핑을 실시간 수행해 수 분 소요되므로,
 // 전역 axios 타임아웃(10초)을 덮어 백엔드 read-timeout(300초)보다 넉넉히 설정한다.
 // loginId/loginPw(Bizzle 자격증명)는 본문으로만 전달하고 저장하지 않는다(보안).
+//
+// 변조방지 가드: import 직전에 1회용 key를 발급받아(import-key) 곧바로 헤더(X-Sales-Import-Key)에 실어 보낸다.
+// sales-rader가 key를 검증(존재·미만료·해당 월 일치)·소멸시켜, 모달 UI를 거치지 않은 맨손 직접 호출(Postman 등)을 차단한다.
+// [발급→import]를 한 메서드에서 연속 호출하는 이 구조가 가드의 핵심이다(api가 key를 대행하면 무력화됨).
+// 설계: docs/plans/sales/2026-06-12-bizzle-import-tamper-guard.md
 export async function importSales(
   year: number,
   month: number,
   loginId: string,
   loginPw: string,
 ): Promise<SalesImportResponse> {
+  // issue-key 단계 실패(네트워크 등)는 "잘못된 방식"이 아니라 일반 오류로 처리된다.
+  // (key 거부 419는 issue-key가 아니라 아래 import 단계에서만 발생)
+  const { key } = (
+    await api.post<{ data: { key: string } }>('/api/v1/sales/import-key', { year, month })
+  ).data.data
   const response = await api.post<{ data: SalesImportResponse }>(
     '/api/v1/sales/import',
     { year, month, loginId, loginPw },
-    { timeout: 310000 },
+    { timeout: 310000, headers: { 'X-Sales-Import-Key': key } },
   )
   return response.data.data
 }
