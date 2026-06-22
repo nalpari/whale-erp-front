@@ -5,6 +5,7 @@ import {
   dailySaleDetailResponseSchema,
   monthlySalesResponseSchema,
   importedMonthSchema,
+  salesImportKeySchema,
 } from '@/lib/schemas/sales'
 import type {
   CardCompanyCode,
@@ -55,9 +56,13 @@ export async function importSales(
 ): Promise<SalesImportResponse> {
   // issue-key 단계 실패(네트워크 등)는 "잘못된 방식"이 아니라 일반 오류로 처리된다.
   // (key 거부 419는 issue-key가 아니라 아래 import 단계에서만 발생)
-  const { key } = (
-    await api.post<{ data: { key: string } }>('/api/v1/sales/import-key', { year, month })
-  ).data.data
+  // 응답을 Zod로 검증해 key 누락/빈 값을 발급 단계에서 잡는다. 무검증으로 통과시키면
+  // 빈 key가 헤더 누락으로 이어져 정상 사용자가 import 419(ERR13008)로 오진된다.
+  const issueKeyResponse = await api.post<{ data: unknown }>('/api/v1/sales/import-key', {
+    year,
+    month,
+  })
+  const { key } = parseSalesData(salesImportKeySchema, issueKeyResponse.data?.data, 'import-key 발급')
   const response = await api.post<{ data: SalesImportResponse }>(
     '/api/v1/sales/import',
     { year, month, loginId, loginPw },
