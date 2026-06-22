@@ -139,11 +139,16 @@ export default function DailySales() {
     } catch (err) {
       // 실패 원인을 한 메시지로 뭉개지 않고 분기 + 진단 로그 (수 분 걸리는 스크래핑이라 사후 추적 필요).
       // 주의: err를 통째로 찍으면 axios config.data(=loginPw 평문)가 노출되므로 안전 필드만 기록한다.
+      // 백엔드 에러 코드(body.code)는 분기 키이자 추적에 유용하므로 함께 남긴다(민감정보 아님).
+      const apiErrorCode = axios.isAxiosError(err)
+        ? (err.response?.data as { code?: string } | undefined)?.code
+        : undefined
       console.error('[DailySales] Bizzle 매출 연동 실패', {
         year: importYm.year,
         month: importYm.month,
         status: axios.isAxiosError(err) ? err.response?.status : undefined,
         code: axios.isAxiosError(err) ? err.code : undefined,
+        apiErrorCode,
         message: err instanceof Error ? err.message : String(err),
       })
       // 타임아웃 계열(코드/메시지)은 서버 수집이 계속 진행 중일 수 있어 재시도 전 새로고침 안내
@@ -151,7 +156,11 @@ export default function DailySales() {
         axios.isAxiosError(err) &&
         (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || /timeout/i.test(err.message))
       let message: string
-      if (isTimeout) {
+      if (apiErrorCode === 'ERR13008') {
+        // 변조방지 가드: 모달 외 경로의 직접 호출 등으로 1회용 key 검증에 실패(SALES_INVALID_IMPORT_KEY).
+        // status(419/400)에 의존하지 않고 body code로 분기해 백엔드 status 결정과 무관하게 동작한다.
+        message = '잘못된 데이터 가져오기 방식입니다.'
+      } else if (isTimeout) {
         message =
           '수집이 제한 시간을 초과했습니다. 백그라운드에서 계속 진행될 수 있으니, 잠시 후 목록을 새로고침해 적재 여부를 확인하고 데이터가 없으면 다시 시도해주세요.'
       } else {

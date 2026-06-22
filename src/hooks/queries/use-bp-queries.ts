@@ -69,8 +69,10 @@ export const useMyOrganizationBp = () => {
  * - staleTime을 길게 잡아 불필요한 재요청을 줄인다.
  */
 export const useBpHeadOfficeTree = (enabled = true) => {
+  // affiliationId 를 queryKey 에 포함하여 조직 전환 시 트리 캐시를 분리 (Codex HIGH)
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   return useQuery({
-    queryKey: bpKeys.headOfficeTree(),
+    queryKey: bpKeys.headOfficeTree(affiliationId),
     queryFn: async () => {
       const response = await api.get<ApiResponse<BpHeadOfficeNode[]>>(
         '/api/v1/master/bp/head-office-tree'

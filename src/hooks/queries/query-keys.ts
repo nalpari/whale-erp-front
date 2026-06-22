@@ -37,7 +37,10 @@ export const bpKeys = {
   all: ['bp'] as const,
   lists: () => [...bpKeys.all, 'list'] as const,
   list: (params: BpListParams) => [...bpKeys.lists(), params] as const,
-  headOfficeTree: () => [...bpKeys.all, 'head-office-tree'] as const,
+  // affiliation 헤더가 BE 응답(본사/가맹 트리)을 결정하므로 queryKey 에도 포함 —
+  // 조직 전환 시 staleTime(5분) 내 이전 조직 트리 재사용으로 옵션이 섞이는 누출 차단 (Codex HIGH)
+  headOfficeTree: (affiliationId: string | null) =>
+    [...bpKeys.all, 'head-office-tree', affiliationId] as const,
   headOffices: () => [...bpKeys.all, 'head-offices'] as const,
   details: () => [...bpKeys.all, 'detail'] as const,
   detail: (id: number) => [...bpKeys.details(), id] as const,
