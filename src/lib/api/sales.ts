@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import api from '@/lib/api'
+import salesRader from '@/lib/sales-rader'
 import {
   dailySalesResponseSchema,
   dailySaleDetailResponseSchema,
@@ -47,6 +48,10 @@ export async function getImportedMonths(): Promise<ImportedMonth[]> {
 // 변조방지 가드: import 직전에 1회용 key를 발급받아(import-key) 곧바로 헤더(X-Sales-Import-Key)에 실어 보낸다.
 // sales-rader가 key를 검증(존재·미만료·해당 월 일치)·소멸시켜, 모달 UI를 거치지 않은 맨손 직접 호출(Postman 등)을 차단한다.
 // [발급→import]를 한 메서드에서 연속 호출하는 이 구조가 가드의 핵심이다(api가 key를 대행하면 무력화됨).
+//
+// import-key 발급은 whale-erp-api(:8080) 중계를 거치지 않고 sales-rader로 **직접** 호출한다.
+// (api가 key를 만지지 않게 해 가드 취지를 더 명확히 한다.) sales-rader 응답은 공통 envelope 없이
+// raw `{ key }` 이므로 response.data 를 그대로 검증한다. 실제 수집(/import)은 기존대로 api를 경유한다.
 // 설계: docs/plans/sales/2026-06-12-bizzle-import-tamper-guard.md
 export async function importSales(
   year: number,
@@ -58,11 +63,11 @@ export async function importSales(
   // (key 거부 419는 issue-key가 아니라 아래 import 단계에서만 발생)
   // 응답을 Zod로 검증해 key 누락/빈 값을 발급 단계에서 잡는다. 무검증으로 통과시키면
   // 빈 key가 헤더 누락으로 이어져 정상 사용자가 import 419(ERR13008)로 오진된다.
-  const issueKeyResponse = await api.post<{ data: unknown }>('/api/v1/sales/import-key', {
+  const issueKeyResponse = await salesRader.post<unknown>('/api/import-key', {
     year,
     month,
   })
-  const { key } = parseSalesData(salesImportKeySchema, issueKeyResponse.data?.data, 'import-key 발급')
+  const { key } = parseSalesData(salesImportKeySchema, issueKeyResponse.data, 'import-key 발급')
   const response = await api.post<{ data: SalesImportResponse }>(
     '/api/v1/sales/import',
     { year, month, loginId, loginPw },
