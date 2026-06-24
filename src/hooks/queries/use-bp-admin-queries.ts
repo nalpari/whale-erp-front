@@ -26,8 +26,12 @@ export function useBpAdminList(params: BpAdminListParams, options?: { enabled?: 
 }
 
 export function useBpAdminDetail(id: number) {
+  // 상세 엔드포인트도 affiliation 헤더의 영향을 받으므로 queryKey 에 affiliationId 포함 —
+  // 조직 전환 후 같은 id 진입 시 staleTime 내 이전 조직 상세가 폼에 주입되는 누출 차단 (Codex HIGH).
+  // update/delete 의 invalidate/removeQueries 는 detail(id) prefix 매칭이라 그대로 동작.
+  const affiliationId = useAuthStore((s) => s.affiliationId)
   return useQuery({
-    queryKey: bpAdminKeys.detail(id),
+    queryKey: [...bpAdminKeys.detail(id), { affiliationId }],
     queryFn: ({ signal }) => fetchBpAdminDetail(id, signal),
     enabled: Number.isFinite(id) && id > 0,
   })

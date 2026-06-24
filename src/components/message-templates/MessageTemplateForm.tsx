@@ -33,6 +33,9 @@ const SEND_TYPE_LABEL: Record<SendType, string> = {
   SMS: '문자',
 }
 
+// 현재 등록(create) 가능한 발송 타입 — 알림톡 전용. (Codex MEDIUM, route 차단과 이중 방어)
+const CREATABLE_SEND_TYPES: SendType[] = ['ALIM_TALK']
+
 interface FormState {
   categoryCodeId: number | null
   templateCode: string
@@ -100,6 +103,11 @@ export default function MessageTemplateForm({ mode, sendType, initial }: Message
     try {
       const trimmedSendTiming = form.sendTiming.trim()
       if (mode === 'create') {
+        // 미지원 발송 타입이 알림톡 저장 경로로 유입되지 않도록 제출 직전 재검증
+        if (!CREATABLE_SEND_TYPES.includes(sendType)) {
+          setErrorMsg('지원하지 않는 발송 타입입니다.')
+          return
+        }
         const request: MessageTemplateCreateRequest = {
           sendType,
           categoryCodeId: form.categoryCodeId,

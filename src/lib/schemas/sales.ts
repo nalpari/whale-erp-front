@@ -78,6 +78,15 @@ export const importedMonthSchema = z.object({
   count: z.number(),
 })
 
+/**
+ * 변조방지 가드 1회용 import key 발급 응답.
+ * key가 누락/빈 문자열이면 가드 입력이 깨진 것이므로 발급 단계에서 거부한다
+ * (검증 없이 통과하면 빈 key가 헤더 누락으로 이어져 정상 사용자가 import 419로 오진된다).
+ */
+export const salesImportKeySchema = z.object({
+  key: z.string().min(1),
+})
+
 export type SalesSummary = z.infer<typeof salesSummarySchema>
 export type DailySaleItem = z.infer<typeof dailySaleItemSchema>
 export type DailySalesResponse = z.infer<typeof dailySalesResponseSchema>
@@ -86,3 +95,4 @@ export type DailySaleDetailResponse = z.infer<typeof dailySaleDetailResponseSche
 export type MonthlySalesResponse = z.infer<typeof monthlySalesResponseSchema>
 export type SalesImportResponse = z.infer<typeof salesImportResponseSchema>
 export type ImportedMonth = z.infer<typeof importedMonthSchema>
+export type SalesImportKey = z.infer<typeof salesImportKeySchema>
