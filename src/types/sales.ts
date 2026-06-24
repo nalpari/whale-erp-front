@@ -8,6 +8,7 @@ export type {
   DailySaleDetailResponse,
   MonthlySalesResponse,
   SalesImportResponse,
+  SalesImportKey,
   ImportedMonth,
 } from '@/lib/schemas/sales'
 

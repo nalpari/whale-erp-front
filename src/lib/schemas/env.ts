@@ -6,6 +6,9 @@ import { z } from 'zod';
  */
 export const clientEnvSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().url('유효한 API URL이 필요합니다'),
+  // sales-rader(Bizzle 스크래퍼) 직접 호출용 base URL.
+  // 변조방지 가드 import-key 발급은 whale-erp-api(:8080) 중계를 거치지 않고 front가 sales-rader로 직접 호출한다.
+  NEXT_PUBLIC_SALES_RADER_URL: z.string().url('유효한 sales-rader URL이 필요합니다'),
 });
 
 /**
@@ -27,6 +30,7 @@ export type ClientEnv = z.infer<typeof clientEnvSchema>;
 export function validateClientEnv(): ClientEnv {
   const result = clientEnvSchema.safeParse({
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_SALES_RADER_URL: process.env.NEXT_PUBLIC_SALES_RADER_URL,
   });
 
   if (!result.success) {
@@ -43,5 +47,8 @@ export function validateClientEnv(): ClientEnv {
 export const env = {
   get NEXT_PUBLIC_API_URL() {
     return process.env.NEXT_PUBLIC_API_URL ?? '';
+  },
+  get NEXT_PUBLIC_SALES_RADER_URL() {
+    return process.env.NEXT_PUBLIC_SALES_RADER_URL ?? '';
   },
 };
