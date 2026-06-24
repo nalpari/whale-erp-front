@@ -44,6 +44,33 @@ pipeline {
             }
         }
 
+        // 빌드/배포 전에 .env.development에 필수 변수가 있는지 먼저 검증한다.
+        // "빌드는 됐는데 OCR·사업자검증만 런타임에 깨지는" 사고를 빌드 전에 차단.
+        stage('Validate environment') {
+            steps {
+                withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
+                    sh '''
+                        set -eu
+                        set -a; . "$ENV_FILE"; set +a
+
+                        # 빌드타임 필수 (번들에 박혀야 프론트가 백엔드 API를 찾음)
+                        : "${NEXT_PUBLIC_API_URL:?.env.development에 NEXT_PUBLIC_API_URL 누락 - 프론트가 백엔드 API를 못 찾음}"
+
+                        # 런타임 필수 시크릿 (없으면 해당 기능만 런타임에 실패)
+                        : "${ANTHROPIC_API_KEY:?.env.development에 ANTHROPIC_API_KEY 누락 - OCR(사업자등록증 인식) 런타임 실패}"
+                        : "${BUSINESS_VALIDATE_KEY:?.env.development에 BUSINESS_VALIDATE_KEY 누락 - 사업자 검증 런타임 실패}"
+
+                        # NEXT_PUBLIC_S3_HOSTNAME은 next.config.ts에 기본값이 있어 필수는 아님
+                        if [ -z "${NEXT_PUBLIC_S3_HOSTNAME:-}" ]; then
+                          echo "⚠️  NEXT_PUBLIC_S3_HOSTNAME 미정의 - next.config.ts 기본 버킷으로 빌드됨"
+                        fi
+
+                        echo "✅ 필수 환경변수 확인 완료"
+                    '''
+                }
+            }
+        }
+
         // 빌드가 성공한 뒤에야 Deploy 단계로 넘어가므로,
         // 빌드 실패 시 기존 컨테이너는 그대로 살아있다(다운타임 없음).
         stage('Build image') {
@@ -52,12 +79,9 @@ pipeline {
                 // grep 앵커(^KEY=)로 주석 줄은 제외, cut -f2-로 값 안의 '='도 보존.
                 withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
                     sh '''
+                        # 필수 변수 존재는 Validate environment 스테이지에서 이미 검증됨
                         NEXT_PUBLIC_API_URL=$(grep -E '^NEXT_PUBLIC_API_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
                         NEXT_PUBLIC_S3_HOSTNAME=$(grep -E '^NEXT_PUBLIC_S3_HOSTNAME=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
-
-                        if [ -z "$NEXT_PUBLIC_API_URL" ]; then
-                          echo "❌ .env.development 에서 NEXT_PUBLIC_API_URL 을 찾지 못함"; exit 1
-                        fi
 
                         docker build \
                           --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
