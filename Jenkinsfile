@@ -73,6 +73,8 @@ pipeline {
 
                         # 빌드타임 필수 (번들에 박혀야 프론트가 백엔드 API를 찾음)
                         : "${NEXT_PUBLIC_API_URL:?$ENV_CRED_ID 에 NEXT_PUBLIC_API_URL 누락 - 프론트가 백엔드 API를 못 찾음}"
+                        # 빌드타임 필수 (매출 가져오기 import-key 발급을 sales-rader로 직접 호출. 누락 시 매출 연동이 가드에서 즉시 실패)
+                        : "${NEXT_PUBLIC_SALES_RADER_URL:?$ENV_CRED_ID 에 NEXT_PUBLIC_SALES_RADER_URL 누락 - 매출 가져오기(import-key 발급) 실패}"
 
                         # 런타임 필수 시크릿 (없으면 해당 기능만 런타임에 실패)
                         : "${ANTHROPIC_API_KEY:?$ENV_CRED_ID 에 ANTHROPIC_API_KEY 누락 - OCR(사업자등록증 인식) 런타임 실패}"
@@ -102,10 +104,12 @@ pipeline {
                         # 필수 변수 존재는 Validate environment 스테이지에서 이미 검증됨
                         NEXT_PUBLIC_API_URL=$(grep -E '^NEXT_PUBLIC_API_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
                         NEXT_PUBLIC_S3_HOSTNAME=$(grep -E '^NEXT_PUBLIC_S3_HOSTNAME=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
+                        NEXT_PUBLIC_SALES_RADER_URL=$(grep -E '^NEXT_PUBLIC_SALES_RADER_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
 
                         docker build \
                           --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
                           --build-arg NEXT_PUBLIC_S3_HOSTNAME="$NEXT_PUBLIC_S3_HOSTNAME" \
+                          --build-arg NEXT_PUBLIC_SALES_RADER_URL="$NEXT_PUBLIC_SALES_RADER_URL" \
                           -t "$IMAGE_NAME:${PROFILE}-${GIT_SHA}" \
                           -t "$IMAGE_NAME:${PROFILE}-latest" \
                           .
