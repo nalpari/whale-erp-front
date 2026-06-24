@@ -14,8 +14,10 @@ import type {
   DailySaleDetailResponse,
   ImportedMonth,
   MonthlySalesResponse,
+  SalesImportKey,
   SalesImportResponse,
 } from '@/types/sales'
+import { env } from '@/lib/schemas/env'
 
 /**
  * 매출 조회 응답을 검증해 반환한다.
@@ -59,11 +61,16 @@ export async function importSales(
   loginId: string,
   loginPw: string,
 ): Promise<SalesImportResponse> {
+  // base URL(NEXT_PUBLIC_SALES_RADER_URL) 누락 시 salesRader가 빈 baseURL로 생성돼
+  // 발급 요청이 현재 origin으로 잘못 날아가는 silent 오동작을 막는다(배포 시 env 누락 방어).
+  if (!env.NEXT_PUBLIC_SALES_RADER_URL) {
+    throw new Error('sales-rader 주소가 설정되지 않았습니다. (NEXT_PUBLIC_SALES_RADER_URL)')
+  }
   // issue-key 단계 실패(네트워크 등)는 "잘못된 방식"이 아니라 일반 오류로 처리된다.
   // (key 거부 419는 issue-key가 아니라 아래 import 단계에서만 발생)
   // 응답을 Zod로 검증해 key 누락/빈 값을 발급 단계에서 잡는다. 무검증으로 통과시키면
   // 빈 key가 헤더 누락으로 이어져 정상 사용자가 import 419(ERR13008)로 오진된다.
-  const issueKeyResponse = await salesRader.post<unknown>('/api/import-key', {
+  const issueKeyResponse = await salesRader.post<SalesImportKey>('/api/import-key', {
     year,
     month,
   })

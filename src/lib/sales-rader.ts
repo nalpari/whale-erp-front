@@ -16,6 +16,9 @@ import { env } from '@/lib/schemas/env'
  */
 const salesRader = axios.create({
   baseURL: env.NEXT_PUBLIC_SALES_RADER_URL,
+  // import-key 발급은 수초 내 끝나는 경량 요청이다. timeout 미설정(axios 기본 0=무제한) 시
+  // sales-rader 무응답이면 브라우저가 무한 대기하므로, 짧은 타임아웃으로 발급 단계 행(hang)을 차단한다.
+  timeout: 10000,
 })
 
 export default salesRader
