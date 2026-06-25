@@ -174,9 +174,9 @@ pipeline {
 
     post {
         success {
-            // 더 이상 참조되지 않는 dangling 이미지 정리(디스크 보호)
-            // NOTE: ${PROFILE}-<SHA> 태그 이미지는 누적되므로, 쌓이면 추후 보관 개수 제한 정리 추가
-            sh 'docker image prune -f'
+            // 매 빌드 prune은 legacy 빌드 캐시 소스(직전 이미지)까지 dangling으로 지워
+            // 캐시를 무력화시킨다. 캐시는 살리고 디스크는 오래된 것만 정리(72h 경과 dangling).
+            sh 'docker image prune -f --filter "until=72h"'
         }
         failure {
             echo "배포 실패. 직전 이미지로 롤백하려면: docker run ... \"$IMAGE_NAME:${PROFILE}-<직전 SHA>\""

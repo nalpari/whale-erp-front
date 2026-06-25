@@ -1,5 +1,33 @@
+# VCS / 빌드 산출물
 .git
 .next
 node_modules
+out
+
+# 환경/시크릿 (빌드타임은 --build-arg, 런타임은 --env-file로 주입)
 .env*
+
+# 문서 (빌드 무관)
 *.md
+docs
+reference-docs
+codemap.html
+
+# 에이전트/툴 메타 (빌드 무관, 자주 바뀜 → COPY 캐시 무효화 유발)
+.agents
+.bkit
+.claude
+.playwright-mcp
+skills-lock.json
+
+# 증분 빌드 메타 (타입체크마다 갱신되어 COPY 캐시를 깨뜨림)
+tsconfig.tsbuildinfo
+
+# CI / 컨테이너 정의 (빌드 자체엔 불필요)
+Dockerfile
+.dockerignore
+Jenkinsfile
+
+# 에디터
+.vscode
+.idea
