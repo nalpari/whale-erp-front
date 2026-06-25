@@ -214,35 +214,45 @@ def notifyDiscord(String status, String color) {
     }
 }
 
-// pipeline 블록 바깥 — 빌드 실패 시: ① 실패 알림 즉시 발송 → ② 콘솔 로그를 AI로 요약해
-// 두 번째 메시지로 분리 발송. 분리 구조라 AI가 느리거나 죽어도 실패 알림은 이미 나갔으므로 무해.
+// pipeline 블록 바깥 — 빌드 실패 시: 콘솔 로그를 AI로 요약해 실패 알림 + 원인 분석을
+// 한 메시지(합본)로 발송. AI가 실패/느려도 같은 임베드에 "분석 실패" 안내를 담아
+// 실패 알림은 반드시 한 번 나가게 한다. 전 구간 try/catch로 빌드 상태에 영향 없음.
 def notifyBuildFailureWithAnalysis() {
-    // ① 실패 알림 즉시 발송 (지연 무관, 반드시 나감)
-    notifyDiscord('❌ 실패', '15158332')
+    def duration = currentBuild.durationString.replace(' and counting', '')
 
-    // ② 콘솔 로그 확보 — rawBuild.getLog 는 In-process Script Approval 1회 승인 필요.
-    //    못 읽으면 분석만 스킵(실패 알림은 이미 나감).
+    // 콘솔 로그 확보 — rawBuild.getLog 는 In-process Script Approval 1회 승인 필요.
+    //   못 읽으면 분석 없이 기본 실패 알림만.
     def gotLog = false
     try {
         def lines = currentBuild.rawBuild.getLog(300)
         writeFile file: 'build_raw.log', text: lines.join('\n')
         gotLog = true
     } catch (err) {
-        echo "로그 확보 실패(스크립트 승인 필요 가능) - 분석 스킵: ${err.message}"
+        echo "로그 확보 실패(스크립트 승인 필요 가능) - 분석 없이 기본 알림: ${err.message}"
     }
-    if (!gotLog) return
+    if (!gotLog) {
+        notifyDiscord('❌ 실패', '15158332')
+        return
+    }
 
-    // ③ AI 요약 시도 → 성공 시에만 두 번째 메시지로 발송 (best-effort)
     try {
-        withCredentials([
-            string(credentialsId: 'openrouter-api-key', variable: 'OPENROUTER_API_KEY'),
-            string(credentialsId: 'discord-webhook',    variable: 'WEBHOOK')
-        ]) {
-            sh '''
+        withEnv(["BUILD_DURATION=${duration}"]) {
+            withCredentials([
+                string(credentialsId: 'openrouter-api-key', variable: 'OPENROUTER_API_KEY'),
+                string(credentialsId: 'discord-webhook',    variable: 'WEBHOOK')
+            ]) {
+                sh '''
 set +ex   # 기본 -xe 해제: 키 노출 방지(+x) + best-effort 미중단(+e)
 
-# jq 없으면 분석 불가 → 그냥 종료(실패 알림은 이미 별도로 나감)
-command -v jq >/dev/null 2>&1 || { echo "jq 미설치 - 분석 스킵"; exit 0; }
+# 합본 임베드 발송: 첫 인자=분석 본문(description). 실패/폴백/성공 모두 이 함수로 한 메시지 발송.
+send_combined() {
+  jq -n --arg title "[$JOB_NAME] #$BUILD_NUMBER ❌ 실패" --arg url "${BUILD_URL}console" --arg desc "$1" --arg profile "${PROFILE:-N/A}" --arg branch "${GIT_BRANCH:-N/A}" --arg duration "${BUILD_DURATION:-N/A}" '{embeds:[{title:$title, url:$url, description:$desc, color:15158332, fields:[{name:"프로파일",value:$profile,inline:true},{name:"브랜치",value:$branch,inline:true},{name:"소요시간",value:$duration,inline:true}]}]}' > discord_fail_payload.json 2>/dev/null
+  [ -s discord_fail_payload.json ] && curl -sS -H "Content-Type: application/json" -X POST -d @discord_fail_payload.json "$WEBHOOK" >/dev/null 2>&1 || true
+}
+FALLBACK="🔍 원인 분석 실패(jq/타임아웃/오류) — 콘솔 로그 확인 필요"
+
+# jq 없으면 분석 불가 → 분석 없이 실패 알림만 발송
+command -v jq >/dev/null 2>&1 || { echo "jq 미설치 - 분석 없이 발송"; send_combined "$FALLBACK"; exit 0; }
 
 # 로그 정제: 노이즈 제거 → 마지막 200줄 → 줄당 500자 → 8KB 상한
 grep -vE '^\\[Pipeline\\]|---> (Using cache|Running in|Removed intermediate container)' build_raw.log 2>/dev/null |
@@ -264,14 +274,14 @@ PROMPT='whale-erp-front Jenkins 빌드가 실패했다. 아래는 콘솔 로그�
 --- 로그 ---
 '
 jq -n --arg prompt "$PROMPT" --rawfile log build_masked.txt '{model:"google/gemma-4-31b-it:free", messages:[{role:"user", content:($prompt + $log)}]}' > or_req.json 2>/dev/null
-[ -s or_req.json ] || { echo "요청 생성 실패 - 분석 스킵"; exit 0; }
+[ -s or_req.json ] || { echo "요청 생성 실패 - 분석 없이 발송"; send_combined "$FALLBACK"; exit 0; }
 
-# OpenRouter 호출 — 무료 모델이 느려 전체 90s 대기. 일시적 429(업스트림 한도)만 짧게 재시도.
+# OpenRouter 호출 — 합본이라 알림이 응답을 기다림(보통 수초). 일시적 429(업스트림 한도)만 짧게 재시도.
 SUMMARY=""
 ATTEMPT=0
 while [ "$ATTEMPT" -lt 3 ]; do
   ATTEMPT=$((ATTEMPT + 1))
-  HTTP=$(curl --connect-timeout 5 --max-time 90 -sS -w "%{http_code}" -o or_resp.json \
+  HTTP=$(curl --connect-timeout 5 --max-time 45 -sS -w "%{http_code}" -o or_resp.json \
     -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" \
     -X POST -d @or_req.json https://openrouter.ai/api/v1/chat/completions 2>/dev/null)
   if [ "$HTTP" = "429" ]; then
@@ -287,17 +297,17 @@ grep -vE '^[[:space:]]*$|^:' or_resp.json > or_resp_clean.json 2>/dev/null
 [ -s or_resp_clean.json ] || cp or_resp.json or_resp_clean.json
 SUMMARY=$(jq -r '.choices[0].message.content // empty' or_resp_clean.json 2>/dev/null)
 
-# 요약 없으면 두 번째 메시지 자체를 생략 (실패 알림은 이미 나감)
-[ -n "$SUMMARY" ] || { echo "AI 요약 없음(느림/오류) - 분석 메시지 생략"; exit 0; }
-
-# 두 번째 메시지(원인 분석) 발송
-jq -n --arg title "[$JOB_NAME] #$BUILD_NUMBER 🔍 실패 원인 분석" --arg url "$BUILD_URL" --arg summary "$SUMMARY" '{embeds:[{title:$title, url:$url, description:$summary, color:15158332}]}' > discord_analysis_payload.json 2>/dev/null
-if [ -s discord_analysis_payload.json ]; then
-  curl -sS -H "Content-Type: application/json" -X POST -d @discord_analysis_payload.json "$WEBHOOK" >/dev/null 2>&1 || true
+# 요약 있으면 합본(실패+분석), 없으면 폴백(실패+분석실패) — 어느 쪽이든 실패 알림은 한 번 나감
+if [ -n "$SUMMARY" ]; then
+  send_combined "$(printf '🔍 원인 분석\\n%s' "$SUMMARY")"
+else
+  echo "AI 요약 없음(느림/오류) - 폴백 발송"
+  send_combined "$FALLBACK"
 fi
 '''
         }
     } catch (err) {
-        echo "AI 분석/발송 스킵: ${err.message}"
+        echo "분석/발송 중 오류 - 기본 알림: ${err.message}"
+        try { notifyDiscord('❌ 실패', '15158332') } catch (ignored) { echo "기본 알림도 실패: ${ignored.message}" }
     }
 }
