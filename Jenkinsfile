@@ -305,6 +305,7 @@ else
   send_combined "$FALLBACK"
 fi
 '''
+            }
         }
     } catch (err) {
         echo "분석/발송 중 오류 - 기본 알림: ${err.message}"
