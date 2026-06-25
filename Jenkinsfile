@@ -73,6 +73,8 @@ pipeline {
 
                         # 빌드타임 필수 (번들에 박혀야 프론트가 백엔드 API를 찾음)
                         : "${NEXT_PUBLIC_API_URL:?$ENV_CRED_ID 에 NEXT_PUBLIC_API_URL 누락 - 프론트가 백엔드 API를 못 찾음}"
+                        # 빌드타임 필수 (브라우저가 sales-rader로 직접 호출 - 누락 시 매출 연동(import) 런타임 실패)
+                        : "${NEXT_PUBLIC_SALES_RADER_URL:?$ENV_CRED_ID 에 NEXT_PUBLIC_SALES_RADER_URL 누락 - 매출 데이터 연동 실패}"
 
                         # 런타임 필수 시크릿 (없으면 해당 기능만 런타임에 실패)
                         : "${ANTHROPIC_API_KEY:?$ENV_CRED_ID 에 ANTHROPIC_API_KEY 누락 - OCR(사업자등록증 인식) 런타임 실패}"
@@ -101,10 +103,12 @@ pipeline {
                         set -eu
                         # 필수 변수 존재는 Validate environment 스테이지에서 이미 검증됨
                         NEXT_PUBLIC_API_URL=$(grep -E '^NEXT_PUBLIC_API_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
+                        NEXT_PUBLIC_SALES_RADER_URL=$(grep -E '^NEXT_PUBLIC_SALES_RADER_URL=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
                         NEXT_PUBLIC_S3_HOSTNAME=$(grep -E '^NEXT_PUBLIC_S3_HOSTNAME=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)
 
                         docker build \
                           --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
+                          --build-arg NEXT_PUBLIC_SALES_RADER_URL="$NEXT_PUBLIC_SALES_RADER_URL" \
                           --build-arg NEXT_PUBLIC_S3_HOSTNAME="$NEXT_PUBLIC_S3_HOSTNAME" \
                           -t "$IMAGE_NAME:${PROFILE}-${GIT_SHA}" \
                           -t "$IMAGE_NAME:${PROFILE}-latest" \
@@ -177,12 +181,138 @@ pipeline {
             // 매 빌드 prune은 legacy 빌드 캐시 소스(직전 이미지)까지 dangling으로 지워
             // 캐시를 무력화시킨다. 캐시는 살리고 디스크는 오래된 것만 정리(72h 경과 dangling).
             sh 'docker image prune -f --filter "until=72h"'
+            notifyDiscord('✅ 성공', '3066993')   // green
         }
         failure {
             echo "배포 실패. 직전 이미지로 롤백하려면: docker run ... \"$IMAGE_NAME:${PROFILE}-<직전 SHA>\""
+            notifyBuildFailureWithAnalysis()   // 실패 알림 + AI 원인 분석 합본
         }
         always {
             sh 'docker ps --filter "name=whale-erp-front" || true'
         }
+    }
+}
+
+// pipeline 블록 바깥 — 성공/실패 공용 Discord 알림 함수
+// 웹훅 URL은 Jenkins Credentials(Secret text, ID: discord-webhook)에서만 읽는다(하드코딩 금지).
+def notifyDiscord(String status, String color) {
+    withCredentials([string(credentialsId: 'discord-webhook', variable: 'WEBHOOK')]) {
+        def duration = currentBuild.durationString.replace(' and counting', '')
+        def payload = """
+{
+  "embeds": [{
+    "title": "[${env.JOB_NAME}] #${env.BUILD_NUMBER} ${status}",
+    "url": "${env.BUILD_URL}",
+    "color": ${color},
+    "fields": [
+      {"name": "프로파일", "value": "${env.PROFILE ?: 'N/A'}",    "inline": true},
+      {"name": "브랜치",   "value": "${env.GIT_BRANCH ?: 'N/A'}", "inline": true},
+      {"name": "소요시간", "value": "${duration}",                "inline": true}
+    ]
+  }]
+}
+"""
+        // JSON을 파일로 써서 보냄 — 인라인 -d 는 따옴표/특수문자에서 깨지기 쉬움
+        writeFile file: 'discord_payload.json', text: payload
+        sh 'curl -sS -H "Content-Type: application/json" -X POST -d @discord_payload.json "$WEBHOOK"'
+    }
+}
+
+// pipeline 블록 바깥 — 빌드 실패 시: 콘솔 로그를 AI로 요약해 실패 알림 + 원인 분석을
+// 한 메시지(합본)로 발송. AI가 실패/느려도 같은 임베드에 "분석 실패" 안내를 담아
+// 실패 알림은 반드시 한 번 나가게 한다. 전 구간 try/catch로 빌드 상태에 영향 없음.
+def notifyBuildFailureWithAnalysis() {
+    def duration = currentBuild.durationString.replace(' and counting', '')
+
+    // 콘솔 로그 확보 — rawBuild.getLog 는 In-process Script Approval 1회 승인 필요.
+    //   못 읽으면 분석 없이 기본 실패 알림만.
+    def gotLog = false
+    try {
+        def lines = currentBuild.rawBuild.getLog(300)
+        writeFile file: 'build_raw.log', text: lines.join('\n')
+        gotLog = true
+    } catch (err) {
+        echo "로그 확보 실패(스크립트 승인 필요 가능) - 분석 없이 기본 알림: ${err.message}"
+    }
+    if (!gotLog) {
+        notifyDiscord('❌ 실패', '15158332')
+        return
+    }
+
+    try {
+        withEnv(["BUILD_DURATION=${duration}"]) {
+            withCredentials([
+                string(credentialsId: 'openrouter-api-key', variable: 'OPENROUTER_API_KEY'),
+                string(credentialsId: 'discord-webhook',    variable: 'WEBHOOK')
+            ]) {
+                sh '''
+set +ex   # 기본 -xe 해제: 키 노출 방지(+x) + best-effort 미중단(+e)
+
+# 합본 임베드 발송: 첫 인자=분석 본문(description). 실패/폴백/성공 모두 이 함수로 한 메시지 발송.
+send_combined() {
+  jq -n --arg title "[$JOB_NAME] #$BUILD_NUMBER ❌ 실패" --arg url "${BUILD_URL}console" --arg desc "$1" --arg profile "${PROFILE:-N/A}" --arg branch "${GIT_BRANCH:-N/A}" --arg duration "${BUILD_DURATION:-N/A}" '{embeds:[{title:$title, url:$url, description:$desc, color:15158332, fields:[{name:"프로파일",value:$profile,inline:true},{name:"브랜치",value:$branch,inline:true},{name:"소요시간",value:$duration,inline:true}]}]}' > discord_fail_payload.json 2>/dev/null
+  [ -s discord_fail_payload.json ] && curl -sS -H "Content-Type: application/json" -X POST -d @discord_fail_payload.json "$WEBHOOK" >/dev/null 2>&1 || true
+}
+FALLBACK="🔍 원인 분석 실패(jq/타임아웃/오류) — 콘솔 로그 확인 필요"
+
+# jq 없으면 분석 불가 → 분석 없이 실패 알림만 발송
+command -v jq >/dev/null 2>&1 || { echo "jq 미설치 - 분석 없이 발송"; send_combined "$FALLBACK"; exit 0; }
+
+# 로그 정제: 노이즈 제거 → 마지막 200줄 → 줄당 500자 → 8KB 상한
+grep -vE '^\\[Pipeline\\]|---> (Using cache|Running in|Removed intermediate container)' build_raw.log 2>/dev/null |
+  tail -n 200 |
+  cut -c -500 |
+  head -c 8192 > build_clean.txt
+[ -s build_clean.txt ] || cp build_raw.log build_clean.txt
+
+# 키워드 기반 마스킹 (best-effort)
+sed -E 's/([Bb]earer )[A-Za-z0-9._-]+/\\1***/g; s/(([Pp]assword|[Ss]ecret|[Tt]oken|[Aa]uthorization|[Aa]pi[_-]?[Kk]ey)[[:space:]]*[:=][[:space:]]*)[^[:space:],}]+/\\1***/g' build_clean.txt > build_masked.txt 2>/dev/null || cp build_clean.txt build_masked.txt
+
+# OpenRouter 요청 JSON 생성 — jq --rawfile 로 로그 안전 임베드
+PROMPT='whale-erp-front Jenkins 빌드가 실패했다. 아래는 콘솔 로그의 마지막 부분이다. 실패 원인을 한국어로 간결히 분석하라. 반드시 아래 형식으로 6줄·1000자 이내로 답하라.
+
+원인: (한 줄 요약)
+핵심 에러: (로그에서 근거가 된 실제 메시지 1~2줄)
+제안 조치: (다음 행동 1~2개)
+
+--- 로그 ---
+'
+jq -n --arg prompt "$PROMPT" --rawfile log build_masked.txt '{model:"google/gemma-4-31b-it:free", messages:[{role:"user", content:($prompt + $log)}]}' > or_req.json 2>/dev/null
+[ -s or_req.json ] || { echo "요청 생성 실패 - 분석 없이 발송"; send_combined "$FALLBACK"; exit 0; }
+
+# OpenRouter 호출 — 합본이라 알림이 응답을 기다림(보통 수초). 일시적 429(업스트림 한도)만 짧게 재시도.
+SUMMARY=""
+ATTEMPT=0
+while [ "$ATTEMPT" -lt 3 ]; do
+  ATTEMPT=$((ATTEMPT + 1))
+  HTTP=$(curl --connect-timeout 5 --max-time 45 -sS -w "%{http_code}" -o or_resp.json \
+    -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" \
+    -X POST -d @or_req.json https://openrouter.ai/api/v1/chat/completions 2>/dev/null)
+  if [ "$HTTP" = "429" ]; then
+    echo "429 업스트림 한도 - 재시도 $ATTEMPT/3"
+    sleep 4
+    continue
+  fi
+  break   # 200(또는 타임아웃) → 재시도 무의미, 빠져나감
+done
+
+# keep-alive 패딩(공백/콜론 라인) 제거 후 content 파싱
+grep -vE '^[[:space:]]*$|^:' or_resp.json > or_resp_clean.json 2>/dev/null
+[ -s or_resp_clean.json ] || cp or_resp.json or_resp_clean.json
+SUMMARY=$(jq -r '.choices[0].message.content // empty' or_resp_clean.json 2>/dev/null)
+
+# 요약 있으면 합본(실패+분석), 없으면 폴백(실패+분석실패) — 어느 쪽이든 실패 알림은 한 번 나감
+if [ -n "$SUMMARY" ]; then
+  send_combined "$(printf '🔍 원인 분석\\n%s' "$SUMMARY")"
+else
+  echo "AI 요약 없음(느림/오류) - 폴백 발송"
+  send_combined "$FALLBACK"
+fi
+'''
+            }
+        }
+    } catch (err) {
+        echo "분석/발송 중 오류 - 기본 알림: ${err.message}"
+        try { notifyDiscord('❌ 실패', '15158332') } catch (ignored) { echo "기본 알림도 실패: ${ignored.message}" }
     }
 }
