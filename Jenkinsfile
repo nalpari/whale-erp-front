@@ -181,7 +181,7 @@ pipeline {
         }
         failure {
             echo "배포 실패. 직전 이미지로 롤백하려면: docker run ... \"$IMAGE_NAME:${PROFILE}-<직전 SHA>\""
-            notifyDiscord('❌ 실패', '15158332')   // red
+            notifyBuildFailureWithAnalysis()   // 실패 알림 + AI 원인 분석 합본
         }
         always {
             sh 'docker ps --filter "name=whale-erp-front" || true'
@@ -211,5 +211,93 @@ def notifyDiscord(String status, String color) {
         // JSON을 파일로 써서 보냄 — 인라인 -d 는 따옴표/특수문자에서 깨지기 쉬움
         writeFile file: 'discord_payload.json', text: payload
         sh 'curl -sS -H "Content-Type: application/json" -X POST -d @discord_payload.json "$WEBHOOK"'
+    }
+}
+
+// pipeline 블록 바깥 — 빌드 실패 시: ① 실패 알림 즉시 발송 → ② 콘솔 로그를 AI로 요약해
+// 두 번째 메시지로 분리 발송. 분리 구조라 AI가 느리거나 죽어도 실패 알림은 이미 나갔으므로 무해.
+def notifyBuildFailureWithAnalysis() {
+    // ① 실패 알림 즉시 발송 (지연 무관, 반드시 나감)
+    notifyDiscord('❌ 실패', '15158332')
+
+    // ② 콘솔 로그 확보 — rawBuild.getLog 는 In-process Script Approval 1회 승인 필요.
+    //    못 읽으면 분석만 스킵(실패 알림은 이미 나감).
+    def gotLog = false
+    try {
+        def lines = currentBuild.rawBuild.getLog(300)
+        writeFile file: 'build_raw.log', text: lines.join('\n')
+        gotLog = true
+    } catch (err) {
+        echo "로그 확보 실패(스크립트 승인 필요 가능) - 분석 스킵: ${err.message}"
+    }
+    if (!gotLog) return
+
+    // ③ AI 요약 시도 → 성공 시에만 두 번째 메시지로 발송 (best-effort)
+    try {
+        withCredentials([
+            string(credentialsId: 'openrouter-api-key', variable: 'OPENROUTER_API_KEY'),
+            string(credentialsId: 'discord-webhook',    variable: 'WEBHOOK')
+        ]) {
+            sh '''
+set +ex   # 기본 -xe 해제: 키 노출 방지(+x) + best-effort 미중단(+e)
+
+# jq 없으면 분석 불가 → 그냥 종료(실패 알림은 이미 별도로 나감)
+command -v jq >/dev/null 2>&1 || { echo "jq 미설치 - 분석 스킵"; exit 0; }
+
+# 로그 정제: 노이즈 제거 → 마지막 200줄 → 줄당 500자 → 8KB 상한
+grep -vE '^\\[Pipeline\\]|---> (Using cache|Running in|Removed intermediate container)' build_raw.log 2>/dev/null |
+  tail -n 200 |
+  cut -c -500 |
+  head -c 8192 > build_clean.txt
+[ -s build_clean.txt ] || cp build_raw.log build_clean.txt
+
+# 키워드 기반 마스킹 (best-effort)
+sed -E 's/([Bb]earer )[A-Za-z0-9._-]+/\\1***/g; s/(([Pp]assword|[Ss]ecret|[Tt]oken|[Aa]uthorization|[Aa]pi[_-]?[Kk]ey)[[:space:]]*[:=][[:space:]]*)[^[:space:],}]+/\\1***/g' build_clean.txt > build_masked.txt 2>/dev/null || cp build_clean.txt build_masked.txt
+
+# OpenRouter 요청 JSON 생성 — jq --rawfile 로 로그 안전 임베드
+PROMPT='whale-erp-front Jenkins 빌드가 실패했다. 아래는 콘솔 로그의 마지막 부분이다. 실패 원인을 한국어로 간결히 분석하라. 반드시 아래 형식으로 6줄·1000자 이내로 답하라.
+
+원인: (한 줄 요약)
+핵심 에러: (로그에서 근거가 된 실제 메시지 1~2줄)
+제안 조치: (다음 행동 1~2개)
+
+--- 로그 ---
+'
+jq -n --arg prompt "$PROMPT" --rawfile log build_masked.txt '{model:"google/gemma-4-31b-it:free", messages:[{role:"user", content:($prompt + $log)}]}' > or_req.json 2>/dev/null
+[ -s or_req.json ] || { echo "요청 생성 실패 - 분석 스킵"; exit 0; }
+
+# OpenRouter 호출 — 무료 모델이 느려 전체 90s 대기. 일시적 429(업스트림 한도)만 짧게 재시도.
+SUMMARY=""
+ATTEMPT=0
+while [ "$ATTEMPT" -lt 3 ]; do
+  ATTEMPT=$((ATTEMPT + 1))
+  HTTP=$(curl --connect-timeout 5 --max-time 90 -sS -w "%{http_code}" -o or_resp.json \
+    -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" \
+    -X POST -d @or_req.json https://openrouter.ai/api/v1/chat/completions 2>/dev/null)
+  if [ "$HTTP" = "429" ]; then
+    echo "429 업스트림 한도 - 재시도 $ATTEMPT/3"
+    sleep 4
+    continue
+  fi
+  break   # 200(또는 타임아웃) → 재시도 무의미, 빠져나감
+done
+
+# keep-alive 패딩(공백/콜론 라인) 제거 후 content 파싱
+grep -vE '^[[:space:]]*$|^:' or_resp.json > or_resp_clean.json 2>/dev/null
+[ -s or_resp_clean.json ] || cp or_resp.json or_resp_clean.json
+SUMMARY=$(jq -r '.choices[0].message.content // empty' or_resp_clean.json 2>/dev/null)
+
+# 요약 없으면 두 번째 메시지 자체를 생략 (실패 알림은 이미 나감)
+[ -n "$SUMMARY" ] || { echo "AI 요약 없음(느림/오류) - 분석 메시지 생략"; exit 0; }
+
+# 두 번째 메시지(원인 분석) 발송
+jq -n --arg title "[$JOB_NAME] #$BUILD_NUMBER 🔍 실패 원인 분석" --arg url "$BUILD_URL" --arg summary "$SUMMARY" '{embeds:[{title:$title, url:$url, description:$summary, color:15158332}]}' > discord_analysis_payload.json 2>/dev/null
+if [ -s discord_analysis_payload.json ]; then
+  curl -sS -H "Content-Type: application/json" -X POST -d @discord_analysis_payload.json "$WEBHOOK" >/dev/null 2>&1 || true
+fi
+'''
+        }
+    } catch (err) {
+        echo "AI 분석/발송 스킵: ${err.message}"
     }
 }
