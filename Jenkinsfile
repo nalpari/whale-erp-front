@@ -177,12 +177,39 @@ pipeline {
             // 매 빌드 prune은 legacy 빌드 캐시 소스(직전 이미지)까지 dangling으로 지워
             // 캐시를 무력화시킨다. 캐시는 살리고 디스크는 오래된 것만 정리(72h 경과 dangling).
             sh 'docker image prune -f --filter "until=72h"'
+            notifyDiscord('✅ 성공', '3066993')   // green
         }
         failure {
             echo "배포 실패. 직전 이미지로 롤백하려면: docker run ... \"$IMAGE_NAME:${PROFILE}-<직전 SHA>\""
+            notifyDiscord('❌ 실패', '15158332')   // red
         }
         always {
             sh 'docker ps --filter "name=whale-erp-front" || true'
         }
+    }
+}
+
+// pipeline 블록 바깥 — 성공/실패 공용 Discord 알림 함수
+// 웹훅 URL은 Jenkins Credentials(Secret text, ID: discord-webhook)에서만 읽는다(하드코딩 금지).
+def notifyDiscord(String status, String color) {
+    withCredentials([string(credentialsId: 'discord-webhook', variable: 'WEBHOOK')]) {
+        def duration = currentBuild.durationString.replace(' and counting', '')
+        def payload = """
+{
+  "embeds": [{
+    "title": "[${env.JOB_NAME}] #${env.BUILD_NUMBER} ${status}",
+    "url": "${env.BUILD_URL}",
+    "color": ${color},
+    "fields": [
+      {"name": "프로파일", "value": "${env.PROFILE ?: 'N/A'}",    "inline": true},
+      {"name": "브랜치",   "value": "${env.GIT_BRANCH ?: 'N/A'}", "inline": true},
+      {"name": "소요시간", "value": "${duration}",                "inline": true}
+    ]
+  }]
+}
+"""
+        // JSON을 파일로 써서 보냄 — 인라인 -d 는 따옴표/특수문자에서 깨지기 쉬움
+        writeFile file: 'discord_payload.json', text: payload
+        sh 'curl -sS -H "Content-Type: application/json" -X POST -d @discord_payload.json "$WEBHOOK"'
     }
 }
