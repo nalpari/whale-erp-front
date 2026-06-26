@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getErrorMessage } from '@/lib/api'
 import { useDailySaleDetail } from '@/hooks/queries/use-sales-queries'
-import { CARD_COMPANY_OPTIONS, type CardCompanyCode } from '@/types/sales'
+import { CARD_COMPANY_OPTIONS, isEtcCardCompany, type CardCompanyCode } from '@/types/sales'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
 
@@ -33,10 +33,12 @@ export default function DailySaleDetail() {
   const selectedLabel = CARD_COMPANY_OPTIONS.find((o) => o.code === cardCompanyCode)?.label ?? '전체'
   const totalSaleAmount = items.reduce((sum, it) => sum + it.saleAmount, 0)
 
-  // 매입사가 '기타'(관리 외, code 'ETC')인 행은 맨 아래로. 그 외는 백엔드 정렬 순서 유지(JS sort는 안정적).
-  // 현지화된 표시명(cardCompanyName) 대신 변하지 않는 코드로 비교해 라벨 변경에 영향받지 않게 한다.
+  // 매입사가 '기타'(관리 외 미식별 매입사)인 행은 맨 아래로. 그 외는 백엔드 정렬 순서 유지(JS sort는 안정적).
+  // 백엔드는 기타 건도 원본 코드(예: 토스페이 '8300')를 유지하므로 'ETC' 직접 비교가 아니라
+  // 관리 코드 집합 기준으로 판정한다(isEtcCardCompany). 라벨 변경·신규 미식별 코드에도 견고.
   const sortedItems = [...items].sort(
-    (a, b) => (a.cardCompanyCode === 'ETC' ? 1 : 0) - (b.cardCompanyCode === 'ETC' ? 1 : 0),
+    (a, b) =>
+      Number(isEtcCardCompany(a.cardCompanyCode)) - Number(isEtcCardCompany(b.cardCompanyCode)),
   )
 
   return (

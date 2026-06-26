@@ -9,6 +9,8 @@ import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-opt
 import { useAuthStore } from '@/stores/auth-store'
 import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
+import { getErrorMessage } from '@/lib/api'
+import { isAxiosError } from 'axios'
 import type {
   PostEmployeeInfoRequest,
   WorkplaceType,
@@ -330,7 +332,17 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       onSuccess?.()
       onClose()
     } catch (err) {
-      await alert(err instanceof Error ? err.message : 'API 요청 중 오류가 발생했습니다.')
+      // 백엔드 에러 코드별 분기 — 알려진 코드는 사용자 친화 문구, 그 외는 백엔드 메시지 노출
+      const code = isAxiosError<{ code?: string }>(err) ? err.response?.data?.code : undefined
+      if (code === 'ERR8002') {
+        // 이미 사용 중인 이메일 (본사+가맹점+점포 조합 기준 중복)
+        await alert('이미 등록된 이메일입니다. 기존 직원을 확인해주세요.')
+      } else if (code === 'ERR1001') {
+        // 데이터 무결성 오류(사번 채번 충돌 등) — 일시적 오류로 안내
+        await alert('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+      } else {
+        await alert(getErrorMessage(err))
+      }
     }
   }
 
