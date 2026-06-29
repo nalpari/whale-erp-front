@@ -9,7 +9,7 @@ import { filterStoreOptionsByOwner, type StoreOwnerType } from '@/util/store-opt
 import { useAuthStore } from '@/stores/auth-store'
 import { useAccountPolicy } from '@/hooks/use-account-policy'
 import { useCreateEmployee } from '@/hooks/queries/use-employee-queries'
-import { getErrorMessage } from '@/lib/api'
+import { getErrorMessage, getSafeErrorLog } from '@/lib/api'
 import { isAxiosError } from 'axios'
 import type {
   PostEmployeeInfoRequest,
@@ -332,8 +332,9 @@ export default function StaffInvitationPop({ isOpen, onClose, onSuccess }: Staff
       onSuccess?.()
       onClose()
     } catch (err) {
-      // 사용자 문구 분기와 별개로 원본 에러를 보존해 디버깅 단서를 남긴다(서버 code/상태/스택)
-      console.error('직원 초대 실패:', err)
+      // 원본 AxiosError 를 그대로 넘기면 config.headers(토큰)와 config.data(직원 PII)가
+      // 콘솔/로그 수집 도구에 남는다. status/code/message 만 추려 안전하게 로깅한다.
+      console.error('직원 초대 실패:', getSafeErrorLog(err))
       // 백엔드 에러 코드별 분기 — 알려진 코드는 사용자 친화 문구, 그 외는 백엔드 메시지 노출
       const code = isAxiosError<{ code?: string }>(err) ? err.response?.data?.code : undefined
       if (code === 'ERR8002') {
