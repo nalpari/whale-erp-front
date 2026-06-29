@@ -37,7 +37,7 @@ export default function ProgramList() {
     openModal,
     closeModal,
     handleSubmit,
-    handleDelete, // eslint-disable-line @typescript-eslint/no-unused-vars -- 기획에 없어 현재 미사용
+    handleDelete,
     handleReorder,
     findProgramParents,
   } = useProgram()
@@ -118,8 +118,11 @@ export default function ProgramList() {
                 aria-label="메뉴 수정"
                 onClick={() => openModal('edit', program)}
               ></button>
-              {/* 삭제 기능 - 기획에 없어 주석 처리 */}
-              {/* <button className="depth-btn delete" onClick={() => program.id && handleDelete(program.id, program.name)}></button> */}
+              <button
+                className="depth-btn delete"
+                aria-label="메뉴 삭제"
+                onClick={() => program.id && handleDelete(program.id, program.name)}
+              ></button>
             </div>
           </div>
         </div>
