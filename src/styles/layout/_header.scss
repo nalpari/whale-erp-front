@@ -251,28 +251,32 @@ header {
   border: 1px solid #ebebeb;
   width: 100%;
   border-radius: 28px;
-  padding: 24px 0;
+  padding: 24px 10px;
   .service-menu-list-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-
-    &:hover {
-      .service-item-name {
-        font-weight: 500;
-        color: #222;
+    &.ready{
+      cursor: default;
+      .service-item-icon{
+        border: 1px solid #ebebeb;
+        background-color: #fff;
+      }
+      .service-item-name{
+        color: #9F9F9F;
       }
     }
   }
   .service-item-icon {
     display: flex;
-    border: 1px solid #ebebeb;
-    background-color: #fff;
+    border: 1px solid #4F4F4F;
+    background-color: #4F4F4F;
     border-radius: 10px;
+    padding: 10px;
   }
   .service-item-name {
     @include fontDefinition($font-ds-14, $font-w-400, $line-h-140);
-    color: #666;
+    color: #4F4F4F;
     margin-top: 8px;
     transition: all 0.15s ease-in-out;
   }

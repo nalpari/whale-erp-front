@@ -57,11 +57,14 @@
   align-items: center;
   padding-top: 36px;
   .lnb-menu-icon {
+    position: relative;
     width: 60px;
     height: 60px;
     background-color: #1a2129;
-    padding: 17px;
     border-radius: 50%;
+    img{
+      @include absoluteCenter;
+    }
   }
   .lnb_menu_name {
     @include fontDefinition($font-ds-20, $font-w-700, $line-h-140);
