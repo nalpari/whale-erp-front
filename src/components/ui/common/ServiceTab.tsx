@@ -25,12 +25,18 @@ export default function ServiceTab({
       </div>
       <AnimateHeight duration={200} height={tabOpen ? 'auto' : 0} animateOpacity>
         <div className="service-menu-list-wrap">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <button className="service-menu-list-item" key={index}>
+          <button className="service-menu-list-item" >
+            <div className="service-item-icon">
+              <Image src="/assets/images/common/staff_service.svg" alt="" fill />
+            </div>
+            <div className="service-item-name">직원관리</div>
+          </button>
+          {Array.from({ length: 7 }).map((_, index) => (
+            <button className="service-menu-list-item ready" key={index}>
               <div className="service-item-icon">
-                <Image src="/assets/images/common/service_icon01.svg" alt="" fill />
+                <Image src="/assets/images/common/service_icon_ready.svg" alt="" fill />
               </div>
-              <div className="service-item-name">서비스명</div>
+              <div className="service-item-name">준비중</div>
             </button>
           ))}
         </div>

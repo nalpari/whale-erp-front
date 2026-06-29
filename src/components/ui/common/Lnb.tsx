@@ -133,7 +133,11 @@ export default function Lnb({
       </div>
       <div className="lnb-menu-info">
         <div className="lnb-menu-icon">
-          <Image src="/assets/images/ui/lnb_menu_img01.svg" alt="menu" fill />
+          {menuType === 'support' ? (
+            <Image src="/assets/images/ui/lnb_menu_tit02.svg" alt="menu" width={34} height={34} />
+          ) : (
+            <Image src="/assets/images/ui/lnb_menu_tit.svg" alt="menu" width={36} height={27} />
+          )}
         </div>
         <div className="lnb_menu_name">{menuType === 'support' ? '고객지원' : '파트너 오피스'}</div>
         {menuType !== 'support' && (
