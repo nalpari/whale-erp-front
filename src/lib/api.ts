@@ -24,6 +24,33 @@ export function getErrorMessage(error: unknown, fallback = '알 수 없는 오�
 }
 
 /**
+ * 에러를 콘솔/로그 수집 도구에 남길 때 사용할 안전한 요약 객체를 만든다.
+ *
+ * 원본 AxiosError 를 그대로 로깅하면 `error.config` 안의 `headers`(Authorization/affiliationId)
+ * 와 `data`(요청 본문 = 직원 PII 등)가 함께 노출된다. 따라서 디버깅에 필요한
+ * `status`, 백엔드 `code`, 안전한 `message` 만 추려서 반환하고
+ * `config`/`headers`/`data` 는 명시적으로 제외한다.
+ */
+export function getSafeErrorLog(error: unknown): {
+  status?: number;
+  code?: string;
+  message: string;
+} {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { code?: string; message?: string } | undefined;
+    return {
+      status: error.response?.status,
+      code: data?.code,
+      message: data?.message ?? error.message,
+    };
+  }
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+  return { message: String(error) };
+}
+
+/**
  * /api/auth/ 하위 경로 중 JWT 인증이 필요한 (= public auth 가 아닌) endpoint 목록.
  *
  * - public auth endpoint (login/refresh/find-login-id 등) 는 JWT 를 자동 첨부하지 않고,

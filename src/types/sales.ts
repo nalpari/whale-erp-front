@@ -34,3 +34,17 @@ export const CARD_COMPANY_OPTIONS = [
  * 좁힘은 값 집합을 클라이언트가 통제하는 이 필터 코드에만 적용한다.
  */
 export type CardCompanyCode = (typeof CARD_COMPANY_OPTIONS)[number]['code']
+
+/** 관리(식별) 매입사 코드 집합 — 라디오 옵션 중 '전체'('')·'기타'('ETC') 제외 */
+const MANAGED_CARD_COMPANY_CODES = new Set<string>(
+  CARD_COMPANY_OPTIONS.filter((o) => o.code && o.code !== 'ETC').map((o) => o.code),
+)
+
+/**
+ * 응답 row가 '기타' 매입사인지 판정한다.
+ * 백엔드는 미식별 매입사(토스페이 등)도 원본 코드(예: '8300')를 유지한 채 cardCompanyName만 '기타'로 내려준다.
+ * 따라서 코드를 'ETC'(요청 필터 키)와 직접 비교하면 안 되고, 관리 코드 집합에 없으면 기타로 본다.
+ * 표시명(cardCompanyName) 대신 코드 집합으로 판정해 라벨 변경·신규 미식별 코드 유입에 견고하게 한다.
+ */
+export const isEtcCardCompany = (cardCompanyCode: string) =>
+  !MANAGED_CARD_COMPANY_CODES.has(cardCompanyCode)

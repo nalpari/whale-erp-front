@@ -355,9 +355,24 @@ export default function DailySales() {
           onClick={() => !importMutation.isPending && closeImport()}
         >
           <div
-            style={{ background: '#fff', borderRadius: '8px', padding: '24px', width: '460px', maxWidth: '90vw' }}
+            style={{ position: 'relative', background: '#fff', borderRadius: '8px', padding: '24px', width: '460px', maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* 우측 상단 닫기 버튼 */}
+            <button
+              type="button"
+              aria-label="닫기"
+              onClick={closeImport}
+              disabled={importMutation.isPending}
+              style={{
+                position: 'absolute', top: '12px', right: '12px',
+                width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', background: 'transparent', fontSize: '20px', lineHeight: 1, color: '#6b7280',
+                cursor: importMutation.isPending ? 'not-allowed' : 'pointer',
+              }}
+            >
+              ×
+            </button>
             <strong style={{ display: 'block', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
               데이터 가져오기
             </strong>
