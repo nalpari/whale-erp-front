@@ -120,7 +120,16 @@ export default function RatePlan() {
     }
 
     const planLabel = RATE_PLANS.find((p) => p.id === planFrontId)?.grade ?? planFrontId
-    const confirmed = await confirm(`${planLabel} 요금제를 구독하시겠습니까?`)
+
+    // 다운그레이드(하위 요금제로 변경) 판정: RATE_PLANS 순서(free<standard<enterprise<franchise) 인덱스 비교
+    const targetIndex = RATE_PLANS.findIndex((p) => p.id === planFrontId)
+    const currentIndex = subscribedPlanId ? RATE_PLANS.findIndex((p) => p.id === subscribedPlanId) : -1
+    const isDowngrade = currentIndex >= 0 && targetIndex >= 0 && targetIndex < currentIndex
+
+    const confirmMessage = isDowngrade
+      ? `${planLabel} 요금제로 변경하시겠습니까? 하위 요금제로 변경 시 기존 초과분은 유지되나 신규 등록이 제한됩니다.`
+      : `${planLabel} 요금제를 구독하시겠습니까?`
+    const confirmed = await confirm(confirmMessage)
     if (!confirmed) return
 
     try {
@@ -154,18 +163,40 @@ export default function RatePlan() {
                 <span>/월</span>
               </div>
               <div className="plan-btn-wrap">
+                {/*
+                  ⚠️ 결제 시스템 미구현 — 테스트를 위해 Free 외 요금제
+                  (Standard/Enterprise/Franchise)의 '준비중' 비활성 처리를 임시 해제하고
+                  모든 요금제를 '구독 하기'로 노출한다. (handleSubscribe / useSubscribePlan은
+                  PLAN_DB_ID_MAP에 4개 플랜이 모두 매핑되어 있어 그대로 동작한다.)
+                  결제 시스템 도입 시 아래 분기를 다시 복원할 것:
+
+                  {subscribedPlanId === plan.id ? (
+                    <div className="service-btn block use-plan">이용중</div>
+                  ) : plan.id !== 'free' ? (
+                    <button
+                      type="button"
+                      className="service-btn block"
+                      style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                      disabled
+                    >
+                      준비중
+                      <i className="icon-subscribe" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="service-btn block"
+                      style={{ cursor: 'pointer' }}
+                      disabled={subscribeMutation.isPending}
+                      onClick={() => handleSubscribe(plan.id)}
+                    >
+                      구독 하기
+                      <i className="icon-subscribe" />
+                    </button>
+                  )}
+                */}
                 {subscribedPlanId === plan.id ? (
                   <div className="service-btn block use-plan">이용중</div>
-                ) : plan.id !== 'free' ? (
-                  <button
-                    type="button"
-                    className="service-btn block"
-                    style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                    disabled
-                  >
-                    준비중
-                    <i className="icon-subscribe" />
-                  </button>
                 ) : (
                   <button
                     type="button"
