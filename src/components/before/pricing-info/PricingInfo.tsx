@@ -113,8 +113,8 @@ export default function PricingInfo() {
                     </div>
                     <div className="plan-btn-wrap">
                       {/*
-                        ⚠️ 결제 시스템 미구현 — 테스트를 위해 Free 외 요금제의 '준비중' 비활성 처리를
-                        임시 해제하고 모든 요금제를 '구독 하기'(로그인 → /customer/rate-plan)로 노출한다.
+                        ⚠️ 결제 시스템 미구현 — 테스트를 위해 Free 외 요금제의 비활성(disabled) '구독 하기'
+                        처리를 임시 해제하고 모든 요금제를 활성 '구독 하기'(로그인 → /customer/rate-plan)로 노출한다.
                         결제 시스템 도입 시 아래 원복분으로 복원할 것:
 
                         {plan.isCurrentPlan ? (

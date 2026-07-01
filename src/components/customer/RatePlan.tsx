@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSubscribePlan } from '@/hooks/queries/use-plans-queries'
 import { useAlert } from '@/components/common/ui'
+import { getErrorMessage, getSafeErrorLog } from '@/lib/api'
 
 /**
  * 프론트 요금제 ID → subscription_plans.id 하드코딩 매핑
@@ -12,6 +13,18 @@ import { useAlert } from '@/components/common/ui'
 const PLAN_DB_ID_MAP: Record<string, number> = {
   free: 1,
   standard: 4,
+  enterprise: 2,
+  franchise: 3,
+}
+
+/**
+ * 요금제 등급 서열 (숫자가 클수록 상위 플랜).
+ * 다운그레이드 판정에 사용 — RATE_PLANS의 화면 표시 순서와 분리해 관리한다.
+ * (RATE_PLANS 배열을 재정렬해도 등급 서열 판정이 영향받지 않도록 함)
+ */
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  standard: 1,
   enterprise: 2,
   franchise: 3,
 }
@@ -116,15 +129,24 @@ export default function RatePlan() {
     const dbId = PLAN_DB_ID_MAP[planFrontId]
     if (dbId == null) {
       console.error(`[RatePlan] PLAN_DB_ID_MAP에 "${planFrontId}" 키가 없습니다.`)
+      await alert('선택하신 요금제를 처리할 수 없습니다. 관리자에게 문의해주세요.')
       return
     }
 
     const planLabel = RATE_PLANS.find((p) => p.id === planFrontId)?.grade ?? planFrontId
 
-    // 다운그레이드(하위 요금제로 변경) 판정: RATE_PLANS 순서(free<standard<enterprise<franchise) 인덱스 비교
-    const targetIndex = RATE_PLANS.findIndex((p) => p.id === planFrontId)
-    const currentIndex = subscribedPlanId ? RATE_PLANS.findIndex((p) => p.id === subscribedPlanId) : -1
-    const isDowngrade = currentIndex >= 0 && targetIndex >= 0 && targetIndex < currentIndex
+    // 다운그레이드(하위 요금제로 변경) 판정: PLAN_RANK 서열(free<standard<enterprise<franchise) 비교
+    const targetRank = PLAN_RANK[planFrontId] ?? -1
+    const currentRank = subscribedPlanId ? PLAN_RANK[subscribedPlanId] ?? -1 : -1
+
+    // 구독 플랜은 있는데 서열을 못 찾으면 데이터 불일치 — 조용히 넘기지 않고 로깅한다
+    if (subscribedPlanId && currentRank < 0) {
+      console.error(
+        `[RatePlan] 현재 구독 플랜 "${subscribedPlanId}"의 서열을 PLAN_RANK에서 찾을 수 없어 다운그레이드 판정을 건너뜁니다.`
+      )
+    }
+
+    const isDowngrade = currentRank >= 0 && targetRank >= 0 && targetRank < currentRank
 
     const confirmMessage = isDowngrade
       ? `${planLabel} 요금제로 변경하시겠습니까? 하위 요금제로 변경 시 기존 초과분은 유지되나 신규 등록이 제한됩니다.`
@@ -136,8 +158,8 @@ export default function RatePlan() {
       await subscribeMutation.mutateAsync(dbId)
       await alert('요금제 구독이 완료되었습니다.')
     } catch (err) {
-      console.error('[RatePlan] 구독 실패:', err)
-      await alert('요금제 구독에 실패했습니다. 다시 시도해주세요.')
+      console.error('[RatePlan] 구독 실패:', getSafeErrorLog(err))
+      await alert(getErrorMessage(err, '요금제 구독에 실패했습니다. 다시 시도해주세요.'))
     }
   }
 
