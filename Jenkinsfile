@@ -62,6 +62,46 @@ pipeline {
             }
         }
 
+        // 디스크가 빠듯(28G/87%)해서 빌드 "전"에 옛 이미지를 먼저 정리한다.
+        // 디스크 누수 주범: 매 빌드가 ${PROFILE}-${SHA} 태그를 남기는데, 이 태그 이미지들은
+        //   dangling이 아니라서 `docker image prune`(post.success에 있던 것)으로는 안 지워진다.
+        // 정책: 프로파일당 최신 2개(현재 실행 + 롤백 1세대)만 남기고 나머지 SHA 태그 삭제.
+        //   - dev/prod 둘 다 정리(각자 2개 유지) → 어느 프로파일로 빌드하든 양쪽 다 정돈
+        //   - 실행 중/롤백 이미지는 docker rmi가 거부하므로 안전. 전 구간 best-effort(|| true).
+        //   - 이미지 정리 후에도 여유 < 4G면 빌드 캐시까지 정리(안전밸브). 평상시엔 캐시 보존.
+        stage('Cleanup old images') {
+            steps {
+                sh '''
+                    set -u   # -e 미사용: 정리 실패가 배포를 막지 않도록 best-effort
+
+                    for prof in dev prod; do
+                      # docker images는 기본 최신순 출력 → -latest 제외 후 3번째부터(=오래된 것) 삭제
+                      docker images --filter "reference=${IMAGE_NAME}:${prof}-*" --format '{{.Tag}}' \
+                        | grep -v 'latest$' \
+                        | tail -n +3 \
+                        | while read -r tag; do
+                            echo "🧹 오래된 이미지 삭제: ${IMAGE_NAME}:${tag}"
+                            docker rmi "${IMAGE_NAME}:${tag}" 2>/dev/null || true
+                          done
+                    done
+
+                    # dangling(태그 없는) 이미지 정리 — 캐시 소스 보호 위해 72h 경과분만 (기존 post.success 로직 흡수)
+                    docker image prune -f --filter "until=72h" || true
+
+                    # 안전밸브: 이미지 정리 후에도 여유가 부족하면 빌드 캐시까지 희생
+                    AVAIL_KB=$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2{print $4}')
+                    [ -n "${AVAIL_KB:-}" ] || AVAIL_KB=$(df -P / | awk 'NR==2{print $4}')
+                    if [ "${AVAIL_KB:-0}" -lt 4194304 ]; then   # 4GB = 4*1024*1024 KB
+                      echo "⚠️  디스크 여유 4GB 미만 → 빌드 캐시까지 정리(안전밸브 발동)"
+                      docker builder prune -f || true
+                    fi
+
+                    echo "✅ 이미지 정리 완료"
+                    docker system df || true
+                '''
+            }
+        }
+
         // 빌드/배포 전에 선택한 프로파일의 env 파일에 필수 변수가 있는지 먼저 검증한다.
         // "빌드는 됐는데 OCR·사업자검증만 런타임에 깨지는" 사고를 빌드 전에 차단.
         stage('Validate environment') {
@@ -178,9 +218,7 @@ pipeline {
 
     post {
         success {
-            // 매 빌드 prune은 legacy 빌드 캐시 소스(직전 이미지)까지 dangling으로 지워
-            // 캐시를 무력화시킨다. 캐시는 살리고 디스크는 오래된 것만 정리(72h 경과 dangling).
-            sh 'docker image prune -f --filter "until=72h"'
+            // 이미지/캐시 정리는 빌드 전 'Cleanup old images' 스테이지로 이동(디스크 꽉 차서 빌드 실패하는 상황 예방).
             notifyDiscord('✅ 성공', '3066993')   // green
         }
         failure {
