@@ -112,16 +112,29 @@ export default function PricingInfo() {
                       <span>/월</span>
                     </div>
                     <div className="plan-btn-wrap">
+                      {/*
+                        ⚠️ 결제 시스템 미구현 — 테스트를 위해 Free 외 요금제의 '준비중' 비활성 처리를
+                        임시 해제하고 모든 요금제를 '구독 하기'(로그인 → /customer/rate-plan)로 노출한다.
+                        결제 시스템 도입 시 아래 원복분으로 복원할 것:
+
+                        {plan.isCurrentPlan ? (
+                          <div className="service-btn block use-plan">이용중</div>
+                        ) : plan.grade === 'Free' ? (
+                          <Link href="/login?returnUrl=/customer/rate-plan" className="service-btn block">
+                            구독 하기 <i className="icon-subscribe" />
+                          </Link>
+                        ) : (
+                          <button type="button" className="service-btn block" disabled>
+                            구독 하기 <i className="icon-subscribe" />
+                          </button>
+                        )}
+                      */}
                       {plan.isCurrentPlan ? (
                         <div className="service-btn block use-plan">이용중</div>
-                      ) : plan.grade === 'Free' ? (
+                      ) : (
                         <Link href="/login?returnUrl=/customer/rate-plan" className="service-btn block">
                           구독 하기 <i className="icon-subscribe" />
                         </Link>
-                      ) : (
-                        <button type="button" className="service-btn block" disabled>
-                          구독 하기 <i className="icon-subscribe" />
-                        </button>
                       )}
                     </div>
                   </div>
