@@ -139,6 +139,14 @@ export default function RatePlan() {
     const targetRank = PLAN_RANK[planFrontId] ?? -1
     const currentRank = subscribedPlanId ? PLAN_RANK[subscribedPlanId] ?? -1 : -1
 
+    // 대상 플랜 서열을 못 찾으면 PLAN_DB_ID_MAP↔PLAN_RANK 상수 불일치 —
+    // dbId 검사는 통과했으므로 두 상수의 키 누락을 의미한다. 조용히 넘기지 않고 로깅한다.
+    if (targetRank < 0) {
+      console.error(
+        `[RatePlan] 대상 플랜 "${planFrontId}"의 서열을 PLAN_RANK에서 찾을 수 없어 다운그레이드 판정을 건너뜁니다.`
+      )
+    }
+
     // 구독 플랜은 있는데 서열을 못 찾으면 데이터 불일치 — 조용히 넘기지 않고 로깅한다
     if (subscribedPlanId && currentRank < 0) {
       console.error(
