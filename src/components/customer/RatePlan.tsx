@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSubscribePlan } from '@/hooks/queries/use-plans-queries'
 import { useAlert } from '@/components/common/ui'
@@ -115,8 +115,24 @@ const DB_ID_TO_PLAN_MAP: Record<number, string> = Object.fromEntries(
   Object.entries(PLAN_DB_ID_MAP).map(([frontId, dbId]) => [dbId, frontId])
 )
 
+/**
+ * auth store(persist) 복원 완료 여부를 리액티브하게 구독한다.
+ * hydration 전에는 accountType 등 persist 값이 초기값(null)이므로,
+ * 이 값이 false인 동안 구독 버튼을 비활성화해 무응답 클릭을 방지한다.
+ * (useEffect+setState 없이 useSyncExternalStore로 구독 — React Compiler set-state-in-effect 규칙 준수)
+ */
+function useAuthHydrated(): boolean {
+  return useSyncExternalStore(
+    (cb) => useAuthStore.persist.onFinishHydration(cb),
+    () => useAuthStore.persist.hasHydrated(),
+    () => false
+  )
+}
+
 export default function RatePlan() {
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
+  const accountType = useAuthStore((state) => state.accountType)
+  const hydrated = useAuthHydrated()
   const subscribeMutation = useSubscribePlan()
   const { alert, confirm } = useAlert()
 
@@ -126,6 +142,20 @@ export default function RatePlan() {
   }, [subscriptionPlan])
 
   const handleSubscribe = async (planFrontId: string) => {
+    // 버튼은 hydration 전 disabled 이므로 여기 도달 시엔 persist 복원이 끝난 상태다.
+    // 그럼에도 accountType 이 null 이면 BE 미반환/세션 스큐로 계정 유형이 확정되지 않은 것 —
+    // 조용히 무시하면 클릭이 무응답으로 끝나므로, 재로그인 안내 후 반환한다.
+    if (accountType == null) {
+      await alert('계정 정보를 확인할 수 없습니다. 다시 로그인한 뒤 시도해주세요.')
+      return
+    }
+    // 본사 BP만 요금제 선택 가능 — 백엔드 가드(ERR10005)와 동일 정책을 FE에서 선차단해
+    // 불필요한 confirm → subscribe API → 403 왕복을 제거한다. (백엔드 가드는 최종 방어선으로 유지)
+    if (accountType !== 'HEAD_OFFICE') {
+      await alert('본사 BP 계정만 요금제를 선택할 수 있습니다.')
+      return
+    }
+
     const dbId = PLAN_DB_ID_MAP[planFrontId]
     if (dbId == null) {
       console.error(`[RatePlan] PLAN_DB_ID_MAP에 "${planFrontId}" 키가 없습니다.`)
@@ -228,14 +258,19 @@ export default function RatePlan() {
                 {subscribedPlanId === plan.id ? (
                   <div className="service-btn block use-plan">이용중</div>
                 ) : (
+                  // hydration 완료 전에는 accountType 미확정이므로 버튼을 비활성화해
+                  // 무응답 클릭을 방지한다. (mutation 진행 중에도 동일하게 비활성화)
                   <button
                     type="button"
                     className="service-btn block"
-                    style={{ cursor: 'pointer' }}
-                    disabled={subscribeMutation.isPending}
+                    style={{
+                      cursor: !hydrated || subscribeMutation.isPending ? 'not-allowed' : 'pointer',
+                      opacity: !hydrated || subscribeMutation.isPending ? 0.6 : 1,
+                    }}
+                    disabled={!hydrated || subscribeMutation.isPending}
                     onClick={() => handleSubscribe(plan.id)}
                   >
-                    구독 하기
+                    {hydrated ? '구독 하기' : '불러오는 중'}
                     <i className="icon-subscribe" />
                   </button>
                 )}
