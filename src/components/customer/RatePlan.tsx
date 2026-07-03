@@ -117,6 +117,7 @@ const DB_ID_TO_PLAN_MAP: Record<number, string> = Object.fromEntries(
 
 export default function RatePlan() {
   const subscriptionPlan = useAuthStore((state) => state.subscriptionPlan)
+  const accountType = useAuthStore((state) => state.accountType)
   const subscribeMutation = useSubscribePlan()
   const { alert, confirm } = useAlert()
 
@@ -126,6 +127,13 @@ export default function RatePlan() {
   }, [subscriptionPlan])
 
   const handleSubscribe = async (planFrontId: string) => {
+    // 본사 BP만 요금제 선택 가능 — 백엔드 가드(ERR10005)와 동일 정책을 FE에서 선차단해
+    // 불필요한 confirm → subscribe API → 403 왕복을 제거한다. (백엔드 가드는 최종 방어선으로 유지)
+    if (accountType !== 'HEAD_OFFICE') {
+      await alert('본사 BP 계정만 요금제를 선택할 수 있습니다.')
+      return
+    }
+
     const dbId = PLAN_DB_ID_MAP[planFrontId]
     if (dbId == null) {
       console.error(`[RatePlan] PLAN_DB_ID_MAP에 "${planFrontId}" 키가 없습니다.`)
