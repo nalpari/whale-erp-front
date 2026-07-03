@@ -127,6 +127,8 @@ export default function RatePlan() {
   }, [subscriptionPlan])
 
   const handleSubscribe = async (planFrontId: string) => {
+    // accountType 이 null 이면 persist hydration 전 또는 BE 미반환 → 계정 유형 미확정이므로 선차단 보류
+    if (accountType == null) return
     // 본사 BP만 요금제 선택 가능 — 백엔드 가드(ERR10005)와 동일 정책을 FE에서 선차단해
     // 불필요한 confirm → subscribe API → 403 왕복을 제거한다. (백엔드 가드는 최종 방어선으로 유지)
     if (accountType !== 'HEAD_OFFICE') {
